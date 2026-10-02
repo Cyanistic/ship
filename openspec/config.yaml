@@ -1,0 +1,58 @@
+schema: spec-driven
+
+context: |
+  Every change in this repository is planned as vertical slices.
+  A vertical slice crosses all necessary layers from real input to observable output.
+  Each slice must be runnable and verifiable on its own.
+  Treat slices as implementation checkpoints, not technical layers.
+
+rules:
+  design:
+    - "Describe the implementation as vertical slices."
+    - "Do not organize the design only by technical layers."
+
+  tasks:
+    - "ALWAYS organize top-level task groups as vertical slices."
+    - "Each numbered task group MUST cross from input to observable output."
+    - "Each slice MUST include implementation, integration or wiring, and verification."
+    - "Do not group top-level tasks as all data, all model, or all reporting work."
+    - "Every slice MUST end with a real command, artifact, or observable behavior."
+    - "Audit every task group for horizontal structure before finalizing tasks.md."
+
+operations:
+  apply:
+    guidance:
+      - "Implement one vertical slice at a time."
+      - "Stop after verifying the current slice."
+      - "Do not begin the next slice in the same run."
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
