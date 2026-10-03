@@ -1,0 +1,412 @@
+--- size-results/source-before/main.rs	2026-10-03 15:38:11
++++ src/main.rs	2026-10-03 15:41:21
+@@ -1,6 +1,7 @@
+ //! Throwaway RFC 6902 encoded-message probe. No proposed production model.
+ #![allow(deprecated)] // Preserve both legacy skip and current diff_option.
+ mod bench;
++mod sizes;
+ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+ use ratatui::{
+     buffer::{Buffer, CellDiffOption},
+@@ -156,16 +157,67 @@
+         let _ = self.1.send(());
+     }
+ }
+-fn main() -> Result<(), Box<dyn std::error::Error>> {
++fn tiny_run() -> Result<(), Box<dyn std::error::Error>> {
++    let captures = run_native(
++        20,
++        6,
++        "stty -echo; printf '\\033[2J\\033[H\\033[1;31;44mRED\\033[0m café 界 é\r\nREADY'; read x; printf '\\033[2;1H\\033[3;4;38;2;10;20;30mEDIT\\033[0m'; read x; i=1; while [ $i -le 12 ]; do printf '\r\nscroll-%02d' $i; i=$((i+1)); done; read x; exit 0",
++        |session| {
++            let initial = settled(&session, "READY", (20, 6));
++            assert!(text(&initial).contains("café 界") && text(&initial).contains("é"));
++            assert!(
++                initial
++                    .cells
++                    .iter()
++                    .any(|c| c.modifiers.contains(Modifier::BOLD))
++            );
++            assert!(initial.cells.iter().any(
++                |c| matches!(c.fg, Color::Rgb(_, _, _)) && matches!(c.bg, Color::Rgb(_, _, _))
++            ));
++            session.send_raw(b"\n".to_vec());
++            let edited = settled(&session, "EDIT", (20, 6));
++            assert!(
++                edited.cells.iter().any(|c| c.fg == Color::Rgb(10, 20, 30)
++                    && c.modifiers.contains(Modifier::UNDERLINED))
++            );
++            session.send_raw(b"\n".to_vec());
++            let scrolled = settled(&session, "scroll-12", (20, 6));
++            session.send_resize(24, 8);
++            let resized = settled(&session, "scroll-12", (24, 8));
++            let unchanged = settled(&session, "scroll-12", (24, 8));
++            session.send_raw(b"\n".to_vec());
++            vec![
++                ("initial", initial),
++                ("edit", edited),
++                ("scroll-output", scrolled),
++                ("resize", resized),
++                ("unchanged", unchanged),
++            ]
++        },
++    )?;
++    bench::run(&captures);
++    println!(
++        "PASS: all actual capture JSON Patch/full snapshot/structdiff equality assertions and cleanup passed"
++    );
++    Ok(())
++}
++
++// Shared native lifecycle. Assertion panics still run bounded child/reader/session cleanup.
++fn run_native<T>(
++    cols: u16,
++    rows: u16,
++    script: &str,
++    workflow: impl FnOnce(&SessionHandle) -> T,
++) -> Result<T, Box<dyn std::error::Error>> {
+     let size = |cols, rows| PtySize {
+         cols,
+         rows,
+         pixel_width: 0,
+         pixel_height: 0,
+     };
+-    let pair = native_pty_system().openpty(size(20, 6))?;
++    let pair = native_pty_system().openpty(size(cols, rows))?;
+     let mut cmd = CommandBuilder::new("/bin/sh");
+-    cmd.args(["-c", "stty -echo; printf '\\033[2J\\033[H\\033[1;31;44mRED\\033[0m café 界 é\r\nREADY'; read x; printf '\\033[2;1H\\033[3;4;38;2;10;20;30mEDIT\\033[0m'; read x; i=1; while [ $i -le 12 ]; do printf '\r\nscroll-%02d' $i; i=$((i+1)); done; read x; exit 0"]);
++    cmd.args(["-c", script]);
+     cmd.env("LC_ALL", "en_US.UTF-8");
+     let mut child = pair.slave.spawn_command(cmd)?;
+     drop(pair.slave);
+@@ -175,40 +227,8 @@
+         writer: pair.master.take_writer()?,
+         resizer: Box::new(move |cols, rows| Ok(pair.master.resize(size(cols, rows))?)),
+     };
+-    let session = SessionHandle::builder(20, 6, || {}).spawn(io)?;
+-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+-        let initial = settled(&session, "READY", (20, 6));
+-        assert!(text(&initial).contains("café 界") && text(&initial).contains("é"));
+-        assert!(
+-            initial
+-                .cells
+-                .iter()
+-                .any(|c| c.modifiers.contains(Modifier::BOLD))
+-        );
+-        assert!(initial.cells.iter().any(|c| matches!(c.fg, Color::Rgb(_, _, _)) && matches!(c.bg, Color::Rgb(_, _, _))));
+-        session.send_raw(b"\n".to_vec());
+-        let edited = settled(&session, "EDIT", (20, 6));
+-        assert!(
+-            edited
+-                .cells
+-                .iter()
+-                .any(|c| c.fg == Color::Rgb(10, 20, 30)
+-                    && c.modifiers.contains(Modifier::UNDERLINED))
+-        );
+-        session.send_raw(b"\n".to_vec());
+-        let scrolled = settled(&session, "scroll-12", (20, 6));
+-        session.send_resize(24, 8);
+-        let resized = settled(&session, "scroll-12", (24, 8));
+-        let unchanged = settled(&session, "scroll-12", (24, 8));
+-        session.send_raw(b"\n".to_vec());
+-        vec![
+-            ("initial", initial),
+-            ("edit", edited),
+-            ("scroll-output", scrolled),
+-            ("resize", resized),
+-            ("unchanged", unchanged),
+-        ]
+-    }));
++    let session = SessionHandle::builder(cols, rows, || {}).spawn(io)?;
++    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| workflow(&session)));
+     // Reap our child and ensure detached reader/session terminate, including assertion failures.
+     let deadline = Instant::now() + Duration::from_secs(5);
+     while child.try_wait()?.is_none() && Instant::now() < deadline {
+@@ -246,9 +266,13 @@
+     println!(
+         "CLEANUP PASS: native buffer/cursor roundtrips, shell reaped ({status:?}), reader dropped, session stopped"
+     );
+-    bench::run(&captures);
+-    println!(
+-        "PASS: all actual capture JSON Patch/full snapshot/structdiff equality assertions and cleanup passed"
+-    );
+-    Ok(())
++    Ok(captures)
+ }
++
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    match std::env::args().skip(1).collect::<Vec<_>>().as_slice() {
++        [] => tiny_run(),
++        [mode] if mode == "--sizes" => sizes::run(),
++        _ => Err("usage: ship-jsonpatch-prototype [--sizes]".into()),
++    }
++}
+--- size-results/source-before/bench.rs	2026-10-03 15:38:11
++++ src/bench.rs	2026-10-03 15:41:21
+@@ -38,8 +38,12 @@
+     median_us: f64,
+     p95_us: f64,
+ }
+-#[derive(Default)]
+-struct Results(Vec<Measurement>);
++struct Results(Vec<Measurement>, usize, usize, bool);
++impl Default for Results {
++    fn default() -> Self {
++        Self(Vec::new(), WARMUP, ITERATIONS, false)
++    }
++}
+ impl Results {
+     fn measure<S, R>(
+         &mut self,
+@@ -49,12 +53,29 @@
+         mut setup: impl FnMut() -> S,
+         mut work: impl FnMut(S) -> R,
+     ) {
++        if self.3
++            && !matches!(
++                (strategy, metric),
++                (
++                    "json-patch-cached",
++                    "server_total" | "encoded_roundtrip_total"
++                ) | ("json-patch", "client_total")
++                    | (
++                        "full-snapshot",
++                        "server_total" | "client_total" | "encoded_roundtrip_total"
++                    )
++            )
++        {
++            return;
++        }
++        let warmup = self.1;
++        let iterations = self.2;
+         // Setup/reset clones and returned-output destruction are outside the timer.
+-        for _ in 0..WARMUP {
++        for _ in 0..warmup {
+             black_box(work(black_box(setup())));
+         }
+-        let mut ns = Vec::with_capacity(ITERATIONS);
+-        for _ in 0..ITERATIONS {
++        let mut ns = Vec::with_capacity(iterations);
++        for _ in 0..iterations {
+             let state = black_box(setup());
+             let start = Instant::now();
+             let output = black_box(work(state));
+@@ -64,17 +85,17 @@
+         }
+         ns.sort_unstable();
+         // Even-sized median averages central two; p95 uses nearest-rank.
+-        let median_us = (ns[ITERATIONS / 2 - 1] as f64 + ns[ITERATIONS / 2] as f64) / 2000.0;
+-        let p95_us = ns[(ITERATIONS * 95).div_ceil(100) - 1] as f64 / 1000.0;
++        let median_us = (ns[iterations / 2 - 1] as f64 + ns[iterations / 2] as f64) / 2000.0;
++        let p95_us = ns[(iterations * 95).div_ceil(100) - 1] as f64 / 1000.0;
+         println!(
+-            "TIMING {label} {strategy} {metric}: median_us={median_us:.3} p95_us={p95_us:.3} n={ITERATIONS} warmup={WARMUP}"
++            "TIMING {label} {strategy} {metric}: median_us={median_us:.3} p95_us={p95_us:.3} n={iterations} warmup={warmup}"
+         );
+         self.0.push(Measurement {
+             transition: label.into(),
+             strategy: strategy.into(),
+             metric: metric.into(),
+-            warmup: WARMUP,
+-            iterations: ITERATIONS,
++            warmup: warmup,
++            iterations: iterations,
+             median_us,
+             p95_us,
+         });
+@@ -424,3 +445,63 @@
+         results.0.len()
+     );
+ }
++
++// Same JSON proof and total closures as the tiny run. Explicitly bounded selection,
++// no structdiff (particularly no quadratic ordered sequence comparator) at these sizes.
++pub(super) fn run_quick(captures: &[(&str, Screen)], output: &std::path::Path) {
++    assert!(!cfg!(debug_assertions), "run this benchmark with --release");
++    println!(
++        "SIZE BENCH source=actual-native-capture warmup=20 iterations=100 metrics_per_transition=6 no_network=true structdiff=not-measured"
++    );
++    std::fs::create_dir_all(output).unwrap();
++    std::fs::write(
++        output.join("captures.json"),
++        serde_json::to_vec_pretty(captures).unwrap(),
++    )
++    .unwrap();
++    let initial_bytes = serde_json::to_vec(&captures[0].1).unwrap();
++    assert_eq!(
++        serde_json::from_slice::<Screen>(&initial_bytes).unwrap(),
++        captures[0].1
++    );
++    let mut client_document: Value = serde_json::from_slice(&initial_bytes).unwrap();
++    let mut server_prior = serde_json::to_value(&captures[0].1).unwrap();
++    assert_eq!(client_document, server_prior);
++    println!(
++        "INITIAL snapshot_bytes={} typed_and_json_decode=PASS",
++        initial_bytes.len()
++    );
++    let mut results = Results(Vec::new(), 20, 100, true);
++    let mut evidence =
++        vec![json!({"initial_snapshot_bytes": initial_bytes.len(), "equality": "PASS"})];
++    for pair in captures.windows(2) {
++        evidence.push(json_transition(
++            &mut results,
++            pair[1].0,
++            &pair[0].1,
++            &pair[1].1,
++            &mut server_prior,
++            &mut client_document,
++        ));
++    }
++    assert_eq!(
++        serde_json::from_value::<Screen>(client_document).unwrap(),
++        captures.last().unwrap().1
++    );
++    assert_eq!(results.0.len(), 18);
++    std::fs::write(
++        output.join("measurements.json"),
++        serde_json::to_vec_pretty(&results.0).unwrap(),
++    )
++    .unwrap();
++    std::fs::write(
++        output.join("wire-evidence.json"),
++        serde_json::to_vec_pretty(&evidence).unwrap(),
++    )
++    .unwrap();
++    println!(
++        "SIZE BENCH PASS: {} metrics, initial encoded snapshot and sequential client exact through unchanged; output={}",
++        results.0.len(),
++        output.display()
++    );
++}
+--- /dev/null	2026-10-03 15:46:24
++++ src/sizes.rs	2026-10-03 15:41:21
+@@ -0,0 +1,129 @@
++//! Larger native captures, deliberately a different workload from scroll-output's 12-line burst.
++use super::{bench, run_native, settled, text};
++use ratatui::style::{Color, Modifier};
++use std::path::Path;
++
++const GRID: &[(u16, u16, &str)] = &[
++    (80, 24, "small"),
++    (120, 40, "medium"),
++    (160, 50, "full-screen-example"),
++    (80, 50, "vertical-half"),
++    (160, 25, "horizontal-half"),
++];
++
++pub(super) fn run() -> Result<(), Box<dyn std::error::Error>> {
++    assert!(!cfg!(debug_assertions), "run this benchmark with --release");
++    for &(cols, rows, label) in GRID {
++        let output = Path::new("size-results").join(format!("{cols}x{rows}"));
++        std::fs::create_dir_all(&output)?;
++        // Fill every native row, including its final column, with varied ASCII and RGB.
++        // CUP cancels pending wrap. Only the explicit bottom-row CR LF scrolls.
++        let script = format!(
++            r#"stty -echo
++cols={cols}; rows={rows}
++printf '\033[2J\033[H'
++fill_row() {{
++    line=$(printf '%03d:' "$r")
++    j=4
++    while [ "$j" -lt "$cols" ]; do
++        line="$line$(((r+j)%10))"
++        j=$((j+1))
++    done
++    printf '\033[%d;1H\033[38;2;%d;20;30;48;2;10;%d;50m%s\033[0m' "$y" "$((r%200+30))" "$((r%150+50))" "$line"
++}}
++r=1
++while [ "$r" -le "$rows" ]; do
++    y=$r; fill_row
++    r=$((r+1))
++done
++printf '\033[1;10H\033[1;38;2;220;30;40;48;2;10;60;100mcafé 界 é\033[0m'
++printf '\033[%d;1HSIZE-READY\033[%d;1H' "$rows" "$rows"
++read x
++printf '\033[2;1H\033[3;4;38;2;10;20;30mEDIT\033[0m\033[%d;1H' "$rows"
++read x
++printf '\033[%d;1H\r\n' "$rows"
++r=$((rows+1)); y=$rows; fill_row
++printf '\033[%d;1HONE-SCROLL\033[%d;1H' "$rows" "$rows"
++read x
++exit 0
++"#
++        );
++        std::fs::write(output.join("workload.sh"), &script)?;
++        println!(
++            "SIZE START {cols}x{rows} label={label} workload=filled-native-screen+four-cell-text-style-edit+one-row-scroll+unchanged chosen_dimensions=true"
++        );
++        let captures = run_native(cols, rows, &script, |session| {
++            let initial = settled(session, "SIZE-READY", (cols, rows));
++            assert!(text(&initial).contains("café 界") && text(&initial).contains("é"));
++            assert!(
++                initial
++                    .cells
++                    .iter()
++                    .any(|c| c.modifiers.contains(Modifier::BOLD))
++            );
++            assert!(initial.cells.iter().any(
++                |c| matches!(c.fg, Color::Rgb(_, _, _)) && matches!(c.bg, Color::Rgb(_, _, _))
++            ));
++            for row in initial.cells.chunks(cols as usize) {
++                assert!(
++                    row.iter().filter(|c| !c.text.trim().is_empty()).count() > cols as usize / 2,
++                    "native row not filled"
++                );
++                assert!(
++                    row.windows(2).any(|p| p[0].text != p[1].text),
++                    "row not varied"
++                );
++            }
++            assert_eq!(initial.cursor.position, Some((0, rows - 1)));
++            session.send_raw(b"\n".to_vec());
++            let edited = settled(session, "EDIT", (cols, rows));
++            let changed: Vec<_> = initial
++                .cells
++                .iter()
++                .zip(&edited.cells)
++                .enumerate()
++                .filter(|(_, (a, b))| a != b)
++                .map(|(i, _)| i)
++                .collect();
++            assert_eq!(
++                changed,
++                (cols as usize..cols as usize + 4).collect::<Vec<_>>()
++            );
++            assert_eq!(initial.cursor, edited.cursor);
++            assert!(
++                edited.cells[cols as usize..cols as usize + 4]
++                    .iter()
++                    .all(|c| c.fg == Color::Rgb(10, 20, 30)
++                        && c.modifiers.contains(Modifier::UNDERLINED)
++                        && c.modifiers.contains(Modifier::ITALIC))
++            );
++            session.send_raw(b"\n".to_vec());
++            let scrolled = settled(session, "ONE-SCROLL", (cols, rows));
++            let retained = (rows as usize - 1) * cols as usize;
++            assert_eq!(
++                scrolled.cells[..retained],
++                edited.cells[cols as usize..],
++                "not exactly a one-row native scroll"
++            );
++            assert_ne!(scrolled.cells[retained..], edited.cells[retained..]);
++            assert_eq!(scrolled.cursor, edited.cursor);
++            let unchanged = settled(session, "ONE-SCROLL", (cols, rows));
++            assert_eq!(unchanged, scrolled);
++            session.send_raw(b"\n".to_vec());
++            println!(
++                "SIZE WORKFLOW PASS {cols}x{rows}: every row filled/varied, Unicode/bold/RGB preserved, exactly four edited cells + underline/italic, bottom reached, exact one-row shift, unchanged identical"
++            );
++            vec![
++                ("initial-filled", initial),
++                ("small-edit", edited),
++                ("one-row-scroll", scrolled),
++                ("unchanged", unchanged),
++            ]
++        })?;
++        bench::run_quick(&captures, &output);
++    }
++    println!(
++        "SIZE GRID PASS: five native shells reaped, readers dropped, sessions stopped; 90 metrics with 20 warmups + 100 samples each; no structdiff comparator measured"
++    );
++    Ok(())
++}

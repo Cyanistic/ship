@@ -1,0 +1,22 @@
+WIRE small-edit json-patch: operations=16 patch_bytes=989 snapshot_bytes=896211 equality=PASS cached=PASS
+TIMING small-edit json-patch-cached server_total: median_us=6698.812 p95_us=6896.709 n=100 warmup=20
+TIMING small-edit json-patch client_total: median_us=8372.812 p95_us=8718.708 n=100 warmup=20
+TIMING small-edit full-snapshot server_total: median_us=1391.751 p95_us=1418.542 n=100 warmup=20
+TIMING small-edit full-snapshot client_total: median_us=7573.979 p95_us=7807.583 n=100 warmup=20
+TIMING small-edit json-patch-cached encoded_roundtrip_total: median_us=15262.146 p95_us=15594.750 n=100 warmup=20
+TIMING small-edit full-snapshot encoded_roundtrip_total: median_us=8993.938 p95_us=9266.875 n=100 warmup=20
+WIRE one-row-scroll json-patch: operations=23863 patch_bytes=1373180 snapshot_bytes=896170 equality=PASS cached=PASS
+TIMING one-row-scroll json-patch-cached server_total: median_us=8670.250 p95_us=8998.792 n=100 warmup=20
+TIMING one-row-scroll json-patch client_total: median_us=17631.625 p95_us=18213.375 n=100 warmup=20
+TIMING one-row-scroll full-snapshot server_total: median_us=1368.771 p95_us=1442.250 n=100 warmup=20
+TIMING one-row-scroll full-snapshot client_total: median_us=7674.854 p95_us=7900.708 n=100 warmup=20
+TIMING one-row-scroll json-patch-cached encoded_roundtrip_total: median_us=26323.209 p95_us=26947.291 n=100 warmup=20
+TIMING one-row-scroll full-snapshot encoded_roundtrip_total: median_us=9058.209 p95_us=9301.833 n=100 warmup=20
+WIRE unchanged json-patch: operations=0 patch_bytes=2 snapshot_bytes=896170 equality=PASS cached=PASS
+TIMING unchanged json-patch-cached server_total: median_us=6820.938 p95_us=7123.125 n=100 warmup=20
+TIMING unchanged json-patch client_total: median_us=8575.646 p95_us=8868.083 n=100 warmup=20
+TIMING unchanged full-snapshot server_total: median_us=1451.979 p95_us=1502.291 n=100 warmup=20
+TIMING unchanged full-snapshot client_total: median_us=7639.771 p95_us=7867.875 n=100 warmup=20
+TIMING unchanged json-patch-cached encoded_roundtrip_total: median_us=15443.354 p95_us=15811.084 n=100 warmup=20
+TIMING unchanged full-snapshot encoded_roundtrip_total: median_us=9072.687 p95_us=9331.542 n=100 warmup=20
+SAVED BENCH PASS 160x50 json: 18 metrics warmup=20 samples=100

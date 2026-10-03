@@ -1,0 +1,56 @@
+{
+  "json_client_exact_reuse_sha256": "c97bd662794eb7078c1771bfd838c5d0ba8feba64e4cb8aa8c159ebb390224ec",
+  "json_transition_exact_reuse_sha256": "abf1e7f18d1b3308a1ddc91279ca19a7a54a7ce32f475ef3a5f712325d43e6f9",
+  "struct_transition_exact_reuse_sha256": "3b5affc201943af829cbd2d5d586f23e75da49c5b54e3e3b345bac3091fbae31",
+  "capture_exact_reuse_sha256": "df9fa0768d6eb6f54f61778c98e4ab4ce59b954275bc00da3cf37a016f19d949",
+  "text_exact_reuse_sha256": "85a13f5e7b7b36fecc638fac6faa2e3631f382295010883393b6f0d0617ffa8e",
+  "settled_exact_reuse": true,
+  "sizes": {
+    "80x24": {
+      "all_initial_rows_distinct": true,
+      "every_initial_last_column_nonblank": true,
+      "exact_one_row_shift": true,
+      "unchanged_exact": true,
+      "metrics": 18,
+      "warmup_each": 20,
+      "samples_each": 100
+    },
+    "120x40": {
+      "all_initial_rows_distinct": true,
+      "every_initial_last_column_nonblank": true,
+      "exact_one_row_shift": true,
+      "unchanged_exact": true,
+      "metrics": 18,
+      "warmup_each": 20,
+      "samples_each": 100
+    },
+    "160x50": {
+      "all_initial_rows_distinct": true,
+      "every_initial_last_column_nonblank": true,
+      "exact_one_row_shift": true,
+      "unchanged_exact": true,
+      "metrics": 18,
+      "warmup_each": 20,
+      "samples_each": 100
+    },
+    "80x50": {
+      "all_initial_rows_distinct": true,
+      "every_initial_last_column_nonblank": true,
+      "exact_one_row_shift": true,
+      "unchanged_exact": true,
+      "metrics": 18,
+      "warmup_each": 20,
+      "samples_each": 100
+    },
+    "160x25": {
+      "all_initial_rows_distinct": true,
+      "every_initial_last_column_nonblank": true,
+      "exact_one_row_shift": true,
+      "unchanged_exact": true,
+      "metrics": 18,
+      "warmup_each": 20,
+      "samples_each": 100
+    }
+  },
+  "default_regression_captures_and_wire_exact": true
+}

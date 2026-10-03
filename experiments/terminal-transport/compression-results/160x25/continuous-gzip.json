@@ -1,0 +1,202 @@
+[
+  {
+    "completed_bytes": 29335,
+    "events": [
+      {
+        "gzip_accumulated_bytes": 7280,
+        "gzip_incremental_bytes": 7280,
+        "independent_framed_gzip_bytes": 7283,
+        "payload_bytes": 448135,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448159,
+        "transition": "initial-filled"
+      },
+      {
+        "gzip_accumulated_bytes": 14834,
+        "gzip_incremental_bytes": 7554,
+        "independent_framed_gzip_bytes": 7577,
+        "payload_bytes": 448211,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448235,
+        "transition": "small-edit"
+      },
+      {
+        "gzip_accumulated_bytes": 22084,
+        "gzip_incremental_bytes": 7250,
+        "independent_framed_gzip_bytes": 7310,
+        "payload_bytes": 448170,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448194,
+        "transition": "one-row-scroll"
+      },
+      {
+        "gzip_accumulated_bytes": 29325,
+        "gzip_incremental_bytes": 7241,
+        "independent_framed_gzip_bytes": 7310,
+        "payload_bytes": 448170,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448194,
+        "transition": "unchanged"
+      }
+    ],
+    "finish_only_bytes": 10,
+    "frame_total_bytes": 1792782,
+    "level": 1,
+    "strategy": "full-snapshot",
+    "timing": "not measured; bytes and prefix validation only"
+  },
+  {
+    "completed_bytes": 49837,
+    "events": [
+      {
+        "gzip_accumulated_bytes": 7280,
+        "gzip_incremental_bytes": 7280,
+        "independent_framed_gzip_bytes": 7283,
+        "payload_bytes": 448135,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448159,
+        "transition": "initial-filled"
+      },
+      {
+        "gzip_accumulated_bytes": 7467,
+        "gzip_incremental_bytes": 187,
+        "independent_framed_gzip_bytes": 202,
+        "payload_bytes": 989,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 1010,
+        "transition": "small-edit"
+      },
+      {
+        "gzip_accumulated_bytes": 49798,
+        "gzip_incremental_bytes": 42331,
+        "independent_framed_gzip_bytes": 42524,
+        "payload_bytes": 685195,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 685216,
+        "transition": "one-row-scroll"
+      },
+      {
+        "gzip_accumulated_bytes": 49827,
+        "gzip_incremental_bytes": 29,
+        "independent_framed_gzip_bytes": 43,
+        "payload_bytes": 2,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 23,
+        "transition": "unchanged"
+      }
+    ],
+    "finish_only_bytes": 10,
+    "frame_total_bytes": 1134408,
+    "level": 1,
+    "strategy": "json-patch-cached",
+    "timing": "not measured; bytes and prefix validation only"
+  },
+  {
+    "completed_bytes": 21983,
+    "events": [
+      {
+        "gzip_accumulated_bytes": 7280,
+        "gzip_incremental_bytes": 7280,
+        "independent_framed_gzip_bytes": 7283,
+        "payload_bytes": 448135,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448159,
+        "transition": "initial-filled"
+      },
+      {
+        "gzip_accumulated_bytes": 14502,
+        "gzip_incremental_bytes": 7222,
+        "independent_framed_gzip_bytes": 7274,
+        "payload_bytes": 448130,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448151,
+        "transition": "small-edit"
+      },
+      {
+        "gzip_accumulated_bytes": 21944,
+        "gzip_incremental_bytes": 7442,
+        "independent_framed_gzip_bytes": 7495,
+        "payload_bytes": 448089,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448110,
+        "transition": "one-row-scroll"
+      },
+      {
+        "gzip_accumulated_bytes": 21973,
+        "gzip_incremental_bytes": 29,
+        "independent_framed_gzip_bytes": 43,
+        "payload_bytes": 2,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 23,
+        "transition": "unchanged"
+      }
+    ],
+    "finish_only_bytes": 10,
+    "frame_total_bytes": 1344443,
+    "level": 1,
+    "strategy": "structdiff-default",
+    "timing": "not measured; bytes and prefix validation only"
+  },
+  {
+    "completed_bytes": 8241,
+    "events": [
+      {
+        "gzip_accumulated_bytes": 7280,
+        "gzip_incremental_bytes": 7280,
+        "independent_framed_gzip_bytes": 7283,
+        "payload_bytes": 448135,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 448159,
+        "transition": "initial-filled"
+      },
+      {
+        "gzip_accumulated_bytes": 7445,
+        "gzip_incremental_bytes": 165,
+        "independent_framed_gzip_bytes": 202,
+        "payload_bytes": 609,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 630,
+        "transition": "small-edit"
+      },
+      {
+        "gzip_accumulated_bytes": 8219,
+        "gzip_incremental_bytes": 774,
+        "independent_framed_gzip_bytes": 828,
+        "payload_bytes": 20832,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 20853,
+        "transition": "one-row-scroll"
+      },
+      {
+        "gzip_accumulated_bytes": 8231,
+        "gzip_incremental_bytes": 12,
+        "independent_framed_gzip_bytes": 43,
+        "payload_bytes": 2,
+        "prefix_decode": "PASS: all complete events before stream close; expected UnexpectedEof",
+        "sequential_typed_equality": "PASS",
+        "sse_frame_bytes": 23,
+        "transition": "unchanged"
+      }
+    ],
+    "finish_only_bytes": 10,
+    "frame_total_bytes": 469665,
+    "level": 1,
+    "strategy": "structdiff-ordered",
+    "timing": "not measured; bytes and prefix validation only"
+  }
+]

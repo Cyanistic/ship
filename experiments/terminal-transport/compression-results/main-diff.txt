@@ -1,0 +1,21 @@
+--- compression-results/source-before/main.rs	2026-10-03 17:13:27
++++ src/main.rs	2026-10-03 17:17:02
+@@ -1,6 +1,7 @@
+ //! Throwaway RFC 6902 encoded-message probe. No proposed production model.
+ #![allow(deprecated)] // Preserve both legacy skip and current diff_option.
+ mod bench;
++mod compression;
+ mod sizes;
+ use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+ use ratatui::{
+@@ -272,8 +273,9 @@
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
+     match std::env::args().skip(1).collect::<Vec<_>>().as_slice() {
+         [] => tiny_run(),
++        [mode, size] if mode == "--compression" => compression::run(size),
+         [mode] if mode == "--sizes" => sizes::run(),
+         [mode, size, strategy] if mode == "--saved-size" => bench::run_saved(size, strategy),
+-        _ => Err("usage: ship-jsonpatch-prototype [--sizes | --saved-size SIZE json/default/ordered/ordered-probe]".into()),
++        _ => Err("usage: ship-jsonpatch-prototype [--sizes | --saved-size SIZE json/default/ordered/ordered-probe | --compression SIZE]".into()),
+     }
+ }

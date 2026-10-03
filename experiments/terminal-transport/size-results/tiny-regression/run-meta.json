@@ -1,0 +1,5 @@
+{
+  "command": "cd size-results/tiny-regression && ../../target/release/ship-jsonpatch-prototype",
+  "elapsed_seconds": 16.839668333064765,
+  "exit_status": 0
+}

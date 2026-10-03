@@ -1,0 +1,14 @@
+{
+  "size": "160x25",
+  "strategy": "json",
+  "command": [
+    "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+    "--saved-size",
+    "160x25",
+    "json"
+  ],
+  "timeout_seconds": 45,
+  "elapsed_seconds": 11.895336542045698,
+  "exit_code": 0,
+  "timed_out": false
+}

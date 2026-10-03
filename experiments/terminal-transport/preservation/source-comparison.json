@@ -1,0 +1,2875 @@
+{
+  "created_utc": "2026-10-03T22:09:57.426019+00:00",
+  "algorithm": "SHA-256 for file bytes; literal readlink target for symlinks",
+  "excluded_names": [
+    ".DS_Store",
+    ".git",
+    "__pycache__",
+    "target"
+  ],
+  "sources": [
+    {
+      "label": "prototype",
+      "source": "/private/tmp/ship-jsonpatch-prototype",
+      "file_count": 328,
+      "symlink_count": 2,
+      "bytes": 107850055,
+      "comparison": "PASS: every original entry matches",
+      "entries": [
+        {
+          "source_relative": "Cargo.lock",
+          "destination_relative": "Cargo.lock",
+          "kind": "file",
+          "bytes": 54459,
+          "sha256": "97239d89361e3078505c8cebec221026ba1f2c77bf68d40e5612e1feb1b0f8d6"
+        },
+        {
+          "source_relative": "Cargo.toml",
+          "destination_relative": "archive/original/Cargo.toml",
+          "kind": "file",
+          "bytes": 799,
+          "sha256": "d04b9c06aea360e670a54a405159cc2db2c889aaf3c810809555de7d13dda3b3"
+        },
+        {
+          "source_relative": "README.md",
+          "destination_relative": "archive/original/README.md",
+          "kind": "file",
+          "bytes": 16302,
+          "sha256": "64429be953d2b977a135c67da5bbdb3172c5dcaca5b43dbfb6a71a68348936e1"
+        },
+        {
+          "source_relative": "build-output.txt",
+          "destination_relative": "build-output.txt",
+          "kind": "file",
+          "bytes": 7126,
+          "sha256": "ea833102fcdd70b1d60f5069ebca3649cf322568aae97a42a0f31c9f2cff218e"
+        },
+        {
+          "source_relative": "captures.json",
+          "destination_relative": "captures.json",
+          "kind": "file",
+          "bytes": 160492,
+          "sha256": "05ddf59e8ce4892c7db84aeefc300cddf5865554a396ce409f7cd28da7c6d839"
+        },
+        {
+          "source_relative": "compression-report.md",
+          "destination_relative": "compression-report.md",
+          "kind": "file",
+          "bytes": 19163,
+          "sha256": "656bde2e68804bfad95893fa3cc60edd5d75f98b0ace33d87bf6fc9f2e60107c"
+        },
+        {
+          "source_relative": "environment.txt",
+          "destination_relative": "environment.txt",
+          "kind": "file",
+          "bytes": 1893,
+          "sha256": "e454c1da0d3d208bddc358e5d10b1197eda0f71a74de227203cfd65d91f021b7"
+        },
+        {
+          "source_relative": "measurements.json",
+          "destination_relative": "measurements.json",
+          "kind": "file",
+          "bytes": 22623,
+          "sha256": "bc16d47e1c5a4f42a278006f68c40f4b3e5dd13d248b0800b482f62bbe8f5878"
+        },
+        {
+          "source_relative": "original-files-before.json",
+          "destination_relative": "original-files-before.json",
+          "kind": "file",
+          "bytes": 7640346,
+          "sha256": "fa4761372c48cc82d3aa200973c0f0b812e43e4c8948f4b9c14f84c44d104789"
+        },
+        {
+          "source_relative": "oss-status-before.txt",
+          "destination_relative": "oss-status-before.txt",
+          "kind": "file",
+          "bytes": 84,
+          "sha256": "a4a6e92abe4337c481edc148444eca09033a866a0b884eb0071483abe6c973f9"
+        },
+        {
+          "source_relative": "preservation-after.json",
+          "destination_relative": "preservation-after.json",
+          "kind": "file",
+          "bytes": 252,
+          "sha256": "8c1015120a49107798d170a243514534357a0277d2c8e5ff8d039738b17939fa"
+        },
+        {
+          "source_relative": "reuse-evidence.txt",
+          "destination_relative": "reuse-evidence.txt",
+          "kind": "file",
+          "bytes": 500,
+          "sha256": "51d5a5c5653c566e8c20c811533c55a7a23a7e14e4b38782cd56972ec0d9b6e2"
+        },
+        {
+          "source_relative": "run-first-pass-output.txt",
+          "destination_relative": "run-first-pass-output.txt",
+          "kind": "file",
+          "bytes": 14401,
+          "sha256": "4a727d139aca657c291ae59b2655c434a8a701623d2f84db35b6b46fecc7b5fe"
+        },
+        {
+          "source_relative": "run-output.txt",
+          "destination_relative": "run-output.txt",
+          "kind": "file",
+          "bytes": 14844,
+          "sha256": "d72f8ddb5d99fe6809e34d919e281f811a421e738047eab51d1293ab7dac2a75"
+        },
+        {
+          "source_relative": "size-report.md",
+          "destination_relative": "size-report.md",
+          "kind": "file",
+          "bytes": 17264,
+          "sha256": "b5ecb0c5bba1c43dec4d2b0a04942b94f73e51be499407df69e85525ea2e4071"
+        },
+        {
+          "source_relative": "structdiff-size-report.md",
+          "destination_relative": "structdiff-size-report.md",
+          "kind": "file",
+          "bytes": 20435,
+          "sha256": "0975154f44539836eef71e74a047341b2ed7808f22dfac4eee4e0a8425356fa2"
+        },
+        {
+          "source_relative": "wire-evidence.json",
+          "destination_relative": "wire-evidence.json",
+          "kind": "file",
+          "bytes": 39002,
+          "sha256": "451e5337a7371c28ab2de6d9512df8db770098966b37404494056ace90aa0d80"
+        },
+        {
+          "source_relative": "compression-results/bench-diff.txt",
+          "destination_relative": "compression-results/bench-diff.txt",
+          "kind": "file",
+          "bytes": 434,
+          "sha256": "1020728460bec5c9409c3cbe4a00962674ebe29abf5ccfa7b0a2d1112e103d0c"
+        },
+        {
+          "source_relative": "compression-results/build-output.txt",
+          "destination_relative": "compression-results/build-output.txt",
+          "kind": "file",
+          "bytes": 13892,
+          "sha256": "5f5c66da86b8772a800d2e4718ad2306c28cd9d9716679377ee8bc429cb37f0c"
+        },
+        {
+          "source_relative": "compression-results/codec-features.txt",
+          "destination_relative": "compression-results/codec-features.txt",
+          "kind": "file",
+          "bytes": 2407,
+          "sha256": "3bcaf2b9320117f34705fbfe4701c91a332e16ed6118730dfc750a1b42580f37"
+        },
+        {
+          "source_relative": "compression-results/environment.txt",
+          "destination_relative": "compression-results/environment.txt",
+          "kind": "file",
+          "bytes": 336,
+          "sha256": "644d9b691096ea0fe1ce62d13a5f120509239414a94af05b52edcc1f9a058ae7"
+        },
+        {
+          "source_relative": "compression-results/first-pass-output.txt",
+          "destination_relative": "compression-results/first-pass-output.txt",
+          "kind": "file",
+          "bytes": 3958,
+          "sha256": "ad5d10623daa251f5417443fbb8e720bdadc6e9d008a84b89d0c4067b0f54263"
+        },
+        {
+          "source_relative": "compression-results/format-output.txt",
+          "destination_relative": "compression-results/format-output.txt",
+          "kind": "file",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "source_relative": "compression-results/main-diff.txt",
+          "destination_relative": "compression-results/main-diff.txt",
+          "kind": "file",
+          "bytes": 1074,
+          "sha256": "ebefefe8186641b5811b4ea7b7b7405f7832e8cef7e19aa414d8c78995b64609"
+        },
+        {
+          "source_relative": "compression-results/preservation-and-proof.json",
+          "destination_relative": "compression-results/preservation-and-proof.json",
+          "kind": "file",
+          "bytes": 2718,
+          "sha256": "29f5f469cc134aa8b3e0d4907ae8d171e034babcf94117f2a9bbb9585dec408e"
+        },
+        {
+          "source_relative": "compression-results/prior-files.json",
+          "destination_relative": "compression-results/prior-files.json",
+          "kind": "file",
+          "bytes": 22482,
+          "sha256": "be7ce4b5b9d6a3d70dc2636b9f6dd1d66b89642441a66a381efc539f3b8d421b"
+        },
+        {
+          "source_relative": "compression-results/report.py",
+          "destination_relative": "compression-results/report.py",
+          "kind": "file",
+          "bytes": 18558,
+          "sha256": "4db4304ac75a0ac84b5b4a5bf6554ff16f4118f87de702b362d15ae6085dcd50"
+        },
+        {
+          "source_relative": "compression-results/run-compression.py",
+          "destination_relative": "compression-results/run-compression.py",
+          "kind": "file",
+          "bytes": 1202,
+          "sha256": "19163ebeb0fddf6c11a8b6165d7d5a2fc35d7a46c310c734e06b7757fcf603af"
+        },
+        {
+          "source_relative": "compression-results/run-meta.json",
+          "destination_relative": "compression-results/run-meta.json",
+          "kind": "file",
+          "bytes": 1460,
+          "sha256": "ca9f38f422801a7176db826004691570093cf8a415728576ae4994069eb6922c"
+        },
+        {
+          "source_relative": "compression-results/run-output.txt",
+          "destination_relative": "compression-results/run-output.txt",
+          "kind": "file",
+          "bytes": 1182,
+          "sha256": "d7a1b979a93337cdad3d35545d17501ebd96accbd5718107340f36a7e1b04540"
+        },
+        {
+          "source_relative": "compression-results/120x40/continuous-gzip.json",
+          "destination_relative": "compression-results/120x40/continuous-gzip.json",
+          "kind": "file",
+          "bytes": 7178,
+          "sha256": "be48eaf1b7ec6d4e3c6a82726261974b6ec2919e6f075eb7518b7a90dc69971e"
+        },
+        {
+          "source_relative": "compression-results/120x40/full-snapshot-initial-filled.json",
+          "destination_relative": "compression-results/120x40/full-snapshot-initial-filled.json",
+          "kind": "file",
+          "bytes": 537735,
+          "sha256": "3e4d12583e3e0cef354b0bb1ab57f51661be8e4a0998ad5eadaf3d0e9a501808"
+        },
+        {
+          "source_relative": "compression-results/120x40/full-snapshot-one-row-scroll.json",
+          "destination_relative": "compression-results/120x40/full-snapshot-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 537770,
+          "sha256": "41401d10045aa51f20b5c633b6f9d18ef4a4c3fd983dab146f2ad5bb5b0537b5"
+        },
+        {
+          "source_relative": "compression-results/120x40/full-snapshot-small-edit.json",
+          "destination_relative": "compression-results/120x40/full-snapshot-small-edit.json",
+          "kind": "file",
+          "bytes": 537811,
+          "sha256": "3ba6ac47e68d34ec913c34dca16cf26182d1cfee044038123b67f88c48625087"
+        },
+        {
+          "source_relative": "compression-results/120x40/full-snapshot-unchanged.json",
+          "destination_relative": "compression-results/120x40/full-snapshot-unchanged.json",
+          "kind": "file",
+          "bytes": 537770,
+          "sha256": "41401d10045aa51f20b5c633b6f9d18ef4a4c3fd983dab146f2ad5bb5b0537b5"
+        },
+        {
+          "source_relative": "compression-results/120x40/json-patch-cached-initial-filled.json",
+          "destination_relative": "compression-results/120x40/json-patch-cached-initial-filled.json",
+          "kind": "file",
+          "bytes": 537735,
+          "sha256": "3e4d12583e3e0cef354b0bb1ab57f51661be8e4a0998ad5eadaf3d0e9a501808"
+        },
+        {
+          "source_relative": "compression-results/120x40/json-patch-cached-one-row-scroll.json",
+          "destination_relative": "compression-results/120x40/json-patch-cached-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 821180,
+          "sha256": "a2f67a814569c66e05ef70ef094ca1bfbcb9efa16e67cd82ce9339b758968c7f"
+        },
+        {
+          "source_relative": "compression-results/120x40/json-patch-cached-small-edit.json",
+          "destination_relative": "compression-results/120x40/json-patch-cached-small-edit.json",
+          "kind": "file",
+          "bytes": 989,
+          "sha256": "9aa9769271549ce797021788a2f5de30e38d4e3691dc53b75aff78ce670b1dbf"
+        },
+        {
+          "source_relative": "compression-results/120x40/json-patch-cached-unchanged.json",
+          "destination_relative": "compression-results/120x40/json-patch-cached-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/120x40/measurements.json",
+          "destination_relative": "compression-results/120x40/measurements.json",
+          "kind": "file",
+          "bytes": 23301,
+          "sha256": "9c9967b900686d787252e3a2511111c437c452aef164b78143064bb5a05acd5a"
+        },
+        {
+          "source_relative": "compression-results/120x40/run-meta.json",
+          "destination_relative": "compression-results/120x40/run-meta.json",
+          "kind": "file",
+          "bytes": 268,
+          "sha256": "288c615e42365765a992212808352d6c8a18919440591ff08c9f103954061e40"
+        },
+        {
+          "source_relative": "compression-results/120x40/run-output.txt",
+          "destination_relative": "compression-results/120x40/run-output.txt",
+          "kind": "file",
+          "bytes": 4011,
+          "sha256": "755a22f924f746188924c05f31175e2e2c6a504471426237ee406239e80f7472"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-default-initial-filled.json",
+          "destination_relative": "compression-results/120x40/structdiff-default-initial-filled.json",
+          "kind": "file",
+          "bytes": 537735,
+          "sha256": "3e4d12583e3e0cef354b0bb1ab57f51661be8e4a0998ad5eadaf3d0e9a501808"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-default-one-row-scroll.json",
+          "destination_relative": "compression-results/120x40/structdiff-default-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 537689,
+          "sha256": "8ccc13f2322cf2fa7977b5719d1dcfae5f719e35bc91943d691809c28e68f716"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-default-small-edit.json",
+          "destination_relative": "compression-results/120x40/structdiff-default-small-edit.json",
+          "kind": "file",
+          "bytes": 537730,
+          "sha256": "5e9268ff6fd87118a2be4db0b28cabea8513ec591ba135de2c49d3654072d317"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-default-unchanged.json",
+          "destination_relative": "compression-results/120x40/structdiff-default-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-ordered-initial-filled.json",
+          "destination_relative": "compression-results/120x40/structdiff-ordered-initial-filled.json",
+          "kind": "file",
+          "bytes": 537735,
+          "sha256": "3e4d12583e3e0cef354b0bb1ab57f51661be8e4a0998ad5eadaf3d0e9a501808"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-ordered-one-row-scroll.json",
+          "destination_relative": "compression-results/120x40/structdiff-ordered-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 15632,
+          "sha256": "2fab622ec1436940a73616ba013e228086ba58d189e60cb22375a25b066cc00b"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-ordered-small-edit.json",
+          "destination_relative": "compression-results/120x40/structdiff-ordered-small-edit.json",
+          "kind": "file",
+          "bytes": 609,
+          "sha256": "78496a85bff163e2f7467f3792cf9a2a108636ccf93d4f1eb14b7c623ec7eedf"
+        },
+        {
+          "source_relative": "compression-results/120x40/structdiff-ordered-unchanged.json",
+          "destination_relative": "compression-results/120x40/structdiff-ordered-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/120x40/summary.md",
+          "destination_relative": "compression-results/120x40/summary.md",
+          "kind": "file",
+          "bytes": 5941,
+          "sha256": "0502b08beb2919dcc13bd3cec9810c946dbf8697deec17bfba0a15659df0adb4"
+        },
+        {
+          "source_relative": "compression-results/160x25/continuous-gzip.json",
+          "destination_relative": "compression-results/160x25/continuous-gzip.json",
+          "kind": "file",
+          "bytes": 7178,
+          "sha256": "045db6853b52354c96905cbfc2377b619df5a0c2f213aea239d3ecdce1ccbc10"
+        },
+        {
+          "source_relative": "compression-results/160x25/full-snapshot-initial-filled.json",
+          "destination_relative": "compression-results/160x25/full-snapshot-initial-filled.json",
+          "kind": "file",
+          "bytes": 448135,
+          "sha256": "758b61059ee8c42079d7ed20e464647799ef046bb71c1c0b18d7276b339e89be"
+        },
+        {
+          "source_relative": "compression-results/160x25/full-snapshot-one-row-scroll.json",
+          "destination_relative": "compression-results/160x25/full-snapshot-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 448170,
+          "sha256": "d6e0400ccaf8987c46e51877381a581d07c56779e55f4bf95003a3b164799454"
+        },
+        {
+          "source_relative": "compression-results/160x25/full-snapshot-small-edit.json",
+          "destination_relative": "compression-results/160x25/full-snapshot-small-edit.json",
+          "kind": "file",
+          "bytes": 448211,
+          "sha256": "dc63a6dbf8b93faee405385815c31bd9ea6d62a2820cde0abb191650e83d31bc"
+        },
+        {
+          "source_relative": "compression-results/160x25/full-snapshot-unchanged.json",
+          "destination_relative": "compression-results/160x25/full-snapshot-unchanged.json",
+          "kind": "file",
+          "bytes": 448170,
+          "sha256": "d6e0400ccaf8987c46e51877381a581d07c56779e55f4bf95003a3b164799454"
+        },
+        {
+          "source_relative": "compression-results/160x25/json-patch-cached-initial-filled.json",
+          "destination_relative": "compression-results/160x25/json-patch-cached-initial-filled.json",
+          "kind": "file",
+          "bytes": 448135,
+          "sha256": "758b61059ee8c42079d7ed20e464647799ef046bb71c1c0b18d7276b339e89be"
+        },
+        {
+          "source_relative": "compression-results/160x25/json-patch-cached-one-row-scroll.json",
+          "destination_relative": "compression-results/160x25/json-patch-cached-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 685195,
+          "sha256": "df6a49edd19addbb8d4ddd030e3454ca41777a6a8517900b726af5a350ced797"
+        },
+        {
+          "source_relative": "compression-results/160x25/json-patch-cached-small-edit.json",
+          "destination_relative": "compression-results/160x25/json-patch-cached-small-edit.json",
+          "kind": "file",
+          "bytes": 989,
+          "sha256": "97a87a883b51af95bb20152087097e2b5344ddee2a4be09462264bf45e07d1d9"
+        },
+        {
+          "source_relative": "compression-results/160x25/json-patch-cached-unchanged.json",
+          "destination_relative": "compression-results/160x25/json-patch-cached-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/160x25/measurements.json",
+          "destination_relative": "compression-results/160x25/measurements.json",
+          "kind": "file",
+          "bytes": 23280,
+          "sha256": "a3776b6e8a96cfd3d76325844aa6a451cfb11bd07e9a19ade0ec8c41eab74cdb"
+        },
+        {
+          "source_relative": "compression-results/160x25/run-meta.json",
+          "destination_relative": "compression-results/160x25/run-meta.json",
+          "kind": "file",
+          "bytes": 268,
+          "sha256": "402e02d6ad8c595f5a1296e24df07f131bf493b8917169c3c2bfc177c677e1b4"
+        },
+        {
+          "source_relative": "compression-results/160x25/run-output.txt",
+          "destination_relative": "compression-results/160x25/run-output.txt",
+          "kind": "file",
+          "bytes": 4011,
+          "sha256": "fabb605c2e42b98e9b2d7ed3706b86653cd5db9f8aca39ee19347b7c24f8eeb1"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-default-initial-filled.json",
+          "destination_relative": "compression-results/160x25/structdiff-default-initial-filled.json",
+          "kind": "file",
+          "bytes": 448135,
+          "sha256": "758b61059ee8c42079d7ed20e464647799ef046bb71c1c0b18d7276b339e89be"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-default-one-row-scroll.json",
+          "destination_relative": "compression-results/160x25/structdiff-default-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 448089,
+          "sha256": "3fe48cf97734e56ff60c627d6d51ef0ab642c1622faacae44db3d606d6a7d6a0"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-default-small-edit.json",
+          "destination_relative": "compression-results/160x25/structdiff-default-small-edit.json",
+          "kind": "file",
+          "bytes": 448130,
+          "sha256": "17b0c00c684e70c878b2864566fc05a628b2d52bba11a0b558850ccbc127ccd2"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-default-unchanged.json",
+          "destination_relative": "compression-results/160x25/structdiff-default-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-ordered-initial-filled.json",
+          "destination_relative": "compression-results/160x25/structdiff-ordered-initial-filled.json",
+          "kind": "file",
+          "bytes": 448135,
+          "sha256": "758b61059ee8c42079d7ed20e464647799ef046bb71c1c0b18d7276b339e89be"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-ordered-one-row-scroll.json",
+          "destination_relative": "compression-results/160x25/structdiff-ordered-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 20832,
+          "sha256": "7b6dfa06dc05a2b9187b63577a47f12cc50ccf77562bdf1d9ff73097e2c34c52"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-ordered-small-edit.json",
+          "destination_relative": "compression-results/160x25/structdiff-ordered-small-edit.json",
+          "kind": "file",
+          "bytes": 609,
+          "sha256": "53258cd3ee07fce6e4b4d6e0344b6e5fec83521f41f40ab439a6fcb90050d668"
+        },
+        {
+          "source_relative": "compression-results/160x25/structdiff-ordered-unchanged.json",
+          "destination_relative": "compression-results/160x25/structdiff-ordered-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/160x25/summary.md",
+          "destination_relative": "compression-results/160x25/summary.md",
+          "kind": "file",
+          "bytes": 5925,
+          "sha256": "464c863f145b4334a3a08da391483cf8dd00af101e3666c3207e6b8c58fced87"
+        },
+        {
+          "source_relative": "compression-results/160x50/continuous-gzip.json",
+          "destination_relative": "compression-results/160x50/continuous-gzip.json",
+          "kind": "file",
+          "bytes": 7207,
+          "sha256": "18dcf45cfe423e9df156e193dcc62e2dd25e1b88eb67b4fc574c26a0ecfdfacc"
+        },
+        {
+          "source_relative": "compression-results/160x50/full-snapshot-initial-filled.json",
+          "destination_relative": "compression-results/160x50/full-snapshot-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "compression-results/160x50/full-snapshot-one-row-scroll.json",
+          "destination_relative": "compression-results/160x50/full-snapshot-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 896170,
+          "sha256": "b3d35285d4e52883c5ccfb6e93038c717ce46a4a41dde6b99bc38f713452e69b"
+        },
+        {
+          "source_relative": "compression-results/160x50/full-snapshot-small-edit.json",
+          "destination_relative": "compression-results/160x50/full-snapshot-small-edit.json",
+          "kind": "file",
+          "bytes": 896211,
+          "sha256": "134a989dbc4f9cc9ea1fbc6dc85edfdc7585705d7ff8a470808327a4031f4892"
+        },
+        {
+          "source_relative": "compression-results/160x50/full-snapshot-unchanged.json",
+          "destination_relative": "compression-results/160x50/full-snapshot-unchanged.json",
+          "kind": "file",
+          "bytes": 896170,
+          "sha256": "b3d35285d4e52883c5ccfb6e93038c717ce46a4a41dde6b99bc38f713452e69b"
+        },
+        {
+          "source_relative": "compression-results/160x50/json-patch-cached-initial-filled.json",
+          "destination_relative": "compression-results/160x50/json-patch-cached-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "compression-results/160x50/json-patch-cached-one-row-scroll.json",
+          "destination_relative": "compression-results/160x50/json-patch-cached-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 1373180,
+          "sha256": "8a3cb5afb11caf476f04892c7eb84e5020538ce5ea2a5f7aed9f38af9f6a32ab"
+        },
+        {
+          "source_relative": "compression-results/160x50/json-patch-cached-small-edit.json",
+          "destination_relative": "compression-results/160x50/json-patch-cached-small-edit.json",
+          "kind": "file",
+          "bytes": 989,
+          "sha256": "97a87a883b51af95bb20152087097e2b5344ddee2a4be09462264bf45e07d1d9"
+        },
+        {
+          "source_relative": "compression-results/160x50/json-patch-cached-unchanged.json",
+          "destination_relative": "compression-results/160x50/json-patch-cached-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/160x50/measurements.json",
+          "destination_relative": "compression-results/160x50/measurements.json",
+          "kind": "file",
+          "bytes": 23366,
+          "sha256": "c6f21ff1f15a331e7ed8a1793a901d511b01d9cb72c9d66b4f91fe04875bf03c"
+        },
+        {
+          "source_relative": "compression-results/160x50/run-meta.json",
+          "destination_relative": "compression-results/160x50/run-meta.json",
+          "kind": "file",
+          "bytes": 267,
+          "sha256": "f28a45ad74ee5161ffa166832289047daa94d73d0ed336accaf6023a42f33c91"
+        },
+        {
+          "source_relative": "compression-results/160x50/run-output.txt",
+          "destination_relative": "compression-results/160x50/run-output.txt",
+          "kind": "file",
+          "bytes": 4028,
+          "sha256": "26b315528c9865220f9fa9cdc9665a71a9a5c99aa231dce5b061ae6027c881d3"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-default-initial-filled.json",
+          "destination_relative": "compression-results/160x50/structdiff-default-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-default-one-row-scroll.json",
+          "destination_relative": "compression-results/160x50/structdiff-default-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 896089,
+          "sha256": "ae0620adc8c7b96b8e5784066a0a9245963906374dbd6b7e61ea08a2634229be"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-default-small-edit.json",
+          "destination_relative": "compression-results/160x50/structdiff-default-small-edit.json",
+          "kind": "file",
+          "bytes": 896130,
+          "sha256": "a1f7f652e629b7e3eea01524abf1ae269be5f1f40417d9c356e885f69f057edf"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-default-unchanged.json",
+          "destination_relative": "compression-results/160x50/structdiff-default-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-ordered-initial-filled.json",
+          "destination_relative": "compression-results/160x50/structdiff-ordered-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-ordered-one-row-scroll.json",
+          "destination_relative": "compression-results/160x50/structdiff-ordered-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 20832,
+          "sha256": "41afb77186ec8e524f2755dc531229c9dd6be288f85a37a111183a60c2140479"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-ordered-small-edit.json",
+          "destination_relative": "compression-results/160x50/structdiff-ordered-small-edit.json",
+          "kind": "file",
+          "bytes": 609,
+          "sha256": "53258cd3ee07fce6e4b4d6e0344b6e5fec83521f41f40ab439a6fcb90050d668"
+        },
+        {
+          "source_relative": "compression-results/160x50/structdiff-ordered-unchanged.json",
+          "destination_relative": "compression-results/160x50/structdiff-ordered-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/160x50/summary.md",
+          "destination_relative": "compression-results/160x50/summary.md",
+          "kind": "file",
+          "bytes": 6029,
+          "sha256": "199ceeae4fc4bab019540fe18a75f8b1be25d4261b89ddc9970fcacf4a1a05dc"
+        },
+        {
+          "source_relative": "compression-results/80x24/continuous-gzip.json",
+          "destination_relative": "compression-results/80x24/continuous-gzip.json",
+          "kind": "file",
+          "bytes": 7172,
+          "sha256": "1146bc45e376c396fac82493cc3d4bc7f53f25302206658ad0320b1218b6ee1a"
+        },
+        {
+          "source_relative": "compression-results/80x24/full-snapshot-initial-filled.json",
+          "destination_relative": "compression-results/80x24/full-snapshot-initial-filled.json",
+          "kind": "file",
+          "bytes": 215174,
+          "sha256": "ac3ed94437ea3d20ce511982cb068e90d34c9dd4bc782ae6dbd3e3a5c1e4b670"
+        },
+        {
+          "source_relative": "compression-results/80x24/full-snapshot-one-row-scroll.json",
+          "destination_relative": "compression-results/80x24/full-snapshot-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 215209,
+          "sha256": "7420f28da25040f1b825a18ecd52689aa81ddefdc3d0f984c77566f957ae8902"
+        },
+        {
+          "source_relative": "compression-results/80x24/full-snapshot-small-edit.json",
+          "destination_relative": "compression-results/80x24/full-snapshot-small-edit.json",
+          "kind": "file",
+          "bytes": 215250,
+          "sha256": "cce4b230823fe34ec57919ac21252e526c121929871cb3b70857fa8fce26af9b"
+        },
+        {
+          "source_relative": "compression-results/80x24/full-snapshot-unchanged.json",
+          "destination_relative": "compression-results/80x24/full-snapshot-unchanged.json",
+          "kind": "file",
+          "bytes": 215209,
+          "sha256": "7420f28da25040f1b825a18ecd52689aa81ddefdc3d0f984c77566f957ae8902"
+        },
+        {
+          "source_relative": "compression-results/80x24/json-patch-cached-initial-filled.json",
+          "destination_relative": "compression-results/80x24/json-patch-cached-initial-filled.json",
+          "kind": "file",
+          "bytes": 215174,
+          "sha256": "ac3ed94437ea3d20ce511982cb068e90d34c9dd4bc782ae6dbd3e3a5c1e4b670"
+        },
+        {
+          "source_relative": "compression-results/80x24/json-patch-cached-one-row-scroll.json",
+          "destination_relative": "compression-results/80x24/json-patch-cached-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 325533,
+          "sha256": "abb19d883772749a894b5f108eac6f07572d53e98067e9a3d305b99eb5240c74"
+        },
+        {
+          "source_relative": "compression-results/80x24/json-patch-cached-small-edit.json",
+          "destination_relative": "compression-results/80x24/json-patch-cached-small-edit.json",
+          "kind": "file",
+          "bytes": 973,
+          "sha256": "06ca9ba7855f58b4aa5066f3a32bcebae7d9672fa1c8c245cff5c587b7288590"
+        },
+        {
+          "source_relative": "compression-results/80x24/json-patch-cached-unchanged.json",
+          "destination_relative": "compression-results/80x24/json-patch-cached-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/80x24/measurements.json",
+          "destination_relative": "compression-results/80x24/measurements.json",
+          "kind": "file",
+          "bytes": 23260,
+          "sha256": "7a1d3d854ba31119b54e9478d855b809b72bb9234416ab714e7b95e62345ba4d"
+        },
+        {
+          "source_relative": "compression-results/80x24/run-meta.json",
+          "destination_relative": "compression-results/80x24/run-meta.json",
+          "kind": "file",
+          "bytes": 264,
+          "sha256": "edf3af975bdae208989f1bcce671768fb2a1e0aed4949919e1cbb540ec88f2a9"
+        },
+        {
+          "source_relative": "compression-results/80x24/run-output.txt",
+          "destination_relative": "compression-results/80x24/run-output.txt",
+          "kind": "file",
+          "bytes": 3958,
+          "sha256": "ad5d10623daa251f5417443fbb8e720bdadc6e9d008a84b89d0c4067b0f54263"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-default-initial-filled.json",
+          "destination_relative": "compression-results/80x24/structdiff-default-initial-filled.json",
+          "kind": "file",
+          "bytes": 215174,
+          "sha256": "ac3ed94437ea3d20ce511982cb068e90d34c9dd4bc782ae6dbd3e3a5c1e4b670"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-default-one-row-scroll.json",
+          "destination_relative": "compression-results/80x24/structdiff-default-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 215129,
+          "sha256": "14d9274cb3c1fbe4226f9000f747cb7ba7f90ec4e1c14e9886f3530f8d45167f"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-default-small-edit.json",
+          "destination_relative": "compression-results/80x24/structdiff-default-small-edit.json",
+          "kind": "file",
+          "bytes": 215170,
+          "sha256": "59fe33e71424b61489bf1ebaacd52ccc3030fb85e8a0bcb6a93325268c8abd62"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-default-unchanged.json",
+          "destination_relative": "compression-results/80x24/structdiff-default-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-ordered-initial-filled.json",
+          "destination_relative": "compression-results/80x24/structdiff-ordered-initial-filled.json",
+          "kind": "file",
+          "bytes": 215174,
+          "sha256": "ac3ed94437ea3d20ce511982cb068e90d34c9dd4bc782ae6dbd3e3a5c1e4b670"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-ordered-one-row-scroll.json",
+          "destination_relative": "compression-results/80x24/structdiff-ordered-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 10431,
+          "sha256": "1ef809e8d770dc3d1b37d6050c68cef6c17e37b012a02108b3622992924ba420"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-ordered-small-edit.json",
+          "destination_relative": "compression-results/80x24/structdiff-ordered-small-edit.json",
+          "kind": "file",
+          "bytes": 605,
+          "sha256": "98621efd6db76be01144f87214cc8a98c185457dea470239a584850138183a22"
+        },
+        {
+          "source_relative": "compression-results/80x24/structdiff-ordered-unchanged.json",
+          "destination_relative": "compression-results/80x24/structdiff-ordered-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/80x24/summary.md",
+          "destination_relative": "compression-results/80x24/summary.md",
+          "kind": "file",
+          "bytes": 5880,
+          "sha256": "0bc57f28c700e0e6fd86d8b57d64a5949a2d9c45544b4dbdef88b7318e061359"
+        },
+        {
+          "source_relative": "compression-results/80x50/continuous-gzip.json",
+          "destination_relative": "compression-results/80x50/continuous-gzip.json",
+          "kind": "file",
+          "bytes": 7177,
+          "sha256": "86cf7309edff8a9f91eefab67dd520391b2ef36337e6f7492c9819729557511e"
+        },
+        {
+          "source_relative": "compression-results/80x50/full-snapshot-initial-filled.json",
+          "destination_relative": "compression-results/80x50/full-snapshot-initial-filled.json",
+          "kind": "file",
+          "bytes": 448134,
+          "sha256": "f369e1cb44f6d369d36f84364ed0168bbe2b120049c01462a88a264f4c540a82"
+        },
+        {
+          "source_relative": "compression-results/80x50/full-snapshot-one-row-scroll.json",
+          "destination_relative": "compression-results/80x50/full-snapshot-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 448169,
+          "sha256": "ead6c762a7c901aec5118cb47ef6af91429c27a10f846c62e9857f17ad9dc924"
+        },
+        {
+          "source_relative": "compression-results/80x50/full-snapshot-small-edit.json",
+          "destination_relative": "compression-results/80x50/full-snapshot-small-edit.json",
+          "kind": "file",
+          "bytes": 448210,
+          "sha256": "fd2ab9d6f1c46907880bd5e7d0a4dd291325edf230c0a3c04fc84acb54c53aac"
+        },
+        {
+          "source_relative": "compression-results/80x50/full-snapshot-unchanged.json",
+          "destination_relative": "compression-results/80x50/full-snapshot-unchanged.json",
+          "kind": "file",
+          "bytes": 448169,
+          "sha256": "ead6c762a7c901aec5118cb47ef6af91429c27a10f846c62e9857f17ad9dc924"
+        },
+        {
+          "source_relative": "compression-results/80x50/json-patch-cached-initial-filled.json",
+          "destination_relative": "compression-results/80x50/json-patch-cached-initial-filled.json",
+          "kind": "file",
+          "bytes": 448134,
+          "sha256": "f369e1cb44f6d369d36f84364ed0168bbe2b120049c01462a88a264f4c540a82"
+        },
+        {
+          "source_relative": "compression-results/80x50/json-patch-cached-one-row-scroll.json",
+          "destination_relative": "compression-results/80x50/json-patch-cached-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 681193,
+          "sha256": "60d1e1a3daf8afa937f53bf2600c207c7c75840a3d793b85d90903f7ef5f619a"
+        },
+        {
+          "source_relative": "compression-results/80x50/json-patch-cached-small-edit.json",
+          "destination_relative": "compression-results/80x50/json-patch-cached-small-edit.json",
+          "kind": "file",
+          "bytes": 973,
+          "sha256": "06ca9ba7855f58b4aa5066f3a32bcebae7d9672fa1c8c245cff5c587b7288590"
+        },
+        {
+          "source_relative": "compression-results/80x50/json-patch-cached-unchanged.json",
+          "destination_relative": "compression-results/80x50/json-patch-cached-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/80x50/measurements.json",
+          "destination_relative": "compression-results/80x50/measurements.json",
+          "kind": "file",
+          "bytes": 23262,
+          "sha256": "85722e7ade27e5c44d77d544d61766183e7077ab71d31e9c50523067ec6f7c61"
+        },
+        {
+          "source_relative": "compression-results/80x50/run-meta.json",
+          "destination_relative": "compression-results/80x50/run-meta.json",
+          "kind": "file",
+          "bytes": 265,
+          "sha256": "7c84a44fdd9dc388a18aba1596ff54c629217c940dcd5e253101b0596ecc4b83"
+        },
+        {
+          "source_relative": "compression-results/80x50/run-output.txt",
+          "destination_relative": "compression-results/80x50/run-output.txt",
+          "kind": "file",
+          "bytes": 3958,
+          "sha256": "caae868f205bfbf4d9e3c7493b003e50313cba9da2066a22e256330f4a0892ff"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-default-initial-filled.json",
+          "destination_relative": "compression-results/80x50/structdiff-default-initial-filled.json",
+          "kind": "file",
+          "bytes": 448134,
+          "sha256": "f369e1cb44f6d369d36f84364ed0168bbe2b120049c01462a88a264f4c540a82"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-default-one-row-scroll.json",
+          "destination_relative": "compression-results/80x50/structdiff-default-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 448089,
+          "sha256": "ca26cac09c9e1b23aefc5eacaa7383788b40b453c75fd05d54398cbb3aa246f0"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-default-small-edit.json",
+          "destination_relative": "compression-results/80x50/structdiff-default-small-edit.json",
+          "kind": "file",
+          "bytes": 448130,
+          "sha256": "ddf4474926bf8d965ba32810752ca39aac8e21d8b46645feb7ad74a7bb28a75b"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-default-unchanged.json",
+          "destination_relative": "compression-results/80x50/structdiff-default-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-ordered-initial-filled.json",
+          "destination_relative": "compression-results/80x50/structdiff-ordered-initial-filled.json",
+          "kind": "file",
+          "bytes": 448134,
+          "sha256": "f369e1cb44f6d369d36f84364ed0168bbe2b120049c01462a88a264f4c540a82"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-ordered-one-row-scroll.json",
+          "destination_relative": "compression-results/80x50/structdiff-ordered-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 10431,
+          "sha256": "e31968de25a8ee6b6a79a1ad33ef264341cd664b91939979f328e88514480fb3"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-ordered-small-edit.json",
+          "destination_relative": "compression-results/80x50/structdiff-ordered-small-edit.json",
+          "kind": "file",
+          "bytes": 605,
+          "sha256": "98621efd6db76be01144f87214cc8a98c185457dea470239a584850138183a22"
+        },
+        {
+          "source_relative": "compression-results/80x50/structdiff-ordered-unchanged.json",
+          "destination_relative": "compression-results/80x50/structdiff-ordered-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "compression-results/80x50/summary.md",
+          "destination_relative": "compression-results/80x50/summary.md",
+          "kind": "file",
+          "bytes": 5921,
+          "sha256": "db40fdc150de743c4767836f29669c5848b91121ad936c22aa312ee3ea8a3575"
+        },
+        {
+          "source_relative": "compression-results/source-before/Cargo.lock",
+          "destination_relative": "compression-results/source-before/Cargo.lock",
+          "kind": "file",
+          "bytes": 51369,
+          "sha256": "1c3f0cc537ef640002f9a82e7c18a876da3be03d86d91d97f33d862a3b746f67"
+        },
+        {
+          "source_relative": "compression-results/source-before/Cargo.toml",
+          "destination_relative": "compression-results/source-before/Cargo.toml",
+          "kind": "file",
+          "bytes": 772,
+          "sha256": "7b25038d52efec3f27a7e7710de6f44800b976540bab25be4a7d946bb9375167"
+        },
+        {
+          "source_relative": "compression-results/source-before/bench.rs",
+          "destination_relative": "compression-results/source-before/bench.rs",
+          "kind": "file",
+          "bytes": 21305,
+          "sha256": "0b493a3915074eb4d8eaff3a237b60d03992428a2aace6fef6b3e6574338cf89"
+        },
+        {
+          "source_relative": "compression-results/source-before/main.rs",
+          "destination_relative": "compression-results/source-before/main.rs",
+          "kind": "file",
+          "bytes": 9792,
+          "sha256": "b36d6644f1d2b39f531744e4bec8c620087a521aa1d631680c00def21c45e2db"
+        },
+        {
+          "source_relative": "compression-results/source-before/sizes.rs",
+          "destination_relative": "compression-results/source-before/sizes.rs",
+          "kind": "file",
+          "bytes": 5247,
+          "sha256": "55d002693e09497851e6bafa1d3316e5307ac67a57271a128ebfd8c8b328329b"
+        },
+        {
+          "source_relative": "parent-compression-verification/run-output.txt",
+          "destination_relative": "parent-compression-verification/run-output.txt",
+          "kind": "file",
+          "bytes": 4028,
+          "sha256": "26b315528c9865220f9fa9cdc9665a71a9a5c99aa231dce5b061ae6027c881d3"
+        },
+        {
+          "source_relative": "parent-compression-verification/size-results",
+          "destination_relative": "parent-compression-verification/size-results",
+          "kind": "symlink",
+          "target": "../size-results"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/continuous-gzip.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/continuous-gzip.json",
+          "kind": "file",
+          "bytes": 7207,
+          "sha256": "18dcf45cfe423e9df156e193dcc62e2dd25e1b88eb67b4fc574c26a0ecfdfacc"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-initial-filled.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-one-row-scroll.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 896170,
+          "sha256": "b3d35285d4e52883c5ccfb6e93038c717ce46a4a41dde6b99bc38f713452e69b"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-small-edit.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-small-edit.json",
+          "kind": "file",
+          "bytes": 896211,
+          "sha256": "134a989dbc4f9cc9ea1fbc6dc85edfdc7585705d7ff8a470808327a4031f4892"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-unchanged.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/full-snapshot-unchanged.json",
+          "kind": "file",
+          "bytes": 896170,
+          "sha256": "b3d35285d4e52883c5ccfb6e93038c717ce46a4a41dde6b99bc38f713452e69b"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-initial-filled.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-one-row-scroll.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 1373180,
+          "sha256": "8a3cb5afb11caf476f04892c7eb84e5020538ce5ea2a5f7aed9f38af9f6a32ab"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-small-edit.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-small-edit.json",
+          "kind": "file",
+          "bytes": 989,
+          "sha256": "97a87a883b51af95bb20152087097e2b5344ddee2a4be09462264bf45e07d1d9"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-unchanged.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/json-patch-cached-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/measurements.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/measurements.json",
+          "kind": "file",
+          "bytes": 23390,
+          "sha256": "96058c26a55f31fe4741f2e5e4007bc0b5048655d5f9ec9ef9a35fc9f9186cb0"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-initial-filled.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-one-row-scroll.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 896089,
+          "sha256": "ae0620adc8c7b96b8e5784066a0a9245963906374dbd6b7e61ea08a2634229be"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-small-edit.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-small-edit.json",
+          "kind": "file",
+          "bytes": 896130,
+          "sha256": "a1f7f652e629b7e3eea01524abf1ae269be5f1f40417d9c356e885f69f057edf"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-unchanged.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-default-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-initial-filled.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-initial-filled.json",
+          "kind": "file",
+          "bytes": 896135,
+          "sha256": "b23483f388bfa8477edc74820e5a5ddf6ffafa47314fba7e46137db69ac78c2d"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-one-row-scroll.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-one-row-scroll.json",
+          "kind": "file",
+          "bytes": 20832,
+          "sha256": "41afb77186ec8e524f2755dc531229c9dd6be288f85a37a111183a60c2140479"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-small-edit.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-small-edit.json",
+          "kind": "file",
+          "bytes": 609,
+          "sha256": "53258cd3ee07fce6e4b4d6e0344b6e5fec83521f41f40ab439a6fcb90050d668"
+        },
+        {
+          "source_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-unchanged.json",
+          "destination_relative": "parent-compression-verification/compression-results/160x50/structdiff-ordered-unchanged.json",
+          "kind": "file",
+          "bytes": 2,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        {
+          "source_relative": "parent-size-verification/run-output.txt",
+          "destination_relative": "parent-size-verification/run-output.txt",
+          "kind": "file",
+          "bytes": 108621,
+          "sha256": "fde48f40ccd667a1d740d9ba1062dde174e15458afdd02b6332735d578dbcafd"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/120x40/captures.json",
+          "destination_relative": "parent-size-verification/size-results/120x40/captures.json",
+          "kind": "file",
+          "bytes": 4110071,
+          "sha256": "6117558c3bc36f2d95439123eb3fbc44bea256e9c5c2e9be494408e075c3308f"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/120x40/measurements.json",
+          "destination_relative": "parent-size-verification/size-results/120x40/measurements.json",
+          "kind": "file",
+          "bytes": 3611,
+          "sha256": "2f961dc19b9950b8a5adac52707f9463173874ed153910d40a01a748103e25f1"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/120x40/wire-evidence.json",
+          "destination_relative": "parent-size-verification/size-results/120x40/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1452486,
+          "sha256": "2256f3b44240dad7769781a0590b92663a8f6e256dfdb20eba6521b8b716297f"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/120x40/workload.sh",
+          "destination_relative": "parent-size-verification/size-results/120x40/workload.sh",
+          "kind": "file",
+          "bytes": 742,
+          "sha256": "4977ccdd831cbb5630a799c75a0a461fb05f8b9e017a5ca82f9c9926d9630fa8"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x25/captures.json",
+          "destination_relative": "parent-size-verification/size-results/160x25/captures.json",
+          "kind": "file",
+          "bytes": 3425271,
+          "sha256": "0b8a175b7ebb5e030d0a9819d94c76ea8c5959a4ff38a2d8cdbc86394bf00b67"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x25/measurements.json",
+          "destination_relative": "parent-size-verification/size-results/160x25/measurements.json",
+          "kind": "file",
+          "bytes": 3604,
+          "sha256": "ebe5eabe810b993099aad7f45d8ea5e1b35c5f1c6a7d5854e8d78408e02b5f50"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x25/wire-evidence.json",
+          "destination_relative": "parent-size-verification/size-results/160x25/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1212837,
+          "sha256": "f5a26c2d060af4897e42b02c5fb379d7780ef54b10942e4fc517af9188028df2"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x25/workload.sh",
+          "destination_relative": "parent-size-verification/size-results/160x25/workload.sh",
+          "kind": "file",
+          "bytes": 742,
+          "sha256": "fd4dc0bfab021bdf137ad19d9157479c0981a11d7d03d7db14f4c6b41835a592"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x50/captures.json",
+          "destination_relative": "parent-size-verification/size-results/160x50/captures.json",
+          "kind": "file",
+          "bytes": 6849271,
+          "sha256": "f7d1110f4ce55efdb1aedbcdf7da047229e2bcf91f59a6bbd5fbec1e1544b94a"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x50/measurements.json",
+          "destination_relative": "parent-size-verification/size-results/160x50/measurements.json",
+          "kind": "file",
+          "bytes": 3623,
+          "sha256": "e509a0b4cad86a2c10c9a666a35ba707b8a6afb8c3a1036b9345e3b03dfb00cb"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x50/wire-evidence.json",
+          "destination_relative": "parent-size-verification/size-results/160x50/wire-evidence.json",
+          "kind": "file",
+          "bytes": 2425611,
+          "sha256": "4be104a7ef165333bf3b28e2e95b7a24fe058512da30323c8246bd441f57361b"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/160x50/workload.sh",
+          "destination_relative": "parent-size-verification/size-results/160x50/workload.sh",
+          "kind": "file",
+          "bytes": 742,
+          "sha256": "fc1a8bc4dd0a9acab09adb313b11a836f335d970ef06f4d3c97166349f1c1d0c"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x24/captures.json",
+          "destination_relative": "parent-size-verification/size-results/80x24/captures.json",
+          "kind": "file",
+          "bytes": 1644787,
+          "sha256": "3978534391a0467a763b1204387ade9d7df0077a94c23a74584b5528341a75a0"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x24/measurements.json",
+          "destination_relative": "parent-size-verification/size-results/80x24/measurements.json",
+          "kind": "file",
+          "bytes": 3604,
+          "sha256": "db94ce20c874d5bc275e3568523b4cea4a06eef1f10f50363a510ea0ebe7d2c0"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x24/wire-evidence.json",
+          "destination_relative": "parent-size-verification/size-results/80x24/wire-evidence.json",
+          "kind": "file",
+          "bytes": 578730,
+          "sha256": "98383fd6a88a4ef5343c7282aa93c036ffdd6ab51cd888d1457efddbdba9fcac"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x24/workload.sh",
+          "destination_relative": "parent-size-verification/size-results/80x24/workload.sh",
+          "kind": "file",
+          "bytes": 741,
+          "sha256": "3914593dd649b8307066a350db5386197945a4334ef7fad982a235e2ecaea0e4"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x50/captures.json",
+          "destination_relative": "parent-size-verification/size-results/80x50/captures.json",
+          "kind": "file",
+          "bytes": 3425267,
+          "sha256": "daa6b83b67d1aebefc8e9587ac06d8cb3e96f1d9bc4558e546c0396812563896"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x50/measurements.json",
+          "destination_relative": "parent-size-verification/size-results/80x50/measurements.json",
+          "kind": "file",
+          "bytes": 3606,
+          "sha256": "709f6a2782ec6a5cf1c949b66b881e61b7a32d7acce30a3c38880881e6a7de39"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x50/wire-evidence.json",
+          "destination_relative": "parent-size-verification/size-results/80x50/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1205607,
+          "sha256": "c5fdbc4eb0c98d69a88a0db636c5f698ca29468a3e814a22dfc72e1022cff627"
+        },
+        {
+          "source_relative": "parent-size-verification/size-results/80x50/workload.sh",
+          "destination_relative": "parent-size-verification/size-results/80x50/workload.sh",
+          "kind": "file",
+          "bytes": 741,
+          "sha256": "4b5dca94e97c7494a4cca197e9e72fc47912fcca3359d20d3da638cbac1c7190"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/160x50-default-output.txt",
+          "destination_relative": "parent-structdiff-verification/160x50-default-output.txt",
+          "kind": "file",
+          "bytes": 1309,
+          "sha256": "97547509d03ce97e5b52391ab77bd65c5092ef97a05805df6ebcb97e41d05b75"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/160x50-json-output.txt",
+          "destination_relative": "parent-structdiff-verification/160x50-json-output.txt",
+          "kind": "file",
+          "bytes": 2241,
+          "sha256": "470fc53265a94e446ac0517f196776513ba10e534bc9b4d51f9b6929d7a6278d"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/160x50-ordered-output.txt",
+          "destination_relative": "parent-structdiff-verification/160x50-ordered-output.txt",
+          "kind": "file",
+          "bytes": 1313,
+          "sha256": "4cce27225750be75c9d1668e2bc3429880b7091661905228eb7722b24c1b9133"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/size-results",
+          "destination_relative": "parent-structdiff-verification/size-results",
+          "kind": "symlink",
+          "target": "../size-results"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/structdiff-size-results/160x50/default/measurements.json",
+          "destination_relative": "parent-structdiff-verification/structdiff-size-results/160x50/default/measurements.json",
+          "kind": "file",
+          "bytes": 1828,
+          "sha256": "c70fc2c63fc0bf4cdfe1ab7bef16edf24fc9435ceb9818167a6ffa41cc923c2b"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/structdiff-size-results/160x50/default/wire-evidence.json",
+          "destination_relative": "parent-structdiff-verification/structdiff-size-results/160x50/default/wire-evidence.json",
+          "kind": "file",
+          "bytes": 713,
+          "sha256": "e4f5c0431bca9b9f7ee72e17ea92aa68a52460dc7e2aee5b24a7c18a9c986a76"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/structdiff-size-results/160x50/json/measurements.json",
+          "destination_relative": "parent-structdiff-verification/structdiff-size-results/160x50/json/measurements.json",
+          "kind": "file",
+          "bytes": 3625,
+          "sha256": "5b9dbc23139f52c0bdfe2707f78b31da4ac6bad131393cecc2ea141dcd063fbb"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/structdiff-size-results/160x50/json/wire-evidence.json",
+          "destination_relative": "parent-structdiff-verification/structdiff-size-results/160x50/json/wire-evidence.json",
+          "kind": "file",
+          "bytes": 2425723,
+          "sha256": "9a8711e3e888542e9e88990ef03304b309f05d45433cbec8b1905116411b942d"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/structdiff-size-results/160x50/ordered/measurements.json",
+          "destination_relative": "parent-structdiff-verification/structdiff-size-results/160x50/ordered/measurements.json",
+          "kind": "file",
+          "bytes": 1841,
+          "sha256": "88d223bf44af3dd0c84ba70f80df74f7153cb7abf127d7864ceaedc5d69f83c8"
+        },
+        {
+          "source_relative": "parent-structdiff-verification/structdiff-size-results/160x50/ordered/wire-evidence.json",
+          "destination_relative": "parent-structdiff-verification/structdiff-size-results/160x50/ordered/wire-evidence.json",
+          "kind": "file",
+          "bytes": 707,
+          "sha256": "09a2e90b5a4ff5382a49090a828146d60404af1ab1698ed2f267ea2e093e8dde"
+        },
+        {
+          "source_relative": "parent-verification/captures.json",
+          "destination_relative": "parent-verification/captures.json",
+          "kind": "file",
+          "bytes": 160492,
+          "sha256": "05ddf59e8ce4892c7db84aeefc300cddf5865554a396ce409f7cd28da7c6d839"
+        },
+        {
+          "source_relative": "parent-verification/measurements.json",
+          "destination_relative": "parent-verification/measurements.json",
+          "kind": "file",
+          "bytes": 22641,
+          "sha256": "d08ac62a7eb77517f9f0519ca8c3e13371e55c0e91809ca6e4a047b13675891b"
+        },
+        {
+          "source_relative": "parent-verification/run-output.txt",
+          "destination_relative": "parent-verification/run-output.txt",
+          "kind": "file",
+          "bytes": 14275,
+          "sha256": "18f5a76a86888f59befff5ae7ffaf18aef831c47ebb11f86b88feec5dbe5ebc5"
+        },
+        {
+          "source_relative": "parent-verification/wire-evidence.json",
+          "destination_relative": "parent-verification/wire-evidence.json",
+          "kind": "file",
+          "bytes": 39002,
+          "sha256": "451e5337a7371c28ab2de6d9512df8db770098966b37404494056ace90aa0d80"
+        },
+        {
+          "source_relative": "size-results/build-output.txt",
+          "destination_relative": "size-results/build-output.txt",
+          "kind": "file",
+          "bytes": 455,
+          "sha256": "521a317549367e2fac611ccaac99dd6ff28eb984851d7c7665a1f2166a2308c5"
+        },
+        {
+          "source_relative": "size-results/environment.txt",
+          "destination_relative": "size-results/environment.txt",
+          "kind": "file",
+          "bytes": 185,
+          "sha256": "892547b76c0c9127ca5e6ee0600678fbb7adebb494692fcdebee3472411c66f4"
+        },
+        {
+          "source_relative": "size-results/final-verification.txt",
+          "destination_relative": "size-results/final-verification.txt",
+          "kind": "file",
+          "bytes": 212,
+          "sha256": "232f73555e638197bbe9af5bdcee0e62e6a362d72f178cafa6c49f7cdcc39db9"
+        },
+        {
+          "source_relative": "size-results/oss-status-before.txt",
+          "destination_relative": "size-results/oss-status-before.txt",
+          "kind": "file",
+          "bytes": 84,
+          "sha256": "a4a6e92abe4337c481edc148444eca09033a866a0b884eb0071483abe6c973f9"
+        },
+        {
+          "source_relative": "size-results/preservation-after.json",
+          "destination_relative": "size-results/preservation-after.json",
+          "kind": "file",
+          "bytes": 279,
+          "sha256": "326eea3afc9369553143465f850bc57623c211c9d08d28987db45008c942c022"
+        },
+        {
+          "source_relative": "size-results/preservation-before.json",
+          "destination_relative": "size-results/preservation-before.json",
+          "kind": "file",
+          "bytes": 1409,
+          "sha256": "790cd63766143348ab470c3209b1230eb0b61839f91c50028d7a4e2dffd4fdb2"
+        },
+        {
+          "source_relative": "size-results/reuse-and-artifact-proof.json",
+          "destination_relative": "size-results/reuse-and-artifact-proof.json",
+          "kind": "file",
+          "bytes": 1881,
+          "sha256": "425f06d06bd98e3f43352cda22b3d0aced8ab248fa72fffe093ae96a50a0d4dd"
+        },
+        {
+          "source_relative": "size-results/run-meta.json",
+          "destination_relative": "size-results/run-meta.json",
+          "kind": "file",
+          "bytes": 154,
+          "sha256": "1e43e5cbadb3b9b2625af996e13130d9f44d63f4166ed61e19f15698436a6c46"
+        },
+        {
+          "source_relative": "size-results/run-output.txt",
+          "destination_relative": "size-results/run-output.txt",
+          "kind": "file",
+          "bytes": 109142,
+          "sha256": "fcd3b99bd8d278a2776b95f8b4682e8f48a3ef3f8455c72f29ba79b7bdd7997a"
+        },
+        {
+          "source_relative": "size-results/source-diff.txt",
+          "destination_relative": "size-results/source-diff.txt",
+          "kind": "file",
+          "bytes": 16689,
+          "sha256": "ba3cdeb0d5fe0419183ac7f422fa138fc75a49651dbe6643a8b6a2c746e1c2dd"
+        },
+        {
+          "source_relative": "size-results/120x40/captures.json",
+          "destination_relative": "size-results/120x40/captures.json",
+          "kind": "file",
+          "bytes": 4110071,
+          "sha256": "6117558c3bc36f2d95439123eb3fbc44bea256e9c5c2e9be494408e075c3308f"
+        },
+        {
+          "source_relative": "size-results/120x40/measurements.json",
+          "destination_relative": "size-results/120x40/measurements.json",
+          "kind": "file",
+          "bytes": 3619,
+          "sha256": "c270c402560203343f1be2e38cd7f5a99b92352db4072bb31be0cd01a520a4ae"
+        },
+        {
+          "source_relative": "size-results/120x40/wire-evidence.json",
+          "destination_relative": "size-results/120x40/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1452486,
+          "sha256": "2256f3b44240dad7769781a0590b92663a8f6e256dfdb20eba6521b8b716297f"
+        },
+        {
+          "source_relative": "size-results/120x40/workload.sh",
+          "destination_relative": "size-results/120x40/workload.sh",
+          "kind": "file",
+          "bytes": 742,
+          "sha256": "4977ccdd831cbb5630a799c75a0a461fb05f8b9e017a5ca82f9c9926d9630fa8"
+        },
+        {
+          "source_relative": "size-results/160x25/captures.json",
+          "destination_relative": "size-results/160x25/captures.json",
+          "kind": "file",
+          "bytes": 3425271,
+          "sha256": "0b8a175b7ebb5e030d0a9819d94c76ea8c5959a4ff38a2d8cdbc86394bf00b67"
+        },
+        {
+          "source_relative": "size-results/160x25/measurements.json",
+          "destination_relative": "size-results/160x25/measurements.json",
+          "kind": "file",
+          "bytes": 3601,
+          "sha256": "7a5278bd810734450a5fc069a3a4773442e64c2702073f773e2c6b8011f0cbd5"
+        },
+        {
+          "source_relative": "size-results/160x25/wire-evidence.json",
+          "destination_relative": "size-results/160x25/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1212837,
+          "sha256": "f5a26c2d060af4897e42b02c5fb379d7780ef54b10942e4fc517af9188028df2"
+        },
+        {
+          "source_relative": "size-results/160x25/workload.sh",
+          "destination_relative": "size-results/160x25/workload.sh",
+          "kind": "file",
+          "bytes": 742,
+          "sha256": "fd4dc0bfab021bdf137ad19d9157479c0981a11d7d03d7db14f4c6b41835a592"
+        },
+        {
+          "source_relative": "size-results/160x50/captures.json",
+          "destination_relative": "size-results/160x50/captures.json",
+          "kind": "file",
+          "bytes": 6849271,
+          "sha256": "f7d1110f4ce55efdb1aedbcdf7da047229e2bcf91f59a6bbd5fbec1e1544b94a"
+        },
+        {
+          "source_relative": "size-results/160x50/measurements.json",
+          "destination_relative": "size-results/160x50/measurements.json",
+          "kind": "file",
+          "bytes": 3625,
+          "sha256": "ec921faf35d037fdeb4b65308f8c4fa2cbb1c8fd320c979dec5fa38c225ab2c4"
+        },
+        {
+          "source_relative": "size-results/160x50/wire-evidence.json",
+          "destination_relative": "size-results/160x50/wire-evidence.json",
+          "kind": "file",
+          "bytes": 2425611,
+          "sha256": "4be104a7ef165333bf3b28e2e95b7a24fe058512da30323c8246bd441f57361b"
+        },
+        {
+          "source_relative": "size-results/160x50/workload.sh",
+          "destination_relative": "size-results/160x50/workload.sh",
+          "kind": "file",
+          "bytes": 742,
+          "sha256": "fc1a8bc4dd0a9acab09adb313b11a836f335d970ef06f4d3c97166349f1c1d0c"
+        },
+        {
+          "source_relative": "size-results/80x24/captures.json",
+          "destination_relative": "size-results/80x24/captures.json",
+          "kind": "file",
+          "bytes": 1644787,
+          "sha256": "3978534391a0467a763b1204387ade9d7df0077a94c23a74584b5528341a75a0"
+        },
+        {
+          "source_relative": "size-results/80x24/measurements.json",
+          "destination_relative": "size-results/80x24/measurements.json",
+          "kind": "file",
+          "bytes": 3602,
+          "sha256": "dda7812f45f24371fea432e283ae4793e176cc66019802b4c6c957e4fe54dbf3"
+        },
+        {
+          "source_relative": "size-results/80x24/wire-evidence.json",
+          "destination_relative": "size-results/80x24/wire-evidence.json",
+          "kind": "file",
+          "bytes": 578730,
+          "sha256": "98383fd6a88a4ef5343c7282aa93c036ffdd6ab51cd888d1457efddbdba9fcac"
+        },
+        {
+          "source_relative": "size-results/80x24/workload.sh",
+          "destination_relative": "size-results/80x24/workload.sh",
+          "kind": "file",
+          "bytes": 741,
+          "sha256": "3914593dd649b8307066a350db5386197945a4334ef7fad982a235e2ecaea0e4"
+        },
+        {
+          "source_relative": "size-results/80x50/captures.json",
+          "destination_relative": "size-results/80x50/captures.json",
+          "kind": "file",
+          "bytes": 3425267,
+          "sha256": "daa6b83b67d1aebefc8e9587ac06d8cb3e96f1d9bc4558e546c0396812563896"
+        },
+        {
+          "source_relative": "size-results/80x50/measurements.json",
+          "destination_relative": "size-results/80x50/measurements.json",
+          "kind": "file",
+          "bytes": 3604,
+          "sha256": "f1cb4a9b1c1a60bfcc80fdd66c4d49e28ed966f54ad56c67a9748ff5069d61da"
+        },
+        {
+          "source_relative": "size-results/80x50/wire-evidence.json",
+          "destination_relative": "size-results/80x50/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1205607,
+          "sha256": "c5fdbc4eb0c98d69a88a0db636c5f698ca29468a3e814a22dfc72e1022cff627"
+        },
+        {
+          "source_relative": "size-results/80x50/workload.sh",
+          "destination_relative": "size-results/80x50/workload.sh",
+          "kind": "file",
+          "bytes": 741,
+          "sha256": "4b5dca94e97c7494a4cca197e9e72fc47912fcca3359d20d3da638cbac1c7190"
+        },
+        {
+          "source_relative": "size-results/source-after/bench.rs",
+          "destination_relative": "size-results/source-after/bench.rs",
+          "kind": "file",
+          "bytes": 16546,
+          "sha256": "3a7e80a9e3cfca6f64bd34e6b1fb1a3f97a4b5308af73dd876c28bcc0de7f988"
+        },
+        {
+          "source_relative": "size-results/source-after/main.rs",
+          "destination_relative": "size-results/source-after/main.rs",
+          "kind": "file",
+          "bytes": 9643,
+          "sha256": "10d0e7862e5ecfb9aaa14acc39599b6e9cfa5a662635f3d8be0aba6fd08b4624"
+        },
+        {
+          "source_relative": "size-results/source-after/sizes.rs",
+          "destination_relative": "size-results/source-after/sizes.rs",
+          "kind": "file",
+          "bytes": 5247,
+          "sha256": "55d002693e09497851e6bafa1d3316e5307ac67a57271a128ebfd8c8b328329b"
+        },
+        {
+          "source_relative": "size-results/source-before/Cargo.lock",
+          "destination_relative": "size-results/source-before/Cargo.lock",
+          "kind": "file",
+          "bytes": 51369,
+          "sha256": "1c3f0cc537ef640002f9a82e7c18a876da3be03d86d91d97f33d862a3b746f67"
+        },
+        {
+          "source_relative": "size-results/source-before/Cargo.toml",
+          "destination_relative": "size-results/source-before/Cargo.toml",
+          "kind": "file",
+          "bytes": 772,
+          "sha256": "7b25038d52efec3f27a7e7710de6f44800b976540bab25be4a7d946bb9375167"
+        },
+        {
+          "source_relative": "size-results/source-before/README.md",
+          "destination_relative": "size-results/source-before/README.md",
+          "kind": "file",
+          "bytes": 16302,
+          "sha256": "64429be953d2b977a135c67da5bbdb3172c5dcaca5b43dbfb6a71a68348936e1"
+        },
+        {
+          "source_relative": "size-results/source-before/bench.rs",
+          "destination_relative": "size-results/source-before/bench.rs",
+          "kind": "file",
+          "bytes": 13655,
+          "sha256": "d641ed780c34de169ebe65e81393aba3defd2f94db65aaaa1f557b400dbbb3bc"
+        },
+        {
+          "source_relative": "size-results/source-before/main.rs",
+          "destination_relative": "size-results/source-before/main.rs",
+          "kind": "file",
+          "bytes": 8859,
+          "sha256": "66b3762a488d1ba7e844c316796c109bf8320f3644474ce7db75e1d75847b54c"
+        },
+        {
+          "source_relative": "size-results/tiny-regression/captures.json",
+          "destination_relative": "size-results/tiny-regression/captures.json",
+          "kind": "file",
+          "bytes": 160492,
+          "sha256": "05ddf59e8ce4892c7db84aeefc300cddf5865554a396ce409f7cd28da7c6d839"
+        },
+        {
+          "source_relative": "size-results/tiny-regression/measurements.json",
+          "destination_relative": "size-results/tiny-regression/measurements.json",
+          "kind": "file",
+          "bytes": 22616,
+          "sha256": "6cb987e1e6de5938eb18c175d58df834b115e8567781393bddac539280c9a39f"
+        },
+        {
+          "source_relative": "size-results/tiny-regression/run-meta.json",
+          "destination_relative": "size-results/tiny-regression/run-meta.json",
+          "kind": "file",
+          "bytes": 160,
+          "sha256": "feaa91392017b821496b006e25c2e0987be2e9b1d042cfd65749d04829331ace"
+        },
+        {
+          "source_relative": "size-results/tiny-regression/run-output.txt",
+          "destination_relative": "size-results/tiny-regression/run-output.txt",
+          "kind": "file",
+          "bytes": 14275,
+          "sha256": "aacf4bbc7475ae96faa1472ac5a9d6a533e5ef07f2978891b647f455e89e3b36"
+        },
+        {
+          "source_relative": "size-results/tiny-regression/wire-evidence.json",
+          "destination_relative": "size-results/tiny-regression/wire-evidence.json",
+          "kind": "file",
+          "bytes": 39002,
+          "sha256": "451e5337a7371c28ab2de6d9512df8db770098966b37404494056ace90aa0d80"
+        },
+        {
+          "source_relative": "src/bench.rs",
+          "destination_relative": "src/bench.rs",
+          "kind": "file",
+          "bytes": 21309,
+          "sha256": "5523e80bba9115d7a7a72bac9aa432649ed059c98316a72798a5db77c4aef872"
+        },
+        {
+          "source_relative": "src/compression.rs",
+          "destination_relative": "src/compression.rs",
+          "kind": "file",
+          "bytes": 16115,
+          "sha256": "022e6a73802741f9244b30fbea248cd9cd2f7a3f058dcd380ea23e911a4418b0"
+        },
+        {
+          "source_relative": "src/main.rs",
+          "destination_relative": "src/main.rs",
+          "kind": "file",
+          "bytes": 9905,
+          "sha256": "2994a8fef32334f46087106b0ce89a3c4d408b24f23de4d874f6559be5a53720"
+        },
+        {
+          "source_relative": "src/sizes.rs",
+          "destination_relative": "src/sizes.rs",
+          "kind": "file",
+          "bytes": 5247,
+          "sha256": "55d002693e09497851e6bafa1d3316e5307ac67a57271a128ebfd8c8b328329b"
+        },
+        {
+          "source_relative": "structdiff-size-results/build-output.txt",
+          "destination_relative": "structdiff-size-results/build-output.txt",
+          "kind": "file",
+          "bytes": 455,
+          "sha256": "85490bc20ce611e8b7fded1cdbcf56a74b02efd7d7f2e4a96e744381f53590a3"
+        },
+        {
+          "source_relative": "structdiff-size-results/existing-files-before.json",
+          "destination_relative": "structdiff-size-results/existing-files-before.json",
+          "kind": "file",
+          "bytes": 9527,
+          "sha256": "eee8c7f7fd043f65afa1da725e2d78d57dcc75cc7564e611b18be7eb70426646"
+        },
+        {
+          "source_relative": "structdiff-size-results/preservation-and-proof.json",
+          "destination_relative": "structdiff-size-results/preservation-and-proof.json",
+          "kind": "file",
+          "bytes": 3579,
+          "sha256": "d78ef8d2c0237b520bdaa92d2b46e781872163cae56af1bb21d749b76d886df1"
+        },
+        {
+          "source_relative": "structdiff-size-results/run-meta.json",
+          "destination_relative": "structdiff-size-results/run-meta.json",
+          "kind": "file",
+          "bytes": 6734,
+          "sha256": "f7f6ab5de5bc4977df943aedba92a6b4671ce77cde7a5cfc9ac38d7fe3f75643"
+        },
+        {
+          "source_relative": "structdiff-size-results/run-output.txt",
+          "destination_relative": "structdiff-size-results/run-output.txt",
+          "kind": "file",
+          "bytes": 5431,
+          "sha256": "f72526bdfb779ad5927d49ef4326e0c06d4358cfc04a3b069c992bf1e05650a8"
+        },
+        {
+          "source_relative": "structdiff-size-results/run-saved.py",
+          "destination_relative": "structdiff-size-results/run-saved.py",
+          "kind": "file",
+          "bytes": 1950,
+          "sha256": "bb4ef46334543dbb90adb1d97ab9a485773099dd2b81b43e606b1793ba955d9a"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-diff.txt",
+          "destination_relative": "structdiff-size-results/source-diff.txt",
+          "kind": "file",
+          "bytes": 6143,
+          "sha256": "7390ade0af897bb81ff57554f64881141df899e4a40dd7c7ab883e4f1fe072ce"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/default/measurements.json",
+          "destination_relative": "structdiff-size-results/120x40/default/measurements.json",
+          "kind": "file",
+          "bytes": 1823,
+          "sha256": "960f7f7c28328f2fd539a1448321470438f2aeebeb0702260d8746a7453b35cb"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/default/run-meta.json",
+          "destination_relative": "structdiff-size-results/120x40/default/run-meta.json",
+          "kind": "file",
+          "bytes": 306,
+          "sha256": "344fb111b1ce805a5dc646b19e52fd90bf11c5335de88f7a0a986e2b404aafa1"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/default/run-output.txt",
+          "destination_relative": "structdiff-size-results/120x40/default/run-output.txt",
+          "kind": "file",
+          "bytes": 1305,
+          "sha256": "c9b686949123b7cc55b42de58a89b64eb6b9177aa18e0f21a7ccbab656f9b6d1"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/default/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/120x40/default/wire-evidence.json",
+          "kind": "file",
+          "bytes": 713,
+          "sha256": "49ceec474124429a6c9b97efa6310a44c2d7b513211c38dbf1c24e6c73665d0f"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/json/measurements.json",
+          "destination_relative": "structdiff-size-results/120x40/json/measurements.json",
+          "kind": "file",
+          "bytes": 3611,
+          "sha256": "766fbc6dc76b00112eaf1339a66f5ff13244c63430b41d0e0518a635c9887bd8"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/json/run-meta.json",
+          "destination_relative": "structdiff-size-results/120x40/json/run-meta.json",
+          "kind": "file",
+          "bytes": 301,
+          "sha256": "4c710efba83aa6f0573666841b08dcf767b6bdc268588d5c608bac6bf38a6bd0"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/json/run-output.txt",
+          "destination_relative": "structdiff-size-results/120x40/json/run-output.txt",
+          "kind": "file",
+          "bytes": 2232,
+          "sha256": "0c04a1166dfc58dee19709fb3d63a0b9472efb341e0690200bcf35dcc43fa571"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/json/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/120x40/json/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1452598,
+          "sha256": "6f354b1f1518e54c538f60a142a91815642c5e6ef401942fe4d647efb2dd05c9"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered/measurements.json",
+          "destination_relative": "structdiff-size-results/120x40/ordered/measurements.json",
+          "kind": "file",
+          "bytes": 1839,
+          "sha256": "3aeaba4175b5f9f00678b67d5592e28cc4abc611da3094c16e729f0ee3e21b67"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered/run-meta.json",
+          "destination_relative": "structdiff-size-results/120x40/ordered/run-meta.json",
+          "kind": "file",
+          "bytes": 307,
+          "sha256": "e3e77c9f4a48fec013182bf8aa5fa5591c2c1e0e9ba3804a0053a1b00b8c0903"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered/run-output.txt",
+          "destination_relative": "structdiff-size-results/120x40/ordered/run-output.txt",
+          "kind": "file",
+          "bytes": 1313,
+          "sha256": "bda2ebb099cf25c7bc52971c7bdc44ddba9fedfe973640f04714e7d9626dcfd8"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/120x40/ordered/wire-evidence.json",
+          "kind": "file",
+          "bytes": 707,
+          "sha256": "dec73d7dd5ddd9accb667c06e9cb2e7c6bc2317ceceba7ca744f21e8430625e9"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered-probe/probe.json",
+          "destination_relative": "structdiff-size-results/120x40/ordered-probe/probe.json",
+          "kind": "file",
+          "bytes": 205,
+          "sha256": "bb449dc6cd79ec27a3a12fe06ed0b5f0a96a40bc88652ce54cd230f44398ab06"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered-probe/run-meta.json",
+          "destination_relative": "structdiff-size-results/120x40/ordered-probe/run-meta.json",
+          "kind": "file",
+          "bytes": 319,
+          "sha256": "3b3166c81ca57415efe7d7490d0f411ab2a50e0c87ec2bb51aef4d25b5784a7d"
+        },
+        {
+          "source_relative": "structdiff-size-results/120x40/ordered-probe/run-output.txt",
+          "destination_relative": "structdiff-size-results/120x40/ordered-probe/run-output.txt",
+          "kind": "file",
+          "bytes": 43,
+          "sha256": "a57acc90baa9a59735f6f1a4eef8dbc7e4cc01f373608f1afe8aaf27ca051478"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/default/measurements.json",
+          "destination_relative": "structdiff-size-results/160x25/default/measurements.json",
+          "kind": "file",
+          "bytes": 1828,
+          "sha256": "59e0dde0449ca642f8f038e553f77300bb9e4d377bfda0539311df68914aa6c6"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/default/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x25/default/run-meta.json",
+          "kind": "file",
+          "bytes": 307,
+          "sha256": "cdbefeec8a652e1fff8cc0d5fe8ed91cb845ed16b3b634a52347ec050690b4c7"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/default/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x25/default/run-output.txt",
+          "kind": "file",
+          "bytes": 1305,
+          "sha256": "293ff50f95cb7f87e8c94fabb55941456c1e69a7398d6a78538c1d8c68ed7dc5"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/default/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/160x25/default/wire-evidence.json",
+          "kind": "file",
+          "bytes": 713,
+          "sha256": "2ce6a3b070174ad44e2abcae0fe87808cc898b4665ed949c5cdd5d28457f868c"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/json/measurements.json",
+          "destination_relative": "structdiff-size-results/160x25/json/measurements.json",
+          "kind": "file",
+          "bytes": 3608,
+          "sha256": "5acddc093bdd091c4f3f7dc32224e6b5a3a0a129812a22aa66898de05229f360"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/json/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x25/json/run-meta.json",
+          "kind": "file",
+          "bytes": 301,
+          "sha256": "5cd6dba742f92ee74d88b5c90327298296889a5cce89924459dc4597f7637ccc"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/json/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x25/json/run-output.txt",
+          "kind": "file",
+          "bytes": 2228,
+          "sha256": "80cf88afe53ad5dd099de87d3714216034bed7c6844dfd4e9b90bcce729598b4"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/json/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/160x25/json/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1212949,
+          "sha256": "c09f5165e8fba008b36896f8270671325265fa69ed74cd6dc00bbc553116f781"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered/measurements.json",
+          "destination_relative": "structdiff-size-results/160x25/ordered/measurements.json",
+          "kind": "file",
+          "bytes": 1836,
+          "sha256": "b48ee3bfe96511b233b1146bda8f06c88a7f734f146a79c3d12a2d6e6fd6aa01"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x25/ordered/run-meta.json",
+          "kind": "file",
+          "bytes": 307,
+          "sha256": "256a27b2c9c0d650ad919bdfb15ee988d505f67f9282bde069b4b8f0f105c68c"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x25/ordered/run-output.txt",
+          "kind": "file",
+          "bytes": 1312,
+          "sha256": "1aefde436fdd6dd41f7485f1b766d1d556b2edcc20bac4a6b4b4af472a9bf37d"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/160x25/ordered/wire-evidence.json",
+          "kind": "file",
+          "bytes": 707,
+          "sha256": "c52b04f232b1b4b4bed647496ebad33489f9e2110ce5b2565c2ef7da1ef63f79"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered-probe/probe.json",
+          "destination_relative": "structdiff-size-results/160x25/ordered-probe/probe.json",
+          "kind": "file",
+          "bytes": 204,
+          "sha256": "fa5f31d2964b3329060e04b8153ce9eac85e83e222cd0e67af4507a6fec9c24a"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered-probe/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x25/ordered-probe/run-meta.json",
+          "kind": "file",
+          "bytes": 320,
+          "sha256": "2c84abad0093a449f189b8d956f2f8e4dc43906809fe0c89e1a2f41dfa9f0532"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x25/ordered-probe/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x25/ordered-probe/run-output.txt",
+          "kind": "file",
+          "bytes": 43,
+          "sha256": "132780e6e7df57a75d4fda3e33af38c3fd9ac989219c533d41b21f68cdcc7a30"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/default/measurements.json",
+          "destination_relative": "structdiff-size-results/160x50/default/measurements.json",
+          "kind": "file",
+          "bytes": 1831,
+          "sha256": "47d00effcfdb30d7b0bf33ad061f16f6bc88337dd5a0b34121c569f575b632a2"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/default/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x50/default/run-meta.json",
+          "kind": "file",
+          "bytes": 306,
+          "sha256": "548fcf6cabf2674e46ee8cfe2f76831bf4a0bca8e36a7f7446f9558f540c2eed"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/default/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x50/default/run-output.txt",
+          "kind": "file",
+          "bytes": 1309,
+          "sha256": "6c251bc3ce03f06235a90d65de31a690aadf0658a2232483f06db722f9da1aeb"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/default/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/160x50/default/wire-evidence.json",
+          "kind": "file",
+          "bytes": 713,
+          "sha256": "e4f5c0431bca9b9f7ee72e17ea92aa68a52460dc7e2aee5b24a7c18a9c986a76"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/json/measurements.json",
+          "destination_relative": "structdiff-size-results/160x50/json/measurements.json",
+          "kind": "file",
+          "bytes": 3625,
+          "sha256": "bf33674251ec8fcd26c03844eb6a546e12c44dbb7de9eeed6add954e2d956fd7"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/json/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x50/json/run-meta.json",
+          "kind": "file",
+          "bytes": 301,
+          "sha256": "87020c4be4cb37fdc414bb80e37d903744cf34ffb703d0e6baa70f44c78d2f86"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/json/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x50/json/run-output.txt",
+          "kind": "file",
+          "bytes": 2242,
+          "sha256": "e279f689d5e5903920344a1bd82988b416193c071e9450459c3f1340559ce83f"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/json/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/160x50/json/wire-evidence.json",
+          "kind": "file",
+          "bytes": 2425723,
+          "sha256": "9a8711e3e888542e9e88990ef03304b309f05d45433cbec8b1905116411b942d"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered/measurements.json",
+          "destination_relative": "structdiff-size-results/160x50/ordered/measurements.json",
+          "kind": "file",
+          "bytes": 1844,
+          "sha256": "a98e3fe558ecccd64bb6c922f084ac4c593352d9239b9c66b922f4eae959bb66"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x50/ordered/run-meta.json",
+          "kind": "file",
+          "bytes": 306,
+          "sha256": "8f6085e7592860a5f0ba2de7b97c034829fee2e035b917742a45dcae546746d5"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x50/ordered/run-output.txt",
+          "kind": "file",
+          "bytes": 1313,
+          "sha256": "118cb7fdd1a5cf45b841762c05a52bb83bce89fc6141cf5e22a99e251e963b96"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/160x50/ordered/wire-evidence.json",
+          "kind": "file",
+          "bytes": 707,
+          "sha256": "09a2e90b5a4ff5382a49090a828146d60404af1ab1698ed2f267ea2e093e8dde"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered-probe/probe.json",
+          "destination_relative": "structdiff-size-results/160x50/ordered-probe/probe.json",
+          "kind": "file",
+          "bytes": 205,
+          "sha256": "244f51a4fd406cad938d2e9cb2e7f36e66a2aa760ce770c7cbfb7699b4d6c191"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered-probe/run-meta.json",
+          "destination_relative": "structdiff-size-results/160x50/ordered-probe/run-meta.json",
+          "kind": "file",
+          "bytes": 318,
+          "sha256": "57debf35f0de432cee189ee4eb3c91cdd3800939a10919014d40c57b66a23394"
+        },
+        {
+          "source_relative": "structdiff-size-results/160x50/ordered-probe/run-output.txt",
+          "destination_relative": "structdiff-size-results/160x50/ordered-probe/run-output.txt",
+          "kind": "file",
+          "bytes": 43,
+          "sha256": "8bd6d64a328bf35a4ed6c2413ad303adef69421b0821e49185ad1a295d6da42d"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/default/measurements.json",
+          "destination_relative": "structdiff-size-results/80x24/default/measurements.json",
+          "kind": "file",
+          "bytes": 1821,
+          "sha256": "200cd9db47b2836cef0c4a62ba55d3321c167b0c304c11cb23e65cf4696c7f7d"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/default/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x24/default/run-meta.json",
+          "kind": "file",
+          "bytes": 305,
+          "sha256": "ce028348f4e1e4db4e1792c13a86889f51af57a07b44348aedfde94963dab7b9"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/default/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x24/default/run-output.txt",
+          "kind": "file",
+          "bytes": 1300,
+          "sha256": "a8f3890829ad9babeb52217c8ee9599186e6da5a6a36f82fa56d7cddd30a0e3e"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/default/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/80x24/default/wire-evidence.json",
+          "kind": "file",
+          "bytes": 712,
+          "sha256": "16c8ab38ae2c531287271a1c75eb98aab187286e8f6ea259409e03d011a18fff"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/json/measurements.json",
+          "destination_relative": "structdiff-size-results/80x24/json/measurements.json",
+          "kind": "file",
+          "bytes": 3609,
+          "sha256": "02d92c9e32d9ecd4868d5af5311c7abb00b5acdbde1742aed1cdf84f9fd0f6e0"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/json/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x24/json/run-meta.json",
+          "kind": "file",
+          "bytes": 299,
+          "sha256": "70c71e7d2e07d4dc1328491303c6a1cc19931f58761e38a63ad41eac68c0d0ad"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/json/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x24/json/run-output.txt",
+          "kind": "file",
+          "bytes": 2224,
+          "sha256": "182ca5a67566bbf9c566ad7f78cf4742ab3dfd49bafc5e1110b05ea54fddca16"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/json/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/80x24/json/wire-evidence.json",
+          "kind": "file",
+          "bytes": 578841,
+          "sha256": "719eaf0aa43c0e62ad96de1c584cc98ee0fedf97ebda5c225becb91c16f7b172"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered/measurements.json",
+          "destination_relative": "structdiff-size-results/80x24/ordered/measurements.json",
+          "kind": "file",
+          "bytes": 1826,
+          "sha256": "1e5c1a06242b9b18e64e67b942c812b2e1c4497ed21ff26ebe22c738e06d7845"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x24/ordered/run-meta.json",
+          "kind": "file",
+          "bytes": 305,
+          "sha256": "939ccce176046f5e2f766d91c40ac947e638b8cbac21e9ef9e3d2efe712cda44"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x24/ordered/run-output.txt",
+          "kind": "file",
+          "bytes": 1298,
+          "sha256": "e083844cd0da4364dd67b4d8234a1fda6bc63a68eaca5ae732245751a48674cb"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/80x24/ordered/wire-evidence.json",
+          "kind": "file",
+          "bytes": 706,
+          "sha256": "79579e15a054532584cc31e46efa03942c1ad13bf91812d71940ce130a2580d5"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered-probe/probe.json",
+          "destination_relative": "structdiff-size-results/80x24/ordered-probe/probe.json",
+          "kind": "file",
+          "bytes": 204,
+          "sha256": "1fac3e76911e6cde177f0d30b13eaa9d15df694c32e4a8432a1e37068845714c"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered-probe/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x24/ordered-probe/run-meta.json",
+          "kind": "file",
+          "bytes": 318,
+          "sha256": "50bfa0a82550a5b503d2b20aae50f339e61b8dd561f3c490f1dfbb0c9af65ae5"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x24/ordered-probe/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x24/ordered-probe/run-output.txt",
+          "kind": "file",
+          "bytes": 42,
+          "sha256": "180b4d4be4f9b80c478a3e6146745fe84005ad250732a3eb58f9adc23529a4e3"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/default/measurements.json",
+          "destination_relative": "structdiff-size-results/80x50/default/measurements.json",
+          "kind": "file",
+          "bytes": 1829,
+          "sha256": "25e338f58827cda353705fa3e76e2310787cb42ef8721309f8407b171f33a018"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/default/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x50/default/run-meta.json",
+          "kind": "file",
+          "bytes": 305,
+          "sha256": "56ae383b19fe4384017d6a2a8328c964963c3a5f8086e89646a758eef48ff54a"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/default/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x50/default/run-output.txt",
+          "kind": "file",
+          "bytes": 1304,
+          "sha256": "f26d145e8badcc82559259bfaf1684fd6b11592fb6b4876691bd0e1bf81cfc3b"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/default/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/80x50/default/wire-evidence.json",
+          "kind": "file",
+          "bytes": 712,
+          "sha256": "fc55aa417bbb7dc796086b0607475cf54240bc444218d551146403cfca2a3636"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/json/measurements.json",
+          "destination_relative": "structdiff-size-results/80x50/json/measurements.json",
+          "kind": "file",
+          "bytes": 3609,
+          "sha256": "5eb6146bed9b10887559ee252df80d1de962fef6f26a35af85783a574230afce"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/json/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x50/json/run-meta.json",
+          "kind": "file",
+          "bytes": 299,
+          "sha256": "6c22f5d55d69b3279a95307ff417e9cc3e11bd94c101d08a63e66bfe120a3d61"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/json/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x50/json/run-output.txt",
+          "kind": "file",
+          "bytes": 2227,
+          "sha256": "4ce9f0aa9eec47fa7949f75e89a2a740241c0955bb6d419f6611b5e24e8f9793"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/json/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/80x50/json/wire-evidence.json",
+          "kind": "file",
+          "bytes": 1205718,
+          "sha256": "90e7a3fe04795134718ae2865daa1164137f8690df0fdad7e1f8ebef06bcbb8b"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered/measurements.json",
+          "destination_relative": "structdiff-size-results/80x50/ordered/measurements.json",
+          "kind": "file",
+          "bytes": 1843,
+          "sha256": "de828622deda21b7df76224d4f5a33faf29f2d9af222467c8196cce1c1dd369e"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x50/ordered/run-meta.json",
+          "kind": "file",
+          "bytes": 304,
+          "sha256": "b9cdeebcb653943beb16763c9851be0fe31ecd2b2074dcb1467876958e7dcdcf"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x50/ordered/run-output.txt",
+          "kind": "file",
+          "bytes": 1311,
+          "sha256": "c9ab1e0deb2caa34eeff0cc45123964d633fac8822a4d9bfb06b2596d7f08476"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered/wire-evidence.json",
+          "destination_relative": "structdiff-size-results/80x50/ordered/wire-evidence.json",
+          "kind": "file",
+          "bytes": 706,
+          "sha256": "3b4e33f9f1ef57c5684cedb8f17280cf134635802969e4f769206fec6b47b5d9"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered-probe/probe.json",
+          "destination_relative": "structdiff-size-results/80x50/ordered-probe/probe.json",
+          "kind": "file",
+          "bytes": 204,
+          "sha256": "95f92b4dd4c443111de553ba04df9d4358a84272dedcb8c63f62549c1c00ae42"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered-probe/run-meta.json",
+          "destination_relative": "structdiff-size-results/80x50/ordered-probe/run-meta.json",
+          "kind": "file",
+          "bytes": 317,
+          "sha256": "994cef4b3b9ae03f2545886a6a779ed835b603661e3c8269d06e64a98e9915b6"
+        },
+        {
+          "source_relative": "structdiff-size-results/80x50/ordered-probe/run-output.txt",
+          "destination_relative": "structdiff-size-results/80x50/ordered-probe/run-output.txt",
+          "kind": "file",
+          "bytes": 42,
+          "sha256": "06454e3e37cf0afcd4e27c9fc178562424be6e4229ccddd1e1d26dc0fa6271b2"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-after/src/bench.rs",
+          "destination_relative": "structdiff-size-results/source-after/src/bench.rs",
+          "kind": "file",
+          "bytes": 21305,
+          "sha256": "0b493a3915074eb4d8eaff3a237b60d03992428a2aace6fef6b3e6574338cf89"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-after/src/main.rs",
+          "destination_relative": "structdiff-size-results/source-after/src/main.rs",
+          "kind": "file",
+          "bytes": 9792,
+          "sha256": "b36d6644f1d2b39f531744e4bec8c620087a521aa1d631680c00def21c45e2db"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-after/src/sizes.rs",
+          "destination_relative": "structdiff-size-results/source-after/src/sizes.rs",
+          "kind": "file",
+          "bytes": 5247,
+          "sha256": "55d002693e09497851e6bafa1d3316e5307ac67a57271a128ebfd8c8b328329b"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-before/src/bench.rs",
+          "destination_relative": "structdiff-size-results/source-before/src/bench.rs",
+          "kind": "file",
+          "bytes": 16546,
+          "sha256": "3a7e80a9e3cfca6f64bd34e6b1fb1a3f97a4b5308af73dd876c28bcc0de7f988"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-before/src/main.rs",
+          "destination_relative": "structdiff-size-results/source-before/src/main.rs",
+          "kind": "file",
+          "bytes": 9643,
+          "sha256": "10d0e7862e5ecfb9aaa14acc39599b6e9cfa5a662635f3d8be0aba6fd08b4624"
+        },
+        {
+          "source_relative": "structdiff-size-results/source-before/src/sizes.rs",
+          "destination_relative": "structdiff-size-results/source-before/src/sizes.rs",
+          "kind": "file",
+          "bytes": 5247,
+          "sha256": "55d002693e09497851e6bafa1d3316e5307ac67a57271a128ebfd8c8b328329b"
+        }
+      ]
+    },
+    {
+      "label": "wrapper",
+      "source": "/private/tmp/ship-screen-prototype/wrapper-compat",
+      "file_count": 21,
+      "symlink_count": 0,
+      "bytes": 134257,
+      "comparison": "PASS: every original entry matches",
+      "entries": [
+        {
+          "source_relative": "Cargo.toml",
+          "destination_relative": "vendor/wrapper-compat/Cargo.toml",
+          "kind": "file",
+          "bytes": 587,
+          "sha256": "24e98e51388b5601f1c4831042185e75231ae61365fe7a3f3ec41c2756ea2d3d"
+        },
+        {
+          "source_relative": "README.md",
+          "destination_relative": "vendor/wrapper-compat/README.md",
+          "kind": "file",
+          "bytes": 3369,
+          "sha256": "c9c98e7b9826a03806dc8bbd62daa9334e7b757b011dee4ef4871ea2182ac939"
+        },
+        {
+          "source_relative": "examples/single_terminal.rs",
+          "destination_relative": "vendor/wrapper-compat/examples/single_terminal.rs",
+          "kind": "file",
+          "bytes": 9611,
+          "sha256": "4c33d2b8fcb9fea2f923306fb12281dcf05e739b49f22fcd8aec8c00907c5b59"
+        },
+        {
+          "source_relative": "examples/demo/app.rs",
+          "destination_relative": "vendor/wrapper-compat/examples/demo/app.rs",
+          "kind": "file",
+          "bytes": 10537,
+          "sha256": "15d653c16e52c65a764c90e97cdb766f32a796b158f0da02979db7067e9751c1"
+        },
+        {
+          "source_relative": "examples/demo/keybinds.rs",
+          "destination_relative": "vendor/wrapper-compat/examples/demo/keybinds.rs",
+          "kind": "file",
+          "bytes": 6442,
+          "sha256": "9f9edac0be7c17583c512a6a3c5841beec10aa0627632b45c04f896330a8934b"
+        },
+        {
+          "source_relative": "examples/demo/layout.rs",
+          "destination_relative": "vendor/wrapper-compat/examples/demo/layout.rs",
+          "kind": "file",
+          "bytes": 3554,
+          "sha256": "e3f94d7c485912930142f14761f65a5bf93666732722717dc783e5cbb21f8502"
+        },
+        {
+          "source_relative": "examples/demo/main.rs",
+          "destination_relative": "vendor/wrapper-compat/examples/demo/main.rs",
+          "kind": "file",
+          "bytes": 7933,
+          "sha256": "3f8e91844ba472fafacaa2397dac106895cfe6eb1ef3a6c5aa00227da1ff78a5"
+        },
+        {
+          "source_relative": "examples/demo/ui.rs",
+          "destination_relative": "vendor/wrapper-compat/examples/demo/ui.rs",
+          "kind": "file",
+          "bytes": 4652,
+          "sha256": "c28ad64420f47c3f271e8afdd0fb3a2d698d37fea72b0af7f2628dea4b1ba96c"
+        },
+        {
+          "source_relative": "src/colors.rs",
+          "destination_relative": "vendor/wrapper-compat/src/colors.rs",
+          "kind": "file",
+          "bytes": 8384,
+          "sha256": "7479dfead8b2cab8d60fe65e87baa2e55829a38c7d23b54b6caa0ae19a148dfe"
+        },
+        {
+          "source_relative": "src/input.rs",
+          "destination_relative": "vendor/wrapper-compat/src/input.rs",
+          "kind": "file",
+          "bytes": 5414,
+          "sha256": "9419d24dea9a40cf55e94b35646aac034b3f4c8a2756dafd06fdbaf533de62a4"
+        },
+        {
+          "source_relative": "src/lib.rs",
+          "destination_relative": "vendor/wrapper-compat/src/lib.rs",
+          "kind": "file",
+          "bytes": 81,
+          "sha256": "40fa99a74f2f3017561bbdf186d3be1143cb30a30e9e1e597e2d07a2668d9e6c"
+        },
+        {
+          "source_relative": "src/session.rs",
+          "destination_relative": "vendor/wrapper-compat/src/session.rs",
+          "kind": "file",
+          "bytes": 25899,
+          "sha256": "ecd19cf90339d55be34b3b4d8a338d837436e4d47d96e7b92f9caa097f1c9ccb"
+        },
+        {
+          "source_relative": "src/widget.rs",
+          "destination_relative": "vendor/wrapper-compat/src/widget.rs",
+          "kind": "file",
+          "bytes": 5317,
+          "sha256": "771452a89e4caf268dc314ae635121f84e4bac8e0cc09816ec010e64006b4f4b"
+        },
+        {
+          "source_relative": "src/convert/from_crossterm.rs",
+          "destination_relative": "vendor/wrapper-compat/src/convert/from_crossterm.rs",
+          "kind": "file",
+          "bytes": 7058,
+          "sha256": "8cd5c1aa93ec43c82e25f59dd8ec466c7109b737b3670e8c04e0005d0b94a4d9"
+        },
+        {
+          "source_relative": "src/convert/mod.rs",
+          "destination_relative": "vendor/wrapper-compat/src/convert/mod.rs",
+          "kind": "file",
+          "bytes": 44,
+          "sha256": "b9f36b0da878c51c299b5dc12c3a54c6031cd764b3a53e804475c2dfbf605066"
+        },
+        {
+          "source_relative": "src/convert/to_ratatui.rs",
+          "destination_relative": "vendor/wrapper-compat/src/convert/to_ratatui.rs",
+          "kind": "file",
+          "bytes": 1377,
+          "sha256": "0b696ae184eb21cbd2dd0c54ef0b0e90c8dec4068867dc7b307d4e004da0eefe"
+        },
+        {
+          "source_relative": "tests/convert_from_crossterm.rs",
+          "destination_relative": "vendor/wrapper-compat/tests/convert_from_crossterm.rs",
+          "kind": "file",
+          "bytes": 10277,
+          "sha256": "7d9edd44fec25789eb77ab742f00d40df73aa179f266edb5b778055a027d2b8d"
+        },
+        {
+          "source_relative": "tests/convert_to_ratatui.rs",
+          "destination_relative": "vendor/wrapper-compat/tests/convert_to_ratatui.rs",
+          "kind": "file",
+          "bytes": 5342,
+          "sha256": "8ca019fb2a6ce3df4bfedab817cf59491d31eb51c0aaf3e9d895b91424919383"
+        },
+        {
+          "source_relative": "tests/input_encode.rs",
+          "destination_relative": "vendor/wrapper-compat/tests/input_encode.rs",
+          "kind": "file",
+          "bytes": 8284,
+          "sha256": "dcbad6bac6ffb022eb2433e67734b279c2dd72b82498e7a771163fa275b26eb8"
+        },
+        {
+          "source_relative": "tests/terminal_move_after_callback.rs",
+          "destination_relative": "vendor/wrapper-compat/tests/terminal_move_after_callback.rs",
+          "kind": "file",
+          "bytes": 3368,
+          "sha256": "8f8a0b488cd58b2befb919e602582561108b709fe932b4b6ac70a8f2873e8be0"
+        },
+        {
+          "source_relative": "tests/widget_render.rs",
+          "destination_relative": "vendor/wrapper-compat/tests/widget_render.rs",
+          "kind": "file",
+          "bytes": 6727,
+          "sha256": "55ce1cc56fc75be9ce3b9f2a0d5d5b8b44c5f61ec01fc5e7551c60adde15b73a"
+        }
+      ]
+    },
+    {
+      "label": "bindings",
+      "source": "/private/tmp/ship-screen-prototype/libghostty-rs",
+      "file_count": 52,
+      "symlink_count": 0,
+      "bytes": 1371971,
+      "comparison": "PASS: every original entry matches",
+      "entries": [
+        {
+          "source_relative": ".envrc",
+          "destination_relative": "vendor/libghostty-rs/.envrc",
+          "kind": "file",
+          "bytes": 178,
+          "sha256": "d82edb4ae42a54123f308b27bfb51c1d96832f63f73ee9ad717a070ce8b1f956"
+        },
+        {
+          "source_relative": ".gitignore",
+          "destination_relative": "vendor/libghostty-rs/.gitignore",
+          "kind": "file",
+          "bytes": 68,
+          "sha256": "0494903a6a802455573de767ad8b8ae5859f919ed961b7eb0a0ea8aec53fc5ec"
+        },
+        {
+          "source_relative": "AGENTS.md",
+          "destination_relative": "vendor/libghostty-rs/AGENTS.md",
+          "kind": "file",
+          "bytes": 1098,
+          "sha256": "300f6ee9e4a5848608ca9cd372476c5f5f48882c6e7bed99e44af787b8fda43b"
+        },
+        {
+          "source_relative": "Cargo.lock",
+          "destination_relative": "vendor/libghostty-rs/Cargo.lock",
+          "kind": "file",
+          "bytes": 10203,
+          "sha256": "fa8b9769cd21e260b5f3092735f8ae72e49cd746a10133180e7e0cb8db47c7c2"
+        },
+        {
+          "source_relative": "Cargo.toml",
+          "destination_relative": "vendor/libghostty-rs/Cargo.toml",
+          "kind": "file",
+          "bytes": 385,
+          "sha256": "cd67932e5cf99fad0ca480b0f91035b9f0239f1e04318d82ac6fd68c21349030"
+        },
+        {
+          "source_relative": "LICENSE",
+          "destination_relative": "vendor/libghostty-rs/LICENSE",
+          "kind": "file",
+          "bytes": 1086,
+          "sha256": "64afe9aa17b5a1bf58375ea0e1bcfef3503b2ef85c1cfae7e00c3f7555f29137"
+        },
+        {
+          "source_relative": "README.md",
+          "destination_relative": "vendor/libghostty-rs/README.md",
+          "kind": "file",
+          "bytes": 4788,
+          "sha256": "2c42da1229f7356719a5fb619437c8173244a2bfe509fbaa1dbe2c84134423cc"
+        },
+        {
+          "source_relative": "flake.lock",
+          "destination_relative": "vendor/libghostty-rs/flake.lock",
+          "kind": "file",
+          "bytes": 7783,
+          "sha256": "76428a878a0cafe857f3775ba83d09c6243859b6e5d625e7a4b4e17d5536647b"
+        },
+        {
+          "source_relative": "flake.nix",
+          "destination_relative": "vendor/libghostty-rs/flake.nix",
+          "kind": "file",
+          "bytes": 8464,
+          "sha256": "295df6406f7a8c1d6ca97f1fc9c39b1823fe2c7678fca02dacf9ba696b244d1a"
+        },
+        {
+          "source_relative": ".github/FUNDING.yml",
+          "destination_relative": "vendor/libghostty-rs/.github/FUNDING.yml",
+          "kind": "file",
+          "bytes": 27,
+          "sha256": "d100a7839ff323cb46dce87fd3254141f6595bf9045cec7700e6dde21f3cb224"
+        },
+        {
+          "source_relative": ".github/workflows/ci.yml",
+          "destination_relative": "vendor/libghostty-rs/.github/workflows/ci.yml",
+          "kind": "file",
+          "bytes": 2729,
+          "sha256": "e52608f12d2797a72bdd95e0fff167fb62bc2f4e793419e868ef5ce6d3f01148"
+        },
+        {
+          "source_relative": ".github/workflows/windows-ci.yml",
+          "destination_relative": "vendor/libghostty-rs/.github/workflows/windows-ci.yml",
+          "kind": "file",
+          "bytes": 2121,
+          "sha256": "5576aa975c940a458184699f02b1dd5f0ac3329cd6f2a9ec3fffed69906d0ed2"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/Cargo.toml",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/Cargo.toml",
+          "kind": "file",
+          "bytes": 891,
+          "sha256": "26ea7c9a66411a4b2812ad87dfe8f6e7f93b428d323d6c82e0ea61ed0ddedbbb"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/README.md",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/README.md",
+          "kind": "file",
+          "bytes": 208,
+          "sha256": "debf376f8ecb101db7fb95bd604c58be2c734ef2502b48bfedf13097d842c810"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/alloc.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/alloc.rs",
+          "kind": "file",
+          "bytes": 13035,
+          "sha256": "6d5edb2c5e02552ed3f45e2f868875b877be0aebb5d5aae4bf8ba48da8e84f5e"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/build_info.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/build_info.rs",
+          "kind": "file",
+          "bytes": 3721,
+          "sha256": "24a5ea992944aa206448d3721b2ec014b94169c2643bbc45c7b9d67d54e029a3"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/error.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/error.rs",
+          "kind": "file",
+          "bytes": 3938,
+          "sha256": "531c6da8d89854b9c9b77474abbe64b1ba828073ea5877753a9044a00ce83b88"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/fmt.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/fmt.rs",
+          "kind": "file",
+          "bytes": 9185,
+          "sha256": "4ec4355aaaf54d7b9c896be347250fea15a0436546f847c205d552f1c0133ff9"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/focus.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/focus.rs",
+          "kind": "file",
+          "bytes": 1890,
+          "sha256": "3b7a7f2714c9db949a3a9dde238c66859b23923cb63183bc6e5e00418cab558a"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/io.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/io.rs",
+          "kind": "file",
+          "bytes": 1935,
+          "sha256": "2c450ffd3c93a9ac1faab177464f526981b51cbf68fc785d175d166cfbaa518b"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/key.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/key.rs",
+          "kind": "file",
+          "bytes": 21004,
+          "sha256": "c80f2383b6f4ea1a8122d06c6c1c164a0452c974dbc31a731b37fe2c2ed7957c"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/kitty.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/kitty.rs",
+          "kind": "file",
+          "bytes": 189,
+          "sha256": "2fcbf77765ce5356b977c41dbe93ff53d7eb4201d1f5d35a9956f37b8403bf06"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/lib.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/lib.rs",
+          "kind": "file",
+          "bytes": 5163,
+          "sha256": "6a5e42a09fd9696439fcdfbf1c6c4a2f432172e332ebae717b99c4c450e072ed"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/log.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/log.rs",
+          "kind": "file",
+          "bytes": 6917,
+          "sha256": "51ae419cd1c9bfc7fd03700bf4a8f1189f13031a8b78b80e6acd467bcefe846d"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/mouse.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/mouse.rs",
+          "kind": "file",
+          "bytes": 13343,
+          "sha256": "463b0d0555fdf81722a0e50f382844ac1e0e763cd683638e4f6594e35fb8e31f"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/osc.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/osc.rs",
+          "kind": "file",
+          "bytes": 7627,
+          "sha256": "aaac997b7bf4258bd039427d27caf03290404a6ae6b12acfb4e82cf63c1a61dc"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/paste.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/paste.rs",
+          "kind": "file",
+          "bytes": 2428,
+          "sha256": "ba6e26d07547a23dc24eea7a7e791253bfcaf0b58960d615cb8903970448046d"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/render.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/render.rs",
+          "kind": "file",
+          "bytes": 36471,
+          "sha256": "86cc1deb0d9b8b9f229e3dad51182b0cfb38486da9239626118e994402689e7f"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/screen.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/screen.rs",
+          "kind": "file",
+          "bytes": 19017,
+          "sha256": "3b388f153841b80d46e997f9ad7e7fecfd73b8be77137730db4491b89d5e1400"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/selection.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/selection.rs",
+          "kind": "file",
+          "bytes": 26357,
+          "sha256": "160f2a3707afbb56a00156fb949be1a11fba43c9c6124b039d5771470eb906e8"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/sgr.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/sgr.rs",
+          "kind": "file",
+          "bytes": 8908,
+          "sha256": "e66e2bca7c6063826221f4d0f8841ca8d8bb03f3d0afac28f34adb76bb1f541c"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/snapshot.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/snapshot.rs",
+          "kind": "file",
+          "bytes": 21041,
+          "sha256": "6b838aa6f1e496e02ea2635db9708bc4ed1aade0404a1e5d8bd6bfba508bac9d"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/style.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/style.rs",
+          "kind": "file",
+          "bytes": 18067,
+          "sha256": "bfce34f8df31f11c3a7387af5e543996ac32954dc64ce8fe06a755daaf2591ae"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/terminal.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/terminal.rs",
+          "kind": "file",
+          "bytes": 98950,
+          "sha256": "92b4d1c8599a8e300c4858086fbde82bb85b1163eb402a8acbd84926d931e282"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/unicode.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/unicode.rs",
+          "kind": "file",
+          "bytes": 2686,
+          "sha256": "730e3eb4f7318f74b98f2f4a0f801c623b5505ae2057dad325abf49796e6cd5e"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/kitty/graphics.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/kitty/graphics.rs",
+          "kind": "file",
+          "bytes": 39406,
+          "sha256": "ec14efd9b309b44ad4ef40bb2abbfe113175361f154985a6571a95cc4f9631be"
+        },
+        {
+          "source_relative": "crates/libghostty-vt/src/selection/gesture.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt/src/selection/gesture.rs",
+          "kind": "file",
+          "bytes": 23826,
+          "sha256": "2dc155d21b55a0f479a62827d731e7db81121b2840a12312db59fb7a2b218680"
+        },
+        {
+          "source_relative": "crates/libghostty-vt-sys/Cargo.toml",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt-sys/Cargo.toml",
+          "kind": "file",
+          "bytes": 817,
+          "sha256": "883444944f4c140e25193e21a4d36b1a15592373d955f1a896beb0cf50291ea4"
+        },
+        {
+          "source_relative": "crates/libghostty-vt-sys/README.md",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt-sys/README.md",
+          "kind": "file",
+          "bytes": 1771,
+          "sha256": "ed1089be24bc04a31266db0d404ebaf3453d06b804e2576bf43725391b770f98"
+        },
+        {
+          "source_relative": "crates/libghostty-vt-sys/build.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt-sys/build.rs",
+          "kind": "file",
+          "bytes": 21364,
+          "sha256": "9c6afe0e51a60e95e3ff68266bd5c56d012741137b53790dc7a71d68bb5a157e"
+        },
+        {
+          "source_relative": "crates/libghostty-vt-sys/src/bindings.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt-sys/src/bindings.rs",
+          "kind": "file",
+          "bytes": 300445,
+          "sha256": "7615af3392569a28ba8b6ab07a26cc9477a87c80314d7aa942399c53d9aaeae3"
+        },
+        {
+          "source_relative": "crates/libghostty-vt-sys/src/lib.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt-sys/src/lib.rs",
+          "kind": "file",
+          "bytes": 2525,
+          "sha256": "e8fe86c84ec90067424a2276fad082cafe7e263c03361b343913e9caaab75f57"
+        },
+        {
+          "source_relative": "crates/libghostty-vt-sys/tools/gen_bindings.rs",
+          "destination_relative": "vendor/libghostty-rs/crates/libghostty-vt-sys/tools/gen_bindings.rs",
+          "kind": "file",
+          "bytes": 6777,
+          "sha256": "dec717be332cab174c4f667c49eb85c37ee9679de0e0f96fcf6ab3f558954cb4"
+        },
+        {
+          "source_relative": "example/ghostling_rs/Cargo.toml",
+          "destination_relative": "vendor/libghostty-rs/example/ghostling_rs/Cargo.toml",
+          "kind": "file",
+          "bytes": 419,
+          "sha256": "9c0d1e396372f6dede477f8be715fd692a011f92f90d1885ca8b5a18c6980373"
+        },
+        {
+          "source_relative": "example/ghostling_rs/README.md",
+          "destination_relative": "vendor/libghostty-rs/example/ghostling_rs/README.md",
+          "kind": "file",
+          "bytes": 520,
+          "sha256": "bc9e2517e8b967208155e8937992d9182950ed274befe8a856a17999c77a11b5"
+        },
+        {
+          "source_relative": "example/ghostling_rs/fonts/JetBrainsMono-Medium.ttf",
+          "destination_relative": "vendor/libghostty-rs/example/ghostling_rs/fonts/JetBrainsMono-Medium.ttf",
+          "kind": "file",
+          "bytes": 273860,
+          "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d"
+        },
+        {
+          "source_relative": "example/ghostling_rs/fonts/JetBrainsMono-Regular.ttf",
+          "destination_relative": "vendor/libghostty-rs/example/ghostling_rs/fonts/JetBrainsMono-Regular.ttf",
+          "kind": "file",
+          "bytes": 273900,
+          "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+        },
+        {
+          "source_relative": "example/ghostling_rs/fonts/OFL.txt",
+          "destination_relative": "vendor/libghostty-rs/example/ghostling_rs/fonts/OFL.txt",
+          "kind": "file",
+          "bytes": 4400,
+          "sha256": "829da1a16be3e1ce619344f139ccab755ab0ba379be79b570d8749fc03606fdb"
+        },
+        {
+          "source_relative": "example/ghostling_rs/src/main.rs",
+          "destination_relative": "vendor/libghostty-rs/example/ghostling_rs/src/main.rs",
+          "kind": "file",
+          "bytes": 56860,
+          "sha256": "09e9fd3fcb5e6428574a468f718d512808c7997f28c57ffd1e85505be0c8fda6"
+        },
+        {
+          "source_relative": "example/grid_ref_tracked_rs/Cargo.toml",
+          "destination_relative": "vendor/libghostty-rs/example/grid_ref_tracked_rs/Cargo.toml",
+          "kind": "file",
+          "bytes": 191,
+          "sha256": "131dd595b0f78808370441c7234404b5da1a8b0d381667f2f453950a7ba5a715"
+        },
+        {
+          "source_relative": "example/grid_ref_tracked_rs/README.md",
+          "destination_relative": "vendor/libghostty-rs/example/grid_ref_tracked_rs/README.md",
+          "kind": "file",
+          "bytes": 563,
+          "sha256": "de0569e45e5e7c737c2fa2f1fbe15023c8c050a737f49bd2c64ee8c6b0f7c3aa"
+        },
+        {
+          "source_relative": "example/grid_ref_tracked_rs/src/main.rs",
+          "destination_relative": "vendor/libghostty-rs/example/grid_ref_tracked_rs/src/main.rs",
+          "kind": "file",
+          "bytes": 2426,
+          "sha256": "49a2614e2ae7019c1b1ff07c3d4350e617f8c74fe6a24c953c183d9b248056ae"
+        }
+      ]
+    }
+  ],
+  "research_handoff": {
+    "source": "/Users/cyan/Documents/projects/oss/research/ship-json-patch-handoff.md",
+    "destination": "docs/research/terminal-transport-handoff.md",
+    "bytes": 29513,
+    "sha256": "5ca794eecd812f0ed3c98028f62e268a0b0f4375bb795e0ba6a6ea39df7a7ee5",
+    "comparison": "PASS: byte-identical"
+  },
+  "wrapper_differences_from_published": [
+    "Cargo.toml",
+    "src/session.rs",
+    "tests/input_encode.rs",
+    "tests/terminal_move_after_callback.rs",
+    "tests/widget_render.rs"
+  ]
+}

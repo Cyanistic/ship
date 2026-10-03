@@ -1,0 +1,53 @@
+UTC: 2026-10-03T19:13:10Z
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+arm64
+Apple M4 Max
+68719476736
+16
+rustc 1.98.0 (88d9e12ae 2026-08-18)
+binary: rustc
+commit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea
+commit-date: 2026-08-18
+host: aarch64-apple-darwin
+release: 1.98.0
+LLVM version: 22.1.8
+cargo 1.98.0 (797e8a9bc 2026-08-05)
+0.16.0
+
+Bindings checkout:
+8953a740bc378cec3e07e1f6ca949f0595eab19b
+
+Native checkout:
+22d13172cde98a0a4dda05d3d6a3fcb0dd8ed018
+
+Native build configuration:
+cargo:rerun-if-env-changed=LIBGHOSTTY_VT_SYS_CPU
+cargo:rerun-if-env-changed=LIBGHOSTTY_VT_SYS_OPTIMIZE
+cargo:rerun-if-env-changed=GHOSTTY_SOURCE_DIR
+cargo:rerun-if-env-changed=GHOSTTY_ZIG_SYSTEM_DIR
+cargo:rerun-if-env-changed=TARGET
+cargo:rerun-if-env-changed=HOST
+cargo:rerun-if-env-changed=DEBUG
+cargo:rerun-if-env-changed=OPT_LEVEL
+cargo:rerun-if-changed=crates/libghostty-vt-sys/build.rs
+cargo:rustc-link-search=native=/private/tmp/ship-jsonpatch-prototype/target/release/build/libghostty-vt-sys-1796b5190c94c96d/out/ghostty-install/lib
+cargo:rustc-link-lib=static=ghostty-vt
+cargo:include=/private/tmp/ship-jsonpatch-prototype/target/release/build/libghostty-vt-sys-1796b5190c94c96d/out/ghostty-install/include
+
+Versions:
+ship-jsonpatch-prototype v0.0.0 (/private/tmp/ship-jsonpatch-prototype)
+├── json-patch v4.2.0
+├── portable-pty v0.9.0
+├── ratatui v0.30.0
+├── ratatui-ghostty v0.2.0 (/private/tmp/ship-screen-prototype/wrapper-compat)
+├── serde v1.0.229
+├── serde_json v1.0.151
+└── structdiff v0.7.3
+
+Final source hashes:
+7b25038d52efec3f27a7e7710de6f44800b976540bab25be4a7d946bb9375167  Cargo.toml
+1c3f0cc537ef640002f9a82e7c18a876da3be03d86d91d97f33d862a3b746f67  Cargo.lock
+66b3762a488d1ba7e844c316796c109bf8320f3644474ce7db75e1d75847b54c  src/main.rs
+d641ed780c34de169ebe65e81393aba3defd2f94db65aaaa1f557b400dbbb3bc  src/bench.rs

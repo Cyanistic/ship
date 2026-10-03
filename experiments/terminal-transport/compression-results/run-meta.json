@@ -1,0 +1,62 @@
+[
+  {
+    "size": "80x24",
+    "command": [
+      "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+      "--compression",
+      "80x24"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_seconds": 7.06874695897568,
+    "timeout_seconds": 90
+  },
+  {
+    "size": "120x40",
+    "command": [
+      "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+      "--compression",
+      "120x40"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_seconds": 18.028564999927767,
+    "timeout_seconds": 90
+  },
+  {
+    "size": "160x50",
+    "command": [
+      "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+      "--compression",
+      "160x50"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_seconds": 30.93790599994827,
+    "timeout_seconds": 90
+  },
+  {
+    "size": "80x50",
+    "command": [
+      "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+      "--compression",
+      "80x50"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_seconds": 15.22285883303266,
+    "timeout_seconds": 90
+  },
+  {
+    "size": "160x25",
+    "command": [
+      "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+      "--compression",
+      "160x25"
+    ],
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_seconds": 15.148142957943492,
+    "timeout_seconds": 90
+  }
+]

@@ -1,0 +1,5 @@
+   Compiling libghostty-vt-sys v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt-sys)
+   Compiling libghostty-vt v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt)
+   Compiling ratatui-ghostty v0.2.0 (/private/tmp/ship-screen-prototype/wrapper-compat)
+   Compiling ship-jsonpatch-prototype v0.0.0 (/private/tmp/ship-jsonpatch-prototype)
+    Finished `release` profile [optimized] target(s) in 3.66s

@@ -1,0 +1,53 @@
+PASS 160x50 initial-filled full-snapshot raw raw=896135 compressed=896135
+PASS 160x50 initial-filled full-snapshot gzip-1 raw=896135 compressed=13969
+PASS 160x50 initial-filled full-snapshot zstd-1 raw=896135 compressed=10509
+PASS 160x50 small-edit full-snapshot raw raw=896211 compressed=896211
+PASS 160x50 small-edit full-snapshot gzip-1 raw=896211 compressed=14705
+PASS 160x50 small-edit full-snapshot zstd-1 raw=896211 compressed=7720
+PASS 160x50 one-row-scroll full-snapshot raw raw=896170 compressed=896170
+PASS 160x50 one-row-scroll full-snapshot gzip-1 raw=896170 compressed=13940
+PASS 160x50 one-row-scroll full-snapshot zstd-1 raw=896170 compressed=9495
+PASS 160x50 unchanged full-snapshot raw raw=896170 compressed=896170
+PASS 160x50 unchanged full-snapshot gzip-1 raw=896170 compressed=13940
+PASS 160x50 unchanged full-snapshot zstd-1 raw=896170 compressed=9495
+FLUSH PREFIX PASS 160x50 full-snapshot: four SSE events decoded/applied before finish
+PASS 160x50 initial-filled json-patch-cached raw raw=896135 compressed=896135
+PASS 160x50 initial-filled json-patch-cached gzip-1 raw=896135 compressed=13969
+PASS 160x50 initial-filled json-patch-cached zstd-1 raw=896135 compressed=10509
+PASS 160x50 small-edit json-patch-cached raw raw=989 compressed=989
+PASS 160x50 small-edit json-patch-cached gzip-1 raw=989 compressed=186
+PASS 160x50 small-edit json-patch-cached zstd-1 raw=989 compressed=169
+PASS 160x50 one-row-scroll json-patch-cached raw raw=1373180 compressed=1373180
+PASS 160x50 one-row-scroll json-patch-cached gzip-1 raw=1373180 compressed=84683
+PASS 160x50 one-row-scroll json-patch-cached zstd-1 raw=1373180 compressed=45817
+PASS 160x50 unchanged json-patch-cached raw raw=2 compressed=2
+PASS 160x50 unchanged json-patch-cached gzip-1 raw=2 compressed=22
+PASS 160x50 unchanged json-patch-cached zstd-1 raw=2 compressed=11
+FLUSH PREFIX PASS 160x50 json-patch-cached: four SSE events decoded/applied before finish
+PASS 160x50 initial-filled structdiff-default raw raw=896135 compressed=896135
+PASS 160x50 initial-filled structdiff-default gzip-1 raw=896135 compressed=13969
+PASS 160x50 initial-filled structdiff-default zstd-1 raw=896135 compressed=10509
+PASS 160x50 small-edit structdiff-default raw raw=896130 compressed=896130
+PASS 160x50 small-edit structdiff-default gzip-1 raw=896130 compressed=14229
+PASS 160x50 small-edit structdiff-default zstd-1 raw=896130 compressed=9539
+PASS 160x50 one-row-scroll structdiff-default raw raw=896089 compressed=896089
+PASS 160x50 one-row-scroll structdiff-default gzip-1 raw=896089 compressed=14001
+PASS 160x50 one-row-scroll structdiff-default zstd-1 raw=896089 compressed=9429
+PASS 160x50 unchanged structdiff-default raw raw=2 compressed=2
+PASS 160x50 unchanged structdiff-default gzip-1 raw=2 compressed=22
+PASS 160x50 unchanged structdiff-default zstd-1 raw=2 compressed=11
+FLUSH PREFIX PASS 160x50 structdiff-default: four SSE events decoded/applied before finish
+PASS 160x50 initial-filled structdiff-ordered raw raw=896135 compressed=896135
+PASS 160x50 initial-filled structdiff-ordered gzip-1 raw=896135 compressed=13969
+PASS 160x50 initial-filled structdiff-ordered zstd-1 raw=896135 compressed=10509
+PASS 160x50 small-edit structdiff-ordered raw raw=609 compressed=609
+PASS 160x50 small-edit structdiff-ordered gzip-1 raw=609 compressed=186
+PASS 160x50 small-edit structdiff-ordered zstd-1 raw=609 compressed=169
+PASS 160x50 one-row-scroll structdiff-ordered raw raw=20832 compressed=20832
+PASS 160x50 one-row-scroll structdiff-ordered gzip-1 raw=20832 compressed=791
+PASS 160x50 one-row-scroll structdiff-ordered zstd-1 raw=20832 compressed=557
+PASS 160x50 unchanged structdiff-ordered raw raw=2 compressed=2
+PASS 160x50 unchanged structdiff-ordered gzip-1 raw=2 compressed=22
+PASS 160x50 unchanged structdiff-ordered zstd-1 raw=2 compressed=11
+FLUSH PREFIX PASS 160x50 structdiff-ordered: four SSE events decoded/applied before finish
+COMPRESSION PASS 160x50: 48 size rows, 64 codec batches, 36 directly measured total batches; 16 flushed prefixes

@@ -1,0 +1,6 @@
+{
+  "command": "cargo run --release --locked --offline -- --sizes",
+  "elapsed_seconds": 78.47722016705666,
+  "exit_status": 0,
+  "timeout_seconds": 120
+}

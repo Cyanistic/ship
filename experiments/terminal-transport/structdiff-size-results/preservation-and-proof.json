@@ -1,0 +1,130 @@
+{
+  "old_scratch_files_checked": 86,
+  "changed_only": [
+    "src/main.rs",
+    "src/bench.rs"
+  ],
+  "original_tree_paths": 31134,
+  "original_changed": [],
+  "original_missing": [],
+  "original_extra": [],
+  "oss_status_unchanged": true,
+  "manifest_hashes": {
+    "Cargo.toml": "7b25038d52efec3f27a7e7710de6f44800b976540bab25be4a7d946bb9375167",
+    "Cargo.lock": "1c3f0cc537ef640002f9a82e7c18a876da3be03d86d91d97f33d862a3b746f67"
+  },
+  "source_identical_function_hashes": {
+    "json_client": "471efb59dd3c9da3b642cfc0e386450d36f4e5d36fce41b3093198dd1f29a6b3",
+    "json_transition": "27177a1eac8548ef82d01a643c282782d8109404ae4d77f88090643a9e0e68a1",
+    "struct_transition": "24cf1992ec68f564ed74fe86f42d17d6e834170e0110c8170c59f6c412a70467",
+    "run_quick": "128c4bd384e341ae31ccab1d854fb4ba8ad08d90609cbbb0f5e46be3909a0a10"
+  },
+  "checks": [
+    {
+      "size": "80x24",
+      "strategy": "json",
+      "metrics": 18,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": true
+    },
+    {
+      "size": "80x24",
+      "strategy": "default",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "80x24",
+      "strategy": "ordered",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "120x40",
+      "strategy": "json",
+      "metrics": 18,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": true
+    },
+    {
+      "size": "120x40",
+      "strategy": "default",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "120x40",
+      "strategy": "ordered",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "160x50",
+      "strategy": "json",
+      "metrics": 18,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": true
+    },
+    {
+      "size": "160x50",
+      "strategy": "default",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "160x50",
+      "strategy": "ordered",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "80x50",
+      "strategy": "json",
+      "metrics": 18,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": true
+    },
+    {
+      "size": "80x50",
+      "strategy": "default",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "80x50",
+      "strategy": "ordered",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "160x25",
+      "strategy": "json",
+      "metrics": 18,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": true
+    },
+    {
+      "size": "160x25",
+      "strategy": "default",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    },
+    {
+      "size": "160x25",
+      "strategy": "ordered",
+      "metrics": 9,
+      "all_transitions_exact_encoded_equality": "PASS",
+      "json_wire_matches_prior": false
+    }
+  ],
+  "measured_metrics": 180
+}

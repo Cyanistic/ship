@@ -1,0 +1,6 @@
+Before rustfmt, exact-text reuse from original src/main-baseline.rs.bak:
+{'fn capture(': True, 'struct ObservedReader': True, '    let size =': True}
+All checks PASS. Workflow now captures every stage, then cleans up before benchmarking.
+Continuation verification: original baseline formatted through rustfmt stdin/stdout (no original writes), then exact-text chunk comparison:
+{'owned capture + stable sampling': True, 'reader-drop observer': True, 'PTY/shell/session setup': True}
+All chunks PASS.

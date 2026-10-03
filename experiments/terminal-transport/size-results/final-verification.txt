@@ -1,0 +1,5 @@
+SIZE WORKFLOW PASS 5
+CLEANUP PASS 5
+SIZE BENCH PASS: 18 metrics 5
+All preserved small-run/README/manifest/parent-verification hashes still match
+90 metrics; 9000 measured samples; 1800 warmups; exact 20/100 each

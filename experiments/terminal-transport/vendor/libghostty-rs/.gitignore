@@ -1,0 +1,6 @@
+/target/
+/result
+/.direnv/
+**/.zig-cache
+**/zig-out
+rustc-ice-*.txt

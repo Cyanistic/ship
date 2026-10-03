@@ -1,0 +1,128 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -12,9 +12,13 @@
+ [dependencies]
+ crossbeam-channel = "0.5.15"
+ crossterm = "0.29.0"
+-libghostty-vt = "0.1.1"
++libghostty-vt = "0.2.1"
+ libc = "0.2"
+ ratatui = "0.30.0"
++
++[[example]]
++name = "demo"
++path = "examples/demo/main.rs"
+ 
+ [dev-dependencies]
+ portable-pty = "0.9.0"
+--- a/src/session.rs
++++ b/src/session.rs
+@@ -18,8 +18,8 @@
+ use crate::widget::{CursorState, TerminalWidget};
+ use crossbeam_channel::{Receiver, Sender};
+ use libghostty_vt::render::RenderState;
+-use libghostty_vt::terminal::{Options as TerminalOptions, ScrollViewport, Terminal};
+-use libghostty_vt::{ffi, key, mouse};
++use libghostty_vt::terminal::{ColorScheme, ScrollViewport, Terminal};
++use libghostty_vt::{key, mouse};
+ use ratatui::buffer::Buffer;
+ use ratatui::layout::Rect;
+ use ratatui::widgets::Widget;
+@@ -604,11 +604,9 @@
+         wake,
+     } = ctx;
+ 
+-    let mut terminal = Box::new(Terminal::new(TerminalOptions {
+-        cols,
+-        rows,
+-        max_scrollback: scrollback,
+-    })?);
++    let mut terminal = Box::new(Terminal::new(cols, rows)?);
++    // Preserve the wrapper's documented line-count setting in this probe.
++    terminal.set_scrollback_max_lines(Some(scrollback))?;
+ 
+     let events_local: Rc<RefCell<Vec<SessionEvent>>> = Rc::new(RefCell::new(Vec::new()));
+ 
+@@ -648,9 +646,9 @@
+             let is_dark = is_dark(colors.background);
+             move |_| {
+                 Some(if is_dark {
+-                    ffi::GhosttyColorScheme_GHOSTTY_COLOR_SCHEME_DARK
++                    ColorScheme::Dark
+                 } else {
+-                    ffi::GhosttyColorScheme_GHOSTTY_COLOR_SCHEME_LIGHT
++                    ColorScheme::Light
+                 })
+             }
+         })?;
+--- a/tests/input_encode.rs
++++ b/tests/input_encode.rs
+@@ -2,17 +2,14 @@
+     KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent,
+     MouseEventKind,
+ };
+-use libghostty_vt::terminal::{Mode, Options, Terminal};
++use libghostty_vt::terminal::{Mode, Terminal};
+ use libghostty_vt::{key, mouse};
+ use ratatui_ghostty::input::{self, IntoKeyInput, IntoMouseInput};
+ 
+ fn make_terminal() -> Terminal<'static, 'static> {
+-    Terminal::new(Options {
+-        cols: 80,
+-        rows: 24,
+-        max_scrollback: 0,
+-    })
+-    .unwrap()
++    let mut terminal = Terminal::new(80, 24).unwrap();
++    terminal.set_scrollback_max_lines(Some(0)).unwrap();
++    terminal
+ }
+ 
+ #[test]
+--- a/tests/terminal_move_after_callback.rs
++++ b/tests/terminal_move_after_callback.rs
+@@ -32,15 +32,12 @@
+ /// Heap-allocate the Terminal (`Box<Terminal>`) before registering any
+ /// callbacks.  Moving the `Box` does not move the `Terminal` itself, so the
+ /// vtable pointer stored in the C library stays valid.
+-use libghostty_vt::terminal::{Options, Terminal};
++use libghostty_vt::terminal::{Terminal};
+ 
+ fn new_terminal() -> Terminal<'static, 'static> {
+-    Terminal::new(Options {
+-        cols: 80,
+-        rows: 24,
+-        max_scrollback: 0,
+-    })
+-    .unwrap()
++    let mut terminal = Terminal::new(80, 24).unwrap();
++    terminal.set_scrollback_max_lines(Some(0)).unwrap();
++    terminal
+ }
+ 
+ /// Reproduce the crash: register a callback, then move the Terminal via a Vec
+--- a/tests/widget_render.rs
++++ b/tests/widget_render.rs
+@@ -1,5 +1,5 @@
+ use libghostty_vt::render::RenderState;
+-use libghostty_vt::terminal::{Options, ScrollViewport, Terminal};
++use libghostty_vt::terminal::{ScrollViewport, Terminal};
+ use ratatui::buffer::Buffer;
+ use ratatui::layout::Rect;
+ use ratatui::style::{Color, Modifier};
+@@ -15,12 +15,9 @@
+     rows: u16,
+     max_scrollback: usize,
+ ) -> Terminal<'static, 'static> {
+-    Terminal::new(Options {
+-        cols,
+-        rows,
+-        max_scrollback,
+-    })
+-    .unwrap()
++    let mut terminal = Terminal::new(cols, rows).unwrap();
++    terminal.set_scrollback_max_lines(Some(max_scrollback)).unwrap();
++    terminal
+ }
+ 
+ fn render_widget<'a>(

@@ -1,0 +1,10 @@
+{
+  "equality": "PASS",
+  "not_a_percentile_measurement": true,
+  "patch_bytes": 609,
+  "samples": 1,
+  "single_diff_seconds": 0.502845167,
+  "size": "160x50",
+  "transition": "small-edit",
+  "warmup": 0
+}

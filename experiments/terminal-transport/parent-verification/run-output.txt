@@ -1,0 +1,173 @@
+capture READY 20x6 cursor=Cursor { position: Some((5, 1)), style: "block", blinking: false }
+RED café 界  é       
+READY               
+                    
+                    
+                    
+                    
+capture EDIT 20x6 cursor=Cursor { position: Some((4, 1)), style: "block", blinking: false }
+RED café 界  é       
+EDITY               
+                    
+                    
+                    
+                    
+capture scroll-12 20x6 cursor=Cursor { position: Some((9, 5)), style: "block", blinking: false }
+scroll-07           
+scroll-08           
+scroll-09           
+scroll-10           
+scroll-11           
+scroll-12           
+capture scroll-12 24x8 cursor=Cursor { position: Some((9, 7)), style: "block", blinking: false }
+scroll-05               
+scroll-06               
+scroll-07               
+scroll-08               
+scroll-09               
+scroll-10               
+scroll-11               
+scroll-12               
+capture scroll-12 24x8 cursor=Cursor { position: Some((9, 7)), style: "block", blinking: false }
+scroll-05               
+scroll-06               
+scroll-07               
+scroll-08               
+scroll-09               
+scroll-10               
+scroll-11               
+scroll-12               
+session event: Exited
+CLEANUP PASS: native buffer/cursor roundtrips, shell reaped (ExitStatus { code: 0, signal: None }), reader dropped, session stopped
+BENCH release=true source=actual-native-capture warmup=100 iterations=1000 timing_unit=us no_network=true
+INITIAL snapshot_bytes=13548 typed_and_json_decode=PASS
+WIRE edit json-patch: operations=13 patch_bytes=800 snapshot_bytes=13624 equality=PASS cached=PASS
+TIMING edit json-patch to_value_before_after: median_us=77.667 p95_us=135.792 n=1000 warmup=100
+TIMING edit json-patch-cached to_value_after: median_us=37.334 p95_us=37.875 n=1000 warmup=100
+TIMING edit json-patch diff: median_us=50.542 p95_us=62.708 n=1000 warmup=100
+TIMING edit json-patch encode: median_us=0.625 p95_us=0.709 n=1000 warmup=100
+TIMING edit json-patch client_decode_patch: median_us=2.041 p95_us=2.125 n=1000 warmup=100
+TIMING edit json-patch client_apply: median_us=3.167 p95_us=3.666 n=1000 warmup=100
+TIMING edit json-patch client_typed_reconstruction: median_us=129.667 p95_us=147.833 n=1000 warmup=100
+TIMING edit json-patch server_total: median_us=154.854 p95_us=170.958 n=1000 warmup=100
+TIMING edit json-patch-cached server_total: median_us=106.459 p95_us=120.000 n=1000 warmup=100
+TIMING edit json-patch client_total: median_us=131.583 p95_us=143.833 n=1000 warmup=100
+TIMING edit full-snapshot server_total: median_us=23.041 p95_us=28.750 n=1000 warmup=100
+TIMING edit full-snapshot client_total: median_us=115.333 p95_us=122.416 n=1000 warmup=100
+TIMING edit json-patch encoded_roundtrip_total: median_us=291.604 p95_us=313.666 n=1000 warmup=100
+TIMING edit json-patch-cached encoded_roundtrip_total: median_us=233.395 p95_us=251.667 n=1000 warmup=100
+TIMING edit full-snapshot encoded_roundtrip_total: median_us=137.875 p95_us=145.083 n=1000 warmup=100
+WIRE edit structdiff-default: fields=2 patch_bytes=13609 snapshot_bytes=13624 equality=PASS
+TIMING edit structdiff-default diff: median_us=1.000 p95_us=1.000 n=1000 warmup=100
+TIMING edit structdiff-default encode: median_us=23.625 p95_us=28.750 n=1000 warmup=100
+TIMING edit structdiff-default client_decode_patch: median_us=113.875 p95_us=121.250 n=1000 warmup=100
+TIMING edit structdiff-default client_apply: median_us=0.833 p95_us=1.000 n=1000 warmup=100
+TIMING edit structdiff-default server_total: median_us=24.250 p95_us=28.666 n=1000 warmup=100
+TIMING edit structdiff-default client_total: median_us=123.292 p95_us=131.375 n=1000 warmup=100
+TIMING edit structdiff-default encoded_roundtrip_total: median_us=137.062 p95_us=146.417 n=1000 warmup=100
+WIRE edit structdiff-ordered: fields=2 patch_bytes=668 snapshot_bytes=13624 equality=PASS
+TIMING edit structdiff-ordered diff: median_us=133.208 p95_us=150.292 n=1000 warmup=100
+TIMING edit structdiff-ordered encode: median_us=1.208 p95_us=1.292 n=1000 warmup=100
+TIMING edit structdiff-ordered client_decode_patch: median_us=4.250 p95_us=4.333 n=1000 warmup=100
+TIMING edit structdiff-ordered client_apply: median_us=3.125 p95_us=3.250 n=1000 warmup=100
+TIMING edit structdiff-ordered server_total: median_us=133.105 p95_us=146.750 n=1000 warmup=100
+TIMING edit structdiff-ordered client_total: median_us=6.917 p95_us=7.709 n=1000 warmup=100
+TIMING edit structdiff-ordered encoded_roundtrip_total: median_us=141.708 p95_us=156.083 n=1000 warmup=100
+WIRE scroll-output json-patch: operations=75 patch_bytes=4038 snapshot_bytes=13531 equality=PASS cached=PASS
+TIMING scroll-output json-patch to_value_before_after: median_us=77.791 p95_us=84.542 n=1000 warmup=100
+TIMING scroll-output json-patch-cached to_value_after: median_us=36.750 p95_us=40.292 n=1000 warmup=100
+TIMING scroll-output json-patch diff: median_us=53.312 p95_us=59.916 n=1000 warmup=100
+TIMING scroll-output json-patch encode: median_us=3.125 p95_us=3.209 n=1000 warmup=100
+TIMING scroll-output json-patch client_decode_patch: median_us=11.333 p95_us=11.542 n=1000 warmup=100
+TIMING scroll-output json-patch client_apply: median_us=16.625 p95_us=17.125 n=1000 warmup=100
+TIMING scroll-output json-patch client_typed_reconstruction: median_us=125.125 p95_us=139.666 n=1000 warmup=100
+TIMING scroll-output json-patch server_total: median_us=157.980 p95_us=171.791 n=1000 warmup=100
+TIMING scroll-output json-patch-cached server_total: median_us=110.625 p95_us=119.042 n=1000 warmup=100
+TIMING scroll-output json-patch client_total: median_us=177.000 p95_us=193.625 n=1000 warmup=100
+TIMING scroll-output full-snapshot server_total: median_us=22.520 p95_us=23.375 n=1000 warmup=100
+TIMING scroll-output full-snapshot client_total: median_us=116.646 p95_us=131.708 n=1000 warmup=100
+TIMING scroll-output json-patch encoded_roundtrip_total: median_us=316.084 p95_us=335.792 n=1000 warmup=100
+TIMING scroll-output json-patch-cached encoded_roundtrip_total: median_us=268.334 p95_us=288.500 n=1000 warmup=100
+TIMING scroll-output full-snapshot encoded_roundtrip_total: median_us=136.292 p95_us=144.625 n=1000 warmup=100
+WIRE scroll-output structdiff-default: fields=2 patch_bytes=13516 snapshot_bytes=13531 equality=PASS
+TIMING scroll-output structdiff-default diff: median_us=0.916 p95_us=1.166 n=1000 warmup=100
+TIMING scroll-output structdiff-default encode: median_us=22.584 p95_us=23.375 n=1000 warmup=100
+TIMING scroll-output structdiff-default client_decode_patch: median_us=113.125 p95_us=123.000 n=1000 warmup=100
+TIMING scroll-output structdiff-default client_apply: median_us=0.791 p95_us=1.042 n=1000 warmup=100
+TIMING scroll-output structdiff-default server_total: median_us=24.917 p95_us=25.709 n=1000 warmup=100
+TIMING scroll-output structdiff-default client_total: median_us=113.583 p95_us=124.167 n=1000 warmup=100
+TIMING scroll-output structdiff-default encoded_roundtrip_total: median_us=137.042 p95_us=146.000 n=1000 warmup=100
+WIRE scroll-output structdiff-ordered: fields=2 patch_bytes=7097 snapshot_bytes=13531 equality=PASS
+TIMING scroll-output structdiff-ordered diff: median_us=131.083 p95_us=147.000 n=1000 warmup=100
+TIMING scroll-output structdiff-ordered encode: median_us=13.250 p95_us=16.459 n=1000 warmup=100
+TIMING scroll-output structdiff-ordered client_decode_patch: median_us=54.375 p95_us=65.459 n=1000 warmup=100
+TIMING scroll-output structdiff-ordered client_apply: median_us=13.791 p95_us=14.666 n=1000 warmup=100
+TIMING scroll-output structdiff-ordered server_total: median_us=142.458 p95_us=153.792 n=1000 warmup=100
+TIMING scroll-output structdiff-ordered client_total: median_us=68.334 p95_us=74.833 n=1000 warmup=100
+TIMING scroll-output structdiff-ordered encoded_roundtrip_total: median_us=210.458 p95_us=229.250 n=1000 warmup=100
+WIRE resize json-patch: operations=145 patch_bytes=14875 snapshot_bytes=21595 equality=PASS cached=PASS
+TIMING resize json-patch to_value_before_after: median_us=99.625 p95_us=108.250 n=1000 warmup=100
+TIMING resize json-patch-cached to_value_after: median_us=65.292 p95_us=72.667 n=1000 warmup=100
+TIMING resize json-patch diff: median_us=68.292 p95_us=77.208 n=1000 warmup=100
+TIMING resize json-patch encode: median_us=11.542 p95_us=11.750 n=1000 warmup=100
+TIMING resize json-patch client_decode_patch: median_us=54.209 p95_us=60.333 n=1000 warmup=100
+TIMING resize json-patch client_apply: median_us=31.708 p95_us=35.208 n=1000 warmup=100
+TIMING resize json-patch client_typed_reconstruction: median_us=217.333 p95_us=245.250 n=1000 warmup=100
+TIMING resize json-patch server_total: median_us=227.896 p95_us=249.875 n=1000 warmup=100
+TIMING resize json-patch-cached server_total: median_us=163.270 p95_us=174.583 n=1000 warmup=100
+TIMING resize json-patch client_total: median_us=320.125 p95_us=348.125 n=1000 warmup=100
+TIMING resize full-snapshot server_total: median_us=36.500 p95_us=39.958 n=1000 warmup=100
+TIMING resize full-snapshot client_total: median_us=181.125 p95_us=192.416 n=1000 warmup=100
+TIMING resize json-patch encoded_roundtrip_total: median_us=519.917 p95_us=554.375 n=1000 warmup=100
+TIMING resize json-patch-cached encoded_roundtrip_total: median_us=462.812 p95_us=528.250 n=1000 warmup=100
+TIMING resize full-snapshot encoded_roundtrip_total: median_us=216.812 p95_us=231.792 n=1000 warmup=100
+WIRE resize structdiff-default: fields=4 patch_bytes=21603 snapshot_bytes=21595 equality=PASS
+TIMING resize structdiff-default diff: median_us=1.542 p95_us=1.916 n=1000 warmup=100
+TIMING resize structdiff-default encode: median_us=36.625 p95_us=42.625 n=1000 warmup=100
+TIMING resize structdiff-default client_decode_patch: median_us=180.916 p95_us=191.125 n=1000 warmup=100
+TIMING resize structdiff-default client_apply: median_us=0.875 p95_us=1.042 n=1000 warmup=100
+TIMING resize structdiff-default server_total: median_us=37.791 p95_us=43.250 n=1000 warmup=100
+TIMING resize structdiff-default client_total: median_us=178.980 p95_us=190.167 n=1000 warmup=100
+TIMING resize structdiff-default encoded_roundtrip_total: median_us=218.770 p95_us=237.583 n=1000 warmup=100
+WIRE resize structdiff-ordered: fields=4 patch_bytes=9535 snapshot_bytes=21595 equality=PASS
+TIMING resize structdiff-ordered diff: median_us=235.833 p95_us=259.041 n=1000 warmup=100
+TIMING resize structdiff-ordered encode: median_us=16.062 p95_us=18.334 n=1000 warmup=100
+TIMING resize structdiff-ordered client_decode_patch: median_us=77.833 p95_us=85.208 n=1000 warmup=100
+TIMING resize structdiff-ordered client_apply: median_us=32.084 p95_us=32.708 n=1000 warmup=100
+TIMING resize structdiff-ordered server_total: median_us=259.188 p95_us=293.208 n=1000 warmup=100
+TIMING resize structdiff-ordered client_total: median_us=105.833 p95_us=113.542 n=1000 warmup=100
+TIMING resize structdiff-ordered encoded_roundtrip_total: median_us=363.229 p95_us=388.667 n=1000 warmup=100
+WIRE unchanged json-patch: operations=0 patch_bytes=2 snapshot_bytes=21595 equality=PASS cached=PASS
+TIMING unchanged json-patch to_value_before_after: median_us=124.709 p95_us=133.250 n=1000 warmup=100
+TIMING unchanged json-patch-cached to_value_after: median_us=61.020 p95_us=66.750 n=1000 warmup=100
+TIMING unchanged json-patch diff: median_us=82.520 p95_us=94.583 n=1000 warmup=100
+TIMING unchanged json-patch encode: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged json-patch client_decode_patch: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged json-patch client_apply: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged json-patch client_typed_reconstruction: median_us=203.292 p95_us=214.625 n=1000 warmup=100
+TIMING unchanged json-patch server_total: median_us=250.770 p95_us=271.041 n=1000 warmup=100
+TIMING unchanged json-patch-cached server_total: median_us=166.770 p95_us=177.166 n=1000 warmup=100
+TIMING unchanged json-patch client_total: median_us=202.750 p95_us=215.250 n=1000 warmup=100
+TIMING unchanged full-snapshot server_total: median_us=35.417 p95_us=38.208 n=1000 warmup=100
+TIMING unchanged full-snapshot client_total: median_us=180.667 p95_us=192.041 n=1000 warmup=100
+TIMING unchanged json-patch encoded_roundtrip_total: median_us=450.375 p95_us=512.583 n=1000 warmup=100
+TIMING unchanged json-patch-cached encoded_roundtrip_total: median_us=369.375 p95_us=387.542 n=1000 warmup=100
+TIMING unchanged full-snapshot encoded_roundtrip_total: median_us=217.292 p95_us=232.500 n=1000 warmup=100
+WIRE unchanged structdiff-default: fields=0 patch_bytes=2 snapshot_bytes=21595 equality=PASS
+TIMING unchanged structdiff-default diff: median_us=0.708 p95_us=0.750 n=1000 warmup=100
+TIMING unchanged structdiff-default encode: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-default client_decode_patch: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-default client_apply: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-default server_total: median_us=0.750 p95_us=0.750 n=1000 warmup=100
+TIMING unchanged structdiff-default client_total: median_us=0.041 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-default encoded_roundtrip_total: median_us=0.791 p95_us=0.792 n=1000 warmup=100
+WIRE unchanged structdiff-ordered: fields=0 patch_bytes=2 snapshot_bytes=21595 equality=PASS
+TIMING unchanged structdiff-ordered diff: median_us=355.208 p95_us=378.917 n=1000 warmup=100
+TIMING unchanged structdiff-ordered encode: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-ordered client_decode_patch: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-ordered client_apply: median_us=0.000 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-ordered server_total: median_us=357.812 p95_us=390.792 n=1000 warmup=100
+TIMING unchanged structdiff-ordered client_total: median_us=0.041 p95_us=0.042 n=1000 warmup=100
+TIMING unchanged structdiff-ordered encoded_roundtrip_total: median_us=351.708 p95_us=376.834 n=1000 warmup=100
+BENCH PASS: 116 metrics, native sequential client exact through unchanged; saved captures/measurements/wire-evidence.json
+PASS: all actual capture JSON Patch/full snapshot/structdiff equality assertions and cleanup passed

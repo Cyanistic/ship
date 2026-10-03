@@ -1,0 +1,11 @@
+--- compression-results/source-before/bench.rs	2026-10-03 17:13:27
++++ src/bench.rs	2026-10-03 17:17:32
+@@ -10,7 +10,7 @@
+ 
+ // Identical serialized fields. This attribute is only a comparator, not a schema choice.
+ #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Difference)]
+-struct OrderedScreen {
++pub struct OrderedScreen {
+     cols: u16,
+     rows: u16,
+     #[difference(collection_strategy = "ordered_array_like")]

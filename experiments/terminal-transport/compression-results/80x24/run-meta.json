@@ -1,0 +1,12 @@
+{
+  "size": "80x24",
+  "command": [
+    "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+    "--compression",
+    "80x24"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "elapsed_seconds": 7.06874695897568,
+  "timeout_seconds": 90
+}

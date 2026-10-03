@@ -1,0 +1,1078 @@
+[
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5397.25,
+      "p95_us": 5675.334,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537735,
+    "decompress": null,
+    "raw_bytes": 537735,
+    "strategy": "full-snapshot",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5609.1045,
+      "p95_us": 5824.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 75.542,
+      "p95_us": 75.958,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9091,
+    "decompress": {
+      "median_us": 113.667,
+      "p95_us": 124.792,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "full-snapshot",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5552.771,
+      "p95_us": 5823.0,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 123.3125,
+      "p95_us": 131.75,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 6662,
+    "decompress": {
+      "median_us": 64.563,
+      "p95_us": 65.042,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "full-snapshot",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5402.2915,
+      "p95_us": 5573.125,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537811,
+    "decompress": null,
+    "raw_bytes": 537811,
+    "strategy": "full-snapshot",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5540.2705,
+      "p95_us": 5770.583,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 77.646,
+      "p95_us": 88.125,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9484,
+    "decompress": {
+      "median_us": 112.5,
+      "p95_us": 114.375,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537811,
+    "strategy": "full-snapshot",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5582.0415,
+      "p95_us": 5720.292,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 109.792,
+      "p95_us": 119.709,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 6036,
+    "decompress": {
+      "median_us": 69.375,
+      "p95_us": 75.041,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537811,
+    "strategy": "full-snapshot",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5416.667,
+      "p95_us": 5521.542,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537770,
+    "decompress": null,
+    "raw_bytes": 537770,
+    "strategy": "full-snapshot",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5580.771,
+      "p95_us": 5810.166,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 75.375,
+      "p95_us": 81.292,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9022,
+    "decompress": {
+      "median_us": 112.083,
+      "p95_us": 117.417,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537770,
+    "strategy": "full-snapshot",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5622.75,
+      "p95_us": 5743.459,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 107.5625,
+      "p95_us": 120.583,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 5923,
+    "decompress": {
+      "median_us": 69.0625,
+      "p95_us": 74.333,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537770,
+    "strategy": "full-snapshot",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5370.7915,
+      "p95_us": 5474.459,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537770,
+    "decompress": null,
+    "raw_bytes": 537770,
+    "strategy": "full-snapshot",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5598.75,
+      "p95_us": 5824.084,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 75.542,
+      "p95_us": 79.416,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9022,
+    "decompress": {
+      "median_us": 110.9375,
+      "p95_us": 140.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537770,
+    "strategy": "full-snapshot",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5537.4585,
+      "p95_us": 5783.125,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 116.6665,
+      "p95_us": 120.292,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 5923,
+    "decompress": {
+      "median_us": 69.375,
+      "p95_us": 69.959,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537770,
+    "strategy": "full-snapshot",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 8584.896,
+      "p95_us": 9222.875,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537735,
+    "decompress": null,
+    "raw_bytes": 537735,
+    "strategy": "json-patch-cached",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 8727.3125,
+      "p95_us": 8999.166,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 75.8335,
+      "p95_us": 81.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9091,
+    "decompress": {
+      "median_us": 121.5835,
+      "p95_us": 123.375,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "json-patch-cached",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 8731.1045,
+      "p95_us": 9035.416,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 125.375,
+      "p95_us": 133.333,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 6662,
+    "decompress": {
+      "median_us": 68.0205,
+      "p95_us": 76.25,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "json-patch-cached",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 9288.2085,
+      "p95_us": 9594.208,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 989,
+    "decompress": null,
+    "raw_bytes": 989,
+    "strategy": "json-patch-cached",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 9343.6665,
+      "p95_us": 9676.667,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 6.292,
+      "p95_us": 6.959,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 185,
+    "decompress": {
+      "median_us": 4.25,
+      "p95_us": 4.416,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 989,
+    "strategy": "json-patch-cached",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 9346.875,
+      "p95_us": 9684.292,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 3.5,
+      "p95_us": 3.542,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 168,
+    "decompress": {
+      "median_us": 1.75,
+      "p95_us": 2.208,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 989,
+    "strategy": "json-patch-cached",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 15904.1665,
+      "p95_us": 16267.041,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 821180,
+    "decompress": null,
+    "raw_bytes": 821180,
+    "strategy": "json-patch-cached",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 16590.4585,
+      "p95_us": 17491.0,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 320.9585,
+      "p95_us": 334.375,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 52469,
+    "decompress": {
+      "median_us": 287.6665,
+      "p95_us": 310.292,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 821180,
+    "strategy": "json-patch-cached",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 16482.083,
+      "p95_us": 16821.334,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 390.7705,
+      "p95_us": 404.667,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 27747,
+    "decompress": {
+      "median_us": 227.146,
+      "p95_us": 234.333,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 821180,
+    "strategy": "json-patch-cached",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 9251.208,
+      "p95_us": 9602.875,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 2,
+    "decompress": null,
+    "raw_bytes": 2,
+    "strategy": "json-patch-cached",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 9324.562,
+      "p95_us": 9607.458,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 5.4165,
+      "p95_us": 6.584,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 22,
+    "decompress": {
+      "median_us": 2.666,
+      "p95_us": 3.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 2,
+    "strategy": "json-patch-cached",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 9311.9165,
+      "p95_us": 9425.542,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 0.583,
+      "p95_us": 0.584,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 11,
+    "decompress": {
+      "median_us": 0.458,
+      "p95_us": 0.5,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 2,
+    "strategy": "json-patch-cached",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5462.0625,
+      "p95_us": 5580.25,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537735,
+    "decompress": null,
+    "raw_bytes": 537735,
+    "strategy": "structdiff-default",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5646.9585,
+      "p95_us": 5889.458,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 75.5,
+      "p95_us": 84.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9091,
+    "decompress": {
+      "median_us": 120.0,
+      "p95_us": 134.083,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "structdiff-default",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5662.375,
+      "p95_us": 5952.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 126.1875,
+      "p95_us": 133.417,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 6662,
+    "decompress": {
+      "median_us": 74.8335,
+      "p95_us": 77.375,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "structdiff-default",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5529.1875,
+      "p95_us": 5790.291,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537730,
+    "decompress": null,
+    "raw_bytes": 537730,
+    "strategy": "structdiff-default",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5718.438,
+      "p95_us": 5962.458,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 76.2915,
+      "p95_us": 79.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9159,
+    "decompress": {
+      "median_us": 111.5,
+      "p95_us": 124.5,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537730,
+    "strategy": "structdiff-default",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5670.4165,
+      "p95_us": 5893.958,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 118.125,
+      "p95_us": 118.833,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 5957,
+    "decompress": {
+      "median_us": 56.0835,
+      "p95_us": 62.917,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537730,
+    "strategy": "structdiff-default",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 5503.438,
+      "p95_us": 5658.166,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 537689,
+    "decompress": null,
+    "raw_bytes": 537689,
+    "strategy": "structdiff-default",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 5764.271,
+      "p95_us": 6002.084,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 75.5625,
+      "p95_us": 78.333,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9007,
+    "decompress": {
+      "median_us": 111.2085,
+      "p95_us": 120.417,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537689,
+    "strategy": "structdiff-default",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 5709.7295,
+      "p95_us": 5869.959,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 117.458,
+      "p95_us": 125.5,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 5850,
+    "decompress": {
+      "median_us": 61.834,
+      "p95_us": 62.75,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537689,
+    "strategy": "structdiff-default",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": {
+      "median_us": 17.958,
+      "p95_us": 20.667,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": null,
+    "compressed_bytes": 2,
+    "decompress": null,
+    "raw_bytes": 2,
+    "strategy": "structdiff-default",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": {
+      "median_us": 27.208,
+      "p95_us": 29.042,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 6.083,
+      "p95_us": 6.25,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 22,
+    "decompress": {
+      "median_us": 2.875,
+      "p95_us": 3.0,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 2,
+    "strategy": "structdiff-default",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": {
+      "median_us": 19.1665,
+      "p95_us": 19.25,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compress": {
+      "median_us": 0.667,
+      "p95_us": 0.709,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 11,
+    "decompress": {
+      "median_us": 0.417,
+      "p95_us": 0.459,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 2,
+    "strategy": "structdiff-default",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": null,
+    "compress": null,
+    "compressed_bytes": 537735,
+    "decompress": null,
+    "raw_bytes": 537735,
+    "strategy": "structdiff-ordered",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 75.5625,
+      "p95_us": 76.125,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 9091,
+    "decompress": {
+      "median_us": 111.5,
+      "p95_us": 114.916,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "structdiff-ordered",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 124.375,
+      "p95_us": 132.375,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 6662,
+    "decompress": {
+      "median_us": 72.7915,
+      "p95_us": 78.541,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 537735,
+    "strategy": "structdiff-ordered",
+    "transition": "initial-filled",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": null,
+    "compress": null,
+    "compressed_bytes": 609,
+    "decompress": null,
+    "raw_bytes": 609,
+    "strategy": "structdiff-ordered",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 6.625,
+      "p95_us": 6.667,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 186,
+    "decompress": {
+      "median_us": 4.291,
+      "p95_us": 5.334,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 609,
+    "strategy": "structdiff-ordered",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 3.25,
+      "p95_us": 3.333,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 168,
+    "decompress": {
+      "median_us": 1.584,
+      "p95_us": 1.792,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 609,
+    "strategy": "structdiff-ordered",
+    "transition": "small-edit",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": null,
+    "compress": null,
+    "compressed_bytes": 15632,
+    "decompress": null,
+    "raw_bytes": 15632,
+    "strategy": "structdiff-ordered",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 10.25,
+      "p95_us": 10.417,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 669,
+    "decompress": {
+      "median_us": 8.584,
+      "p95_us": 8.708,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 15632,
+    "strategy": "structdiff-ordered",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 7.375,
+      "p95_us": 8.291,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 479,
+    "decompress": {
+      "median_us": 3.916,
+      "p95_us": 4.0,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 15632,
+    "strategy": "structdiff-ordered",
+    "transition": "one-row-scroll",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "raw",
+    "combined_total": null,
+    "compress": null,
+    "compressed_bytes": 2,
+    "decompress": null,
+    "raw_bytes": 2,
+    "strategy": "structdiff-ordered",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "gzip-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 5.75,
+      "p95_us": 6.333,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 22,
+    "decompress": {
+      "median_us": 2.833,
+      "p95_us": 2.875,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 2,
+    "strategy": "structdiff-ordered",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  },
+  {
+    "byte_equality": "PASS",
+    "codec": "zstd-1",
+    "combined_total": null,
+    "compress": {
+      "median_us": 0.583,
+      "p95_us": 0.625,
+      "samples": 50,
+      "warmup": 10
+    },
+    "compressed_bytes": 11,
+    "decompress": {
+      "median_us": 0.458,
+      "p95_us": 0.459,
+      "samples": 50,
+      "warmup": 10
+    },
+    "raw_bytes": 2,
+    "strategy": "structdiff-ordered",
+    "transition": "unchanged",
+    "typed_equality": "PASS"
+  }
+]

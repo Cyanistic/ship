@@ -1,0 +1,11 @@
+# Local builds and fresh verification runs, never historical evidence.
+/target/
+/.runs/
+**/__pycache__/
+**/*.pyc
+.DS_Store
+# Optional builds inside vendored workspaces.
+/vendor/**/target/
+/vendor/**/.zig-cache/
+/vendor/**/zig-cache/
+/vendor/**/zig-out/

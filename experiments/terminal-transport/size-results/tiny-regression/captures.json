@@ -1,0 +1,6783 @@
+[
+  [
+    "initial",
+    {
+      "cols": 20,
+      "rows": 6,
+      "cells": [
+        {
+          "text": "R",
+          "fg": "#CC6666",
+          "bg": "#81A2BE",
+          "underline": "Reset",
+          "modifiers": "BOLD",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "E",
+          "fg": "#CC6666",
+          "bg": "#81A2BE",
+          "underline": "Reset",
+          "modifiers": "BOLD",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "D",
+          "fg": "#CC6666",
+          "bg": "#81A2BE",
+          "underline": "Reset",
+          "modifiers": "BOLD",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "a",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "f",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "é",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "界",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "é",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "R",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "E",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "A",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "D",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "Y",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        }
+      ],
+      "cursor": {
+        "position": [
+          5,
+          1
+        ],
+        "style": "block",
+        "blinking": false
+      }
+    }
+  ],
+  [
+    "edit",
+    {
+      "cols": 20,
+      "rows": 6,
+      "cells": [
+        {
+          "text": "R",
+          "fg": "#CC6666",
+          "bg": "#81A2BE",
+          "underline": "Reset",
+          "modifiers": "BOLD",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "E",
+          "fg": "#CC6666",
+          "bg": "#81A2BE",
+          "underline": "Reset",
+          "modifiers": "BOLD",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "D",
+          "fg": "#CC6666",
+          "bg": "#81A2BE",
+          "underline": "Reset",
+          "modifiers": "BOLD",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "a",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "f",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "é",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "界",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "é",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "E",
+          "fg": "#0A141E",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "ITALIC | UNDERLINED",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "D",
+          "fg": "#0A141E",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "ITALIC | UNDERLINED",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "I",
+          "fg": "#0A141E",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "ITALIC | UNDERLINED",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "T",
+          "fg": "#0A141E",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "ITALIC | UNDERLINED",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "Y",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        }
+      ],
+      "cursor": {
+        "position": [
+          4,
+          1
+        ],
+        "style": "block",
+        "blinking": false
+      }
+    }
+  ],
+  [
+    "scroll-output",
+    {
+      "cols": 20,
+      "rows": 6,
+      "cells": [
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "7",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "8",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "9",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "2",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        }
+      ],
+      "cursor": {
+        "position": [
+          9,
+          5
+        ],
+        "style": "block",
+        "blinking": false
+      }
+    }
+  ],
+  [
+    "resize",
+    {
+      "cols": 24,
+      "rows": 8,
+      "cells": [
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "5",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "6",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "7",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "8",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "9",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "2",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        }
+      ],
+      "cursor": {
+        "position": [
+          9,
+          7
+        ],
+        "style": "block",
+        "blinking": false
+      }
+    }
+  ],
+  [
+    "unchanged",
+    {
+      "cols": 24,
+      "rows": 8,
+      "cells": [
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "5",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "6",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "7",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "8",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "9",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "0",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "s",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "c",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "r",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "o",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "l",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "-",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "1",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": "2",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        },
+        {
+          "text": " ",
+          "fg": "#FFFFFF",
+          "bg": "#000000",
+          "underline": "Reset",
+          "modifiers": "",
+          "skip": false,
+          "diff_option": "None"
+        }
+      ],
+      "cursor": {
+        "position": [
+          9,
+          7
+        ],
+        "style": "block",
+        "blinking": false
+      }
+    }
+  ]
+]

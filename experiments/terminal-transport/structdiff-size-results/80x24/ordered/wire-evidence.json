@@ -1,0 +1,34 @@
+[
+  {
+    "equality": "PASS",
+    "initial_snapshot_bytes": 215174,
+    "input": "size-results/80x24/captures.json",
+    "samples": 10,
+    "strategy": "ordered",
+    "warmup": 3
+  },
+  {
+    "equality": "PASS",
+    "fields": 1,
+    "patch_bytes": 605,
+    "snapshot_bytes": 215250,
+    "strategy": "structdiff-ordered",
+    "transition": "small-edit"
+  },
+  {
+    "equality": "PASS",
+    "fields": 1,
+    "patch_bytes": 10431,
+    "snapshot_bytes": 215209,
+    "strategy": "structdiff-ordered",
+    "transition": "one-row-scroll"
+  },
+  {
+    "equality": "PASS",
+    "fields": 0,
+    "patch_bytes": 2,
+    "snapshot_bytes": 215209,
+    "strategy": "structdiff-ordered",
+    "transition": "unchanged"
+  }
+]

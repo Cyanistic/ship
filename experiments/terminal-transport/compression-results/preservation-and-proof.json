@@ -1,0 +1,129 @@
+{
+  "prior_files_checked": 184,
+  "changed_prior_files": [
+    "./Cargo.toml",
+    "./Cargo.lock",
+    "./src/main.rs",
+    "./src/bench.rs"
+  ],
+  "original_paths": 31134,
+  "original_changed": [],
+  "original_missing": [],
+  "original_extra": [],
+  "oss_status_unchanged": true,
+  "added_packages": [
+    [
+      "adler2",
+      "2.0.1"
+    ],
+    [
+      "cc",
+      "1.6.0"
+    ],
+    [
+      "crc32fast",
+      "1.5.2"
+    ],
+    [
+      "find-msvc-tools",
+      "0.1.14"
+    ],
+    [
+      "flate2",
+      "1.1.10"
+    ],
+    [
+      "jobserver",
+      "0.1.35"
+    ],
+    [
+      "miniz_oxide",
+      "0.9.1"
+    ],
+    [
+      "pkg-config",
+      "0.3.34"
+    ],
+    [
+      "shlex",
+      "2.0.1"
+    ],
+    [
+      "simd-adler32",
+      "0.3.10"
+    ],
+    [
+      "zlib-rs",
+      "0.6.8"
+    ],
+    [
+      "zstd",
+      "0.13.3"
+    ],
+    [
+      "zstd-safe",
+      "7.3.0"
+    ],
+    [
+      "zstd-sys",
+      "2.1.0+zstd.1.5.7"
+    ]
+  ],
+  "removed_packages": [],
+  "bench_identical_except_ordered_visibility": true,
+  "sizes_identical": true,
+  "checks": [
+    {
+      "size": "80x24",
+      "rows": 48,
+      "codec_byte_and_typed_assertions": 48,
+      "primary_pipeline_assertions": 36,
+      "flushed_prefix_assertions": 16,
+      "finished_stream_assertions": 4,
+      "prior_json_patches_exact": true,
+      "prior_structdiff_and_snapshot_lengths_exact": true
+    },
+    {
+      "size": "120x40",
+      "rows": 48,
+      "codec_byte_and_typed_assertions": 48,
+      "primary_pipeline_assertions": 36,
+      "flushed_prefix_assertions": 16,
+      "finished_stream_assertions": 4,
+      "prior_json_patches_exact": true,
+      "prior_structdiff_and_snapshot_lengths_exact": true
+    },
+    {
+      "size": "160x50",
+      "rows": 48,
+      "codec_byte_and_typed_assertions": 48,
+      "primary_pipeline_assertions": 36,
+      "flushed_prefix_assertions": 16,
+      "finished_stream_assertions": 4,
+      "prior_json_patches_exact": true,
+      "prior_structdiff_and_snapshot_lengths_exact": true
+    },
+    {
+      "size": "80x50",
+      "rows": 48,
+      "codec_byte_and_typed_assertions": 48,
+      "primary_pipeline_assertions": 36,
+      "flushed_prefix_assertions": 16,
+      "finished_stream_assertions": 4,
+      "prior_json_patches_exact": true,
+      "prior_structdiff_and_snapshot_lengths_exact": true
+    },
+    {
+      "size": "160x25",
+      "rows": 48,
+      "codec_byte_and_typed_assertions": 48,
+      "primary_pipeline_assertions": 36,
+      "flushed_prefix_assertions": 16,
+      "finished_stream_assertions": 4,
+      "prior_json_patches_exact": true,
+      "prior_structdiff_and_snapshot_lengths_exact": true
+    }
+  ],
+  "codec_batches": 320,
+  "primary_total_batches": 180
+}

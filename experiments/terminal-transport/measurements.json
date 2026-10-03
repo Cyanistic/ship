@@ -1,0 +1,1046 @@
+[
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "to_value_before_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 75.896,
+    "p95_us": 112.25
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch-cached",
+    "metric": "to_value_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 36.959,
+    "p95_us": 37.75
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 52.375,
+    "p95_us": 60.25
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.625,
+    "p95_us": 0.709
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 2.041,
+    "p95_us": 2.125
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 3.166,
+    "p95_us": 3.417
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "client_typed_reconstruction",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 196.6455,
+    "p95_us": 214.375
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 153.25,
+    "p95_us": 166.459
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch-cached",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 108.229,
+    "p95_us": 118.667
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 133.625,
+    "p95_us": 141.917
+  },
+  {
+    "transition": "edit",
+    "strategy": "full-snapshot",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 22.625,
+    "p95_us": 23.792
+  },
+  {
+    "transition": "edit",
+    "strategy": "full-snapshot",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 114.125,
+    "p95_us": 123.0
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 297.0835,
+    "p95_us": 315.833
+  },
+  {
+    "transition": "edit",
+    "strategy": "json-patch-cached",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 244.2295,
+    "p95_us": 261.417
+  },
+  {
+    "transition": "edit",
+    "strategy": "full-snapshot",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 137.542,
+    "p95_us": 147.167
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 1.0,
+    "p95_us": 1.042
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 23.083,
+    "p95_us": 24.125
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 113.7915,
+    "p95_us": 122.625
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.792,
+    "p95_us": 1.0
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 25.0,
+    "p95_us": 27.625
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 114.875,
+    "p95_us": 123.75
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-default",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 139.917,
+    "p95_us": 149.458
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 142.437,
+    "p95_us": 156.916
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 1.208,
+    "p95_us": 1.292
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 4.25,
+    "p95_us": 4.334
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 3.042,
+    "p95_us": 3.167
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 141.583,
+    "p95_us": 160.083
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 7.417,
+    "p95_us": 8.458
+  },
+  {
+    "transition": "edit",
+    "strategy": "structdiff-ordered",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 143.958,
+    "p95_us": 156.833
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "to_value_before_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 78.5,
+    "p95_us": 86.375
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch-cached",
+    "metric": "to_value_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 37.166,
+    "p95_us": 40.625
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 53.938,
+    "p95_us": 61.25
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 3.125,
+    "p95_us": 3.208
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 11.167,
+    "p95_us": 11.916
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 16.417,
+    "p95_us": 18.375
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "client_typed_reconstruction",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 203.792,
+    "p95_us": 217.334
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 162.687,
+    "p95_us": 174.209
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch-cached",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 111.125,
+    "p95_us": 119.375
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 155.833,
+    "p95_us": 165.583
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "full-snapshot",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 22.667,
+    "p95_us": 25.042
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "full-snapshot",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 115.4375,
+    "p95_us": 124.75
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 325.0835,
+    "p95_us": 344.375
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "json-patch-cached",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 274.688,
+    "p95_us": 291.25
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "full-snapshot",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 137.583,
+    "p95_us": 148.084
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.875,
+    "p95_us": 0.917
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 22.916,
+    "p95_us": 23.708
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 112.959,
+    "p95_us": 123.25
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.875,
+    "p95_us": 1.042
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 24.458,
+    "p95_us": 25.75
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 114.5625,
+    "p95_us": 123.5
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-default",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 137.958,
+    "p95_us": 147.375
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 128.0625,
+    "p95_us": 142.542
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 12.583,
+    "p95_us": 15.916
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 53.75,
+    "p95_us": 57.833
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 13.542,
+    "p95_us": 13.834
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 144.1455,
+    "p95_us": 157.083
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 67.709,
+    "p95_us": 71.583
+  },
+  {
+    "transition": "scroll-output",
+    "strategy": "structdiff-ordered",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 213.5205,
+    "p95_us": 228.292
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "to_value_before_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 96.6455,
+    "p95_us": 105.959
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch-cached",
+    "metric": "to_value_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 57.709,
+    "p95_us": 64.084
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 66.458,
+    "p95_us": 74.625
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 11.5,
+    "p95_us": 11.75
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 55.042,
+    "p95_us": 61.75
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 31.375,
+    "p95_us": 35.208
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "client_typed_reconstruction",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 323.5415,
+    "p95_us": 341.167
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 220.625,
+    "p95_us": 236.375
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch-cached",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 162.291,
+    "p95_us": 173.625
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 299.812,
+    "p95_us": 329.375
+  },
+  {
+    "transition": "resize",
+    "strategy": "full-snapshot",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 35.3955,
+    "p95_us": 38.709
+  },
+  {
+    "transition": "resize",
+    "strategy": "full-snapshot",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 182.125,
+    "p95_us": 197.042
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 532.3955,
+    "p95_us": 554.0
+  },
+  {
+    "transition": "resize",
+    "strategy": "json-patch-cached",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 477.8545,
+    "p95_us": 498.958
+  },
+  {
+    "transition": "resize",
+    "strategy": "full-snapshot",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 217.792,
+    "p95_us": 231.208
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 1.541,
+    "p95_us": 1.584
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 36.333,
+    "p95_us": 37.25
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 181.0,
+    "p95_us": 193.375
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.875,
+    "p95_us": 1.083
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 38.916,
+    "p95_us": 43.584
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 183.0,
+    "p95_us": 196.667
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-default",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 219.7295,
+    "p95_us": 234.417
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 235.8955,
+    "p95_us": 255.958
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 17.333,
+    "p95_us": 18.166
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 74.0,
+    "p95_us": 81.5
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 31.584,
+    "p95_us": 35.209
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 251.9585,
+    "p95_us": 273.334
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 105.5,
+    "p95_us": 112.708
+  },
+  {
+    "transition": "resize",
+    "strategy": "structdiff-ordered",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 355.0,
+    "p95_us": 380.792
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "to_value_before_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 120.209,
+    "p95_us": 129.292
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch-cached",
+    "metric": "to_value_after",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 58.042,
+    "p95_us": 63.25
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 84.104,
+    "p95_us": 92.208
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.041,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "client_typed_reconstruction",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 323.042,
+    "p95_us": 342.875
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 243.312,
+    "p95_us": 259.542
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch-cached",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 165.5,
+    "p95_us": 176.917
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 203.0,
+    "p95_us": 226.0
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "full-snapshot",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 36.792,
+    "p95_us": 39.083
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "full-snapshot",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 182.083,
+    "p95_us": 194.25
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 458.5625,
+    "p95_us": 479.625
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "json-patch-cached",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 381.687,
+    "p95_us": 401.375
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "full-snapshot",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 217.4375,
+    "p95_us": 231.167
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.708,
+    "p95_us": 0.75
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.75,
+    "p95_us": 0.75
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.041,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-default",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.791,
+    "p95_us": 0.833
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "diff",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 352.0205,
+    "p95_us": 371.291
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "encode",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "client_decode_patch",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "client_apply",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.0,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "server_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 362.584,
+    "p95_us": 387.833
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "client_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 0.041,
+    "p95_us": 0.042
+  },
+  {
+    "transition": "unchanged",
+    "strategy": "structdiff-ordered",
+    "metric": "encoded_roundtrip_total",
+    "warmup": 100,
+    "iterations": 1000,
+    "median_us": 350.0,
+    "p95_us": 369.208
+  }
+]

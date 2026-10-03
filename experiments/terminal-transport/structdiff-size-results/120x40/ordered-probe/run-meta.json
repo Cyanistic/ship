@@ -1,0 +1,14 @@
+{
+  "size": "120x40",
+  "strategy": "ordered-probe",
+  "command": [
+    "/private/tmp/ship-jsonpatch-prototype/target/release/ship-jsonpatch-prototype",
+    "--saved-size",
+    "120x40",
+    "ordered-probe"
+  ],
+  "timeout_seconds": 10,
+  "elapsed_seconds": 0.2600179159780964,
+  "exit_code": 0,
+  "timed_out": false
+}

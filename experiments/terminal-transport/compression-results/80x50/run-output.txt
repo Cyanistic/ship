@@ -1,0 +1,53 @@
+PASS 80x50 initial-filled full-snapshot raw raw=448134 compressed=448134
+PASS 80x50 initial-filled full-snapshot gzip-1 raw=448134 compressed=8442
+PASS 80x50 initial-filled full-snapshot zstd-1 raw=448134 compressed=5976
+PASS 80x50 small-edit full-snapshot raw raw=448210 compressed=448210
+PASS 80x50 small-edit full-snapshot gzip-1 raw=448210 compressed=8718
+PASS 80x50 small-edit full-snapshot zstd-1 raw=448210 compressed=5193
+PASS 80x50 one-row-scroll full-snapshot raw raw=448169 compressed=448169
+PASS 80x50 one-row-scroll full-snapshot gzip-1 raw=448169 compressed=8663
+PASS 80x50 one-row-scroll full-snapshot zstd-1 raw=448169 compressed=5078
+PASS 80x50 unchanged full-snapshot raw raw=448169 compressed=448169
+PASS 80x50 unchanged full-snapshot gzip-1 raw=448169 compressed=8663
+PASS 80x50 unchanged full-snapshot zstd-1 raw=448169 compressed=5078
+FLUSH PREFIX PASS 80x50 full-snapshot: four SSE events decoded/applied before finish
+PASS 80x50 initial-filled json-patch-cached raw raw=448134 compressed=448134
+PASS 80x50 initial-filled json-patch-cached gzip-1 raw=448134 compressed=8442
+PASS 80x50 initial-filled json-patch-cached zstd-1 raw=448134 compressed=5976
+PASS 80x50 small-edit json-patch-cached raw raw=973 compressed=973
+PASS 80x50 small-edit json-patch-cached gzip-1 raw=973 compressed=186
+PASS 80x50 small-edit json-patch-cached zstd-1 raw=973 compressed=168
+PASS 80x50 one-row-scroll json-patch-cached raw raw=681193 compressed=681193
+PASS 80x50 one-row-scroll json-patch-cached gzip-1 raw=681193 compressed=45225
+PASS 80x50 one-row-scroll json-patch-cached zstd-1 raw=681193 compressed=23820
+PASS 80x50 unchanged json-patch-cached raw raw=2 compressed=2
+PASS 80x50 unchanged json-patch-cached gzip-1 raw=2 compressed=22
+PASS 80x50 unchanged json-patch-cached zstd-1 raw=2 compressed=11
+FLUSH PREFIX PASS 80x50 json-patch-cached: four SSE events decoded/applied before finish
+PASS 80x50 initial-filled structdiff-default raw raw=448134 compressed=448134
+PASS 80x50 initial-filled structdiff-default gzip-1 raw=448134 compressed=8442
+PASS 80x50 initial-filled structdiff-default zstd-1 raw=448134 compressed=5976
+PASS 80x50 small-edit structdiff-default raw raw=448130 compressed=448130
+PASS 80x50 small-edit structdiff-default gzip-1 raw=448130 compressed=8528
+PASS 80x50 small-edit structdiff-default zstd-1 raw=448130 compressed=5107
+PASS 80x50 one-row-scroll structdiff-default raw raw=448089 compressed=448089
+PASS 80x50 one-row-scroll structdiff-default gzip-1 raw=448089 compressed=8362
+PASS 80x50 one-row-scroll structdiff-default zstd-1 raw=448089 compressed=4987
+PASS 80x50 unchanged structdiff-default raw raw=2 compressed=2
+PASS 80x50 unchanged structdiff-default gzip-1 raw=2 compressed=22
+PASS 80x50 unchanged structdiff-default zstd-1 raw=2 compressed=11
+FLUSH PREFIX PASS 80x50 structdiff-default: four SSE events decoded/applied before finish
+PASS 80x50 initial-filled structdiff-ordered raw raw=448134 compressed=448134
+PASS 80x50 initial-filled structdiff-ordered gzip-1 raw=448134 compressed=8442
+PASS 80x50 initial-filled structdiff-ordered zstd-1 raw=448134 compressed=5976
+PASS 80x50 small-edit structdiff-ordered raw raw=605 compressed=605
+PASS 80x50 small-edit structdiff-ordered gzip-1 raw=605 compressed=185
+PASS 80x50 small-edit structdiff-ordered zstd-1 raw=605 compressed=169
+PASS 80x50 one-row-scroll structdiff-ordered raw raw=10431 compressed=10431
+PASS 80x50 one-row-scroll structdiff-ordered gzip-1 raw=10431 compressed=511
+PASS 80x50 one-row-scroll structdiff-ordered zstd-1 raw=10431 compressed=391
+PASS 80x50 unchanged structdiff-ordered raw raw=2 compressed=2
+PASS 80x50 unchanged structdiff-ordered gzip-1 raw=2 compressed=22
+PASS 80x50 unchanged structdiff-ordered zstd-1 raw=2 compressed=11
+FLUSH PREFIX PASS 80x50 structdiff-ordered: four SSE events decoded/applied before finish
+COMPRESSION PASS 80x50: 48 size rows, 64 codec batches, 36 directly measured total batches; 16 flushed prefixes

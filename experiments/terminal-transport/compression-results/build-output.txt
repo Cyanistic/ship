@@ -1,0 +1,298 @@
+    Updating crates.io index
+     Locking 14 packages to latest Rust 1.98.0 compatible versions
+      Adding adler2 v2.0.1
+      Adding cc v1.6.0
+      Adding crc32fast v1.5.2
+      Adding find-msvc-tools v0.1.14
+      Adding flate2 v1.1.10
+      Adding jobserver v0.1.35
+      Adding miniz_oxide v0.9.1
+      Adding pkg-config v0.3.34
+      Adding shlex v2.0.1
+      Adding simd-adler32 v0.3.10
+      Adding zlib-rs v0.6.8
+      Adding zstd v0.13.3 (available: v0.14.0)
+      Adding zstd-safe v7.3.0
+      Adding zstd-sys v2.1.0+zstd.1.5.7
+ Downloading crates ...
+  Downloaded find-msvc-tools v0.1.14
+  Downloaded pkg-config v0.3.34
+  Downloaded zstd-safe v7.3.0
+  Downloaded jobserver v0.1.35
+  Downloaded simd-adler32 v0.3.10
+  Downloaded crc32fast v1.5.2
+  Downloaded miniz_oxide v0.9.1
+  Downloaded flate2 v1.1.10
+  Downloaded cc v1.6.0
+  Downloaded zlib-rs v0.6.8
+  Downloaded zstd-sys v2.1.0+zstd.1.5.7
+   Compiling libc v0.2.190
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling pkg-config v0.3.34
+   Compiling libghostty-vt-sys v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt-sys)
+   Compiling crc32fast v1.5.2
+   Compiling zstd-safe v7.3.0
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling flate2 v1.1.10
+   Compiling jobserver v0.1.35
+   Compiling cc v1.6.0
+   Compiling libghostty-vt v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt)
+   Compiling zstd-sys v2.1.0+zstd.1.5.7
+   Compiling ratatui-ghostty v0.2.0 (/private/tmp/ship-screen-prototype/wrapper-compat)
+   Compiling zstd v0.13.3
+   Compiling ship-jsonpatch-prototype v0.0.0 (/private/tmp/ship-jsonpatch-prototype)
+error: proc-macro derive panicked
+  --> src/bench.rs:12:59
+   |
+12 | #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Difference)]
+   |                                                           ^^^^^^^^^^
+   |
+   = help: message: pub(whatever) is not supported yet
+
+error[E0277]: the trait bound `OrderedScreen: StructDiff` is not satisfied
+   --> src/bench.rs:421:23
+    |
+421 |         evidence.push(struct_transition(
+    |                       ^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `StructDiff` is not implemented for `OrderedScreen`
+   --> src/bench.rs:13:1
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: the trait `StructDiff` is implemented for `Screen`
+   --> src/main.rs:41:59
+    |
+ 41 | #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Difference)]
+    |                                                           ^^^^^^^^^^
+note: required by a bound in `struct_transition`
+   --> src/bench.rs:289:8
+    |
+287 | fn struct_transition<T>(r: &mut Results, label: &str, strategy: &str, old: &T, new: &T) -> Value
+    |    ----------------- required by a bound in this function
+288 | where
+289 |     T: StructDiff + Clone + PartialEq + std::fmt::Debug + Serialize + DeserializeOwned,
+    |        ^^^^^^^^^^ required by this bound in `struct_transition`
+    = note: this error originates in the derive macro `Difference` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `diff` found for reference `&OrderedScreen` in the current scope
+   --> src/bench.rs:550:37
+    |
+550 |         let patch = black_box(&old).diff(black_box(&new));
+    |                                     ^^^^ method not found in `&OrderedScreen`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `diff`, perhaps you need to implement it:
+            candidate #1: `StructDiff`
+
+error[E0599]: no method named `apply` found for struct `OrderedScreen` in the current scope
+   --> src/bench.rs:554:24
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ------------------------------- method `apply` not found for this struct
+...
+554 |         assert_eq!(old.apply(decoded), new);
+    |                        ^^^^^ method not found in `OrderedScreen`
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `apply`, perhaps you need to implement one of them:
+            candidate #1: `StructDiff`
+            candidate #2: `ratatui_widgets::block::shadow::CellEffect`
+
+error[E0277]: the trait bound `OrderedScreen: StructDiff` is not satisfied
+   --> src/bench.rs:591:17
+    |
+591 |                 struct_transition(
+    |                 ^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `StructDiff` is not implemented for `OrderedScreen`
+   --> src/bench.rs:13:1
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: the trait `StructDiff` is implemented for `Screen`
+   --> src/main.rs:41:59
+    |
+ 41 | #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Difference)]
+    |                                                           ^^^^^^^^^^
+note: required by a bound in `struct_transition`
+   --> src/bench.rs:289:8
+    |
+287 | fn struct_transition<T>(r: &mut Results, label: &str, strategy: &str, old: &T, new: &T) -> Value
+    |    ----------------- required by a bound in this function
+288 | where
+289 |     T: StructDiff + Clone + PartialEq + std::fmt::Debug + Serialize + DeserializeOwned,
+    |        ^^^^^^^^^^ required by this bound in `struct_transition`
+    = note: this error originates in the derive macro `Difference` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `diff` found for struct `OrderedScreen` in the current scope
+  --> src/compression.rs:99:58
+   |
+99 |             serde_json::to_vec(&OrderedScreen::from(old).diff(&OrderedScreen::from(new))).unwrap()
+   |                                                          ^^^^ method not found in `OrderedScreen`
+   |
+  ::: src/bench.rs:13:1
+   |
+13 | pub(super) struct OrderedScreen {
+   | ------------------------------- method `diff` not found for this struct
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `diff`, perhaps you need to implement it:
+           candidate #1: `StructDiff`
+
+error[E0277]: the trait bound `[PatchOperation]: serde::Deserialize<'de>` is not satisfied
+    --> src/compression.rs:178:25
+     |
+ 178 |             let patch = serde_json::from_slice(bytes).unwrap();
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deserialize<'_>` is not implemented for `[PatchOperation]`
+     |
+     = note: for local types consider adding `#[derive(serde::Deserialize)]` to your `[PatchOperation]` type
+     = note: for types from other crates check whether the crate offers a `serde` feature flag
+     = help: the following other types implement trait `Deserialize<'de>`:
+               &[u8]
+               [T; 0]
+               [T; 1]
+               [T; 2]
+               [T; 3]
+               [T; 4]
+               [T; 5]
+               [T; 6]
+             and 26 others
+note: required by a bound in `from_slice`
+    --> /Users/cyan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/de.rs:2669:8
+     |
+2667 | pub fn from_slice<'a, T>(v: &'a [u8]) -> Result<T>
+     |        ---------- required by a bound in this function
+2668 | where
+2669 |     T: de::Deserialize<'a>,
+     |        ^^^^^^^^^^^^^^^^^^^ required by this bound in `from_slice`
+
+error[E0277]: the size for values of type `[PatchOperation]` cannot be known at compilation time
+   --> src/compression.rs:178:17
+    |
+178 |             let patch = serde_json::from_slice(bytes).unwrap();
+    |                 ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `Sized` is not implemented for `[PatchOperation]`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the trait bound `OrderedScreen: StructDiff` is not satisfied
+   --> src/compression.rs:189:29
+    |
+189 |             let patch: Vec<<OrderedScreen as StructDiff>::Diff> =
+    |                             ^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `StructDiff` is not implemented for `OrderedScreen`
+   --> src/bench.rs:13:1
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: the trait `StructDiff` is implemented for `Screen`
+   --> src/main.rs:41:59
+    |
+ 41 | #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Difference)]
+    |                                                           ^^^^^^^^^^
+    = note: this error originates in the derive macro `Difference` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `apply` found for struct `OrderedScreen` in the current scope
+   --> src/compression.rs:192:42
+    |
+192 |                 OrderedScreen::from(old).apply(patch),
+    |                                          ^^^^^ method not found in `OrderedScreen`
+    |
+   ::: src/bench.rs:13:1
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ------------------------------- method `apply` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `apply`, perhaps you need to implement one of them:
+            candidate #1: `StructDiff`
+            candidate #2: `ratatui_widgets::block::shadow::CellEffect`
+
+error[E0277]: the trait bound `[PatchOperation]: serde::Deserialize<'de>` is not satisfied
+    --> src/compression.rs:249:33
+     |
+ 249 |                     let patch = serde_json::from_slice(data).unwrap();
+     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Deserialize<'_>` is not implemented for `[PatchOperation]`
+     |
+     = note: for local types consider adding `#[derive(serde::Deserialize)]` to your `[PatchOperation]` type
+     = note: for types from other crates check whether the crate offers a `serde` feature flag
+     = help: the following other types implement trait `Deserialize<'de>`:
+               &[u8]
+               [T; 0]
+               [T; 1]
+               [T; 2]
+               [T; 3]
+               [T; 4]
+               [T; 5]
+               [T; 6]
+             and 26 others
+note: required by a bound in `from_slice`
+    --> /Users/cyan/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/de.rs:2669:8
+     |
+2667 | pub fn from_slice<'a, T>(v: &'a [u8]) -> Result<T>
+     |        ---------- required by a bound in this function
+2668 | where
+2669 |     T: de::Deserialize<'a>,
+     |        ^^^^^^^^^^^^^^^^^^^ required by this bound in `from_slice`
+
+error[E0277]: the size for values of type `[PatchOperation]` cannot be known at compilation time
+   --> src/compression.rs:249:25
+    |
+249 |                     let patch = serde_json::from_slice(data).unwrap();
+    |                         ^^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `Sized` is not implemented for `[PatchOperation]`
+    = note: all local variables must have a statically known size
+
+error[E0277]: the trait bound `OrderedScreen: StructDiff` is not satisfied
+   --> src/compression.rs:259:37
+    |
+259 |                     let patch: Vec<<OrderedScreen as StructDiff>::Diff> =
+    |                                     ^^^^^^^^^^^^^ unsatisfied trait bound
+    |
+help: the trait `StructDiff` is not implemented for `OrderedScreen`
+   --> src/bench.rs:13:1
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: the trait `StructDiff` is implemented for `Screen`
+   --> src/main.rs:41:59
+    |
+ 41 | #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Difference)]
+    |                                                           ^^^^^^^^^^
+    = note: this error originates in the derive macro `Difference` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no method named `apply` found for struct `OrderedScreen` in the current scope
+   --> src/compression.rs:261:60
+    |
+261 |                     ordered = Some(ordered.take().unwrap().apply(patch));
+    |                                                            ^^^^^ method not found in `OrderedScreen`
+    |
+   ::: src/bench.rs:13:1
+    |
+ 13 | pub(super) struct OrderedScreen {
+    | ------------------------------- method `apply` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following traits define an item `apply`, perhaps you need to implement one of them:
+            candidate #1: `StructDiff`
+            candidate #2: `ratatui_widgets::block::shadow::CellEffect`
+
+Some errors have detailed explanations: E0277, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `ship-jsonpatch-prototype` (bin "ship-jsonpatch-prototype") due to 14 previous errors
+   Compiling libghostty-vt-sys v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt-sys)
+   Compiling libghostty-vt v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt)
+   Compiling ratatui-ghostty v0.2.0 (/private/tmp/ship-screen-prototype/wrapper-compat)
+   Compiling ship-jsonpatch-prototype v0.0.0 (/private/tmp/ship-jsonpatch-prototype)
+    Finished `release` profile [optimized] target(s) in 2.62s
+   Compiling libghostty-vt-sys v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt-sys)
+   Compiling libghostty-vt v0.2.1 (/private/tmp/ship-screen-prototype/libghostty-rs/crates/libghostty-vt)
+   Compiling ratatui-ghostty v0.2.0 (/private/tmp/ship-screen-prototype/wrapper-compat)
+   Compiling ship-jsonpatch-prototype v0.0.0 (/private/tmp/ship-jsonpatch-prototype)
+    Finished `release` profile [optimized] target(s) in 2.62s

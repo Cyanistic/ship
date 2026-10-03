@@ -1,0 +1,52 @@
+flate2 v1.1.10
+├── flate2 feature "any_impl"
+│   ├── flate2 feature "miniz_oxide"
+│   │   └── flate2 feature "rust_backend"
+│   │       └── flate2 feature "default"
+│   │           └── ship-jsonpatch-prototype v0.0.0 (/private/tmp/ship-jsonpatch-prototype)
+│   │               └── ship-jsonpatch-prototype feature "default" (command-line)
+│   └── flate2 feature "rust_backend" (*)
+├── flate2 feature "default" (*)
+├── flate2 feature "miniz_oxide" (*)
+├── flate2 feature "runtime_detection"
+│   └── flate2 feature "default" (*)
+└── flate2 feature "rust_backend" (*)
+flate2 v1.1.10
+├── crc32fast v1.5.2
+│   └── cfg-if feature "default"
+│       └── cfg-if v1.0.5
+├── miniz_oxide feature "default"
+│   ├── miniz_oxide v0.9.1
+│   │   ├── adler2 v2.0.1
+│   │   └── simd-adler32 v0.3.10
+│   └── miniz_oxide feature "with-alloc"
+│       └── miniz_oxide v0.9.1 (*)
+└── miniz_oxide feature "simd"
+    ├── miniz_oxide v0.9.1 (*)
+    └── miniz_oxide feature "simd-adler32"
+        └── miniz_oxide v0.9.1 (*)
+zstd v0.13.3
+└── zstd-safe feature "std"
+    ├── zstd-safe v7.3.0
+    │   └── zstd-sys v2.1.0+zstd.1.5.7
+    │       [build-dependencies]
+    │       ├── cc feature "default"
+    │       │   └── cc v1.6.0
+    │       │       ├── jobserver v0.1.35
+    │       │       │   └── libc feature "default"
+    │       │       │       ├── libc v0.2.190
+    │       │       │       └── libc feature "std"
+    │       │       │           └── libc v0.2.190
+    │       │       ├── libc v0.2.190
+    │       │       ├── find-msvc-tools feature "default"
+    │       │       │   └── find-msvc-tools v0.1.14
+    │       │       └── shlex feature "default"
+    │       │           ├── shlex v2.0.1
+    │       │           └── shlex feature "std"
+    │       │               └── shlex v2.0.1
+    │       ├── cc feature "parallel"
+    │       │   └── cc v1.6.0 (*)
+    │       └── pkg-config feature "default"
+    │           └── pkg-config v0.3.34
+    └── zstd-sys feature "std"
+        └── zstd-sys v2.1.0+zstd.1.5.7 (*)

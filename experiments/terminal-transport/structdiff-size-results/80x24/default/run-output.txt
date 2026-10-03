@@ -1,0 +1,13 @@
+WIRE small-edit structdiff-default: fields=1 patch_bytes=215170 snapshot_bytes=215250 equality=PASS
+TIMING small-edit structdiff-default server_total: median_us=368.708 p95_us=382.458 n=100 warmup=20
+TIMING small-edit structdiff-default client_total: median_us=1861.667 p95_us=1895.750 n=100 warmup=20
+TIMING small-edit structdiff-default encoded_roundtrip_total: median_us=2216.896 p95_us=2283.083 n=100 warmup=20
+WIRE one-row-scroll structdiff-default: fields=1 patch_bytes=215129 snapshot_bytes=215209 equality=PASS
+TIMING one-row-scroll structdiff-default server_total: median_us=367.354 p95_us=386.625 n=100 warmup=20
+TIMING one-row-scroll structdiff-default client_total: median_us=1862.499 p95_us=1888.292 n=100 warmup=20
+TIMING one-row-scroll structdiff-default encoded_roundtrip_total: median_us=2210.584 p95_us=2245.166 n=100 warmup=20
+WIRE unchanged structdiff-default: fields=0 patch_bytes=2 snapshot_bytes=215209 equality=PASS
+TIMING unchanged structdiff-default server_total: median_us=7.167 p95_us=8.833 n=100 warmup=20
+TIMING unchanged structdiff-default client_total: median_us=0.000 p95_us=0.042 n=100 warmup=20
+TIMING unchanged structdiff-default encoded_roundtrip_total: median_us=7.250 p95_us=7.292 n=100 warmup=20
+SAVED BENCH PASS 80x24 default: 9 metrics warmup=20 samples=100
