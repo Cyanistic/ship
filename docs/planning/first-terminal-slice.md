@@ -8,9 +8,11 @@ The [Wayfinder map](../../.scratch/first-terminal-slice/map.md) indexes decision
 
 Start a local server and attach a local UI using the same `ship` executable in different modes. Interact with a real shell; smoke-test Pi and Neovim; resize; close the terminal; disconnect and reconnect the UI without interrupting server-owned work; shut down the server deliberately. Exact CLI spelling is still open.
 
-Evidence should include keyboard input, alternate-screen entry/exit, correct terminal resizing, coherent screen updates, connection recovery, and restoration of the outer terminal on client exit. Validate Linux and macOS deliberately; record unavailable platform checks rather than claiming parity. No such runtime evidence has been collected yet.
+Evidence should include keyboard input, alternate-screen entry/exit, correct terminal resizing, coherent screen updates, connection recovery, and restoration of the outer terminal on client exit. Validate Linux and macOS deliberately; record unavailable platform checks rather than claiming parity. macOS dependency tests, upstream example use and scratch screen/patch checks passed; the actual Ship client/server checkpoint has not been implemented or verified.
 
 No splits, tabs, saved restart restoration, agent awareness, notification/audio implementation, remote attachment, or automation command catalog is required for this checkpoint. A server survives client disconnection, not its own process or machine restart.
+
+Configuration and plugin systems are also deferred: use fixed defaults and only minimal operational/exit bindings. No config file, reload machinery, plugin runtime, manifests or registry. Local presentation actions stay in the client; shared session/process actions execute on the server. This does not settle where future configurable bindings are stored/interpreted. See [ownership precedents](../research/config-plugin-ownership.md).
 
 ## Code organization and development rhythm
 
@@ -66,23 +68,31 @@ Later remote access can use SSH port forwarding with the same HTTP/SSE protocol.
 | Errors | Adapt the reference's shared AppError/Result/context/macros pattern | Read the reference error module; omit unrelated HTTP/Rig/Kameo conversions |
 | UI/input | Ratatui/Crossterm | Starting stack for trial |
 | Terminal emulation | libghostty-vt | Rust bindings inspected; unstable interface and thread-affinity constraints |
-| Session integration | Trial supplied ratatui-ghostty session | Source inspected; not runtime verified |
-| PTY | portable-pty candidate | Used by upstream example; not selected by runtime evidence |
-| State diff/apply | structdiff with serde support | Temporary owned-patch serialization/application probe passed; terminal-shaped performance unverified |
+| Session integration | Supplied ratatui-ghostty session with demonstrated compatibility patch | macOS build, 80 enabled upstream tests, user-run example and real-shell capture passed; patch delivery still open |
+| PTY | portable-pty candidate with feasibility evidence | 0.9.0 exercised in the example and scratch probe; actual Ship integration remains to implement |
+| State diff/apply | structdiff 0.7.3 with serde; default whole-vector replacement | JSON screen patch/application verified; optimization explicitly deferred until profiling real usage |
 
 Defer OpenAPI/Utoipa and non-Rust SDKs. Shared Rust types live in core. If generated patch types later need custom derives, evaluate an upstream change/small fork then, not preemptively. structdiff 0.7.3 provides fixed feature-controlled derives, not arbitrary attribute forwarding.
 
-## Screen capture approach to validate
+## Accepted screen capture direction
 
-Trial the supplied session first. It uses a blocking PTY-reader thread and a terminal-processing thread that owns Ghostty, accepts commands, and renders a Ratatui buffer. This can coexist with Tokio; don't run blocking reads on Tokio workers.
+Use the supplied session as the first-slice starting direction, with the small compatibility patch demonstrated in [terminal feasibility evidence](../research/terminal-feasibility.md). This establishes viability, not complete terminal compatibility. It uses a blocking PTY-reader thread and a terminal-processing thread that owns Ghostty, accepts commands, and renders a Ratatui buffer. This can coexist with Tokio; don't run blocking reads on Tokio workers.
 
 Ratatui's buffer/cell types already support Serde with its serde feature. Use owned screen/cell types with conversions to/from Ratatui so the shared schema and derives are under Ship's control. This conversion maps already-interpreted display data; it is not a new terminal emulator or diff engine.
 
-Check grapheme text, color variants/reset semantics, modifiers, underline-color support, skip/wide-character behavior, and separately exposed cursor state. A new cell type doesn't itself decide the diff granularity of a collection.
+The probe preserved accessible text/color/modifier/underline/skip/diff-option fields and cursor data, and exercised styled Unicode, output scrolling and resize. It reused Ratatui color/modifier types in scratch cells; the final owned schema is not selected. Nondefault skip/diff options, alternate cursor variants and all reset semantics were not exhaustively exercised. Ratatui equality normalizes unset symbols to spaces.
 
-The capture path must not share live session handles across processes. Inspect whether the session exposes sufficient screen/cursor state; otherwise evaluate a minimal upstream change before owning Ghostty's low-level extraction.
+The capture path must not share live session handles across processes. The supplied session exposes size, buffer blitting and cursor state, but under separate locks. Quiescent/stable captures passed; coherent publication under continuous output remains an implementation-contract concern, not a completed atomic-capture guarantee.
 
 Known source-level concerns in the supplied session: some write/resize errors are discarded; read errors resemble EOF; dropping the handle signals shutdown but doesn't prove reader interruption, child termination/reaping, or joined threads. Ship must retain and manage child lifecycle. These are checks, not demonstrated runtime failures or grounds for an automatic rewrite.
+
+## Initial diff strategy and optimization policy
+
+Start with structdiff's default replacement of a changed cell vector. JSON generation/deserialization/application passed for captured screens, including resize and unchanged state. The finer collection experiments demonstrated tradeoffs, not a production bottleneck.
+
+Build the runnable slice, profile actual behavior, then benchmark or change only a demonstrated bottleneck. No further collection experiments, custom algorithm, release benchmark or row-based representation is a prerequisite now. All collected timing samples were debug-build diff generation only; release may be faster, but does not shrink identical JSON payloads.
+
+A custom screen StructDiff implementation remains an escape hatch, not approved work. Optimization can preserve server ownership and HTTP/SSE while changing patch schemas; coordinate client compatibility if that happens. See the [diff decision](../../.scratch/first-terminal-slice/issues/03-screen-diffs.md).
 
 ## First-slice command concepts
 
@@ -99,7 +109,9 @@ Herdr has `api snapshot`, `pane send-text`, `pane send-keys`, and `pane run` (te
 ## Evidence and limits
 
 - Published ratatui-ghostty 0.2.0 source was counted: approximately 511 nonblank/non-comment-only lines for widget/style/input helpers, 664 for its session wrapper, 236 for host-color queries; tests/examples excluded. These are source measurements, not guaranteed savings.
-- Inspected session, widget and single-terminal example; no build or runtime session integration was verified.
+- Published wrapper 0.2.0's binding dependency 0.1.1 failed with Zig 0.16.0 because its pinned Ghostty requires 0.15.2. A scratch wrapper dependency/API update to bindings 0.2.1 at 8953a740bc378cec3e07e1f6ca949f0595eab19b built with Zig 0.16.0. Patch delivery remains open; no Ship vendoring/fork has been created.
+- All 80 enabled upstream wrapper tests passed after adapting three test constructors without changing assertions. One ignored callback-movement reproducer was not run. Cyan confirmed the multiplexer example worked interactively.
+- Parent-rerun scratch probes verified real-shell screen reconstruction, cursor-field preservation, JSON patch application, unchanged empty diffs, and graceful shell reaping/reader destruction/session stop. All 18 collection strategy/sample combinations passed equality. No HTTP/SSE or Linux checks were performed. Details and limitations are in [terminal feasibility evidence](../research/terminal-feasibility.md).
 - Inspected locally installed Ratatui buffer/cell definitions for Serde and field representation.
 - Reran `/tmp/diffprobe` offline against structdiff 0.7.3. Four changes, nested recursion, a map modification and enum replacement survived binary serialization/deserialization and automatic application; unchanged values yielded no diffs. Toy payload was 176 JSON bytes / 125 bincode bytes. This is not a screen benchmark or a choice of binary transport.
 - Herdr commands/remote behavior inspected at `d6b40d4edd550ccea081f089605a64314f8c8b27`. Herdr uses local sockets bridged through SSH command stdin/stdout, unlike the proposed HTTP-over-SSH-port-forwarding route for Ship.
@@ -121,4 +133,4 @@ Temporary research files under `/tmp` are not durable project artifacts. Their v
 
 ## Remaining decisions
 
-See open children of the [Wayfinder map](../../.scratch/first-terminal-slice/map.md). Capture/diff experiments need live review before adoption; first-slice request shapes, framing of SSE payloads, attachment lifecycle, and terminal creation/shutdown details must not be silently inferred during implementation.
+The capture approach and initial diff strategy have been reviewed and accepted; those feasibility checks no longer block implementation planning. See open children of the [Wayfinder map](../../.scratch/first-terminal-slice/map.md) for the remaining exact command/attachment contract and delivery of the demonstrated wrapper patch. Request shapes, SSE framing/snapshot coordination, coherent capture publication, binding names and terminal creation/shutdown behavior must not be silently inferred during implementation. Configuration/plugins belong to a later slice, not this map's frontier.

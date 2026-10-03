@@ -20,17 +20,21 @@ Consult the global style skill (mixed audience for plans), grilling and domain-m
 ## Decisions so far
 
 - [Choose the first-slice architecture and working rhythm](issues/01-first-slice-direction.md): separate authoritative server/thin client, HTTP/SSE and library-generated revisioned state patches; small commits and no initial permanent tests.
+- [Can the supplied session expose a faithful transferable screen?](issues/02-screen-capture.md): patched supplied-session capture and owned conversion accepted after macOS checks and live review.
+- [Which screen collection strategy gives useful structdiff patches?](issues/03-screen-diffs.md): use default whole-vector replacement; optimize only after profiling real Ship behavior.
 
 ## Not yet specified
 
-- Whether capture/diff experiment results expose new integration constraints; graduate precise questions after reviewing the results.
-- Linux/macOS validation details and toolchain/build requirements may need further decisions after integration experiments reveal actual constraints.
+- Linux/macOS validation details may need further decisions when real Ship integration reveals constraints. macOS dependency viability has evidence; Linux and actual HTTP/SSE behavior do not.
+- No remaining diff optimization question blocks this destination. New performance work requires a demonstrated real-use bottleneck.
 
 ## Out of scope
 
 - Splits/tabs and the rest of roadmap milestone 1: beyond this one-terminal checkpoint.
 - Remote implementation, direct network exposure and local authentication: deferred; loopback access limitation is explicitly accepted for now.
-- OpenAPI/SDK generation, config/port customization and preemptive dependency forks.
+- OpenAPI/SDK generation, config/port customization and preemptive dependency forks. Retaining the demonstrated wrapper patch is not preemptive and is a live delivery decision.
+- Config files, reload machinery, configurable binding ownership and plugin runtime/manifests/registry: deferred to a later slice; fixed defaults and minimal operational/exit bindings suffice now. [Ownership research](../../docs/research/config-plugin-ownership.md) is later context, not an adopted plugin/config design.
+- Further row-based/custom diff experiments and release benchmarks: deferred until profiling the actual runnable slice shows a bottleneck.
 - Saved server-restart recovery, agent integration, audio/notifications and automation command catalog.
 - Full multi-client implementation and no-viewer sizing policy; the minimum-size-among-current-tab-viewers direction is already recorded for later work.
 - Production implementation: hand off when the plan is clear, rather than treating build tasks as decision tickets.

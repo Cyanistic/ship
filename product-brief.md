@@ -16,9 +16,9 @@ Use existing libraries for solved capabilities. Ship should own workspace behavi
 
 Use idiomatic Rust types and abstractions to express invariants once. Use derives and macros when they remove independently maintained copies of the same information. Do not pursue fewer lines through opaque compression or a generic framework built for hypothetical features.
 
-The starting stack is Rust with Clap, Tokio, tracing/tracing-subscriber, and shared error handling adapted from the reference's error module. Trial Ratatui/Crossterm, `libghostty-vt`, the supplied `ratatui-ghostty` session, and `structdiff` before replacing their mechanics with owned code. The PTY library remains to be validated; `portable-pty` is a candidate. Rodio and Copypasta remain later candidates, not selections.
+The starting stack is Rust with Clap, Tokio, tracing/tracing-subscriber, and shared error handling adapted from the reference's error module. Trial Ratatui/Crossterm, `libghostty-vt`, the supplied `ratatui-ghostty` session, and `structdiff` before replacing their mechanics with owned code. `portable-pty` passed the scratch probe and remains the candidate for PTY integration; actual Ship integration and Linux validation remain. Rodio and Copypasta remain later candidates, not selections.
 
-Ratatui draws the workspace; Ghostty interprets programs' terminal output and maintains screen state on the server. The intended reuse path converts the supplied session's rendered Ratatui cells into owned, serializable screen/cell types, then converts those types back for client rendering. Capture completeness, conversion fidelity, and collection diff behavior still need evidence.
+Ratatui draws the workspace; Ghostty interprets programs' terminal output and maintains screen state on the server. The intended reuse path converts the supplied session's rendered Ratatui cells into owned, serializable screen/cell types, then converts those types back for client rendering. The macOS scratch probe verified captured screen conversion and JSON patch application, and Cyan confirmed the patched wrapper's multiplexer example worked. Use default whole-vector diffs initially; optimize only after profiling the actual runnable slice reveals a bottleneck. This is feasibility evidence, not complete platform/rendering coverage. See [terminal evidence](docs/research/terminal-feasibility.md).
 
 ### Size is a design constraint, not the acceptance test
 
@@ -161,7 +161,8 @@ Completion evidence: clients do not fight over their local focus or corrupt shar
 
 | Capability | Initial position |
 | --- | --- |
-| Plugin framework and marketplace | Defer until a concrete extension need exists. |
+| Configuration system | Defer past the first terminal slice; fixed defaults and minimal operational bindings first. Storage, key matching, reload and shared/per-client scope remain open for a customization slice. |
+| Plugin framework and marketplace | Defer until a concrete extension need exists; no first-slice runtime, manifests or registry. Herdr/Zellij ownership research is context, not an adopted plugin model. |
 | Built-in worktree management | Use Git or Worktrunk in ordinary panes. |
 | Self-update and release channels | Use normal installation/distribution tooling initially. |
 | Every agent integration | Expand from actual use through the shared reporting interface. |
@@ -175,13 +176,13 @@ Completion evidence: clients do not fight over their local focus or corrupt shar
 
 Resolve these during slice design and dependency experiments, not by silently treating this brief as a specification. Previously discussed choices and remaining first-slice questions are indexed in [the Wayfinder map](.scratch/first-terminal-slice/map.md).
 
-- Supplied Ghostty session integration, PTY library, build requirements, and Linux/macOS compatibility evidence.
+- Delivery of the demonstrated ratatui-ghostty compatibility patch (pinned fork versus source/subtree import); no method has been selected or installed in Ship. Supplied session plus portable-pty passed macOS feasibility checks; actual application integration, coherent publication and Linux coverage remain.
 - Exact HTTP operations, SSE subscription/snapshot lifecycle, message shapes, and restart identity behavior. Axum/Reqwest are suggested HTTP libraries, not yet validated dependencies.
-- Screen/cell conversion fidelity and `structdiff` collection strategy, calculation cost, and payload size for edits, scrolling, and resizing.
+- Final screen/cell schema and detailed rendering coverage. Default whole-vector structdiff is selected to start; performance optimization is deferred, not a first-slice decision blocker.
 - Detailed shared-state fields and per-client view state. Focus is client-local but reportable as presence; concurrent terminal input is allowed. Tab geometry follows the minimum available width and height among clients currently viewing that tab; behavior with no viewers remains to be specified.
 - Saved-state format evolution, recovery policy and agent resume descriptions.
 - Agent reporting protocol and the next integrations after Pi.
-- Configuration format and default interaction bindings.
+- Minimal fixed interaction/exit bindings for the first slice. Configuration format, storage, configurable key matching/reload and plugin ownership are deferred to later slices; see [ownership research](docs/research/config-plugin-ownership.md).
 - Remote authentication, command delivery/retry behavior and transport, before remote implementation.
 - Repository location, project license and package/distribution identifiers.
 
@@ -194,4 +195,4 @@ Herdr is the behavioral reference, not the structural template. The initial inve
 - `repos/herdr/repo/src/cli/spec.rs`: declared control surface.
 - `repos/herdr/repo/src/sound.rs`: an inspected example of implementation responsibility Ship intends to rent from a library.
 
-The inventory used docs, declarations and limited code checks, not a complete behavioral audit. No implementation-size estimate has been demonstrated by a prototype. The roadmap reflects Cyan's starting priorities. The first-slice ownership and transport direction is now recorded, but production implementation and runtime compatibility evidence remain future work.
+The inventory used docs, declarations and limited code checks, not a complete behavioral audit. No implementation-size estimate has been demonstrated by a prototype. The roadmap reflects Cyan's starting priorities. The first-slice ownership and transport direction is recorded, and macOS dependency feasibility has been demonstrated. Production client/server implementation, Linux validation and full behavior coverage remain future work.
