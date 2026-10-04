@@ -1,1 +1,75 @@
-//! Server library boundary. Serving operations are not available yet.
+//! Loopback HTTP listener and health route.
+
+mod health;
+
+use std::{
+    future::{Future, IntoFuture},
+    net::SocketAddr,
+    time::Duration,
+};
+
+use axum::Router;
+use ship_core::prelude::*;
+use tokio::{net::TcpListener, sync::watch};
+use tower_http::trace::TraceLayer;
+use utoipa_axum::{router::OpenApiRouter, routes};
+
+pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
+    if port == 0 {
+        return Err(err!(Configuration, "server port must not be zero"));
+    }
+    Ok(SocketAddr::from(([127, 0, 0, 1], port)))
+}
+
+pub fn router() -> Router {
+    OpenApiRouter::new().routes(routes!(health::health)).layer(
+        TraceLayer::new_for_http()
+            .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
+                tracing::info_span!("request", method = %request.method(), path = request.uri().path())
+            })
+            .on_response(|response: &axum::http::Response<axum::body::Body>, duration: Duration, _span: &tracing::Span| {
+                tracing::info!(status = response.status().as_u16(), duration_ms = duration.as_secs_f64() * 1000.0, "request completed");
+            }),
+    ).split_for_parts().0
+}
+
+pub async fn serve(
+    address: SocketAddr,
+    shutdown: impl Future<Output = Result<()>> + Send + 'static,
+) -> Result<()> {
+    if !address.ip().is_loopback() || address.port() == 0 {
+        return Err(err!(
+            Configuration,
+            "server requires a loopback address and nonzero port"
+        ));
+    }
+    let listener = TcpListener::bind(address).await.map_err(|error| {
+        let code = if error.kind() == std::io::ErrorKind::AddrInUse {
+            ErrorCode::Conflict
+        } else {
+            ErrorCode::Io
+        };
+        err!(code, "cannot bind server at {}", address, @external: error)
+    })?;
+    tracing::info!(%address, pid = std::process::id(), protocol_version = ship_core::PROTOCOL_VERSION, "server listening");
+    // Axum awaits shutdown directly. This channel only observes its result so
+    // the outer task can propagate errors and bound draining after signal receipt.
+    let (result_tx, mut result_rx) = watch::channel(None);
+    let serving = axum::serve(listener, router())
+        .with_graceful_shutdown(async move {
+            result_tx.send_replace(Some(shutdown.await));
+        })
+        .into_future();
+    tokio::pin!(serving);
+    tokio::select! {
+        result = &mut serving => result.map_err(|error| err!(Io, "server failed", @external: error))?,
+        changed = result_rx.changed() => {
+            changed.map_err(|error| err!(Internal, "shutdown outcome unavailable", @external: error))?;
+            tokio::time::timeout(Duration::from_secs(5), &mut serving)
+                .await
+                .map_err(|_| err!(Internal, "server shutdown exceeded five seconds"))?
+                .map_err(|error| err!(Io, "server shutdown failed", @external: error))?;
+        }
+    }
+    result_rx.borrow().clone().unwrap_or(Ok(()))
+}

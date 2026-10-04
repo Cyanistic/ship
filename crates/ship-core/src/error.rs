@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::error::Error;
 use std::fmt;
 use std::panic::Location;
 
@@ -16,6 +17,7 @@ pub enum ErrorCode {
     Conflict,
     Configuration,
     Network,
+    ConnectionRefused,
     RateLimited,
     UpstreamHttpStatus(u16),
     Internal,
@@ -32,7 +34,7 @@ impl ErrorCode {
             Self::NotFound => 404,
             Self::Conflict => 409,
             Self::Configuration | Self::Internal | Self::Serialization | Self::Io => 500,
-            Self::Network | Self::UpstreamHttpStatus(_) => 502,
+            Self::Network | Self::ConnectionRefused | Self::UpstreamHttpStatus(_) => 502,
             Self::RateLimited => 429,
             Self::Unauthorized => 401,
         }
@@ -128,13 +130,10 @@ impl fmt::Display for AppError {
     }
 }
 
-impl std::error::Error for AppError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl Error for AppError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Internal(error) => error
-                .caused_by
-                .as_deref()
-                .map(|cause| cause as &dyn std::error::Error),
+            Self::Internal(error) => error.caused_by.as_deref().map(|cause| cause as &dyn Error),
             Self::External(_) => None,
         }
     }

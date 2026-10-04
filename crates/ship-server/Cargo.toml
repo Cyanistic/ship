@@ -9,5 +9,12 @@ description = "Local server library for Ship"
 [dependencies]
 ship-core.workspace = true
 
+axum.workspace = true
+tokio.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+utoipa.workspace = true
+utoipa-axum.workspace = true
+
 [lints]
 workspace = true
