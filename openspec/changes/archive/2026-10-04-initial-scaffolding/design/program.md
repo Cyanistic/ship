@@ -394,6 +394,24 @@ Restore the baseline, discard temporary inspection files, reinspect schema, repe
 
 ## Deviation log
 
+### Pre-archive verification: accepted camelCase wire format
+
+After Cyan requested verification of the completed change, source/artifact review mapped all 14 requirements and 29 scenarios to implementation and evidence, with all 24 tasks complete. Fresh checks ran on macOS 26.6.2 arm64 as UID 501. No production source or spec requirements changed during verification.
+
+The accepted health JSON is `{"service":"ship","protocolVersion":1,"version":"0.1.0"}`. Fresh real HTTP/CLI assertions checked this exact object, excluding the former `protocol_version` spelling. A disposable synchronous consumer of the shipped `ship_server::openapi()` export asserted OpenAPI 3.1.0, GET `/health`, operation ID `health`, HTTP 200, and exactly the required properties `service`, `protocolVersion` and `version`, with string/integer/string types. It constructed the document without a runtime, listener or tracing initialization. The snake_case observations in earlier entries remain historical results, not evidence of the accepted wire format; this entry establishes current response/schema agreement.
+
+Fresh commands and exercises:
+
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace`, `cargo build --workspace --release` and `openspec validate initial-scaffolding --strict` all passed. Cargo metadata confirmed four members and no client/server implementation dependency.
+- Disposable Python subprocess/socket/HTTP harnesses exercised the rebuilt debug binary: help/version, zero-port and conflicting-option rejection, invalid `RUST_LOG`, real custom-port health with discarded base path/query/fragment, bind conflict, and default-info request traces.
+- Controlled responses verified redirect refusal, non-200 rejection, malformed JSON, wrong service/protocol, credential redaction and the two-second request bound. An explicit refused default target did not launch; an incompatible default listener remained reachable without replacement.
+- Ten concurrent bare clients against an initially refused default endpoint all succeeded. Process inspection found one surviving daemon, whose SID equaled PID. Logs had mode 0600; a later bare client reused the daemon. SIGINT stopped it, and follow-up checks confirmed connection refusal and no remaining verification server.
+- A new non-writable TMPDIR under UID 501 produced contextual log-creation failure naming the attempted directory, no claimed file and no daemon. Permissions were restored and the temporary directory removed.
+- Ordinary SIGTERM shutdown exited 0. With an incomplete HTTP request, SIGTERM reached the drain cap after 5.005 seconds and exited 1 with `server shutdown exceeded five seconds`, as intended for bounded failure propagation. The harness initially expected exit 0 and failed that assertion; the observed bounded failure is the evidence, not a claimed successful drain. A separate shutdown check initially encountered a connection reset; follow-up confirmed the default endpoint refused connections and no server remained.
+- External disposable Cargo consumers invoked the pure schema export and compiled/executed representative `err!` message, formatting, code-expression, data, source/external and chained forms. The macro consumer had no direct serde_json dependency; contextual errors preserved ConnectionRefused and its suggested HTTP 502.
+
+Terminal-closure survival, paused-child readiness failure and controlled DTO/route-update exercises were not rerun; their earlier recorded implementation evidence remains the basis for those scenarios. Other platforms remain unverified. A supplemental read-only reviewer command was blocked by an auto-mode classifier timeout, did not execute and was not retried or used as evidence. No critical issue or concrete implementation defect was found. Disposable consumer directories were removed, private daemon logs intentionally retained, and the worktree was unchanged before this documentation entry. No uncertain product or architecture decision was made.
+
 ### Slice 3 completion: public schema and exercised source updates
 
 Completed the remaining slice-3 work on 2026-10-04 after Cyan explicitly authorized temporary edits and exact restoration of `crates/ship-core/src/protocol.rs`, `crates/ship-server/src/health.rs` and `crates/ship-client/src/api.rs`. This entry supersedes the partial run's stop boundary below, not its historical evidence. The approved public schema export remains unchanged. All slice-3 tasks are now verified; no later feature work was started.
