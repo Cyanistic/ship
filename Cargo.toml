@@ -1,0 +1,50 @@
+[workspace]
+members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Cyanism <github@cyan.slmail.me>"]
+readme = "README.md"
+
+[workspace.dependencies]
+ship-client = { path = "crates/ship-client" }
+ship-server = { path = "crates/ship-server" }
+ship-core = { path = "crates/ship-core" }
+axum = "0.8"
+clap = { version = "4", features = ["derive"] }
+nix = { version = "0.31", features = ["process"] }
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time"] }
+tower-http = { version = "0.7", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"
+utoipa = "6.0"
+
+[workspace.lints.clippy]
+all = "warn"
+
+[profile.dev]
+opt-level = 0
+debug = "line-tables-only"
+incremental = true
+
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.test]
+inherits = "dev"
+incremental = true
+codegen-units = 256

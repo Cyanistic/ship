@@ -1,0 +1,16 @@
+[package]
+name = "ship"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+description = "Local command-line application foundation"
+
+[dependencies]
+clap.workspace = true
+ship-client.workspace = true
+ship-server.workspace = true
+ship-core.workspace = true
+
+[lints]
+workspace = true

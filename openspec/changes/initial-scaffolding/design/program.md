@@ -394,7 +394,45 @@ Restore the baseline, discard temporary inspection files, reinspect schema, repe
 
 ## Deviation log
 
-Implementation has not started. No compatibility, build or runtime results are claimed.
+### Foundation checkpoint: tasks 1.1–1.5
+
+Implemented and verified on 2026-10-04 under the explicit foundation-only apply request. Help/version and local checks pass. No health, lifecycle or schema work was started; stop here before slice 2. The planning-status prose and superseded snippets elsewhere in this paper are historical, not evidence of implementation.
+
+#### Reconciliation and reused mechanisms
+
+- The initial tree had untracked root/crate manifests, `.gitignore`, core `lib.rs` and `protocol.rs`, but no accepted build. The core root referenced missing `error.rs`; the manifests still selected generator/framework dependencies and denied unsafe. Reconciled only foundation manifests and active roots against design.md.
+- Preserved the existing `/target/` ignore, four-crate ownership, package version/edition inheritance, restrained Clippy lint and all proposed dev/build-override/release/test profiles. Removed Progenitor, color-eyre, directories, serde_with, the client build dependency/dormant build declaration, unsafe denial and exact version constraints. Root requirements now include compatible Reqwest `0.13.4` with defaults disabled and json/rustls, Utoipa `6.0`, Tokio macros and tempfile. Only foundation dependencies are inherited by members at this checkpoint.
+- Left the pre-existing untracked `crates/ship-core/src/protocol.rs` unchanged and unwired. It includes historical schema metadata and belongs to later reconciliation, not this checkpoint. Core now exports only the implemented errors; client/server roots contain ownership documentation, not future-feature function/panic stubs. No experiment integration, build script, generated client, permanent authored tests or CI was added.
+- Reused Serde/serde_json for the approved tagged representation, tracing for reporting and Clap for help/version. Cargo alone created the application lockfile. Added the smaller string-backed AppError/context/category/status implementation and ResultExt; did not retain LossyError or another report framework.
+- design.md resolves the historical err! question through the reference error module. Reused its grammar and imported category namespace with `$crate` paths; adapted constructors, source/external modifiers and JSON helpers to Ship. Internal source modifiers retain the supplied cause; external modifiers wrap foreign text under the outer category; later cause modifiers replace earlier ones as in the reference. Fallible expression/object conversion omits data. Object fields borrow their values, matching the reference JSON shorthand. No foreign adapters, message-based category inference, HTTP response implementation, bail! or ensure! were added.
+- README contains only supported behavior, prerequisites, build/run commands and local checks. Bare invocation currently displays help and exits 0; there are no server/client-operation flags advertised before slice 2.
+
+#### Environment
+
+- macOS 26.6.2, build 25G83, arm64; Rust host `aarch64-apple-darwin`.
+- `rustc --version --verbose`: 1.98.0 (`88d9e12ae`, 2026-08-18), LLVM 22.1.8. `cargo --version`: 1.98.0 (`797e8a9bc`, 2026-08-05).
+- `rustup show active-toolchain`: `stable-aarch64-apple-darwin (default)`. `rustup component list --installed` confirmed rustfmt and Clippy.
+- Cargo successfully accessed crates.io. The application lockfile resolved 34 registry packages; representative versions: Clap 4.6.7, Serde 1.0.229, serde_json 1.0.151 and tracing 0.1.44. No MSRV or other-platform support claim is made.
+
+#### Commands and observed results
+
+- `cargo metadata --format-version 1 --no-deps` plus disposable Python assertions: exactly four members; all member manifests inherit version, Rust 2024 and workspace lints; no build dependencies. Initial `cargo build --workspace` exited 0.
+- `cargo metadata --format-version 1` plus resolved-node inspection: app directly depends on Clap and the three libraries; client/server directly depend on core only; core directly depends on Serde, serde_json and tracing. No client/server implementation dependency in either direction and no generator/model dependency. Root manifest inspection confirmed compatible constraints, retained profiles and absence of unsafe denial/superseded frameworks.
+- Disposable external consumer at `/tmp/ship-foundation-proof.R6cSoH`: `CARGO_TARGET_DIR=/Users/cyan/Documents/projects/ship/target/foundation-proof cargo run --manifest-path /tmp/ship-foundation-proof.R6cSoH/Cargo.toml` exited 0. First inspected errors directly; then removed its direct serde_json requirement and reran with macro consumers. A nested macro-calling module had no JSON import or category-variant import. Its manifest directly depended only on ship-core, serde, tracing and tracing-subscriber on the final run.
+- Consumer assertions passed for exact internal/external JSON tags and omitted absent fields, optional data, upstream status payload, owned deserialized messages, serialization round-trip, nested Display/Error::source context, preserved context category and all eleven category/status mappings. Logging retained an error's serialized representation and the identity of an Ok boxed value; successful results emitted no events.
+- Macro assertions passed for literal/owned-expression/formatted messages, variant/qualified/variable/function code expressions, expression/object/empty data, source/external/pure-external forms, trailing commas supported by the reference, chained modifier orders, cause replacement and single evaluation of a code expression. Deliberately failing Serialize implementations omitted data for expression, object and pure-external forms without panic. Owned object-field values remained usable afterward. Pure external construction produced ExternalError, and all forms produced AppError values rather than Result or an early return.
+- Final captured reporting events were exactly ERROR, WARN, DEBUG and TRACE, each with `caller.file="src/main.rs"` and caller lines 138, 141, 143 and 145 respectively. Assertions compared each logged location with its invocation's `file!()`/`line!()`, not the library's reporting line.
+- `./target/debug/ship --help`, `./target/debug/ship --version` and `./target/debug/ship` each exited 0 with empty stderr. Help showed only `-h/--help` and `-V/--version`; version was `ship 0.1.0`. A disposable Python socket check observed positive connection refusal at `127.0.0.1:43179` before and after these commands. No server was required or started.
+- README commands `cargo run -p ship -- --help` and `cargo run -p ship -- --version` exited 0. Release `./target/release/ship --help` and `./target/release/ship --version` also exited 0 with the same output.
+- Ran `cargo fmt --all` to format the authored source, then `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release`: all exited 0. Repeated after the final macro field-borrow adjustment and consumer run; all passed with no Clippy warnings.
+- Inspected production files for future todo/unimplemented/panic stubs, authored test attributes/directories, persistent harnesses, build.rs and OUT_DIR integration: none in active foundation source. `git diff --name-only`/`git status --short --untracked-files=all` showed only authorized planning/foundation paths and the preserved remnants, with no experiment/CI edits.
+- Removed the external consumer directory, its Cargo-owned lockfile, dedicated `target/foundation-proof` build output, and temporary metadata/path files. No permanent inspection tooling remains. Standard workspace debug/release build artifacts remain ignored under `/target/`. No commits, pushes or releases were performed.
+
+#### Gaps and stop boundary
+
+All specified foundation exercises were available and passed. Only macOS arm64 with the recorded toolchain was exercised. Centralized requirements for unused later-slice dependencies, including Reqwest/Utoipa, have not been resolved or compiled by this foundation and are not claimed compatible yet. Runtime transport, detachment, daemon cleanup, health DTO/route behavior and schema agreement remain deliberately unverified pending their own slices. No new consequential decision or scope deviation was needed.
+
+### Prior program review record
 
 Program review incorporated:
 - Bare `ship` now performs the client workflow; explicit `server` remains.

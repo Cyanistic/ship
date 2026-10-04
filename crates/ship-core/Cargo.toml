@@ -1,0 +1,15 @@
+[package]
+name = "ship-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+description = "Shared data and contextual errors for Ship"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

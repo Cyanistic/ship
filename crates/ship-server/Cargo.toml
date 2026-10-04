@@ -1,0 +1,13 @@
+[package]
+name = "ship-server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+description = "Local server library for Ship"
+
+[dependencies]
+ship-core.workspace = true
+
+[lints]
+workspace = true
