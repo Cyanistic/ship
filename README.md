@@ -42,7 +42,7 @@ Bare `ship` uses `http://127.0.0.1:43179`. It starts a server only after the HTT
 Success prints one JSON line on stdout:
 
 ```json
-{"service":"ship","protocol_version":1,"version":"0.1.0"}
+{"service":"ship","protocolVersion":1,"version":"0.1.0"}
 ```
 
 The package version is informational. Diagnostics go to stderr. Operational failures exit 1; invalid command usage exits 2. Help and version do not need or start a server.

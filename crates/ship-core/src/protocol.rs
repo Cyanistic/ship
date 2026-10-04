@@ -8,6 +8,7 @@ pub const PROTOCOL_VERSION: u32 = 1;
 
 /// Server identity and protocol compatibility, not an authentication boundary.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct HealthResponse {
     pub service: String,
     pub protocol_version: u32,

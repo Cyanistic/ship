@@ -21,8 +21,17 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
     Ok(SocketAddr::from(([127, 0, 0, 1], port)))
 }
 
+fn api_router() -> OpenApiRouter {
+    OpenApiRouter::new().routes(routes!(health::health))
+}
+
+/// Construct the route-built API description without starting the server.
+pub fn openapi() -> utoipa::openapi::OpenApi {
+    api_router().split_for_parts().1
+}
+
 pub fn router() -> Router {
-    OpenApiRouter::new().routes(routes!(health::health)).layer(
+    api_router().layer(
         TraceLayer::new_for_http()
             .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
                 tracing::info_span!("request", method = %request.method(), path = request.uri().path())

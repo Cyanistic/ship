@@ -5,7 +5,7 @@ Let users exercise Ship through a real, observable health request with predictab
 ## ADDED Requirements
 
 ### Requirement: Health contract and result
-A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing `service` equal to `ship`, `protocol_version` equal to 1, and informational string `version`. The client SHALL validate service/protocol compatibility and print one health JSON line on stdout only on success.
+A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing `service` equal to `ship`, `protocolVersion` equal to 1, and informational string `version`. Health response JSON field names SHALL use camelCase; Rust fields retain snake_case. The client SHALL validate service/protocol compatibility and print one health JSON line on stdout only on success.
 
 #### Scenario: Compatible health
 - **WHEN** `ship` contacts a compatible server
