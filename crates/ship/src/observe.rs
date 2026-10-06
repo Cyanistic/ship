@@ -1,6 +1,6 @@
-use std::fmt::Write as _;
+use std::{fmt::Write as _, future::pending, time::Duration};
 
-use futures_util::StreamExt;
+use futures_util::{Stream, StreamExt};
 use ship_client::Client;
 use ship_core::{
     id::{Attachment, IdOf},
@@ -11,35 +11,75 @@ use ship_core::{
 
 use crate::controls;
 
+const FIRST_BACKOFF: Duration = Duration::from_millis(250);
+const MAX_BACKOFF: Duration = Duration::from_secs(5);
+
 /// `ship attach <session>`. Prints the tree on stdout after every applied
 /// event and status lines on stderr. Stdin lines are controls (`controls.rs`);
-/// a failed control is reported and the observer keeps running. The stream
-/// ends when the session is removed, which prints `session removed` and exits
-/// 0; SIGINT also exits 0.
+/// a failed control is reported and the observer keeps running.
+///
+/// When the stream ends or fails, the observer reports the disconnection and
+/// reattaches with backoff (250 ms doubling, capped at 5 s), sending the
+/// remembered session ID and selection. A `404` on reattach means the session
+/// was removed: it prints `session removed` and exits 0. Otherwise it exits
+/// only on SIGINT, with 0.
 pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
-    let request = AttachRequest {
+    let mut request = AttachRequest {
         session,
         selection: None,
     };
-    let mut events = Box::pin(client.attach(&request).await?);
+    let reattach = |request: AttachRequest, delay: Duration| {
+        Box::pin(async move {
+            tokio::time::sleep(delay).await;
+            client.attach(&request).await
+        })
+    };
+    let mut events = Some(Box::pin(client.attach(&request).await?));
+    let mut reconnect = None;
+    let mut backoff = FIRST_BACKOFF;
     let mut controls = controls::lines();
     let mut stdin_open = true;
     let mut observer = Observer::default();
     loop {
         tokio::select! {
-            event = events.next() => {
-                let Some(event) = event else {
+            event = next(&mut events) => {
+                let reason = match event {
+                    Some(Ok(event)) => {
+                        if let SseEvent::Attached(attached) = &event {
+                            eprintln!("attached {} to {}", attached.attachment, request.session);
+                        }
+                        if observer.apply(event) {
+                            print!("{}", observer.render());
+                        }
+                        continue;
+                    }
+                    Some(Err(error)) => error.to_string(),
+                    None => "attach stream ended".to_owned(),
+                };
+                events = None;
+                if let Some(remembered) = observer.remembered() {
+                    request = remembered;
+                }
+                observer.attachment = None;
+                backoff = FIRST_BACKOFF;
+                eprintln!("disconnected: {reason}; retrying in {backoff:?}");
+                reconnect = Some(reattach(request.clone(), backoff));
+            }
+            result = finish(&mut reconnect) => match result {
+                Ok(stream) => {
+                    reconnect = None;
+                    events = Some(Box::pin(stream));
+                }
+                Err(error) if *error.code() == ErrorCode::NotFound => {
                     eprintln!("session removed");
                     return Ok(());
-                };
-                let event = event.context("attach stream failed")?;
-                if let SseEvent::Attached(attached) = &event {
-                    eprintln!("attached {} to {}", attached.attachment, session);
                 }
-                if observer.apply(event) {
-                    print!("{}", observer.render());
+                Err(error) => {
+                    backoff = (backoff * 2).min(MAX_BACKOFF);
+                    eprintln!("disconnected: {error}; retrying in {backoff:?}");
+                    reconnect = Some(reattach(request.clone(), backoff));
                 }
-            }
+            },
             line = controls.recv(), if stdin_open => match line {
                 None => stdin_open = false,
                 Some(line) if line.trim().is_empty() => {}
@@ -54,11 +94,27 @@ pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
     }
 }
 
+/// The next event, or never while disconnected.
+async fn next<S: Stream + Unpin>(events: &mut Option<S>) -> Option<S::Item> {
+    match events {
+        Some(events) => events.next().await,
+        None => pending().await,
+    }
+}
+
+/// The pending reattach attempt's result, or never while none is pending.
+async fn finish<F: Future + Unpin>(attempt: &mut Option<F>) -> F::Output {
+    match attempt {
+        Some(attempt) => attempt.await,
+        None => pending().await,
+    }
+}
+
 async fn control(client: &Client, observer: &Observer, line: &str) -> Result<()> {
     let control = controls::parse(line)?;
     let attachment = observer
         .attachment
-        .ok_or_else(|| err!(Validation, "not attached yet"))?;
+        .ok_or_else(|| err!(Validation, "not attached"))?;
     controls::send(client, attachment, control).await
 }
 
@@ -94,6 +150,16 @@ impl Observer {
     /// This observer's record, matched by attachment ID.
     fn record(&self) -> Option<&ViewingRecord> {
         self.replica.as_ref()?.viewers.get(&self.attachment?)
+    }
+
+    /// What to send on reattach: the last record's session ID and selection.
+    /// `None` before the first `Attached` event.
+    fn remembered(&self) -> Option<AttachRequest> {
+        let record = self.record()?;
+        Some(AttachRequest {
+            session: record.session,
+            selection: Some(record.selection),
+        })
     }
 
     /// Indented tree of the attached session, selection marked with `*`.

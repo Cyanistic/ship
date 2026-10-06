@@ -1129,3 +1129,36 @@ macOS 26.6 arm64. Foreground `ship server --port 43906`; clients used `--server-
 | 5.3 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The release binary attached, moved its marker with `select`, and the observer and server each exited 0 on SIGINT and SIGTERM. |
 
 An early verification run hung only because the script backgrounded a shell function, so SIGINT went to a subshell that ignores it, not to the observer. Running the binary directly showed SIGINT exits 0 with stdin held open. The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.
+
+### Slice 6: reconnect (2026-10-06)
+
+Slice 6 works end to end and every slice 6 check passed. No locked paper was reopened. The relay in front of the observer was a Python stand-in for `socat`, which is not installed here. The other differences below are at the snippet level.
+
+#### Differences from the snippets
+
+- **Python relay instead of `socat`.** A disposable single-process TCP relay in the session scratchpad played `socat TCP-LISTEN:<q>,fork,reuseaddr TCP:127.0.0.1:<p>`. Killing it closes every relayed connection at once. With `socat`'s `fork`, killing only the parent can leave a forked child holding the observer's connection open.
+- **`remembered` returns `Option<AttachRequest>`.** It is `None` before the first `Attached` event. `run` then keeps the request it last sent, so a reattach always targets a session ID and never a name.
+- **Every stream end reports a disconnection, including session removal.** The observer cannot tell a server-side end of stream (its session was removed) from any other end, so, as the `run` snippet says, it reports and reattaches. Removing a connected observer's session now prints `disconnected: attach stream ended; retrying in 250ms`, then `session removed` from the reattach's 404, and exits 0. Slice 4's exit behavior still holds; only the extra line is new.
+- **Backoff timing.** The first reattach waits 250 ms after the disconnection, and each failure doubles the wait up to 5 s. A successful reattach resets it. Durations print in Rust's `Debug` form (`250ms`, `1s`). An initial `ship attach` that fails still exits 1. Only a running observer reconnects.
+- **Disconnect reason text.** When the connection is cut mid-stream, Reqwest reports the body error as `error decoding response body`, which `http_error` classifies as `Serialization`. A refused reattach reads `error sending request`. The wording is Reqwest's and is not rewritten.
+- **Controls during an outage.** The observer forgets its attachment ID on disconnect, so `select` or `switch` typed during an outage prints `ship: not attached` and the observer keeps retrying. SIGINT during an outage exits 0.
+- **Status line session.** `attached attachment:... to session:...` now names the session in the request just sent, which after a `switch` and a reattach is the switched-to session rather than the command-line one.
+
+#### Evidence
+
+macOS 26.6 arm64. Foreground `ship server --port 43907`; the relay listened on 43917. Observer O1 ran `--server-url http://127.0.0.1:43917` with stderr timestamped. A `curl -N` attach stream on `work` went direct to the server, and edits used `--server-url http://127.0.0.1:43907`.
+
+| Check | Observation |
+| --- | --- |
+| 6.1 retention | `Attach` keeps a requested selection only when `inside` the requested session now, else starts at the session root. |
+| 6.2 backoff | Killing the relay with O1 selecting pane `p1` printed `disconnected: error decoding response body; retrying in 250ms`. Reattach failures followed at 250 ms, 500 ms, 1 s, 2 s, 4 s and 5 s spacing by timestamp, each line naming the next wait (`500ms`, `1s`, `2s`, `4s`, `5s`, `5s`). |
+| 6.2 current state | During that outage tab `C` was created directly. After the relay restarted, O1 printed `attached attachment:b787...` and a render at revision 12 that included `C`, with no further edit. |
+| 6.2 selection kept | That render still marked `p1` with `*`. |
+| 6.2 selection removed | Relay down, `pane rm p1`, relay up: O1 reattached and marked `work` itself, not `p1`'s tab `A`. |
+| 6.2 selection moved away | O1 selected `p2`; relay down, `tab move A api`, relay up: O1 reattached to `work` with the session marked, and `A` gone from its tree. |
+| 6.2 session removed | Relay down, `session rm work`, relay up: O1 printed `session removed` and exited 0. `session list` showed only `api`, so nothing recreated `work`. The curl stream also ended. |
+| 6.2 old record | The curl stream listed O1's first attachment `e072bf44` through revision 9. Revision 10, published when the relay died and before any edit, no longer listed it. Each later outage removed that cycle's attachment the same way, and each reattach added a new one. |
+| 6.2 release binary | The release observer printed `disconnected: attach stream ended; retrying in 250ms` and `session removed`, then exited 0, when its session was removed while connected. After the server was killed, it kept retrying and exited 0 on SIGINT. |
+| 6.2 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. |
+
+The relay script and test servers were removed or stopped afterwards. Linux was not exercised.

@@ -403,8 +403,9 @@ impl Message<Remove<Pane>> for ServerState {
 impl Message<Attach> for ServerState {
     type Reply = Result<Attached>;
 
-    /// Commit the new record at the session root and return it with the
-    /// committed replica as the stream's seed.
+    /// Commit the new record and return it with the committed replica as the
+    /// stream's seed. A requested selection is kept only if it is inside the
+    /// requested session now; otherwise the record starts at the session root.
     async fn handle(
         &mut self,
         Attach {
@@ -418,9 +419,13 @@ impl Message<Attach> for ServerState {
             if viewers.contains_key(&attachment) {
                 return Err(err!(Conflict, "attachment {} already exists", attachment));
             }
+            let selection = request
+                .selection
+                .filter(|node| inside(sessions, request.session, *node))
+                .unwrap_or(NodeId::Session(request.session));
             let record = ViewingRecord {
                 session: request.session,
-                selection: NodeId::Session(request.session),
+                selection,
             };
             viewers.insert(attachment, record);
             Ok(())
