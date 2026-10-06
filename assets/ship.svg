@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Ship: a tall sailing ship crewed by three little terminal crewmates">
+  <style>
+    .ink { stroke: #1e1b2e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .glyph { fill: none; stroke-width: 2.5; stroke-linecap: square; stroke-linejoin: miter; }
+    .cheek { fill: #f472b6; opacity: 0.7; }
+  </style>
+
+  <!-- bowsprit and jib -->
+  <path d="M228 154 L252 134" stroke="#1e1b2e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M228 154 L252 134" stroke="#8b5a2b" stroke-width="3" stroke-linecap="round"/>
+  <path class="ink" d="M192 46 L248 136 Q220 130 197 128 Z" fill="#fdf3dc"/>
+
+  <!-- main mast: crow's nest, two square sails, >_ flag -->
+  <rect class="ink" x="125" y="10" width="6" height="150" rx="2" fill="#a0673a"/>
+  <path class="ink" d="M131 11 L159 13 L157 29 L131 27 Z" fill="#f97316"/>
+  <path class="glyph" stroke="#fdf3dc" d="M137 16 l4 3 l-4 3 M144 24 H150"/>
+  <path class="ink" d="M102 44 H154 Q157 56.0 152 68 Q128.0 76 104 68 Q99 56.0 102 44 Z" fill="#fdf3dc"/>
+  <rect class="ink" x="98" y="41" width="60" height="5" rx="2" fill="#a0673a"/>
+  <path class="ink" d="M96 78 H160 Q163 96.0 158 114 Q128.0 122 98 114 Q93 96.0 96 78 Z" fill="#fdf3dc"/>
+  <rect class="ink" x="92" y="75" width="72" height="5" rx="2" fill="#a0673a"/>
+  <rect class="ink" x="118" y="31" width="20" height="8" rx="2" fill="#8b5a2b"/>
+
+  <!-- fore mast: two square sails and a pennant -->
+  <rect class="ink" x="187" y="32" width="6" height="126" rx="2" fill="#a0673a"/>
+  <path class="ink" d="M193 32 L193 43 L211 37.5 Z" fill="#f97316"/>
+  <path class="ink" d="M172 54 H208 Q211 65.0 206 76 Q190.0 84 174 76 Q169 65.0 172 54 Z" fill="#fdf3dc"/>
+  <rect class="ink" x="168" y="51" width="44" height="5" rx="2" fill="#a0673a"/>
+  <path class="ink" d="M166 86 H214 Q217 102.0 212 118 Q190.0 126 168 118 Q163 102.0 166 86 Z" fill="#fdf3dc"/>
+  <rect class="ink" x="162" y="83" width="56" height="5" rx="2" fill="#a0673a"/>
+
+  <!-- sailor: purple terminal, happy ^ ^ eyes -->
+  <rect class="ink" x="82" y="124" width="36" height="46" rx="6" fill="#a78bfa"/>
+  <rect x="87" y="130" width="26" height="30" rx="3" fill="#1e1b2e"/>
+  <path class="glyph" stroke="#ddd6fe" d="M90 142 l3.5 -4 l3.5 4 M103 142 l3.5 -4 l3.5 4"/>
+  <rect class="cheek" x="89" y="147" width="4" height="2.5"/>
+  <rect class="cheek" x="107" y="147" width="4" height="2.5"/>
+  <rect class="ink" x="91" y="110" width="18" height="10" rx="4" fill="#ffffff"/>
+  <rect class="ink" x="84" y="117" width="32" height="8" rx="3" fill="#ffffff"/>
+  <path d="M87 121 H113" stroke="#3b82f6" stroke-width="2.5"/>
+
+  <!-- sailor: green terminal, >_ prompt with a cursor -->
+  <rect class="ink" x="140" y="124" width="36" height="46" rx="6" fill="#34d399"/>
+  <rect x="145" y="130" width="26" height="30" rx="3" fill="#1e1b2e"/>
+  <path class="glyph" stroke="#a7f3d0" d="M149 136 l6 4 l-6 4"/>
+  <rect x="159" y="142" width="7" height="4" fill="#a7f3d0"/>
+  <rect class="cheek" x="147" y="149" width="4" height="2.5"/>
+  <rect class="cheek" x="165" y="149" width="4" height="2.5"/>
+  <rect class="ink" x="149" y="110" width="18" height="10" rx="4" fill="#ffffff"/>
+  <rect class="ink" x="142" y="117" width="32" height="8" rx="3" fill="#ffffff"/>
+  <path d="M145 121 H171" stroke="#3b82f6" stroke-width="2.5"/>
+
+  <!-- the captain: yellow terminal on the stern castle -->
+  <rect class="ink" x="22" y="100" width="36" height="46" rx="6" fill="#fbbf24"/>
+  <rect x="27" y="106" width="26" height="30" rx="3" fill="#1e1b2e"/>
+  <rect x="32" y="112" width="4" height="4" fill="#fde68a"/>
+  <rect x="44" y="112" width="4" height="4" fill="#fde68a"/>
+  <path class="glyph" stroke="#fde68a" d="M33 121 L36 124 H44 L47 121"/>
+  <rect class="cheek" x="28" y="119" width="4" height="2.5"/>
+  <rect class="cheek" x="48" y="119" width="4" height="2.5"/>
+  <rect class="ink" x="24" y="88" width="32" height="11" rx="2" fill="#1e3a8a"/>
+  <rect class="ink" x="19" y="81" width="42" height="8" rx="3" fill="#ffffff"/>
+  <path class="ink" d="M26 99 H54 L51 104 H29 Z" fill="#1e1b2e"/>
+  <rect x="37.5" y="91" width="5" height="5" fill="#fbbf24" stroke="#1e1b2e" stroke-width="1.2"/>
+
+  <!-- hull: raised stern castle on the left, bow on the right -->
+  <path class="ink" d="M16 136 H66 V158 H212 L240 148 L220 206 Q128 220 42 208 Z" fill="#8b5a2b"/>
+  <path d="M33 172 H228" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 196 H222" stroke="#6b4423" stroke-width="3" stroke-linecap="round"/>
+  <rect class="ink" x="26" y="143" width="8" height="8" rx="1" fill="#fdf3dc"/>
+  <rect class="ink" x="42" y="143" width="8" height="8" rx="1" fill="#fdf3dc"/>
+  <rect class="ink" x="66" y="179" width="9" height="9" rx="1" fill="#fdf3dc"/>
+  <rect class="ink" x="98" y="179" width="9" height="9" rx="1" fill="#fdf3dc"/>
+  <rect class="ink" x="130" y="179" width="9" height="9" rx="1" fill="#fdf3dc"/>
+  <rect class="ink" x="162" y="179" width="9" height="9" rx="1" fill="#fdf3dc"/>
+  <rect class="ink" x="194" y="179" width="9" height="9" rx="1" fill="#fdf3dc"/>
+
+  <!-- waves -->
+  <path d="M10 216 q13 -8 26 0 t26 0 t26 0 t26 0 t26 0 t26 0 t26 0 t26 0 t26 0" fill="none" stroke="#3b82f6" stroke-width="6" stroke-linecap="round"/>
+  <path d="M50 234 q12 -7 24 0 t24 0 t24 0 t24 0 t24 0 t24 0 t24 0" fill="none" stroke="#60a5fa" stroke-width="5" stroke-linecap="round"/>
+</svg>

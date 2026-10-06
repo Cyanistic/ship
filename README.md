@@ -1,106 +1,100 @@
-# Ship
+<div align="center">
+<img src="assets/ship.svg" height="220" width="220" alt="A tall sailing ship crewed by three little terminal crewmates">
 
-Ship checks a server's health and can run a local loopback server. Running `ship` without arguments reuses the default server or starts a missing one in the background. The background server stays running after the client exits or its terminal closes.
+**Ship - A Terminal Workspace for Working Alongside Coding Agents**
 
-This checkpoint provides health requests and server startup/shutdown, not terminal hosting. The lifecycle workflow has been exercised on macOS arm64. Other platforms are not yet verified.
+[Overview](#overview) •
+[Features](#features) •
+[Status](#status) •
+[Installation](#installation)
 
-## Prerequisites
+</div>
 
-- A current stable Rust toolchain, including Cargo, with support for Rust 2024 and Cargo resolver 3.
-- The `rustfmt` and Clippy components.
-- A native C toolchain and linker for dependencies. On macOS, install the Xcode Command Line Tools with `xcode-select --install` if needed.
-- CMake if required by the resolved TLS dependency's native build.
-- Access to crates.io for the first dependency download, or a populated local Cargo cache.
+> [!WARNING]
+> **Ship is a work in progress.** There are no releases yet, and it can't host a terminal today. The [Features](#features) section describes where Ship is headed. [Status](#status) covers what works right now.
 
-With Rust installed through rustup, add the check tools:
+## Overview
 
+If you run a few coding agents at once, you end up with a pile of terminals: an agent in one, an editor in another, a shell running tests, another agent somewhere else. Typing the commands is the easy part. The hard part is keeping track of it all. Which agent finished? Which one is stuck waiting on you? Where did you leave it?
+
+Ship puts all of that in one place. It keeps your shells, editors and agents together, keeps them running when you close the window, shows you which agent needs attention, and lets agents drive the workspace themselves.
+
+The name treats agents as your crew, and it's also about shipping software.
+
+## Features
+
+### Organize your work
+- **Sessions, tabs and split panes:**
+  Group related work into sessions. Tabs can nest inside other tabs, so a big task can hold its own smaller ones.
+
+- **Multiple clients, independent views:**
+  Attach from more than one terminal at a time. Each client keeps its own selection and focus while sharing the same underlying work.
+
+### Leave and come back
+- **Work that keeps running:**
+  Ship's server owns your terminals, so closing the window doesn't stop anything. Reattach later and everything is where you left it.
+
+- **Restore after a restart:**
+  If the server or machine restarts, Ship rebuilds your sessions, tabs and panes, and resumes agent conversations where the agent supports it.
+
+### Know which agent needs you
+- **Agent status at a glance:**
+  See which agents are working, blocked, idle or done with something you haven't looked at yet. When Ship can't tell, it says so instead of guessing.
+
+- **Jump to the one that needs you:**
+  An agent list and notifications get you to a waiting agent without checking every pane.
+
+### Let agents operate the workspace
+- **A command-line interface agents can use:**
+  Agents can open panes, run commands, send input, read output, and wait for another agent to finish, all through `ship` itself.
+
+### Small and fast
+- **Built on existing libraries:**
+  Ship leans on solid libraries for the mechanical parts (terminal emulation, PTYs, transport) and only writes the parts that are actually Ship. The goal is a codebase small enough to actually read. Small enough, in fact, that the whole thing fits in your agent's (sorry, crewmate's) context window.
+
+- **Snappy:**
+  Ship should feel at least as fast as tmux, Zellij and Herdr.
+
+- **Linux and macOS first:**
+  Both are priority platforms. Windows is best effort.
+
+### Why another multiplexer?
+tmux and Zellij keep terminals alive, but they don't know what an agent is. [Herdr](https://github.com/herdrdev/herdr) does, and Ship is heavily inspired by it. Ship's angle is getting most of that daily value from a much smaller codebase.
+
+## Status
+
+Today, `ship` runs a background server that keeps track of sessions, nested tabs and panes. You can create, rename, move and remove them from the command line. `ship attach` shows a session as a live text tree that updates as things change. Each attached client keeps its own selection and reconnects on its own if the connection drops.
+
+Panes are placeholders for now: there's no terminal inside them yet. Next up is giving them real PTYs, so a pane runs an actual shell, editor or agent that the server keeps alive while clients come and go.
+
+## Installation
+
+There are no releases yet, so you'll need to build from source. You need a recent stable [Rust toolchain](https://www.rust-lang.org/tools/install).
+
+1. Clone the repo
 ```sh
-rustup component add rustfmt clippy
+git clone https://github.com/Cyanistic/ship.git
+cd ship
 ```
-
-## Build
-
-From the repository root:
-
+2. Build it
 ```sh
-cargo build --workspace
-cargo build --workspace --release
+cargo build --release
 ```
-
-The executable is `target/debug/ship` or `target/release/ship`. The examples below use the debug binary; either works.
-
-## Check health
-
+3. Run it, or put it on your PATH with `cargo install --path crates/ship` so the examples below work as written
 ```sh
-./target/debug/ship
-./target/debug/ship --help
-./target/debug/ship --version
+./target/release/ship
 ```
 
-Bare `ship` uses `http://127.0.0.1:43179`. It starts a server only after the HTTP health request reports a positive connection refusal. If the port is occupied by an incompatible or unhealthy listener, Ship fails without replacing or stopping it. Service/protocol checks detect accidental mismatches; they are not authentication.
+Running `ship` finds the local server or starts one in the background, then prints its health as one line of JSON. The server keeps running after `ship` exits. When `ship` starts a server it prints the PID, so you can stop it with `kill <PID>`.
 
-Success prints one JSON line on stdout:
-
-```json
-{"service":"ship","protocolVersion":1,"version":"0.1.0"}
-```
-
-The package version is informational. Diagnostics go to stderr. Operational failures exit 1; invalid command usage exits 2. Help and version do not need or start a server.
-
-## Run an explicit server or choose a target
-
-Run a foreground server in one terminal:
-
+To see sessions in action, watch one in a terminal:
 ```sh
-./target/debug/ship server
-# Or choose a nonzero port:
-./target/debug/ship server --port 43180
+ship attach demo    # creates "demo" if it doesn't exist
 ```
-
-Check a custom-port server from another terminal:
-
+Then change it from another terminal and watch the first one update:
 ```sh
-./target/debug/ship --server-url http://127.0.0.1:43180
+TAB=$(ship tab create demo notes | jq -r .id)
+ship pane create "$TAB" scratch
 ```
 
-An explicit `--server-url`, even `http://127.0.0.1:43179`, is connect-only. It never launches a local server or falls back to one. URLs must be absolute HTTP/HTTPS URLs with a host. Supplied paths, queries and fragments are discarded: health always uses `/health` at the target's root. Redirects are refused, HTTPS certificates are verified, and URL credentials are omitted from diagnostics.
-
-The server binds only to loopback, with no public host option. Port zero is rejected. Do not combine `--server-url` with `server`.
-
-To build and run through Cargo:
-
-```sh
-cargo run -p ship --
-cargo run -p ship -- server --port 43180
-```
-
-## Logs and shutdown
-
-Automatic startup reports the launched child PID and a unique `ship-server-*.log` path in the OS temporary directory. The log has Unix mode 0600 and is retained after client exit or startup failure, until OS or manual temporary-file cleanup. When concurrent launches race, another compatible server may win; the launch message says so, and losing children exit. Inspect the reported log for that attempt's outcome and the serving server's startup PID.
-
-Startup logs show address, PID and protocol version. Request logs show method, path, status and duration. The default filter is `info`. Set `RUST_LOG` to change it; an invalid filter fails rather than being ignored. For example:
-
-```sh
-RUST_LOG=debug ./target/debug/ship server
-```
-
-Stop a foreground server with Ctrl-C. To stop a background server, use its recorded serving PID:
-
-```sh
-kill -TERM <PID>
-# SIGINT is also supported:
-kill -INT <PID>
-```
-
-Normal shutdown drains requests within five seconds and stops accepting connections. There is no server-management command or shutdown endpoint. A later bare `ship` can start a new server; use an explicit `--server-url` if you only want to check whether the stopped endpoint is reachable.
-
-Local readiness is bounded by five seconds after launch. HTTP connections have a one-second bound, and complete health requests have a two-second bound. Failed startup cleans up only its own child and retains the log. If log creation fails, the error identifies the attempted directory without claiming a log exists.
-
-## Local checks
-
-```sh
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo build --workspace
-cargo build --workspace --release
-```
+Run `ship --help` to see everything else.
