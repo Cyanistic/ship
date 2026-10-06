@@ -148,3 +148,39 @@ impl fmt::Display for SessionName {
         f.write_str(&self.0)
     }
 }
+
+/// Any selectable entity. Untagged; the prefix decides the variant.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[serde(untagged)]
+pub enum NodeId {
+    Session(IdOf<Session>),
+    Tab(IdOf<Tab>),
+    Pane(IdOf<Pane>),
+}
+
+impl FromStr for NodeId {
+    type Err = AppError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.split_once(':').map(|(prefix, _)| prefix) {
+            Some("session") => value.parse().map(Self::Session),
+            Some("tab") => value.parse().map(Self::Tab),
+            Some("pane") => value.parse().map(Self::Pane),
+            _ => Err(err!(
+                Validation,
+                "expected session, tab or pane ID, got '{}'",
+                value
+            )),
+        }
+    }
+}
+
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Session(id) => id.fmt(f),
+            Self::Tab(id) => id.fmt(f),
+            Self::Pane(id) => id.fmt(f),
+        }
+    }
+}

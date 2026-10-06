@@ -1,14 +1,16 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
     PartialSchema, ToSchema,
-    openapi::{ObjectBuilder, RefOr, schema::Schema},
+    openapi::{Object, ObjectBuilder, Ref, RefOr, schema::Schema},
 };
+use uuid::Uuid;
 
 use crate::{
-    id::IdOf,
-    model::{Creatable, Named, Tab, TabParent},
+    id::{Attachment, IdOf},
+    model::{Creatable, Named, NodeId, Session, Tab, TabParent},
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
@@ -78,4 +80,75 @@ pub struct MoveTab {
 pub enum Placement {
     Before(IdOf<Tab>),
     After(IdOf<Tab>),
+}
+
+/// POST /attach body. The selection is what a reconnecting observer last had.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachRequest {
+    pub session: IdOf<Session>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<NodeId>,
+}
+
+/// Server-owned view of one attachment. Always names a session; the record
+/// is deleted when the attachment ends or its session is removed.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ViewingRecord {
+    pub session: IdOf<Session>,
+    pub selection: NodeId,
+}
+
+/// Complete replicated state. Session `Arc`s are shared with the state actor.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Replica {
+    /// UUID v7 chosen at server start; a later start sorts higher.
+    #[schema(value_type = String, format = "uuid")]
+    pub incarnation: Uuid,
+    pub revision: u64,
+    #[schema(schema_with = sessions_schema)]
+    pub sessions: IndexMap<IdOf<Session>, Arc<Session>>,
+    #[schema(schema_with = viewers_schema)]
+    pub viewers: IndexMap<IdOf<Attachment>, ViewingRecord>,
+}
+
+/// Sessions keyed by ID, in order. Written by hand like `Session::tabs`, so
+/// the map key is described as an ID rather than an inlined entity.
+fn sessions_schema() -> Object {
+    ObjectBuilder::new()
+        .property_names(Some(IdOf::<Session>::schema()))
+        .additional_properties(Some(Ref::from_schema_name("Session")))
+        .build()
+}
+
+/// `Attachment` is a marker with no schema of its own for the derive to pass.
+fn attachment_schema() -> RefOr<Schema> {
+    IdOf::<Attachment>::schema()
+}
+
+fn viewers_schema() -> Object {
+    ObjectBuilder::new()
+        .property_names(Some(IdOf::<Attachment>::schema()))
+        .additional_properties(Some(Ref::from_schema_name("ViewingRecord")))
+        .build()
+}
+
+/// One `data:` line of the attach stream.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum SseEvent {
+    /// Always first: the new attachment's ID and the state it starts from.
+    Attached(Attached),
+    /// A newer complete state, replacing the previous one.
+    State(Arc<Replica>),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Attached {
+    #[schema(schema_with = attachment_schema)]
+    pub attachment: IdOf<Attachment>,
+    pub replica: Arc<Replica>,
 }

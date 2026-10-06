@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use eventsource_stream::{EventStreamError, Eventsource};
+use futures_util::{Stream, StreamExt};
 use indexmap::IndexMap;
 use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
@@ -8,12 +10,12 @@ use ship_core::{
     id::{Id, IdOf, Identified, Prefixed, UntaggedEither},
     model::{Named, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
-    protocol::{Create, MoveTab},
+    protocol::{AttachRequest, Create, MoveTab, SseEvent},
 };
 
 use url::Url;
 
-use crate::NO_BODY;
+use crate::{NO_BODY, http_error};
 
 pub struct Client {
     pub http: reqwest::Client,
@@ -171,5 +173,43 @@ impl Client {
                 UntaggedEither::Left(self.resolve_session(session).await?)
             }
         })
+    }
+
+    /// Attach-or-create for `ship attach <name>`: resolve, create if absent,
+    /// and resolve again after a `409` from a concurrent creator.
+    pub async fn ensure_session(&self, name: &SessionName) -> Result<IdOf<Session>> {
+        let session = SessionRef::Name(name.clone());
+        match self.resolve_session(&session).await {
+            Err(error) if *error.code() == ErrorCode::NotFound => {}
+            resolved => return resolved,
+        }
+        match self.create_session(name).await {
+            Ok(created) => Ok(created.id),
+            Err(error) if *error.code() == ErrorCode::Conflict => {
+                self.resolve_session(&session).await
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Open the attach stream. The two-second timeout covers only the
+    /// response head. The returned stream yields decoded events and ends on EOF.
+    pub async fn attach(
+        &self,
+        request: &AttachRequest,
+    ) -> Result<impl Stream<Item = Result<SseEvent>> + use<>> {
+        let response = self
+            .stream(Method::POST, "/api/v0/attach", Some(request))
+            .await?;
+        Ok(response
+            .bytes_stream()
+            .eventsource()
+            .map(|event| match event {
+                Ok(event) => serde_json::from_str(&event.data).map_err(
+                    |error| err!(Serialization, "cannot decode attach event", @external: error),
+                ),
+                Err(EventStreamError::Transport(error)) => Err(http_error(error)),
+                Err(error) => Err(err!(Serialization, "malformed attach stream", @external: error)),
+            }))
     }
 }

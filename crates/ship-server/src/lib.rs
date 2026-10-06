@@ -1,6 +1,8 @@
-//! Loopback HTTP listener, health route and session, tab and pane API.
+//! Loopback HTTP listener, health route, session, tab and pane API and
+//! attach stream.
 
 mod app;
+mod attach;
 mod health;
 mod routes;
 mod state;
@@ -8,13 +10,14 @@ mod state;
 use std::{
     future::{Future, IntoFuture},
     net::SocketAddr,
+    sync::Arc,
     time::Duration,
 };
 
 pub use app::AppState;
 use axum::Router;
-use kameo::actor::Spawn;
-use ship_core::prelude::*;
+use kameo::{actor::Spawn, mailbox};
+use ship_core::{prelude::*, protocol::Replica, relay};
 use tokio::{net::TcpListener, sync::watch};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
@@ -27,9 +30,12 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
     Ok(SocketAddr::from(([127, 0, 0, 1], port)))
 }
 
-/// Document metadata only. Expanding the derive here takes title, version and
-/// description from ship-server's manifest; paths and schemas come from `routes!`.
+/// Document metadata. Expanding the derive here takes title, version and
+/// description from ship-server's manifest; paths and schemas come from
+/// `routes!`. Schemas reached only through a hand-written `$ref`, such as
+/// `Replica::viewers`, are registered here.
 #[derive(OpenApi)]
+#[openapi(components(schemas(ship_core::protocol::ViewingRecord)))]
 struct ApiDoc;
 
 /// One `.routes(routes!(handler))` per handler. Registrations on the same path
@@ -58,6 +64,7 @@ fn api_router() -> OpenApiRouter<AppState> {
         routes::get_pane,
         routes::rename_pane,
         routes::remove_pane,
+        attach::attach,
     )
 }
 
@@ -100,8 +107,18 @@ pub async fn serve(
     // Axum awaits shutdown directly. This channel only observes its result so
     // the outer task can propagate errors and bound draining after signal receipt.
     let (result_tx, mut result_rx) = watch::channel(None);
+    let bus = relay::RelayBus::spawn_with_mailbox(relay::RelayBus::default(), mailbox::bounded(64));
+    let state = state::ServerState::new(bus.clone());
+    let (replica_tx, replicas) = watch::channel(state.replica());
+    bus.ask(relay::Subscribe::<Arc<Replica>> {
+        sink: Box::new(replica_tx),
+    })
+    .await
+    .map_err(|error| err!(Internal, "cannot subscribe replica stream", @external: error))?;
     let app = AppState {
-        state: state::ServerState::spawn(state::ServerState::default()),
+        state: state::ServerState::spawn(state),
+        bus,
+        replicas,
     };
     let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {

@@ -1062,3 +1062,40 @@ macOS 26.6 arm64. Foreground `ship server --port 43903`; clients used `--server-
 | 3.2 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The release binary created and served a pane under a tab. |
 
 The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.
+
+### Slice 4: live observation (2026-10-05)
+
+Slice 4 works end to end and every slice 4 check passed. No locked paper was reopened. The differences below are at the snippet level, plus one note on what the stalled-observer check did and did not exercise.
+
+#### Differences from the snippets
+
+- **Reqwest `stream` lands in slice 4, not slice 7.** `Client::attach` reads the body through `bytes_stream()`, which needs the feature. The zstd and gzip features stay in slice 7.
+- **Utoipa `rc_schema` feature.** `SseEvent::State(Arc<Replica>)` and `Attached::replica` need a schema for `Arc<Replica>`. Utoipa cannot put `value_type` on a tuple-variant field, so the workspace enables `rc_schema` instead.
+- **Hand-written replica map schemas.** `Replica::sessions` and `Replica::viewers` use `schema_with`, like `Session::tabs`, so their keys are described by ID pattern. `Attached::attachment` also uses `schema_with`, because the `Attachment` marker has no schema for the derive to pass. `ViewingRecord` is reached only through the hand-written `viewers` `$ref`, so `ApiDoc` registers it with `components(schemas(...))`. Without that the document had a dangling `$ref`.
+- **`Detach` replies `Result<()>`,** matching slice 1's every-message-replies-`Result` change. It is idempotent: an attachment already gone, for example with its removed session, commits nothing. `Attach` rejects a duplicate attachment ID with `Conflict`.
+- **`tree::path` is not widened to `NodeId` yet.** The slice 2 entry said slice 4 would widen it, but nothing in slice 4 looks up a pane path: attach always starts at the session root, and selection repair and attach retention arrive in slices 5 and 6. It widens with the first caller.
+- **Seeding the watch channel.** `ServerState::replica()` is `pub`; `serve` builds the state actor's value first and uses its empty revision 0 replica as the watch channel's initial value. `commit` logs `publishing replica` at debug level with the new revision.
+- **`relay.rs` lives in `ship-core`, gated by its `kameo` feature (Cyan, 2026-10-05).** It moved there so a client can reuse it later. This goes further than slice 1's optional `kameo` dependency against the Rationale's "no actors, channels or HTTP" in core: core now holds an actor and channel sinks. The `kameo` feature also enables an optional `tokio` dependency with only `sync`. `ship-server` is still the only crate that enables the feature, and `cargo tree -p ship-client` shows no Kameo. As public library items, the unused `mpsc`, `Recipient`, closure, filter and filter-map adapters need no dead-code allowance. Kameo 0.22 added `SendError::ActorRestarting`; the `Recipient` sink treats it as `Full`.
+- **Client request helper split.** `request` now composes `build` (URL scrubbing, body, attachment header), `open` (send, status check and `AppError` decoding) and response decoding under one two-second timeout. `stream` applies the timeout to `open` alone and returns the live response for `attach`.
+- **SSE frames carry only `data:`.** No `event:` name is set; the JSON `type` tag (`attached`, `state`) distinguishes them.
+- **Slice 4 observer exits.** A clean end of stream prints `session removed` and exits 0, a body error exits 1 with the error, and SIGINT exits 0. Until slice 6 adds reconnect, a server shutdown also ends the stream cleanly and would print `session removed`. The observer reprints whenever the replica changes, including when only viewing records change, such as another observer attaching.
+
+#### Evidence
+
+macOS 26.6 arm64. Foreground `ship server --port 43904` for tasks 4.1 to 4.3 and `--port 43905` for 4.4; clients used `--server-url` with the matching port.
+
+| Check | Observation |
+| --- | --- |
+| 4.1 publish | With `RUST_LOG=ship_server=debug`, session create, tab create and two renames logged `publishing replica` with revisions 1, 2, 3 and 4, one per commit. A duplicate create (409) and the `GET` lookups logged nothing. |
+| 4.2 curl | `curl -N -X POST /api/v0/attach` with `{"session": "session:..."}` first received `{"type":"attached","attachment":"attachment:d856...","replica":{...,"revision":5,...}}`, whose `viewers` held that attachment at the session root. A later `ship tab create work logs` produced `{"type":"state",...,"revision":6}` containing the new tab. An unknown session ID returned 404 and a `tab:` ID 422. |
+| 4.3 CLI | With no `work` session, `ship attach work` created it and printed `attached attachment:8620... to session:e920...` on stderr. It then reprinted the tree after a tab create, a pane create and a child tab create, ending with `editor > left` and `editor > child`. |
+| 4.4 two observers | Two observers of `work` each printed every later edit (tab create, pane create, tab rename). Their final renders matched byte for byte. |
+| 4.4 attach during edits | An observer started 0.15 s into a loop creating 40 tabs showed 22 tabs in its first render. Its last render showed all 40 at revision 48 with no further edit. |
+| 4.4 stalled observer | `kill -STOP` (state `T`), then 50 renames of one tab. Render count stayed 51 while stopped. After `kill -CONT` it printed through revision 149 with the tab named `r100`, with no further edit. All 50 intermediate replicas still fit in socket buffers, so watch-channel coalescing was not exercised; the final-state requirement was. |
+| 4.4 closing an observer | A `curl` stream on `work` listed observer A's attachment in its seed. After SIGINT to A, A exited 0, and the curl stream's next event (revision 151, no other edit) no longer listed it. |
+| 4.4 session removal | With observers B and E on `work`, `ship session rm work` made both print `session removed` and exit 0. The curl stream on `work` also ended. |
+| 4.4 attach-or-create | `ship attach scratch` created `scratch` and attached. In five rounds of two concurrent `ship attach scratch` runs, each round left exactly one `scratch` in `session list`, and both observers named the same session ID. The server logged five 409 responses on `POST /api/v0/sessions`, so every round went through the re-resolve path. `ship attach session:000...` failed with `not found`, exit 1, and `session list` was unchanged. |
+| 4.4 OpenAPI | Disposable consumer of `ship_server::openapi()`, outside the repo: OpenAPI 3.1.0 lists `attach` at `POST /api/v0/attach` with an `AttachRequest` body, a 200 `text/event-stream` response whose schema is `SseEvent`, and 404, 422 and 503. `SseEvent` is a `oneOf` of `Attached` and `Replica`, each with its `type` tag. `Replica.sessions` and `Replica.viewers` are keyed by the session and attachment ID patterns. Every `$ref` resolves. |
+| 4.4 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The release binary attached by name, showed a tab create, and exited 0 with `session removed` when its session was removed. |
+
+The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.

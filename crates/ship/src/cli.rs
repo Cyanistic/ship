@@ -35,6 +35,8 @@ pub enum Command {
     /// Create, inspect, rename or remove logical panes
     #[command(subcommand)]
     Pane(PaneCommand),
+    /// Observe a session as a live text tree
+    Attach(AttachArgs),
 }
 
 #[derive(Subcommand)]
@@ -147,4 +149,11 @@ pub struct MoveTabArgs {
     /// Insert after this sibling in PARENT
     #[arg(long)]
     pub after: Option<IdOf<Tab>>,
+}
+
+/// A name attaches or creates (`Client::ensure_session`); an ID never creates.
+#[derive(Args)]
+pub struct AttachArgs {
+    /// Session name or ID; a missing name is created
+    pub session: SessionRef,
 }

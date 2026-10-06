@@ -3,6 +3,8 @@
 pub mod error;
 pub mod id;
 pub mod model;
+#[cfg(feature = "kameo")]
+pub mod relay;
 
 /// Common operation errors and construction helpers.
 pub mod prelude {

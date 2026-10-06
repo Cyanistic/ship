@@ -2,12 +2,13 @@ mod cli;
 mod commands;
 mod diagnostics;
 mod local;
+mod observe;
 
 use std::{process::ExitCode, time::Duration};
 
 use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
-use ship_client::Client;
+use ship_client::{Client, SessionRef};
 use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*};
 use url::Url;
 
@@ -82,6 +83,14 @@ async fn dispatch(cli: Cli, explicit_target: bool) -> Result<()> {
         Some(Command::Pane(command)) => {
             let client = connect(&cli.server_url, explicit_target).await?;
             commands::pane(&client, command).await
+        }
+        Some(Command::Attach(args)) => {
+            let client = connect(&cli.server_url, explicit_target).await?;
+            let session = match args.session {
+                SessionRef::Id(id) => id,
+                SessionRef::Name(name) => client.ensure_session(&name).await?,
+            };
+            observe::run(&client, session).await
         }
         None => {
             let client = client(&cli.server_url)?;
