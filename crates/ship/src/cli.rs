@@ -5,7 +5,7 @@ use ship_client::{SessionRef, TabParentRef};
 use ship_core::{
     AppError, DEFAULT_PORT, DEFAULT_SERVER_URL,
     id::{IdOf, Identified},
-    model::{SessionName, Tab},
+    model::{Pane, SessionName, Tab},
 };
 
 #[derive(Parser)]
@@ -32,6 +32,9 @@ pub enum Command {
     /// Create, inspect, rename, remove or move tabs
     #[command(subcommand)]
     Tab(TabCommand),
+    /// Create, inspect, rename or remove logical panes
+    #[command(subcommand)]
+    Pane(PaneCommand),
 }
 
 #[derive(Subcommand)]
@@ -60,6 +63,18 @@ pub enum TabCommand {
     Rm(IdArgs<Tab>),
     /// Move under PARENT; appends unless --before or --after names a sibling
     Move(MoveTabArgs),
+}
+
+#[derive(Subcommand)]
+pub enum PaneCommand {
+    /// Append a metadata-only pane to a tab and print it as JSON
+    Create(CreatePaneArgs),
+    /// Print a pane as JSON
+    Get(IdArgs<Pane>),
+    /// Rename a pane and print it as JSON
+    Rename(RenameArgs<Pane>),
+    /// Remove a pane
+    Rm(IdArgs<Pane>),
 }
 
 #[derive(Args)]
@@ -111,6 +126,13 @@ where
 pub struct CreateTabArgs {
     /// Session name or ID, or tab ID
     pub parent: TabParentRef,
+    pub name: String,
+}
+
+#[derive(Args)]
+pub struct CreatePaneArgs {
+    /// Tab ID
+    pub tab: IdOf<Tab>,
     pub name: String,
 }
 

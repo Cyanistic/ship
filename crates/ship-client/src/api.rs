@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 use ship_core::{
     HEALTH_PATH, HealthResponse,
     id::{Id, IdOf, Identified, Prefixed, UntaggedEither},
-    model::{Named, Session, SessionName, Tab, TabParent},
+    model::{Named, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
     protocol::{Create, MoveTab},
 };
@@ -57,6 +57,10 @@ impl Resource for Tab {
     const COLLECTION: &'static str = "/api/v0/tabs";
 }
 
+impl Resource for Pane {
+    const COLLECTION: &'static str = "/api/v0/panes";
+}
+
 impl Client {
     pub async fn health(&self) -> Result<HealthResponse> {
         self.request(Method::GET, HEALTH_PATH, NO_BODY, None, StatusCode::OK)
@@ -96,6 +100,23 @@ impl Client {
         self.request(
             Method::POST,
             Tab::COLLECTION,
+            Some(&body),
+            None,
+            StatusCode::CREATED,
+        )
+        .await
+    }
+
+    pub async fn create_pane(&self, parent: IdOf<Tab>, name: &str) -> Result<Pane> {
+        let body = Create::<Pane> {
+            parent,
+            input: Named {
+                name: name.to_owned(),
+            },
+        };
+        self.request(
+            Method::POST,
+            Pane::COLLECTION,
             Some(&body),
             None,
             StatusCode::CREATED,

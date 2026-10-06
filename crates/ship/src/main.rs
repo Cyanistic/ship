@@ -79,6 +79,10 @@ async fn dispatch(cli: Cli, explicit_target: bool) -> Result<()> {
             let client = connect(&cli.server_url, explicit_target).await?;
             commands::tab(&client, command).await
         }
+        Some(Command::Pane(command)) => {
+            let client = connect(&cli.server_url, explicit_target).await?;
+            commands::pane(&client, command).await
+        }
         None => {
             let client = client(&cli.server_url)?;
             let response = if explicit_target {

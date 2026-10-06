@@ -154,6 +154,7 @@ impl Message<Create<Tab>> for ServerState {
                 id: Id::new(),
                 name: create.input.name,
                 tabs: IndexMap::new(),
+                panes: IndexMap::new(),
             };
             tree::children_mut(sessions, create.parent)?.insert(tab.id, tab.clone());
             Ok(tab)
@@ -227,6 +228,72 @@ impl Message<Move> for ServerState {
             let moved = tab.clone();
             tree::place(tree::children_mut(sessions, to.parent)?, tab, to.placement)?;
             Ok(moved)
+        })
+    }
+}
+
+impl Message<Create<Pane>> for ServerState {
+    type Reply = Result<Pane>;
+
+    async fn handle(
+        &mut self,
+        create: Create<Pane>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| {
+            let pane = Pane {
+                id: Id::new(),
+                name: create.input.name,
+            };
+            tree::tab_mut(sessions, create.parent)?
+                .panes
+                .insert(pane.id, pane.clone());
+            Ok(pane)
+        })
+    }
+}
+
+impl Message<Get<Pane>> for ServerState {
+    type Reply = Result<Pane>;
+
+    async fn handle(
+        &mut self,
+        Get(id): Get<Pane>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        tree::pane(&self.sessions, id).cloned()
+    }
+}
+
+impl Message<Rename<Pane>> for ServerState {
+    type Reply = Result<Pane>;
+
+    async fn handle(
+        &mut self,
+        rename: Rename<Pane>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| {
+            let owner = tree::pane_owner(sessions, rename.id)?;
+            let pane = &mut tree::tab_mut(sessions, owner)?.panes[&rename.id];
+            pane.name = rename.name;
+            Ok(pane.clone())
+        })
+    }
+}
+
+impl Message<Remove<Pane>> for ServerState {
+    type Reply = Result<()>;
+
+    async fn handle(
+        &mut self,
+        Remove(id): Remove<Pane>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| {
+            let owner = tree::pane_owner(sessions, id)?;
+            tree::tab_mut(sessions, owner)?.panes.shift_remove(&id);
+            Ok(())
         })
     }
 }

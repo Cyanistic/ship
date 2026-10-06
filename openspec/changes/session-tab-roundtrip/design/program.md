@@ -1035,3 +1035,30 @@ macOS 26.6 arm64. Foreground `ship server --port 43902`; clients used `--server-
 | 2.3 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The workflow was rerun on the final build with identical results, and the release binary served `GET /api/v0/sessions`. |
 
 The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.
+
+### Slice 3: logical panes (2026-10-05)
+
+Slice 3 works end to end and every slice 3 check passed. No locked paper was reopened. The two differences below are at the snippet level.
+
+#### Differences from the snippets
+
+- **`tree::pane_owner` added.** Rename and remove need mutable access to the pane's owning tab, so `tree.rs` gains `pane_owner(sessions, id) -> Result<IdOf<Tab>>` next to `pane`. Those two handlers find the owner and edit `tab_mut(owner).panes`. That copies only the owning session through `Arc::make_mut`. Create uses `tab_mut(parent)` directly.
+- **`Tab::panes` schema is hand-written,** like `tabs`. `panes_schema` is an object whose `propertyNames` is the pane ID pattern and whose values `$ref` `Pane`. That way the map key is described as an ID, not as an inlined `Pane`.
+
+#### Evidence
+
+macOS 26.6 arm64. Foreground `ship server --port 43903`; clients used `--server-url http://127.0.0.1:43903`.
+
+| Check | Observation |
+| --- | --- |
+| 3.1 CLI | `ship pane create <tab> left` printed `{"id":"pane:c4ef...","name":"left"}`, and the pane appeared under the tab's `panes` in both `tab get` and `session get`. |
+| 3.2 SC-001 build | Sessions `work` and `api`. `work` got `A{A1{A1x},A2},B,C`, using session names as root parents. Panes `left` and `right` went under `A1`, `deep` under `A1x` and `top` under `A`. IDs were extracted with `jq -r .id`. `A1` listed `left,right` in creation order. |
+| 3.2 renames and reorder | Renaming tab `A2` and pane `left` printed the renamed entities with unchanged IDs. `move C work --before A` gave `C,A,B`. |
+| 3.2 cross-session move | `move A api` appended A to `api` and removed it from `work`. The sorted `jq` list of every ID in A's subtree (8 IDs: 4 tabs, 4 panes) was identical before and after. |
+| 3.2 removal | `pane rm right` left `A1` with `left-renamed` and child tab `A1x`. `get` on the removed pane reported not found, exit 1. `tab rm A1` made `A1`'s pane, `A1x` and `A1x`'s pane `deep` not found. `A` kept `A2-renamed` and pane `top`. `session rm api` made `top` not found. |
+| 3.2 invalid parents | `pane create session:... x` and `pane create pane:... x` failed in Clap with exit 2 (`expected tab ID, got session` / `got pane`). A raw `curl` POST to `/api/v0/panes` with a session parent returned 422 (`parent: expected tab ID, got session`). `cmp` showed both sessions byte-identical before and after. |
+| 3.2 no processes | `pgrep -P <server pid>` found no child processes after the workflow. |
+| 3.2 OpenAPI | Disposable consumer of `ship_server::openapi()`, outside the repo: OpenAPI 3.1.0 lists `create_pane` (`POST /api/v0/panes`, `Create_Pane` to `Pane`, 201/404/422/503), `get_pane`, `rename_pane` (`Named_String`) and `remove_pane` at `/api/v0/panes/{id}`. `Create_Pane.parent` is the tab ID pattern only. `Tab.panes` is keyed by the pane ID pattern with `Pane` values. Every `$ref` resolves. |
+| 3.2 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The release binary created and served a pane under a tab. |
+
+The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.

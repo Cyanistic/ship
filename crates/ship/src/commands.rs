@@ -1,12 +1,12 @@
 use serde::Serialize;
 use ship_client::Client;
 use ship_core::{
-    model::{Session, Tab},
+    model::{Pane, Session, Tab},
     prelude::*,
     protocol::{MoveTab, Placement},
 };
 
-use crate::cli::{SessionCommand, TabCommand};
+use crate::cli::{PaneCommand, SessionCommand, TabCommand};
 
 /// Each command prints its JSON result on stdout, or nothing for removal.
 pub async fn session(client: &Client, command: SessionCommand) -> Result<()> {
@@ -47,6 +47,15 @@ pub async fn tab(client: &Client, command: TabCommand) -> Result<()> {
             };
             print(&client.move_tab(args.id, &to).await?)
         }
+    }
+}
+
+pub async fn pane(client: &Client, command: PaneCommand) -> Result<()> {
+    match command {
+        PaneCommand::Create(args) => print(&client.create_pane(args.tab, &args.name).await?),
+        PaneCommand::Get(args) => print(&client.get::<Pane>(args.id).await?),
+        PaneCommand::Rename(args) => print(&client.rename::<Pane>(args.id, &args.name).await?),
+        PaneCommand::Rm(args) => client.remove::<Pane>(args.id).await,
     }
 }
 

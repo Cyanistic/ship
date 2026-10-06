@@ -1,4 +1,4 @@
-//! Loopback HTTP listener, health route and session API.
+//! Loopback HTTP listener, health route and session, tab and pane API.
 
 mod app;
 mod health;
@@ -54,6 +54,10 @@ fn api_router() -> OpenApiRouter<AppState> {
         routes::rename_tab,
         routes::remove_tab,
         routes::move_tab,
+        routes::create_pane,
+        routes::get_pane,
+        routes::rename_pane,
+        routes::remove_pane,
     )
 }
 

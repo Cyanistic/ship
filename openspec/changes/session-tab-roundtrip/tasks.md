@@ -19,8 +19,8 @@ Every slice runs workflows against a foreground `ship server --port <p>` with `-
 
 ## 3. Logical panes: CLI pane commands to metadata-only leaves
 
-- [ ] 3.1 Add `Pane` and `Tab::panes`, pane parts of `tree.rs` and `state.rs`, the four `/api/v0` pane handlers with OpenAPI annotations, client pane methods, `cli.rs` `Pane` subcommands and `commands.rs` `pane`; verify `ship pane create <tab> left` prints the pane and it appears in both `tab get` and `session get` output.
-- [ ] 3.2 Verify slice 3 end to end: run SC-001 as one real workflow (two sessions, nested tabs and panes, IDs extracted with `jq`, tab and pane renames, sibling reorder, cross-session move preserving tab and pane IDs); removing one pane leaves siblings and child tabs; removing a tab removes its and its descendants' panes; `ship pane create session:... x` and `ship pane create pane:... x` fail, and a raw `curl` POST with a session parent returns 422 with state unchanged; `ps` shows no new server child processes; the `openapi()` consumer lists the pane paths; fmt, Clippy and both builds pass. Record evidence and stop.
+- [x] 3.1 Add `Pane` and `Tab::panes`, pane parts of `tree.rs` and `state.rs`, the four `/api/v0` pane handlers with OpenAPI annotations, client pane methods, `cli.rs` `Pane` subcommands and `commands.rs` `pane`; verify `ship pane create <tab> left` prints the pane and it appears in both `tab get` and `session get` output.
+- [x] 3.2 Verify slice 3 end to end: run SC-001 as one real workflow (two sessions, nested tabs and panes, IDs extracted with `jq`, tab and pane renames, sibling reorder, cross-session move preserving tab and pane IDs); removing one pane leaves siblings and child tabs; removing a tab removes its and its descendants' panes; `ship pane create session:... x` and `ship pane create pane:... x` fail, and a raw `curl` POST with a session parent returns 422 with state unchanged; `ps` shows no new server child processes; the `openapi()` consumer lists the pane paths; fmt, Clippy and both builds pass. Record evidence and stop.
 
 ## 4. Live observation: `ship attach` to a live text tree
 

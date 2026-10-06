@@ -6,7 +6,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use ship_core::{
     id::{IdOf, UntaggedEither},
-    model::{Tab, TabParent},
+    model::{Pane, Tab, TabParent},
     prelude::*,
     protocol::Placement,
 };
@@ -55,6 +55,33 @@ pub(crate) fn tab(sessions: &Sessions, id: IdOf<Tab>) -> Result<&Tab> {
         .ok_or_else(|| not_found(UntaggedEither::Right(id)))
 }
 
+pub(crate) fn pane(sessions: &Sessions, id: IdOf<Pane>) -> Result<&Pane> {
+    fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<&Pane> {
+        tabs.values()
+            .find_map(|tab| tab.panes.get(&id).or_else(|| find(&tab.tabs, id)))
+    }
+    sessions
+        .values()
+        .find_map(|session| find(&session.tabs, id))
+        .ok_or_else(|| err!(NotFound, "pane {} not found", id))
+}
+
+/// The tab that owns pane `id`.
+pub(crate) fn pane_owner(sessions: &Sessions, id: IdOf<Pane>) -> Result<IdOf<Tab>> {
+    fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<IdOf<Tab>> {
+        tabs.values().find_map(|tab| {
+            tab.panes
+                .contains_key(&id)
+                .then_some(tab.id)
+                .or_else(|| find(&tab.tabs, id))
+        })
+    }
+    sessions
+        .values()
+        .find_map(|session| find(&session.tabs, id))
+        .ok_or_else(|| err!(NotFound, "pane {} not found", id))
+}
+
 /// Mutable access through `Arc::make_mut`, copying only the owning session.
 pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab> {
     let node = UntaggedEither::Right(id);
@@ -82,7 +109,7 @@ pub(crate) fn children_mut(sessions: &mut Sessions, parent: IdOf<TabParent>) -> 
     }
 }
 
-/// Detach a tab with its subtree from its parent.
+/// Detach a tab with its subtree and panes from its parent.
 pub(crate) fn take_tab(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<Tab> {
     let node = UntaggedEither::Right(id);
     let path = path(sessions, node).ok_or_else(|| not_found(node))?;

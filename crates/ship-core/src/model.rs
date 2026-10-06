@@ -29,6 +29,16 @@ pub struct Tab {
     pub name: String,
     #[schema(schema_with = tabs_schema)]
     pub tabs: IndexMap<IdOf<Tab>, Tab>,
+    #[schema(schema_with = panes_schema)]
+    pub panes: IndexMap<IdOf<Pane>, Pane>,
+}
+
+/// Metadata-only leaf. Owns no terminal, layout or children.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Pane {
+    pub id: IdOf<Pane>,
+    pub name: String,
 }
 
 /// Ordered child tabs keyed by ID. Hand-written because the derive inlines
@@ -37,6 +47,15 @@ fn tabs_schema() -> Object {
     ObjectBuilder::new()
         .property_names(Some(IdOf::<Tab>::schema()))
         .additional_properties(Some(Ref::from_schema_name("Tab")))
+        .build()
+}
+
+/// Ordered panes keyed by ID, written like `tabs_schema` so the map key is
+/// described as a pane ID rather than an inlined `Pane`.
+fn panes_schema() -> Object {
+    ObjectBuilder::new()
+        .property_names(Some(IdOf::<Pane>::schema()))
+        .additional_properties(Some(Ref::from_schema_name("Pane")))
         .build()
 }
 
@@ -60,6 +79,16 @@ impl Identified for Tab {
     type Id = Id<Tab>;
 }
 
+impl Prefixed for Pane {
+    fn prefix() -> &'static str {
+        "pane"
+    }
+}
+
+impl Identified for Pane {
+    type Id = Id<Pane>;
+}
+
 pub type TabParent = UntaggedEither<Session, Tab>;
 
 /// Associates an entity with its parent kind and creation input.
@@ -75,6 +104,11 @@ impl Creatable for Session {
 
 impl Creatable for Tab {
     type Parent = TabParent;
+    type Input = Named;
+}
+
+impl Creatable for Pane {
+    type Parent = Tab;
     type Input = Named;
 }
 

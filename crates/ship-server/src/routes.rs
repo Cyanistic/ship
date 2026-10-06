@@ -222,3 +222,86 @@ pub(crate) async fn move_tab(
     let value = app.state.ask(Move { id, to }).await?;
     Ok(Json(value).into_response())
 }
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/panes",
+    operation_id = "create_pane",
+    request_body = Create<Pane>,
+    responses(
+        (status = 201, body = Pane),
+        (status = 404, description = "Parent tab not found", body = AppError),
+        (status = 422, description = "Malformed parent or name, including a parent that is not a tab"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn create_pane(
+    State(app): App,
+    Json(body): Json<Create<Pane>>,
+) -> Result<Response> {
+    let pane = app.state.ask(body).await?;
+    Ok((StatusCode::CREATED, Json(pane)).into_response())
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v0/panes/{id}",
+    operation_id = "get_pane",
+    params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
+    responses(
+        (status = 200, body = Pane),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn get_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Result<Response> {
+    let value = app.state.ask(Get::<Pane>(id)).await?;
+    Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v0/panes/{id}",
+    operation_id = "rename_pane",
+    params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
+    request_body = Named<String>,
+    responses(
+        (status = 200, body = Pane),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, body = AppError),
+        (status = 422, description = "Malformed name"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn rename_pane(
+    State(app): App,
+    Path(id): Path<IdOf<Pane>>,
+    Json(body): Json<Named>,
+) -> Result<Response> {
+    let value = app
+        .state
+        .ask(Rename::<Pane> {
+            id,
+            name: body.name,
+        })
+        .await?;
+    Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v0/panes/{id}",
+    operation_id = "remove_pane",
+    params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
+    responses(
+        (status = 204, description = "Pane removed"),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn remove_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Result<Response> {
+    app.state.ask(Remove::<Pane>(id)).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
