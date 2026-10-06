@@ -6,7 +6,7 @@ use ship_core::{
     id::{Attachment, IdOf},
     model::{NodeId, Session, Tab},
     prelude::*,
-    protocol::{AttachRequest, Replica, SseEvent, ViewingRecord},
+    protocol::{AttachRequest, EndReason, Replica, SseEvent, ViewingRecord},
 };
 
 use crate::controls;
@@ -18,10 +18,12 @@ const MAX_BACKOFF: Duration = Duration::from_secs(5);
 /// event and status lines on stderr. Stdin lines are controls (`controls.rs`);
 /// a failed control is reported and the observer keeps running.
 ///
-/// When the stream ends or fails, the observer reports the disconnection and
-/// reattaches with backoff (250 ms doubling, capped at 5 s), sending the
-/// remembered session ID and selection. A `404` on reattach means the session
-/// was removed: it prints `session removed` and exits 0. Otherwise it exits
+/// An `Ended` event for a removed session prints `session removed` and exits
+/// 0. Any other end, including server shutdown, a cut connection or a body
+/// error, is reported as a disconnection, and the observer reattaches with
+/// backoff (250 ms doubling, capped at 5 s), sending the remembered session ID
+/// and selection. A `404` on reattach means the session was removed during
+/// the outage: it prints `session removed` and exits 0. Otherwise it exits
 /// only on SIGINT, with 0.
 pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
     let mut request = AttachRequest {
@@ -44,6 +46,13 @@ pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
         tokio::select! {
             event = next(&mut events) => {
                 let reason = match event {
+                    Some(Ok(SseEvent::Ended { reason: EndReason::SessionRemoved })) => {
+                        eprintln!("session removed");
+                        return Ok(());
+                    }
+                    Some(Ok(SseEvent::Ended { reason: EndReason::ServerShutdown })) => {
+                        "server shutting down".to_owned()
+                    }
                     Some(Ok(event)) => {
                         if let SseEvent::Attached(attached) = &event {
                             eprintln!("attached {} to {}", attached.attachment, request.session);
@@ -144,6 +153,7 @@ impl Observer {
                 }
                 _ => false,
             },
+            SseEvent::Ended { .. } => false,
         }
     }
 

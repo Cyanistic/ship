@@ -143,6 +143,19 @@ pub enum SseEvent {
     Attached(Attached),
     /// A newer complete state, replacing the previous one.
     State(Arc<Replica>),
+    /// Always last: why the server is closing the stream. A stream that ends
+    /// without it was cut.
+    Ended { reason: EndReason },
+}
+
+/// Derived by each stream from the latest replica, never published.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum EndReason {
+    /// The attachment's session was removed. Reattaching would fail.
+    SessionRemoved,
+    /// The server is shutting down. Reattaching may succeed later.
+    ServerShutdown,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

@@ -12,7 +12,6 @@ use axum::{
 use futures_util::{StreamExt, stream};
 use kameo::actor::ActorRef;
 use ship_core::{AppError, Result, err, id::*, protocol::*};
-use tokio_stream::wrappers::WatchStream;
 
 use crate::{
     AppState,
@@ -47,8 +46,8 @@ impl Drop for AttachmentGuard {
     responses(
         (status = 200, content_type = "text/event-stream", body = SseEvent,
             description = "Server-sent events whose `data:` lines are `SseEvent` JSON: \
-                `attached` first, then `state` for each newer replica. Ends when the \
-                attachment's session is removed."),
+                `attached` first, then `state` for each newer replica, then `ended` with \
+                the reason when the attachment's session is removed or the server shuts down."),
         (status = 404, description = "Session not found", body = AppError),
         (status = 422, description = "Malformed session or selection"),
         (status = 503, body = AppError),
@@ -71,12 +70,35 @@ pub(crate) async fn attach(
         })
         .await?;
     let seed = attached.replica.revision;
-    // Replicas at or below the seed are already in it, or older; the first
-    // newer replica without this attachment means its session was removed.
-    let updates = WatchStream::new(app.replicas.clone())
-        .filter(move |replica| ready(replica.revision > seed))
-        .take_while(move |replica| ready(replica.viewers.contains_key(&attachment)))
-        .map(SseEvent::State);
+    // Replicas at or below the seed are already in it, or older. The first
+    // newer replica without this attachment means its session was removed; a
+    // closed channel means shutdown. Either ends the stream after `Ended`.
+    let updates = stream::unfold(Some(app.replicas.clone()), move |replicas| async move {
+        let mut replicas = replicas?;
+        loop {
+            if replicas.changed().await.is_err() {
+                return Some((
+                    SseEvent::Ended {
+                        reason: EndReason::ServerShutdown,
+                    },
+                    None,
+                ));
+            }
+            let replica = replicas.borrow_and_update().clone();
+            if replica.revision <= seed {
+                continue;
+            }
+            if !replica.viewers.contains_key(&attachment) {
+                return Some((
+                    SseEvent::Ended {
+                        reason: EndReason::SessionRemoved,
+                    },
+                    None,
+                ));
+            }
+            return Some((SseEvent::State(replica), Some(replicas)));
+        }
+    });
     let events = stream::once(ready(SseEvent::Attached(attached)))
         .chain(updates)
         .map(move |event| {

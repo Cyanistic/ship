@@ -1,6 +1,6 @@
 # Session/tab roundtrip program
 
-Status: Locked on 2026-10-05 after Cyan approved it in Plannotator with “LGTM”. Written fresh from the locked [product](product.md) and [architecture](architecture.md) papers and the current crates. No earlier program draft was consulted. Nothing here is created source, and no snippet has been compiled.
+Status: Locked again on 2026-10-06 after Cyan approved architecture amendment A5 and this paper's A5 additions in chat ("they're good to go"); the additions are marked inline and land in slice 7. Previously: Locked on 2026-10-05 after Cyan approved it in Plannotator with “LGTM”. Written fresh from the locked [product](product.md) and [architecture](architecture.md) papers and the current crates. No earlier program draft was consulted. Nothing here is created source, and no snippet has been compiled.
 
 ## Rationale
 
@@ -466,6 +466,8 @@ impl Drop for AttachmentGuard;
 /// when a replica no longer lists this attachment (its session was removed) or
 /// when the watch sender is dropped at shutdown. The guard lives inside the
 /// stream. Keepalive comments every 15 seconds.
+/// A5 (slice 7): each end first emits `Ended(SessionRemoved)` or
+/// `Ended(ServerShutdown)` respectively.
 pub(crate) async fn attach(State(app): State<AppState>, Json(body): Json<AttachRequest>)
     -> Response;
 
@@ -517,6 +519,9 @@ const MAX_BACKOFF: Duration = Duration::from_secs(5);
 /// the remembered session ID and selection. A `404` on reattach means the
 /// session was removed: it prints `session removed` and exits 0 (product P1).
 /// Otherwise exits only on SIGINT.
+/// A5 (slice 7): `Ended(SessionRemoved)` prints `session removed` and exits 0
+/// without reattaching; `Ended(ServerShutdown)` reports
+/// `disconnected: server shutting down` and reattaches like any other end.
 pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()>;
 
 struct Observer {
@@ -660,6 +665,15 @@ pub struct Replica {
 pub enum SseEvent {
     Attached(Attached),
     State(Arc<Replica>),
+    Ended(EndReason),                          // A5, slice 7: last event before close
+}
+
+/// A5, slice 7. Derived per stream, never published through the relay.
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum EndReason {
+    SessionRemoved,
+    ServerShutdown,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -960,13 +974,15 @@ Checks: SC-004. Put `socat TCP-LISTEN:<q>,fork,reuseaddr TCP:127.0.0.1:<p>` betw
 
 ### 7. Compression, failure and shutdown
 
-Files: `lib.rs` compression layer, actor-stop monitoring and shutdown ordering; dependency features for zstd and gzip.
+Files: `lib.rs` compression layer, actor-stop monitoring and shutdown ordering; dependency features for zstd and gzip. A5: `protocol.rs` `SseEvent::Ended` and `EndReason`, `attach.rs` final event, `observe.rs` handling.
 
-Delivers: compressed SSE through the real client path, and clean shutdown with observers attached.
+Delivers: compressed SSE through the real client path, clean shutdown with observers attached, and streams that say why they end (A5).
 
 Checks: `curl -N -D - -H 'Accept-Encoding: zstd' -X POST .../api/v0/attach -d '{"session":"session:..."}' | head -c 200` shows `content-encoding: zstd` and binary frames arriving before the stream ends. The real observer prints each edit as it happens through the same server, and `RUST_LOG=reqwest=trace` or a debug log of the response's `content-encoding` header confirms zstd was negotiated rather than identity. Repeat with gzip-only `Accept-Encoding` via `curl`. `kill -TERM` on the server with two observers attached exits within five seconds with status 0, and both observers report disconnection. Run slices 1 to 7 on Linux as well as macOS; if Linux is unavailable, record it as unverified for SC-006.
 
 Actor failure is hard to trigger from outside. Check it once by temporarily making the `RelayBus` panic on a chosen publication, confirm the server exits with an error instead of serving stale observers, and revert. Record that it was a temporary probe.
+
+A5 checks: removing an observed session makes `curl` receive an `ended` event with `sessionRemoved` before the stream closes, and the observer prints `session removed` and exits 0 with no `disconnected` line and no reattach request in the server log. `kill -TERM` on the server makes `curl` receive `ended` with `serverShutdown`, and the observer prints `disconnected: server shutting down` and keeps retrying. Cutting the relay still gives a plain disconnection, and removing the session during an outage still exits through the reattach `404`. The `openapi()` consumer shows `SseEvent` with the `Ended` variant.
 
 ## Deviation log
 
@@ -1162,3 +1178,27 @@ macOS 26.6 arm64. Foreground `ship server --port 43907`; the relay listened on 4
 | 6.2 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. |
 
 The relay script and test servers were removed or stopped afterwards. Linux was not exercised.
+
+### Slice 7, A5 part: stream end reasons (2026-10-06, in progress)
+
+Architecture amendment A5 was approved on 2026-10-06, and its code is in place. Task 7.3 stays open: its shutdown check needs task 7.4's shutdown ordering. The rest of slice 7 (compression, actor-stop monitoring, shutdown ordering, Linux) has not started.
+
+#### Differences from the snippets
+
+- **`Ended { reason }`, not `Ended(EndReason)`.** Serde's internally tagged enums write a newtype variant around a unit enum as `{"type":"ended","sessionRemoved":null}`. A struct variant writes `{"type":"ended","reason":"sessionRemoved"}`, and the OpenAPI schema shows `reason` as a `$ref` to the `EndReason` string enum.
+- **The stream is a `stream::unfold` over the watch receiver; `tokio-stream` is gone.** `WatchStream` plus `take_while` cannot end right after a final event. It would wait for one more replica before noticing. The unfold loop calls `changed()` and returns its own state as `None` after `Ended`, so the stream closes immediately. Nothing else used `tokio-stream`, so it is removed from `ship-server` and the workspace manifest, though the proposal lists it among the new dependencies. `changed()` still delivers an unseen value before reporting a closed channel, so a final replica is not skipped.
+- **Observer handling.** `Ended(SessionRemoved)` prints `session removed` and exits 0. `Ended(ServerShutdown)` takes the disconnection path with the reason `server shutting down`. `Observer::apply` ignores `Ended`.
+
+#### Evidence
+
+macOS 26.6 arm64. Foreground `ship server --port 43909`; the Python relay from slice 6 listened on 43919.
+
+| Check | Observation |
+| --- | --- |
+| Removal while connected | With a `curl` stream and an observer on `gone`, `session rm gone` made curl's last frame `{"type":"ended","reason":"sessionRemoved"}`, after which curl exited. The observer printed only `attached ...` and `session removed`, with no `disconnected` line, and exited 0. The server log had the same two `/api/v0/attach` requests before and after, so there was no reattach. |
+| Relay cut, removal during outage | Killing the relay gave `disconnected: error decoding response body; retrying in 250ms`. After `session rm cut` and a relay restart, the reattach got 404 and the observer printed `session removed` and exited 0, as in slice 6. |
+| SIGTERM, not yet passing | With a curl stream and an observer attached, `kill -TERM` gave no `ended` frame. Curl's last frame was `attached`, the observer reported a body error and retried, and the server exited 1 after 5.02 s with `server shutdown exceeded five seconds`. Shutdown does not stop the actors, so the replica watch sender is never dropped and streams never end. That is task 7.4's ordering change, and this check reruns with it. |
+| OpenAPI | Disposable consumer of `ship_server::openapi()`, outside the repo: `SseEvent` is a `oneOf` of `attached`, `state` and an `ended` object requiring `type` and `reason`. `EndReason` is a string enum of `sessionRemoved` and `serverShutdown`. The attach 200 description names the `ended` event, and every `$ref` resolves. |
+| Build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. |
+
+The relay, disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.
