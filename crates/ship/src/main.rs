@@ -1,4 +1,5 @@
 mod cli;
+mod commands;
 mod diagnostics;
 mod local;
 
@@ -26,10 +27,10 @@ fn main() -> ExitCode {
 fn run(cli: Cli, explicit_target: bool) -> Result<()> {
     if matches!(
         cli.command,
-        Some(Command::Server {
+        Some(Command::Server(cli::ServerArgs {
             background_child: true,
             ..
-        })
+        }))
     ) {
         nix::unistd::setsid().map_err(
             |error| err!(Io, "cannot establish background server session", @external: error),
@@ -59,28 +60,23 @@ async fn health(client: &Client) -> Result<HealthResponse> {
 
 async fn dispatch(cli: Cli, explicit_target: bool) -> Result<()> {
     match cli.command {
-        Some(Command::Server { port, .. }) => {
-            ship_server::serve(ship_server::loopback_addr(port)?, diagnostics::shutdown()?).await
+        Some(Command::Server(_)) if explicit_target => Err(err!(
+            Configuration,
+            "--server-url selects a server for clients; ship server does not take it"
+        )),
+        Some(Command::Server(args)) => {
+            ship_server::serve(
+                ship_server::loopback_addr(args.port)?,
+                diagnostics::shutdown()?,
+            )
+            .await
+        }
+        Some(Command::Session(command)) => {
+            let client = connect(&cli.server_url, explicit_target).await?;
+            commands::session(&client, command).await
         }
         None => {
-            // Never include the input: even a malformed URL can contain credentials.
-            let url = Url::parse(&cli.server_url)
-                .map_err(|error| err!(Configuration, "invalid server URL", @external: error))?;
-            if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
-                return Err(err!(
-                    Configuration,
-                    "server URL requires absolute HTTP/HTTPS and a host"
-                ));
-            }
-            let client = Client {
-                http: reqwest::Client::builder()
-                    .redirect(reqwest::redirect::Policy::none())
-                    .retry(reqwest::retry::never())
-                    .connect_timeout(Duration::from_secs(1))
-                    .build()
-                    .map_err(|error| err!(Configuration, "cannot initialize HTTP client", @external: error.without_url()))?,
-                url,
-            };
+            let client = client(&cli.server_url)?;
             let response = if explicit_target {
                 health(&client).await?
             } else {
@@ -93,4 +89,35 @@ async fn dispatch(cli: Cli, explicit_target: bool) -> Result<()> {
             Ok(())
         }
     }
+}
+
+/// An explicit `--server-url` is used as is; otherwise the default local
+/// server is reused or started.
+async fn connect(server_url: &str, explicit_target: bool) -> Result<Client> {
+    let client = client(server_url)?;
+    if !explicit_target {
+        local::default_health(&client).await?;
+    }
+    Ok(client)
+}
+
+fn client(server_url: &str) -> Result<Client> {
+    // Never include the input: even a malformed URL can contain credentials.
+    let url = Url::parse(server_url)
+        .map_err(|error| err!(Configuration, "invalid server URL", @external: error))?;
+    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+        return Err(err!(
+            Configuration,
+            "server URL requires absolute HTTP/HTTPS and a host"
+        ));
+    }
+    Ok(Client {
+        http: reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .retry(reqwest::retry::never())
+            .connect_timeout(Duration::from_secs(1))
+            .build()
+            .map_err(|error| err!(Configuration, "cannot initialize HTTP client", @external: error.without_url()))?,
+        url,
+    })
 }

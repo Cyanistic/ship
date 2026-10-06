@@ -1,6 +1,9 @@
-//! Loopback HTTP listener and health route.
+//! Loopback HTTP listener, health route and session API.
 
+mod app;
 mod health;
+mod routes;
+mod state;
 
 use std::{
     future::{Future, IntoFuture},
@@ -8,10 +11,13 @@ use std::{
     time::Duration,
 };
 
+pub use app::AppState;
 use axum::Router;
+use kameo::actor::Spawn;
 use ship_core::prelude::*;
 use tokio::{net::TcpListener, sync::watch};
 use tower_http::trace::TraceLayer;
+use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
@@ -21,8 +27,29 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
     Ok(SocketAddr::from(([127, 0, 0, 1], port)))
 }
 
-fn api_router() -> OpenApiRouter {
-    OpenApiRouter::new().routes(routes!(health::health))
+/// Document metadata only. Expanding the derive here takes title, version and
+/// description from ship-server's manifest; paths and schemas come from `routes!`.
+#[derive(OpenApi)]
+struct ApiDoc;
+
+/// One `.routes(routes!(handler))` per handler. Registrations on the same path
+/// merge, so handlers need not be grouped by path.
+macro_rules! api_routes {
+    ($router:expr, $($handler:path),+ $(,)?) => {
+        $router$(.routes(routes!($handler)))+
+    };
+}
+
+fn api_router() -> OpenApiRouter<AppState> {
+    api_routes!(
+        OpenApiRouter::with_openapi(ApiDoc::openapi()),
+        health::health,
+        routes::list_sessions,
+        routes::create_session,
+        routes::get_session,
+        routes::rename_session,
+        routes::remove_session,
+    )
 }
 
 /// Construct the route-built API description without starting the server.
@@ -30,7 +57,7 @@ pub fn openapi() -> utoipa::openapi::OpenApi {
     api_router().split_for_parts().1
 }
 
-pub fn router() -> Router {
+pub fn router(app: AppState) -> Router {
     api_router().layer(
         TraceLayer::new_for_http()
             .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
@@ -39,7 +66,7 @@ pub fn router() -> Router {
             .on_response(|response: &axum::http::Response<axum::body::Body>, duration: Duration, _span: &tracing::Span| {
                 tracing::info!(status = response.status().as_u16(), duration_ms = duration.as_secs_f64() * 1000.0, "request completed");
             }),
-    ).split_for_parts().0
+    ).split_for_parts().0.with_state(app)
 }
 
 pub async fn serve(
@@ -64,7 +91,10 @@ pub async fn serve(
     // Axum awaits shutdown directly. This channel only observes its result so
     // the outer task can propagate errors and bound draining after signal receipt.
     let (result_tx, mut result_rx) = watch::channel(None);
-    let serving = axum::serve(listener, router())
+    let app = AppState {
+        state: state::ServerState::spawn(state::ServerState::default()),
+    };
+    let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {
             result_tx.send_replace(Some(shutdown.await));
         })

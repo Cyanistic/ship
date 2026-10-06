@@ -1,6 +1,8 @@
 //! Shared contextual diagnostics. No HTTP or process ownership.
 
 pub mod error;
+pub mod id;
+pub mod model;
 
 /// Common operation errors and construction helpers.
 pub mod prelude {

@@ -7,9 +7,11 @@ readme.workspace = true
 description = "Local server library for Ship"
 
 [dependencies]
-ship-core.workspace = true
+ship-core = { workspace = true, features = ["axum", "kameo"] }
 
 axum.workspace = true
+indexmap.workspace = true
+kameo.workspace = true
 tokio.workspace = true
 tower-http.workspace = true
 tracing.workspace = true

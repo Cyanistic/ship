@@ -5,11 +5,12 @@ use std::panic::Location;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 
 pub type Result<T> = std::result::Result<T, AppError>;
 
 /// Diagnostic categories. HTTP response policy remains server-owned.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "kind", content = "data")]
 pub enum ErrorCode {
     Validation,
@@ -24,6 +25,10 @@ pub enum ErrorCode {
     Serialization,
     Unauthorized,
     Io,
+    /// A well-formed request that would break the session/tab/pane structure.
+    InvalidStructure,
+    /// Server machinery, such as the state actor, cannot take the request.
+    Unavailable,
 }
 
 impl ErrorCode {
@@ -37,18 +42,20 @@ impl ErrorCode {
             Self::Network | Self::ConnectionRefused | Self::UpstreamHttpStatus(_) => 502,
             Self::RateLimited => 429,
             Self::Unauthorized => 401,
+            Self::InvalidStructure => 422,
+            Self::Unavailable => 503,
         }
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "source", rename_all = "lowercase")]
 pub enum AppError {
     Internal(InternalError),
     External(ExternalError),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct InternalError {
     pub message: Cow<'static, str>,
     #[serde(rename = "type")]
@@ -56,10 +63,11 @@ pub struct InternalError {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(no_recursion)]
     pub caused_by: Option<Box<AppError>>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct ExternalError {
     pub code: ErrorCode,
     /// A lossy diagnostic snapshot, not a retained foreign error object.
@@ -135,6 +143,29 @@ impl Error for AppError {
         match self {
             Self::Internal(error) => error.caused_by.as_deref().map(|cause| cause as &dyn Error),
             Self::External(_) => None,
+        }
+    }
+}
+
+/// Status from `ErrorCode::http_status`; body is the serialized `AppError`
+/// so the client can show the original message.
+#[cfg(feature = "axum")]
+impl axum::response::IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        let status = axum::http::StatusCode::from_u16(self.code().http_status())
+            .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR);
+        (status, axum::Json(self)).into_response()
+    }
+}
+
+/// A handler's own error passes through; any failure to reach the actor is
+/// `Unavailable`, so the server answers 503.
+#[cfg(feature = "kameo")]
+impl<M> From<kameo::error::SendError<M, AppError>> for AppError {
+    fn from(error: kameo::error::SendError<M, AppError>) -> Self {
+        match error {
+            kameo::error::SendError::HandlerError(error) => error,
+            error => crate::err!(Unavailable, "server state is unavailable", @external: error),
         }
     }
 }

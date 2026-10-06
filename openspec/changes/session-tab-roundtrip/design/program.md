@@ -91,7 +91,7 @@ impl Identified for ServerRoot { type Id = (); }
 
 /// Marker for stream attachments; never instantiated.
 pub enum Attachment {}
-impl Prefixed for Attachment { fn prefix() -> &'static str { "att" } }
+impl Prefixed for Attachment { fn prefix() -> &'static str { "attachment" } }
 impl Identified for Attachment { type Id = Id<Attachment>; }
 ```
 
@@ -254,7 +254,7 @@ impl Message<Select> for ServerState { type Reply = Result<ViewingRecord>; }
 impl Message<SwitchSession> for ServerState { type Reply = Result<ViewingRecord>; }
 ```
 
-Session create and rename reject a name containing `:` by deserializing `SessionName` (product P4); the JSON extractor's rejection status applies. Error categories used by handlers: unknown target `NotFound`, duplicate session name `Conflict`, wrong parent kind/self or descendant move/missing sibling/selection outside the attached session `InvalidStructure`.
+Session create and rename reject a name containing `:` by deserializing `SessionName` (product P4); the JSON extractor's rejection status, 422, applies, as it does to a wrong-kind ID in a body (spec amended 2026-10-05). Error categories used by handlers: unknown target `NotFound`, duplicate session name `Conflict`, wrong parent kind/self or descendant move/missing sibling/selection outside the attached session `InvalidStructure`.
 
 Attach rules (slice 4, retention in slice 6): a missing requested session is `NotFound` (amendment A1). A requested selection is kept only if it is inside the requested session now; otherwise the record starts at the session root.
 
@@ -540,7 +540,7 @@ impl Observer {
 }
 ```
 
-Output: the rendered tree goes to stdout after every applied event. Status lines go to stderr: `attached att:... to session:...`, `session removed`, `disconnected: <error>; retrying in 1s`. Example render:
+Output: the rendered tree goes to stdout after every applied event. Status lines go to stderr: `attached attachment:... to session:...`, `session removed`, `disconnected: <error>; retrying in 1s`. Example render:
 
 ```text
 session:6a1f... "work" (revision 14)
@@ -970,4 +970,37 @@ Actor failure is hard to trigger from outside. Check it once by temporarily maki
 
 ## Deviation log
 
-Empty.
+### Slice 1: session CRUD (2026-10-05)
+
+Slice 1 works end to end and every slice 1 check passed. No locked paper was reopened, but four places differ from the snippets above, and two observed behaviors disagree with the spec delta and need Cyan's call (see "Open against the spec").
+
+#### Differences from the snippets
+
+- **`Id<T>` schema uses `ComposeSchema`.** Utoipa 6 implements `PartialSchema` for every `T: ComposeSchema` and treats a field typed `IdOf<Session>` as a generic, so a hand-written `PartialSchema` impl conflicts. `id.rs` implements `utoipa::__dev::ComposeSchema` (ignoring the entity's schema) plus an empty `ToSchema`. The component is named `Id_Session`. `__dev` is a hidden Utoipa module, so a Utoipa upgrade may move it.
+- **`AppError` derives `ToSchema`.** The error types gain `ToSchema` derives so routes can document `body = AppError`. `InternalError::caused_by` needs `#[schema(no_recursion)]`; without it, router construction overflowed the stack at server start. The serialized structure is unchanged.
+- **No `AppState::ask`.** Cyan chose (2026-10-05) to drop the wrapper: `ship-core` gains an optional `kameo` feature with `impl<M> From<kameo::error::SendError<M, AppError>> for AppError`, which passes a handler's own error through and maps every other send failure to `Unavailable` (503). Handlers call `app.state.ask(..).await.map_err(AppError::from)`. This puts an optional actor dependency in `ship-core`, which the Rationale above kept free of actors; `ship-server` is the only crate enabling it. `ListSessions` replies `Result<Sessions>`, not `Sessions`, so every message replies with a `Result`. `commit` is synchronous and edits only `Sessions` until slice 4 adds viewers and publishing.
+- **CLI global option.** The existing `args_conflicts_with_subcommands = true` rejected `ship --server-url URL session ...`, which every workflow in this paper uses. It is removed. To keep the old rejection of `ship --server-url URL server`, `dispatch` now returns a `Configuration` error for that combination. `connect` takes the URL string rather than `&Cli`. `ATTACHMENT_HEADER` landed in slice 1 because task 1.3 puts the header in the request helper.
+
+- **Code review changes (Cyan, 2026-10-05).** `Id<T>` parsing no longer requires the simple form: after the prefix check it accepts any spelling `Uuid::parse_str` does (uppercase, hyphenated, braced, `urn:uuid:`), and Display still writes the simple lowercase form. The schema pattern still describes the form the server emits. The attachment prefix is `attachment`, not `att`; the observer status line and task 4.2 are updated to match. Handlers return `ship_core::Result<Response>` and use `?` through the `SendError` `From` impl, rather than returning `Response`.
+
+#### Spec amended for two observed behaviors
+
+Cyan approved amending the `session-structure` spec on 2026-10-05 rather than changing the code:
+
+- A JSON body that parses but does not fit the operation gets Axum's JSON rejection, HTTP 422 with a plain-text body. That covers a session name containing `:` and, from slice 2, a wrong-kind ID such as a session parent for a pane, which slice 3's check already expects as 422. HTTP 400 now means a malformed path ID or invalid JSON syntax. Architecture decision 3's "malformed input `400`" is read the same way; its text is unchanged.
+- Clap rejects invalid arguments (`ship session get tab:...`, `ship session create a:b`) before any request with exit 2, the conventional usage-error code. Other failed operations, such as a duplicate name or a missing target, exit 1.
+
+#### Evidence
+
+macOS 26.6 arm64, Rust 1.98.0. Foreground `ship server --port 43901`; clients used `--server-url http://127.0.0.1:43901`.
+
+| Check | Observation |
+| --- | --- |
+| 1.1 ID round trip | Disposable consumer outside the repo: `session:<32 hex>` survived Display, `FromStr` and JSON. A `tab:` ID failed with `expected session ID, got tab`; `a:b` failed with `session name 'a:b' must not contain ':'` from both `FromStr` and JSON. `cargo build --workspace` passed. |
+| 1.2 curl | `POST /api/v0/sessions` returned 201 with the entity; a duplicate returned 409 with `{"source":"internal","message":"session name 'work' already exists","type":{"kind":"Conflict"}}`; an unknown ID returned 404 with an `AppError` body; a `tab:` path ID returned 400; `/health` unchanged. |
+| 1.3 CLI | `ship session create work \| jq -r .id` printed `session:e2507b35...`; `ship --help` lists `session`, and `ship session --help` lists `list`, `create`, `get`, `rename`, `rm`. |
+| 1.4 failures | Duplicate create and rename onto an existing name each printed `ship: request to .../api/v0/sessions... failed: session name 'work' already exists` and exited 1; `session list` stayed byte-identical (`cmp`). `get` of a removed ID printed `... session session:2f87... not found`, exit 1. `get tab:...` and `create a:b` failed in Clap parsing (exit 2) and the list was unchanged. `get work` and `get session:...` output matched byte for byte. An unknown name printed `ship: no session named 'nowhere'`, exit 1. |
+| 1.4 OpenAPI | Disposable consumer of `ship_server::openapi()`: OpenAPI 3.1.0 lists `list_sessions`, `create_session`, `get_session`, `rename_session` and `remove_session` at `/api/v0/sessions` and `/api/v0/sessions/{id}` with their statuses, `Named_SessionName` request bodies and `Session` responses. The list response is an object of `Session`. Every `$ref` resolves to a component; `Id_Session` is a string with pattern `^session:[0-9a-f]{32}$`. |
+| 1.4 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. |
+
+The disposable consumers and the test server were removed or stopped afterwards. Linux was not exercised.
