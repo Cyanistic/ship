@@ -1,10 +1,10 @@
-# Ship handoff: compressed terminal snapshots for v1
+# Ship handoff: compressed full snapshots
 
-Audience: mixed, intended for Cyan and the Ship agent. This records the direction Cyan chose, the reasoning, and the local evidence. It is not permission to edit Ship or adopt an unreviewed production protocol.
+Audience: mixed, intended for Cyan and the Ship agent. This records the current design direction and bounded experimental evidence, not an implemented Ship protocol. [Session structure](../planning/session-structure.md) separates agreed direction from proposals and unresolved interfaces. Historical benchmark sections below retain their original workloads and results.
 
 ## Decision to carry back
 
-Use **compressed full snapshots as the preferred terminal v1 direction**, with changed-only publication, a bounded publication rate and coalescing. Cyan's criterion is acceptable performance and simpler implementation, not the smallest possible message for every transition. This supersedes the earlier terminal JSON Patch preference. It records a direction to carry back, not permission to edit Ship or adopt an unreviewed production protocol.
+Use **compressed textual SSE full snapshots for both structural state and terminal screens**, with changed-only publication, a bounded publication rate and coalescing. Cyan's criterion is acceptable performance and simpler implementation, not the smallest possible message for every transition. This supersedes the earlier structdiff/JSON Patch pipeline direction. Exact production schemas and operational semantics remain open.
 
 The measured reasons:
 
@@ -13,9 +13,9 @@ The measured reasons:
 - Each snapshot is self-contained. Clients do not need a patch baseline or a retained JSON document solely to apply terminal patches. Reattachment can receive the latest screen rather than replaying missed terminal patches.
 - JSON Patch still saves bandwidth for small edits, but its advantage has not justified the additional machinery for this terminal v1 path.
 
-Gzip is the transport-relevant tested baseline, not a finalized production middleware choice. The in-memory persistent encoder flushed after every complete SSE event and recovered exact events before stream close. Actual HTTP, proxy and browser delivery still need validation. Zstd was an independent-message comparison, not proof of SSE/browser compatibility.
+Gzip was the original tested baseline. The later live loopback comparison below verified incremental delivery with gzip, zstd, Brotli and deflate using explicit decoders. Zstd is now the leading candidate; gzip fallback is a recommendation, not a production choice. Proxies, browsers and Reqwest automatic zstd decoding remain unverified.
 
-**Application-state replication remains a separate decision.** Do not infer that it must use full snapshots or JSON Patch because terminal content does. Separating terminal delivery from application-state delivery is the intended evaluation boundary; exact schemas, message types and connection layout remain unchosen.
+**Structural application state also uses full snapshots in the current direction.** Terminal screens remain outside structural `SessionState`, and the client view and server runtime are separate from shared structs. Session revisions reject stale/out-of-order snapshots, but attachment still needs coordinated snapshot/subscription. Revision scope, restart baseline identity/reset, exact schemas and connection layout remain open; no patch-base or replay protocol is adopted.
 
 Memory superiority was not measured. Avoiding the extra retained JSON representation may reduce memory work, but peak memory and allocations are unknown. No terminal-specific diff, Termwiz adapter, client-owned PTY emulation or mutation-tracking architecture was adopted.
 
@@ -28,15 +28,15 @@ Do not resume the OSS structdiff attribute-forwarding work for this use case. It
 - When evaluating diffs, compare ordinary snapshots rather than requiring tracked mutations. Terminal v1 now prefers complete changed-screen snapshots, not patches.
 - SSE is the intended delivery transport. The earlier requirement for incremental terminal patches has been superseded by the compressed-snapshot direction. Do not publish every intermediate screen change.
 - Rust clients are expected; a future web client should be possible without implementing a Rust-specific diff protocol.
-- Terminal initial synchronization and recovery can receive the latest complete screen. Application-state replay/recovery semantics remain separate and unresolved.
+- Initial synchronization and recovery use current full state rather than a patch history. Structural and terminal ordering, attachment and restart semantics still need design.
 
 Client requests are commands to the authoritative server. They are not necessarily JSON Patch operations and should not bypass state-machine validation.
 
-## Current terminal v1 data flow
+## Intended terminal v1 data flow (not implemented)
 
 ```text
 server
-  process terminal output in the existing authoritative emulator
+  process terminal output in the server-owned emulator
   → detect visible screen/cursor changes
   → at a bounded publication opportunity, capture the latest screen
   → serialize directly as a full snapshot
@@ -50,7 +50,7 @@ client
   → replace local terminal view
 ```
 
-Change detection, publication cadence and backpressure must fit Ship's existing model. Coalesce superseded screen states instead of queuing every intermediate frame. Snapshot publication does not require a full JSON tree or a terminal patch generator.
+Change detection, publication cadence and backpressure must fit the proposed server-owned model; Ship has no implemented publication pipeline. Coalesce superseded screen states instead of queuing every intermediate frame. Snapshot publication does not require a full JSON tree or a terminal patch generator.
 
 Idle terminals should produce no screen snapshots; connection keepalives may still be needed. Do not run serialization/decompression work at a fixed rate when nothing changed. Exact change-detection mechanics are unchosen.
 
@@ -60,7 +60,7 @@ At the measured sizes, one continuously changing 160×50 terminal at 60 publicat
 
 ## Historical JSON Patch proposal (superseded for terminal v1)
 
-The following flow and rationale explain the earlier experiments. They are not instructions to build a terminal patch pipeline. The preference then was standardized RFC 6902 operations using existing Serde mappings, without a separate derive or field/path mapping. Application-state use of JSON Patch is still possible but unchosen.
+The following flow and rationale explain the earlier experiments. They are not instructions to build a terminal patch pipeline. The preference then was standardized RFC 6902 operations using existing Serde mappings, without a separate derive or field/path mapping. Structural application state now also follows the full-snapshot direction.
 
 ### Server
 
@@ -309,15 +309,34 @@ These results informed Cyan's subsequent preference for compressed terminal snap
 
 Full evidence and reproduction: `/private/tmp/ship-jsonpatch-prototype/compression-report.md`, `compression-results/`; run `python3 compression-results/run-compression.py` from the prototype. No memory, network, rendering or browser compatibility measurement was added.
 
-## What Ship should do next
+## Live HTTP/SSE codec follow-up
 
-1. Review compressed terminal snapshots against Ship's existing state/publication code. The prototype is evidence, not production code to copy wholesale. Do not introduce the historical terminal JSON Patch caches or a new diff layer as a default.
-2. Validate gzip-compressed textual SSE over the actual transport, including timely event delivery, client decompression, reconnects, slow clients and any proxies. Review current middleware support rather than copying the linked proof-of-concept unchanged.
-3. Run sustained-output tests with Ship's actual screen content, representative hardware, multiple visible panes and realistic publication rates. Measure server/client CPU separately and include capture/rendering costs. Memory remains unmeasured. The goal is acceptable behavior, not universally optimal compression or minimum patch size.
-4. Fit changed-only publication, bounded cadence and coalescing to the existing sequencing/backpressure rules. Do not select a rate or alter sequence semantics silently. Hidden-pane suppression can follow later if needed.
-5. Decide application-state replication separately. Keep ordinary Serde as the current serialization contract and revisit terminal diffing only if measured snapshot behavior is insufficient.
+A later temporary probe exercised actual loopback HTTP/SSE, not just an in-memory encoder. `/tmp/ship-sse-flush-RkwfoE/report-codecs.md` records 20 passing release-mode scenarios across identity, gzip, zstd, Brotli (`br`) and deflate. Every scenario checked exact encoding, event contents/count/order and delivery of the final event while the producer kept the stream open awaiting acknowledgment. Idle/resume and ready-burst scenarios also passed.
 
-Unresolved production decisions include exact message schemas, pane identity/lifecycle and resize ordering, screen versus scrollback scope, compression middleware/client support, publication cadence, backpressure, visibility subscriptions and reconnect handling. Self-contained terminal snapshots remove patch-base dependence, not all ordering or lifecycle problems. Application-state revision/replay rules remain separate. SSE `Last-Event-ID` is a reconnect cursor, not proof of successful application. Do not settle these boundaries implicitly.
+The heavy workload was 300 deterministic synthetic screen snapshots, 900,391 JSON bytes each, at 60/sec, in two runs per codec. These totals cover approximately five seconds, not bytes per event or per second:
+
+| Codec | Encoded body bytes, run 1 / run 2 | Complete-event p50 ms | Complete-event p99 ms |
+| --- | ---: | ---: | ---: |
+| zstd | 120,499 / 172,668 | 3.100 / 3.057 | 3.800 / 3.833 |
+| gzip | 2,743,923 / 2,743,944 | 4.192 / 4.336 | 5.273 / 5.939 |
+
+Byte counts include SSE envelopes, telemetry and keepalives, but exclude HTTP headers, transfer framing and TCP overhead. Latency starts before screen generation/serialization and includes capacity wait, compression, loopback transport, explicit decompression and parser completion. It is not isolated codec CPU or production end-to-end rendering latency. Tower default quality was used, not equal numeric tuning across codecs.
+
+The roughly 43% zstd byte-count variation is unresolved; both runs must remain visible. Repetitive synthetic data rewards long-distance redundancy. These results do not replace the earlier actual Ghostty captures or establish production bandwidth, capture/render cost, web/proxy compatibility, remote network behavior or multi-client capacity.
+
+The probe used Tower HTTP 0.7.1 and Reqwest 0.13.4 with automatic decoding disabled. Explicit `async-compression` stream decoders validated the bodies. Tower's default compression predicate excludes SSE; the probe used a custom predicate allowing it. Source polling and codec behavior affect flushing; ready-burst delivery before EOF is not proof that every all-Ready event flushes separately.
+
+The original gzip slow-reader probe accumulated 94 events after a two-second pause. It demonstrates buffering, not latest-state coalescing. Neither that probe nor the historical RelayBus dropping a message on `Full` provides the required eventual final-state delivery guarantee. A pending latest state and eventual flush still need implementation.
+
+Temporary reproduction: `sh reproduce-codecs.sh` from `/tmp/ship-sse-flush-RkwfoE`. This summary preserves the bounded findings if that directory disappears; no live workflow was rerun for this docs update. Reqwest automatic zstd decoding remains untested.
+
+## Proposed next work and remaining protocol decisions
+
+The proposed metadata checkpoint, before PTYs, is recorded in [session structure](../planning/session-structure.md). Its scope is not yet approved. There is no existing Ship state/publication code to reconcile or patch cache to retain.
+
+For implementation planning, retain ordinary authoritative structs and full snapshots. Design coordinated attachment, latest-state coalescing and eventual flush rather than copying the temporary transport producer or historical bus unchanged. Validate the actual client decompression path, reconnects, slow clients and any deployed proxies. Only real terminal integration can establish capture/render cost and representative sustained-load performance.
+
+Unresolved choices include exact message schemas, creation response semantics, attachment headers/ID lifetime, revision scope and restart baseline identity/reset, pane lifecycle and resize ordering, screen versus scrollback scope, compression policy, cadence, visibility subscriptions and reconnect handling. Self-contained snapshots remove patch-base dependence, not all ordering or lifecycle problems. SSE `Last-Event-ID` is not proof of successful application; replay is not an adopted requirement.
 
 ## Evidence and reproduction
 
@@ -372,7 +391,7 @@ Temporary artifacts can disappear; preserve relevant source/captures/results bef
 
 ## Uncertain decisions
 
-Compressed full snapshots are Cyan's preferred terminal v1 direction after the compression comparison, not a universal benchmark winner. Application-state replication is unchosen. Adequacy for Ship's real workload, sustained CPU, memory, transport behavior and operational protocol decisions remain unresolved. No production edits, public API, replay protocol, schema migration, web compatibility test or network benchmark was completed here.
+Compressed full snapshots are the direction for structural state and terminal screens, not a universal benchmark winner. Production codec choice and operational protocol remain unresolved. Adequacy for real workloads, sustained CPU, memory, automatic client decoding, proxies and browsers remain unverified. The later loopback suite is network evidence within one local synthetic setup, not a Ship integration or production network benchmark. No production edits or public API were completed by these experiments.
 
 reused: existing Ghostty/PTY capture and cleanup, owned Screen conversion, Serde and standard JSON Patch APIs.
 new code: sibling roundtrip/benchmark harness and this notebook handoff; no Ship or upstream contribution edits.
