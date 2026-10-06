@@ -27,7 +27,7 @@ Use HTTP request/response and SSE events, initially JSON. Loopback binding is th
 
 Use snapshots and structdiff-generated/applied patches, carrying base/new revisions and a server-instance identity. Coordinate snapshot and subscription; fetch fresh state when continuity is lost. Exact stream lifecycle and collection strategy remain open.
 
-Trial the supplied ratatui-ghostty session first. Prefer owned screen/cell types with Ratatui conversions over recreating low-level Ghostty mapping, pending fidelity and access checks. Clap, Tokio, tracing/tracing-subscriber and the the reference error pattern are user preferences. PTY and HTTP library selections remain validation candidates.
+Trial the supplied ratatui-ghostty session first. Prefer owned screen/cell types with Ratatui conversions over recreating low-level Ghostty mapping, pending fidelity and access checks. Clap, Tokio, tracing/tracing-subscriber and the reference error pattern are user preferences. PTY and HTTP library selections remain validation candidates.
 
 First checkpoint: one interactive terminal across the real server/client connection, with resize and distinct close/disconnect/server-stop behavior. Server-owned work survives client disconnection; automatic startup, persistent restart restore and remote attachment are deferred.
 

@@ -1,6 +1,10 @@
 //! Shared contextual diagnostics. No HTTP or process ownership.
 
 pub mod error;
+pub mod id;
+pub mod model;
+#[cfg(feature = "kameo")]
+pub mod relay;
 
 /// Common operation errors and construction helpers.
 pub mod prelude {

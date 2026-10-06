@@ -12,10 +12,12 @@ ship-client.workspace = true
 ship-server.workspace = true
 ship-core.workspace = true
 
-tokio.workspace = true
+futures-util.workspace = true
+tokio = { workspace = true, features = ["sync"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 serde_json.workspace = true
+serde.workspace = true
 nix.workspace = true
 tempfile.workspace = true
 reqwest.workspace = true

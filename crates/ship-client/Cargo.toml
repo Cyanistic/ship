@@ -9,8 +9,12 @@ description = "HTTP client library for Ship"
 [dependencies]
 ship-core.workspace = true
 
+eventsource-stream.workspace = true
+futures-util.workspace = true
+indexmap.workspace = true
 reqwest.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 url.workspace = true
 tokio.workspace = true
 

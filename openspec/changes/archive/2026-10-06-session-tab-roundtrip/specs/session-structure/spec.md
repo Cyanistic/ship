@@ -99,7 +99,7 @@ Wherever the CLI accepts a session ID, it SHALL also accept a session name. Any 
 - **THEN** the command fails with a not-found error and creates nothing
 
 ### Requirement: Atomic rejection of invalid operations
-Invalid operations SHALL fail with an understandable error on stderr, exit 1 and leave the structure exactly as it was. This covers nonexistent targets, wrong parent kinds, moving a tab into itself or its own descendant, placement relative to a tab that is not a sibling in the destination, and the naming violations above.
+Invalid operations SHALL fail with an understandable error on stderr and leave the structure exactly as it was. This covers nonexistent targets, wrong parent kinds, moving a tab into itself or its own descendant, placement relative to a tab that is not a sibling in the destination, and the naming violations above. An invalid command-line argument, such as an ID of the wrong kind or a session name containing `:`, SHALL be rejected before any request and exit 2. Any other failed operation SHALL exit 1.
 
 #### Scenario: Move into own descendant
 - **WHEN** a user moves a tab under one of its own descendants
@@ -110,7 +110,7 @@ Invalid operations SHALL fail with an understandable error on stderr, exit 1 and
 - **THEN** the command fails and nothing moves
 
 ### Requirement: Versioned HTTP API
-The session, tab, pane and attachment HTTP routes SHALL be served under `/api/v0` and SHALL address entities by ID only. The existing `/health` route SHALL remain at `/health`. Errors SHALL use HTTP 400 for malformed input, 404 for a missing target, 409 for a session name conflict, 422 for an invalid structural relationship or placement, and 503 when server machinery is unavailable.
+The session, tab, pane and attachment HTTP routes SHALL be served under `/api/v0` and SHALL address entities by ID only. The existing `/health` route SHALL remain at `/health`. Errors SHALL use HTTP 400 for malformed input, 404 for a missing target, 409 for a session name conflict, 422 for an invalid structural relationship or placement, and 503 when server machinery is unavailable. Malformed input means a malformed path ID or a request body that is not valid JSON. A JSON request body that does not fit the operation, such as a session name containing `:` or an ID of the wrong kind, SHALL be rejected with 422.
 
 #### Scenario: Prefixed route
 - **WHEN** a client sends `GET /api/v0/sessions` to a running server
