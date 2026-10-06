@@ -1004,3 +1004,34 @@ macOS 26.6 arm64, Rust 1.98.0. Foreground `ship server --port 43901`; clients us
 | 1.4 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. |
 
 The disposable consumers and the test server were removed or stopped afterwards. Linux was not exercised.
+
+### Slice 2: recursive tabs and moves (2026-10-05)
+
+Slice 2 works end to end and every slice 2 check passed. No locked paper was reopened. The differences below are all at the snippet level.
+
+#### Differences from the snippets
+
+- **Five tab handlers, not six.** Task 2.2 says "six `/api/v0` tab handlers", but the architecture route table and the `routes.rs` snippet define five: create, get, rename, remove and move. Those five are implemented.
+- **`tree::path` is keyed by `IdOf<TabParent>` until slice 4.** `NodeId` lands in slice 4, so `path` takes and returns `IdOf<TabParent>` for now. Slice 4 widens it to `NodeId` when panes and selection need it.
+- **Recursive `tabs` schema is hand-written.** Utoipa's derive treats the `IdOf<Tab>` map key as a generic and inlines `Tab`'s schema to describe it, so `Tab`'s schema recursed until the server overflowed its stack while building the router. `#[schema(no_recursion)]` did not help. `Session::tabs` and `Tab::tabs` use `schema_with = tabs_schema`: an object whose `propertyNames` is the tab ID pattern and whose values `$ref` `Tab`.
+- **`UntaggedEither`'s schema ignores the schemas the derive passes it,** as `Id<T>` already does. For a field typed `IdOf<TabParent>`, the derive passes the session-or-tab *entity* schema, not the ID schemas. `MoveTab::parent` is `#[schema(inline)]`, so it renders as a `oneOf` of the session and tab ID patterns, matching `Create_Tab.parent`. The derive still registers an unreferenced `UntaggedEither` component (the entity choice). It is accurate but unused.
+- **`Create<T>` schema is hand-written,** the fallback this paper names: the derive cannot resolve `IdOf<T::Parent>` or `T::Input`. It is one generic impl for every `T: Creatable<Input = Named>` (tabs now, panes in slice 3), rendering `{parent, name}` as a flat object (Cyan, code review 2026-10-05). Its `ToSchema::name` is `Create`, and the route macro appends the entity, so the component is `Create_Tab`. Sessions are not covered; their route takes `Named<SessionName>` directly. Tab rename documents its body as `Named<String>`. A bare `Named` produced a dangling `$ref` to `String`.
+- **`UntaggedEither` also implements `Display`.** If both `FromStr` attempts fail, the error message includes both errors.
+- **Clap generic args need more bounds.** `IdArgs<T>` and `RenameArgs<T>` require `IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static`. Without `Send + Sync + 'static`, `ArgMatches::remove_one` rejects the field.
+- `Tab` has no `panes` field yet; slice 3 adds it.
+
+#### Evidence
+
+macOS 26.6 arm64. Foreground `ship server --port 43902`; clients used `--server-url http://127.0.0.1:43902`.
+
+| Check | Observation |
+| --- | --- |
+| 2.1 curl | Sessions `a` (`t1 > t2 > t3`) and `b`. `POST /tabs/{t1}/move` with parent `t3` and with parent `t1` each returned 422 `cannot move tab ... into itself or its own descendant`. `cmp` showed both sessions' `GET` output byte-identical before and after. |
+| 2.2 CLI | `ship tab create work editor` printed `{"id":"tab:7bd6...","name":"editor","tabs":{}}`, and `session get work` listed it as a root tab. `ship tab --help` lists `create`, `get`, `rename`, `rm` and `move`. |
+| 2.3 tree and moves | Built `work`: `A{A1{A1x},A2},B,C` and `api`: `D`, with session names as root parents. `move C work --before A` gave `C,A,B`. `--after B` gave `A,B,C`. `move A api` appended A last in `api` and removed it from `work`. The `jq` list of every ID in A's subtree was identical before and after. |
+| 2.3 failures | Self move, descendant move, `--before` a non-sibling, `--before` the moving tab itself, an unknown tab parent and an unknown session name each printed a `ship: ...` message and exited 1. `cmp` showed both sessions byte-identical after each one. `tab get session:...` failed in Clap with exit 2 (`expected tab ID, got session`). Raw HTTP: an `attachment:` parent returned 422, an unknown session parent 404, and a `session:` path ID on `/tabs/{id}` 400. |
+| 2.3 removal and names | After a rename and a duplicate `D` under `api`, both `D` tabs existed. Removing `A1` removed `A1x` too (`tab get A1x` → not found) and left `A2`. `session rm api` made `A` and `D` not found, and `session list` showed only `work`. |
+| 2.3 OpenAPI | Disposable consumer of `ship_server::openapi()`, outside the repo: `create_tab`, `get_tab`, `rename_tab`, `remove_tab` and `move_tab` appear at `/api/v0/tabs`, `/api/v0/tabs/{id}` and `/api/v0/tabs/{id}/move` with their statuses. Request bodies are `Create_Tab`, `Named_String` and `MoveTab`, and responses are `Tab`. Every `$ref` resolves. |
+| 2.3 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The workflow was rerun on the final build with identical results, and the release binary served `GET /api/v0/sessions`. |
+
+The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.

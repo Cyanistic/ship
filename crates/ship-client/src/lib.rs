@@ -4,7 +4,7 @@ mod api;
 
 use std::{error::Error, io, time::Duration};
 
-pub use api::{Client, Resource, SessionRef};
+pub use api::{Client, Resource, SessionRef, TabParentRef};
 use reqwest::{Error as HttpError, Method, StatusCode};
 use serde::{Serialize, de::DeserializeOwned};
 use ship_core::{

@@ -2,7 +2,14 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use kameo::prelude::*;
-use ship_core::{id::*, model::*, prelude::*, protocol::Create};
+use ship_core::{
+    id::*,
+    model::*,
+    prelude::*,
+    protocol::{Create, MoveTab},
+};
+
+mod tree;
 
 pub(crate) type Sessions = IndexMap<IdOf<Session>, Arc<Session>>;
 
@@ -52,6 +59,10 @@ pub struct Rename<T: Identified> {
     pub name: String,
 }
 pub struct Remove<T: Identified>(pub IdOf<T>);
+pub struct Move {
+    pub id: IdOf<Tab>,
+    pub to: MoveTab,
+}
 
 impl Message<ListSessions> for ServerState {
     type Reply = Result<Sessions>;
@@ -74,6 +85,7 @@ impl Message<Create<Session>> for ServerState {
             let session = Session {
                 id: Id::new(),
                 name: create.input.name,
+                tabs: IndexMap::new(),
             };
             sessions.insert(session.id, Arc::new(session.clone()));
             Ok(session)
@@ -125,6 +137,96 @@ impl Message<Remove<Session>> for ServerState {
                 .shift_remove(&id)
                 .map(drop)
                 .ok_or_else(|| err!(NotFound, "session {} not found", id))
+        })
+    }
+}
+
+impl Message<Create<Tab>> for ServerState {
+    type Reply = Result<Tab>;
+
+    async fn handle(
+        &mut self,
+        create: Create<Tab>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| {
+            let tab = Tab {
+                id: Id::new(),
+                name: create.input.name,
+                tabs: IndexMap::new(),
+            };
+            tree::children_mut(sessions, create.parent)?.insert(tab.id, tab.clone());
+            Ok(tab)
+        })
+    }
+}
+
+impl Message<Get<Tab>> for ServerState {
+    type Reply = Result<Tab>;
+
+    async fn handle(
+        &mut self,
+        Get(id): Get<Tab>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        tree::tab(&self.sessions, id).cloned()
+    }
+}
+
+impl Message<Rename<Tab>> for ServerState {
+    type Reply = Result<Tab>;
+
+    async fn handle(
+        &mut self,
+        rename: Rename<Tab>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| {
+            let tab = tree::tab_mut(sessions, rename.id)?;
+            tab.name = rename.name;
+            Ok(tab.clone())
+        })
+    }
+}
+
+impl Message<Remove<Tab>> for ServerState {
+    type Reply = Result<()>;
+
+    async fn handle(
+        &mut self,
+        Remove(id): Remove<Tab>,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| tree::take_tab(sessions, id).map(drop))
+    }
+}
+
+impl Message<Move> for ServerState {
+    type Reply = Result<Tab>;
+
+    /// A placement sibling equal to the moving tab is gone after `take_tab`,
+    /// so it fails as a missing sibling.
+    async fn handle(
+        &mut self,
+        Move { id, to }: Move,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions| {
+            let node = UntaggedEither::Right(id);
+            tree::path(sessions, node).ok_or_else(|| tree::not_found(node))?;
+            let destination =
+                tree::path(sessions, to.parent).ok_or_else(|| tree::not_found(to.parent))?;
+            if destination.contains(&node) {
+                return Err(err!(
+                    InvalidStructure,
+                    "cannot move tab {} into itself or its own descendant",
+                    id
+                ));
+            }
+            let tab = tree::take_tab(sessions, id)?;
+            let moved = tab.clone();
+            tree::place(tree::children_mut(sessions, to.parent)?, tab, to.placement)?;
+            Ok(moved)
         })
     }
 }

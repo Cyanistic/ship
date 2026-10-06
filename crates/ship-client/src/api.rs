@@ -5,9 +5,10 @@ use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
 use ship_core::{
     HEALTH_PATH, HealthResponse,
-    id::{Id, IdOf, Identified, Prefixed},
-    model::{Named, Session, SessionName},
+    id::{Id, IdOf, Identified, Prefixed, UntaggedEither},
+    model::{Named, Session, SessionName, Tab, TabParent},
     prelude::*,
+    protocol::{Create, MoveTab},
 };
 
 use url::Url;
@@ -39,6 +40,10 @@ impl FromStr for SessionRef {
     }
 }
 
+/// A tab parent as typed on the command line. The tab ID comes first, matching
+/// `UntaggedEither`'s try-in-order parsing, so a tab ID is never read as a session.
+pub type TabParentRef = UntaggedEither<IdOf<Tab>, SessionRef>;
+
 /// Collection path for the generic entity methods.
 pub trait Resource: Identified<Id = Id<Self>> + Prefixed + DeserializeOwned {
     const COLLECTION: &'static str;
@@ -46,6 +51,10 @@ pub trait Resource: Identified<Id = Id<Self>> + Prefixed + DeserializeOwned {
 
 impl Resource for Session {
     const COLLECTION: &'static str = "/api/v0/sessions";
+}
+
+impl Resource for Tab {
+    const COLLECTION: &'static str = "/api/v0/tabs";
 }
 
 impl Client {
@@ -77,6 +86,23 @@ impl Client {
         .await
     }
 
+    pub async fn create_tab(&self, parent: IdOf<TabParent>, name: &str) -> Result<Tab> {
+        let body = Create::<Tab> {
+            parent,
+            input: Named {
+                name: name.to_owned(),
+            },
+        };
+        self.request(
+            Method::POST,
+            Tab::COLLECTION,
+            Some(&body),
+            None,
+            StatusCode::CREATED,
+        )
+        .await
+    }
+
     pub async fn get<T: Resource>(&self, id: IdOf<T>) -> Result<T> {
         let path = format!("{}/{id}", T::COLLECTION);
         self.request(Method::GET, &path, NO_BODY, None, StatusCode::OK)
@@ -96,6 +122,12 @@ impl Client {
             .await
     }
 
+    pub async fn move_tab(&self, id: IdOf<Tab>, to: &MoveTab) -> Result<Tab> {
+        let path = format!("{}/{id}/move", Tab::COLLECTION);
+        self.request(Method::POST, &path, Some(to), None, StatusCode::OK)
+            .await
+    }
+
     /// IDs pass through untouched; a name is looked up with `GET /sessions`.
     /// The only place a session name becomes an ID.
     pub async fn resolve_session(&self, session: &SessionRef) -> Result<IdOf<Session>> {
@@ -109,5 +141,14 @@ impl Client {
                 .map(|session| session.id)
                 .ok_or_else(|| err!(NotFound, "no session named '{}'", name)),
         }
+    }
+
+    pub async fn resolve_parent(&self, parent: &TabParentRef) -> Result<IdOf<TabParent>> {
+        Ok(match parent {
+            UntaggedEither::Left(tab) => UntaggedEither::Right(*tab),
+            UntaggedEither::Right(session) => {
+                UntaggedEither::Left(self.resolve_session(session).await?)
+            }
+        })
     }
 }

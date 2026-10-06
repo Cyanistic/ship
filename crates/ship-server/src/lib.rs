@@ -49,6 +49,11 @@ fn api_router() -> OpenApiRouter<AppState> {
         routes::get_session,
         routes::rename_session,
         routes::remove_session,
+        routes::create_tab,
+        routes::get_tab,
+        routes::rename_tab,
+        routes::remove_tab,
+        routes::move_tab,
     )
 }
 

@@ -1,6 +1,12 @@
+use std::str::FromStr;
+
 use clap::{Args, Parser, Subcommand};
-use ship_client::SessionRef;
-use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, model::SessionName};
+use ship_client::{SessionRef, TabParentRef};
+use ship_core::{
+    AppError, DEFAULT_PORT, DEFAULT_SERVER_URL,
+    id::{IdOf, Identified},
+    model::{SessionName, Tab},
+};
 
 #[derive(Parser)]
 #[command(
@@ -23,6 +29,9 @@ pub enum Command {
     /// Create, inspect, rename or remove sessions
     #[command(subcommand)]
     Session(SessionCommand),
+    /// Create, inspect, rename, remove or move tabs
+    #[command(subcommand)]
+    Tab(TabCommand),
 }
 
 #[derive(Subcommand)]
@@ -37,6 +46,20 @@ pub enum SessionCommand {
     Rename(RenameSessionArgs),
     /// Remove a session and everything in it
     Rm(SessionArgs),
+}
+
+#[derive(Subcommand)]
+pub enum TabCommand {
+    /// Append a tab to a session or tab and print it as JSON
+    Create(CreateTabArgs),
+    /// Print a tab and its descendants as JSON
+    Get(IdArgs<Tab>),
+    /// Rename a tab and print it as JSON
+    Rename(RenameArgs<Tab>),
+    /// Remove a tab and all its descendants
+    Rm(IdArgs<Tab>),
+    /// Move under PARENT; appends unless --before or --after names a sibling
+    Move(MoveTabArgs),
 }
 
 #[derive(Args)]
@@ -65,4 +88,41 @@ pub struct RenameSessionArgs {
     pub session: SessionRef,
     /// New session name; must not contain ':'
     pub name: SessionName,
+}
+
+#[derive(Args)]
+pub struct IdArgs<T: Identified>
+where
+    IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static,
+{
+    pub id: IdOf<T>,
+}
+
+#[derive(Args)]
+pub struct RenameArgs<T: Identified>
+where
+    IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static,
+{
+    pub id: IdOf<T>,
+    pub name: String,
+}
+
+#[derive(Args)]
+pub struct CreateTabArgs {
+    /// Session name or ID, or tab ID
+    pub parent: TabParentRef,
+    pub name: String,
+}
+
+#[derive(Args)]
+pub struct MoveTabArgs {
+    pub id: IdOf<Tab>,
+    /// Session name or ID, or tab ID
+    pub parent: TabParentRef,
+    /// Insert before this sibling in PARENT
+    #[arg(long, conflicts_with = "after")]
+    pub before: Option<IdOf<Tab>>,
+    /// Insert after this sibling in PARENT
+    #[arg(long)]
+    pub after: Option<IdOf<Tab>>,
 }

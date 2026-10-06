@@ -119,3 +119,106 @@ pub(crate) async fn remove_session(
     app.state.ask(Remove::<Session>(id)).await?;
     Ok(StatusCode::NO_CONTENT.into_response())
 }
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/tabs",
+    operation_id = "create_tab",
+    request_body = Create<Tab>,
+    responses(
+        (status = 201, body = Tab),
+        (status = 404, description = "Parent not found", body = AppError),
+        (status = 422, description = "Malformed parent or name"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn create_tab(State(app): App, Json(body): Json<Create<Tab>>) -> Result<Response> {
+    let tab = app.state.ask(body).await?;
+    Ok((StatusCode::CREATED, Json(tab)).into_response())
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v0/tabs/{id}",
+    operation_id = "get_tab",
+    params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
+    responses(
+        (status = 200, body = Tab),
+        (status = 400, description = "Malformed tab ID"),
+        (status = 404, body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn get_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Result<Response> {
+    let value = app.state.ask(Get::<Tab>(id)).await?;
+    Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v0/tabs/{id}",
+    operation_id = "rename_tab",
+    params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
+    request_body = Named<String>,
+    responses(
+        (status = 200, body = Tab),
+        (status = 400, description = "Malformed tab ID"),
+        (status = 404, body = AppError),
+        (status = 422, description = "Malformed name"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn rename_tab(
+    State(app): App,
+    Path(id): Path<IdOf<Tab>>,
+    Json(body): Json<Named>,
+) -> Result<Response> {
+    let value = app
+        .state
+        .ask(Rename::<Tab> {
+            id,
+            name: body.name,
+        })
+        .await?;
+    Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v0/tabs/{id}",
+    operation_id = "remove_tab",
+    params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
+    responses(
+        (status = 204, description = "Tab and its descendants removed"),
+        (status = 400, description = "Malformed tab ID"),
+        (status = 404, body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn remove_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Result<Response> {
+    app.state.ask(Remove::<Tab>(id)).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/tabs/{id}/move",
+    operation_id = "move_tab",
+    params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
+    request_body = MoveTab,
+    responses(
+        (status = 200, description = "The moved tab with its subtree", body = Tab),
+        (status = 400, description = "Malformed tab ID"),
+        (status = 404, description = "Tab or destination not found", body = AppError),
+        (status = 422, description = "Move into itself or a descendant, a placement sibling outside the destination, or a malformed body", body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn move_tab(
+    State(app): App,
+    Path(id): Path<IdOf<Tab>>,
+    Json(to): Json<MoveTab>,
+) -> Result<Response> {
+    let value = app.state.ask(Move { id, to }).await?;
+    Ok(Json(value).into_response())
+}
