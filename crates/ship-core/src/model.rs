@@ -175,6 +175,15 @@ impl FromStr for NodeId {
     }
 }
 
+impl From<IdOf<TabParent>> for NodeId {
+    fn from(parent: IdOf<TabParent>) -> Self {
+        match parent {
+            UntaggedEither::Left(session) => Self::Session(session),
+            UntaggedEither::Right(tab) => Self::Tab(tab),
+        }
+    }
+}
+
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

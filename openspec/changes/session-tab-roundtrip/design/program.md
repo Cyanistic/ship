@@ -1099,3 +1099,33 @@ macOS 26.6 arm64. Foreground `ship server --port 43904` for tasks 4.1 to 4.3 and
 | 4.4 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The release binary attached by name, showed a tab create, and exited 0 with `session removed` when its session was removed. |
 
 The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.
+
+### Slice 5: selection and session switching (2026-10-05)
+
+Slice 5 works end to end and every slice 5 check passed. No locked paper was reopened. The differences below are at the snippet level.
+
+#### Differences from the snippets
+
+- **`tree::path` now takes and returns `NodeId`,** as the snippet always said. `repair` is its first pane caller. `tree::not_found` also takes a `NodeId` and covers panes. `model.rs` gains `From<IdOf<TabParent>> for NodeId`; `take_tab` maps the parent entry back to a `TabParent` inline.
+- **Selecting an entity that does not exist is 404, not 422.** 422 is kept for an existing entity outside the attached session. The attachment is checked first, so an ended attachment is 404 whatever the body. A missing or malformed header is 400 with an `AppError` body.
+- **`controls.rs` has two more functions.** `send` runs a parsed control against the observer's own attachment, resolving a `switch` name with `resolve_session`, which never creates a session. `lines` reads stdin on a plain `std::thread` and forwards lines over a Tokio channel. Tokio's own stdin reads on the blocking pool, and dropping the runtime waits for that pool, so a read blocked on an open terminal could delay exit after `session removed` or SIGINT. Deleting `controls.rs` still leaves only the stdin branch in `observe.rs` to remove. The `ship` crate enables Tokio's `sync` feature for the channel.
+- **Observer control behavior.** A failed control prints `ship: <error>` on stderr and the observer keeps running. Blank lines are ignored. At end of stdin the observer stops reading controls and keeps observing. A switch prints no extra status line; the reprinted tree names the new session.
+
+#### Evidence
+
+macOS 26.6 arm64. Foreground `ship server --port 43906`; clients used `--server-url http://127.0.0.1:43906`. Observers read controls from FIFOs held open by the test shell.
+
+| Check | Observation |
+| --- | --- |
+| 5.1 curl | With a `curl -N` attach stream on `work`: `PUT /api/v0/attach/selection` without the header returned 400 `missing x-ship-attachment-id header`, and with a `tab:` header 400 `expected attachment ID, got tab`. Selecting a `work` tab returned 200 with the record. Selecting an `api` tab returned 422 `... is not in attached session ...`, and an unknown tab returned 404. `PUT /api/v0/attach/session` to `api` returned 200 at `api`'s root. The stream carried revisions 6 and 7 with each record change. After the stream was killed, both routes returned 404 `attachment ... not found`. |
+| 5.2 select | Typing `select <tab>` into observer 1 moved only its `*` to the tab; observer 2 stayed at the session root. `bogus line` and `select pane:000...` each printed a `ship: ...` line on stderr and the observer kept running. |
+| 5.3 independent markers | Observer 1 selected `A` and observer 2 selected `B`, then observer 1 selected the empty tab `E` and observer 2 selected pane `p1`. Each render marked only its own selection. |
+| 5.3 pane removal | `pane rm p1` moved observer 2's marker to `p1`'s tab `A1`. |
+| 5.3 ancestor removal | Observer 1 selected `A1y` under `A1`; `tab rm A1` moved both observer 1 (from `A1y`) and observer 2 (from `A1`) to `A`. |
+| 5.3 moves | Both observers selected pane `pc` in new tab `C`. `tab move C B` kept both markers on `pc` under `B`. `tab move C api` moved both markers to `B`, `C`'s former parent, and both observers stayed on `work`. |
+| 5.3 switch | `switch api`, typed as a name into observer 1, reprinted `api`'s tree, including the moved `C` and `pc`, with `api` itself marked. Observer 2 stayed on `work` at `B`. Both exited 0 on SIGINT. |
+| 5.3 removed session | `curl` `POST /api/v0/attach` with a removed session's ID returned 404 `session ... not found`. |
+| 5.3 OpenAPI | Disposable consumer of `ship_server::openapi()`, outside the repo: OpenAPI 3.1.0 lists `select` at `PUT /api/v0/attach/selection` and `switch_session` at `PUT /api/v0/attach/session`. Each has a required `x-ship-attachment-id` header parameter, a `SelectRequest` or `SwitchSessionRequest` body, a 200 `ViewingRecord` response and `AppError` 400, 404, 422 (select) and 503 responses. `NodeId` is a `oneOf` of the session, tab and pane ID schemas. The document has 11 paths and every `$ref` resolves. |
+| 5.3 build gates | `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build --workspace` and `cargo build --workspace --release` passed. The release binary attached, moved its marker with `select`, and the observer and server each exited 0 on SIGINT and SIGTERM. |
+
+An early verification run hung only because the script backgrounded a shell function, so SIGINT went to a subshell that ignores it, not to the observer. Running the binary directly showed SIGINT exits 0 with stdin held open. The disposable consumer and test servers were removed or stopped afterwards. Linux was not exercised.

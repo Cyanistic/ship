@@ -35,7 +35,7 @@ pub enum Command {
     /// Create, inspect, rename or remove logical panes
     #[command(subcommand)]
     Pane(PaneCommand),
-    /// Observe a session as a live text tree
+    /// Observe a session as a live text tree; stdin accepts `select <id>` and `switch <session>`
     Attach(AttachArgs),
 }
 

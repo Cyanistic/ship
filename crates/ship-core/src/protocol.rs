@@ -152,3 +152,15 @@ pub struct Attached {
     pub attachment: IdOf<Attachment>,
     pub replica: Arc<Replica>,
 }
+
+/// PUT /attach/selection body. The selection must be in the attached session.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct SelectRequest {
+    pub selection: NodeId,
+}
+
+/// PUT /attach/session body. The new selection is the session itself.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct SwitchSessionRequest {
+    pub session: IdOf<Session>,
+}

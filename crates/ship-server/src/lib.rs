@@ -65,6 +65,8 @@ fn api_router() -> OpenApiRouter<AppState> {
         routes::rename_pane,
         routes::remove_pane,
         attach::attach,
+        attach::select,
+        attach::switch_session,
     )
 }
 

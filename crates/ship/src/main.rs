@@ -1,5 +1,6 @@
 mod cli;
 mod commands;
+mod controls;
 mod diagnostics;
 mod local;
 mod observe;

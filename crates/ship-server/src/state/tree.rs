@@ -6,7 +6,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use ship_core::{
     id::{IdOf, UntaggedEither},
-    model::{Pane, Tab, TabParent},
+    model::{NodeId, Pane, Tab, TabParent},
     prelude::*,
     protocol::Placement,
 };
@@ -16,19 +16,22 @@ use super::Sessions;
 type Tabs = IndexMap<IdOf<Tab>, Tab>;
 
 /// Ancestry of `node`, session first and `node` last. `None` if absent.
-pub(crate) fn path(sessions: &Sessions, node: IdOf<TabParent>) -> Option<Vec<IdOf<TabParent>>> {
+pub(crate) fn path(sessions: &Sessions, node: NodeId) -> Option<Vec<NodeId>> {
     match node {
-        UntaggedEither::Left(session) => sessions
-            .contains_key(&session)
-            .then(|| vec![UntaggedEither::Left(session)]),
-        UntaggedEither::Right(tab) => sessions.values().find_map(|session| {
+        NodeId::Session(session) => sessions.contains_key(&session).then(|| vec![node]),
+        NodeId::Tab(tab) => sessions.values().find_map(|session| {
             let mut tabs = Vec::new();
             tab_path(&session.tabs, tab, &mut tabs).then(|| {
-                std::iter::once(UntaggedEither::Left(session.id))
-                    .chain(tabs.into_iter().map(UntaggedEither::Right))
+                std::iter::once(NodeId::Session(session.id))
+                    .chain(tabs.into_iter().map(NodeId::Tab))
                     .collect()
             })
         }),
+        NodeId::Pane(pane) => {
+            let mut path = path(sessions, NodeId::Tab(pane_owner(sessions, pane).ok()?))?;
+            path.push(node);
+            Some(path)
+        }
     }
 }
 
@@ -52,7 +55,7 @@ pub(crate) fn tab(sessions: &Sessions, id: IdOf<Tab>) -> Result<&Tab> {
     sessions
         .values()
         .find_map(|session| find(&session.tabs, id))
-        .ok_or_else(|| not_found(UntaggedEither::Right(id)))
+        .ok_or_else(|| not_found(NodeId::Tab(id)))
 }
 
 pub(crate) fn pane(sessions: &Sessions, id: IdOf<Pane>) -> Result<&Pane> {
@@ -63,7 +66,7 @@ pub(crate) fn pane(sessions: &Sessions, id: IdOf<Pane>) -> Result<&Pane> {
     sessions
         .values()
         .find_map(|session| find(&session.tabs, id))
-        .ok_or_else(|| err!(NotFound, "pane {} not found", id))
+        .ok_or_else(|| not_found(NodeId::Pane(id)))
 }
 
 /// The tab that owns pane `id`.
@@ -79,19 +82,19 @@ pub(crate) fn pane_owner(sessions: &Sessions, id: IdOf<Pane>) -> Result<IdOf<Tab
     sessions
         .values()
         .find_map(|session| find(&session.tabs, id))
-        .ok_or_else(|| err!(NotFound, "pane {} not found", id))
+        .ok_or_else(|| not_found(NodeId::Pane(id)))
 }
 
 /// Mutable access through `Arc::make_mut`, copying only the owning session.
 pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab> {
-    let node = UntaggedEither::Right(id);
+    let node = NodeId::Tab(id);
     let path = path(sessions, node).ok_or_else(|| not_found(node))?;
-    let [UntaggedEither::Left(session), ancestors @ .., _] = path.as_slice() else {
+    let [NodeId::Session(session), ancestors @ .., _] = path.as_slice() else {
         unreachable!("a tab path is its session, its ancestors and the tab");
     };
     let mut children = &mut Arc::make_mut(&mut sessions[session]).tabs;
     for ancestor in ancestors {
-        let UntaggedEither::Right(ancestor) = ancestor else {
+        let NodeId::Tab(ancestor) = ancestor else {
             unreachable!("only the first path entry is a session");
         };
         children = &mut children.get_mut(ancestor).expect("path entries exist").tabs;
@@ -104,16 +107,20 @@ pub(crate) fn children_mut(sessions: &mut Sessions, parent: IdOf<TabParent>) -> 
         UntaggedEither::Left(session) => sessions
             .get_mut(&session)
             .map(|session| &mut Arc::make_mut(session).tabs)
-            .ok_or_else(|| not_found(parent)),
+            .ok_or_else(|| not_found(parent.into())),
         UntaggedEither::Right(tab) => tab_mut(sessions, tab).map(|tab| &mut tab.tabs),
     }
 }
 
 /// Detach a tab with its subtree and panes from its parent.
 pub(crate) fn take_tab(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<Tab> {
-    let node = UntaggedEither::Right(id);
+    let node = NodeId::Tab(id);
     let path = path(sessions, node).ok_or_else(|| not_found(node))?;
-    let parent = path[path.len() - 2];
+    let parent = match path[path.len() - 2] {
+        NodeId::Session(session) => UntaggedEither::Left(session),
+        NodeId::Tab(tab) => UntaggedEither::Right(tab),
+        NodeId::Pane(_) => unreachable!("a pane has no child tabs"),
+    };
     Ok(children_mut(sessions, parent)?
         .shift_remove(&id)
         .expect("a tab is among its parent's children"))
@@ -140,9 +147,10 @@ fn sibling_index(children: &Tabs, sibling: IdOf<Tab>) -> Result<usize> {
     })
 }
 
-pub(crate) fn not_found(node: IdOf<TabParent>) -> AppError {
+pub(crate) fn not_found(node: NodeId) -> AppError {
     match node {
-        UntaggedEither::Left(id) => err!(NotFound, "session {} not found", id),
-        UntaggedEither::Right(id) => err!(NotFound, "tab {} not found", id),
+        NodeId::Session(id) => err!(NotFound, "session {} not found", id),
+        NodeId::Tab(id) => err!(NotFound, "tab {} not found", id),
+        NodeId::Pane(id) => err!(NotFound, "pane {} not found", id),
     }
 }

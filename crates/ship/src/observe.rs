@@ -9,33 +9,57 @@ use ship_core::{
     protocol::{AttachRequest, Replica, SseEvent, ViewingRecord},
 };
 
+use crate::controls;
+
 /// `ship attach <session>`. Prints the tree on stdout after every applied
-/// event and status lines on stderr. The stream ends when the session is
-/// removed, which prints `session removed` and exits 0; SIGINT also exits 0.
+/// event and status lines on stderr. Stdin lines are controls (`controls.rs`);
+/// a failed control is reported and the observer keeps running. The stream
+/// ends when the session is removed, which prints `session removed` and exits
+/// 0; SIGINT also exits 0.
 pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
     let request = AttachRequest {
         session,
         selection: None,
     };
     let mut events = Box::pin(client.attach(&request).await?);
+    let mut controls = controls::lines();
+    let mut stdin_open = true;
     let mut observer = Observer::default();
     loop {
-        let event = tokio::select! {
-            event = events.next() => event,
+        tokio::select! {
+            event = events.next() => {
+                let Some(event) = event else {
+                    eprintln!("session removed");
+                    return Ok(());
+                };
+                let event = event.context("attach stream failed")?;
+                if let SseEvent::Attached(attached) = &event {
+                    eprintln!("attached {} to {}", attached.attachment, session);
+                }
+                if observer.apply(event) {
+                    print!("{}", observer.render());
+                }
+            }
+            line = controls.recv(), if stdin_open => match line {
+                None => stdin_open = false,
+                Some(line) if line.trim().is_empty() => {}
+                Some(line) => {
+                    if let Err(error) = control(client, &observer, &line).await {
+                        eprintln!("ship: {error}");
+                    }
+                }
+            },
             _ = tokio::signal::ctrl_c() => return Ok(()),
-        };
-        let Some(event) = event else {
-            eprintln!("session removed");
-            return Ok(());
-        };
-        let event = event.context("attach stream failed")?;
-        if let SseEvent::Attached(attached) = &event {
-            eprintln!("attached {} to {}", attached.attachment, session);
-        }
-        if observer.apply(event) {
-            print!("{}", observer.render());
         }
     }
+}
+
+async fn control(client: &Client, observer: &Observer, line: &str) -> Result<()> {
+    let control = controls::parse(line)?;
+    let attachment = observer
+        .attachment
+        .ok_or_else(|| err!(Validation, "not attached yet"))?;
+    controls::send(client, attachment, control).await
 }
 
 #[derive(Default)]

@@ -7,10 +7,13 @@ use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
 use ship_core::{
     HEALTH_PATH, HealthResponse,
-    id::{Id, IdOf, Identified, Prefixed, UntaggedEither},
-    model::{Named, Pane, Session, SessionName, Tab, TabParent},
+    id::{Attachment, Id, IdOf, Identified, Prefixed, UntaggedEither},
+    model::{Named, NodeId, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
-    protocol::{AttachRequest, Create, MoveTab, SseEvent},
+    protocol::{
+        AttachRequest, Create, MoveTab, SelectRequest, SseEvent, SwitchSessionRequest,
+        ViewingRecord,
+    },
 };
 
 use url::Url;
@@ -211,5 +214,40 @@ impl Client {
                 Err(EventStreamError::Transport(error)) => Err(http_error(error)),
                 Err(error) => Err(err!(Serialization, "malformed attach stream", @external: error)),
             }))
+    }
+
+    /// Select within the attachment's session. The attachment ID is the one
+    /// the caller's own stream received, so observers never share it.
+    pub async fn select(
+        &self,
+        attachment: IdOf<Attachment>,
+        selection: NodeId,
+    ) -> Result<ViewingRecord> {
+        let body = SelectRequest { selection };
+        self.request(
+            Method::PUT,
+            "/api/v0/attach/selection",
+            Some(&body),
+            Some(attachment),
+            StatusCode::OK,
+        )
+        .await
+    }
+
+    /// Move the attachment to another session, selecting the session itself.
+    pub async fn switch_session(
+        &self,
+        attachment: IdOf<Attachment>,
+        session: IdOf<Session>,
+    ) -> Result<ViewingRecord> {
+        let body = SwitchSessionRequest { session };
+        self.request(
+            Method::PUT,
+            "/api/v0/attach/session",
+            Some(&body),
+            Some(attachment),
+            StatusCode::OK,
+        )
+        .await
     }
 }

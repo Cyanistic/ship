@@ -38,9 +38,9 @@ impl ServerState {
         }
     }
 
-    /// Clone `sessions` and `viewers`, run `edit` on the clones, delete the
-    /// viewing records whose session is gone, swap the clones in, bump
-    /// `revision` and publish. An `Err` from `edit` discards the clones,
+    /// Clone `sessions` and `viewers`, run `edit` on the clones, repair every
+    /// viewing record (deleting those whose session is gone), swap the clones
+    /// in, bump `revision` and publish. An `Err` from `edit` discards the clones,
     /// leaving state unchanged. Cloning copies only `Arc`s; `Arc::make_mut`
     /// copies the sessions an edit touches. A publish failure after the swap
     /// returns `Unavailable`; the edit stays committed.
@@ -51,9 +51,13 @@ impl ServerState {
         let mut sessions = self.sessions.clone();
         let mut viewers = self.viewers.clone();
         let result = edit(&mut sessions, &mut viewers)?;
-        viewers.retain(|_, record| sessions.contains_key(&record.session));
+        self.viewers = viewers
+            .into_iter()
+            .filter_map(|(attachment, record)| {
+                Self::repair(&self.sessions, &sessions, record).map(|record| (attachment, record))
+            })
+            .collect();
         self.sessions = sessions;
-        self.viewers = viewers;
         self.revision += 1;
         tracing::debug!(revision = self.revision, "publishing replica");
         self.bus
@@ -61,6 +65,27 @@ impl ServerState {
             .await
             .map_err(|error| err!(Unavailable, "cannot publish state", @external: error))?;
         Ok(result)
+    }
+
+    /// Keep `record.selection` if it is still inside `record.session` in `new`.
+    /// Otherwise walk its ancestors in `old`, nearest first, and pick the first
+    /// one still inside that session in `new`. `None` when the session is gone,
+    /// which deletes the record and ends its stream.
+    fn repair(old: &Sessions, new: &Sessions, record: ViewingRecord) -> Option<ViewingRecord> {
+        let session = record.session;
+        if !new.contains_key(&session) {
+            return None;
+        }
+        if inside(new, session, record.selection) {
+            return Some(record);
+        }
+        let selection = tree::path(old, record.selection)
+            .unwrap_or_default()
+            .into_iter()
+            .rev()
+            .find(|node| inside(new, session, *node))
+            .unwrap_or(NodeId::Session(session));
+        Some(ViewingRecord { session, selection })
     }
 
     pub fn replica(&self) -> Arc<Replica> {
@@ -77,6 +102,17 @@ fn session(sessions: &Sessions, id: IdOf<Session>) -> Result<&Arc<Session>> {
     sessions
         .get(&id)
         .ok_or_else(|| err!(NotFound, "session {} not found", id))
+}
+
+/// Whether `node` exists in `sessions` and belongs to `session`.
+fn inside(sessions: &Sessions, session: IdOf<Session>, node: NodeId) -> bool {
+    tree::path(sessions, node).is_some_and(|path| path[0] == NodeId::Session(session))
+}
+
+fn viewer(viewers: &mut Viewers, attachment: IdOf<Attachment>) -> Result<&mut ViewingRecord> {
+    viewers
+        .get_mut(&attachment)
+        .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))
 }
 
 /// Session names are unique; `except` is the session being renamed.
@@ -110,6 +146,14 @@ pub struct Attach {
     pub request: AttachRequest,
 }
 pub struct Detach(pub IdOf<Attachment>);
+pub struct Select {
+    pub attachment: IdOf<Attachment>,
+    pub selection: NodeId,
+}
+pub struct SwitchSession {
+    pub attachment: IdOf<Attachment>,
+    pub session: IdOf<Session>,
+}
 
 impl Message<ListSessions> for ServerState {
     type Reply = Result<Sessions>;
@@ -266,10 +310,11 @@ impl Message<Move> for ServerState {
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
         self.commit(|sessions, _| {
-            let node = UntaggedEither::Right(id);
+            let node = NodeId::Tab(id);
             tree::path(sessions, node).ok_or_else(|| tree::not_found(node))?;
+            let parent = NodeId::from(to.parent);
             let destination =
-                tree::path(sessions, to.parent).ok_or_else(|| tree::not_found(to.parent))?;
+                tree::path(sessions, parent).ok_or_else(|| tree::not_found(parent))?;
             if destination.contains(&node) {
                 return Err(err!(
                     InvalidStructure,
@@ -404,6 +449,61 @@ impl Message<Detach> for ServerState {
         self.commit(|_, viewers| {
             viewers.shift_remove(&attachment);
             Ok(())
+        })
+        .await
+    }
+}
+
+impl Message<Select> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    /// The selection must exist and belong to the attachment's session.
+    async fn handle(
+        &mut self,
+        Select {
+            attachment,
+            selection,
+        }: Select,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions, viewers| {
+            let record = viewer(viewers, attachment)?;
+            tree::path(sessions, selection).ok_or_else(|| tree::not_found(selection))?;
+            if !inside(sessions, record.session, selection) {
+                return Err(err!(
+                    InvalidStructure,
+                    "{} is not in attached session {}",
+                    selection,
+                    record.session
+                ));
+            }
+            record.selection = selection;
+            Ok(record.clone())
+        })
+        .await
+    }
+}
+
+impl Message<SwitchSession> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    /// Attach to another session, selecting the session itself.
+    async fn handle(
+        &mut self,
+        SwitchSession {
+            attachment,
+            session: id,
+        }: SwitchSession,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|sessions, viewers| {
+            let record = viewer(viewers, attachment)?;
+            session(sessions, id)?;
+            *record = ViewingRecord {
+                session: id,
+                selection: NodeId::Session(id),
+            };
+            Ok(record.clone())
         })
         .await
     }
