@@ -6,6 +6,7 @@ use std::{
 };
 
 use kameo::prelude::*;
+use ship_macros::Actor;
 use tokio::sync::{mpsc, watch};
 
 #[derive(Actor, Default)]

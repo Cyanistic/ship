@@ -16,10 +16,19 @@ use std::{
 
 pub use app::AppState;
 use axum::Router;
-use kameo::{actor::Spawn, mailbox};
+use kameo::{
+    actor::{ActorRef, Spawn},
+    mailbox,
+};
 use ship_core::{prelude::*, protocol::Replica, relay};
 use tokio::{net::TcpListener, sync::watch};
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    compression::{
+        CompressionLayer, Predicate,
+        predicate::{NotForContentType, SizeAbove},
+    },
+    trace::TraceLayer,
+};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -76,7 +85,14 @@ pub fn openapi() -> utoipa::openapi::OpenApi {
 }
 
 pub fn router(app: AppState) -> Router {
-    api_router().layer(
+    // The default predicate minus `NotForContentType::SSE`, so attach streams
+    // are compressed too.
+    let compression = CompressionLayer::new().zstd(true).gzip(true).compress_when(
+        SizeAbove::new(32)
+            .and(NotForContentType::GRPC)
+            .and(NotForContentType::IMAGES),
+    );
+    api_router().layer(compression).layer(
         TraceLayer::new_for_http()
             .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
                 tracing::info_span!("request", method = %request.method(), path = request.uri().path())
@@ -117,14 +133,22 @@ pub async fn serve(
     })
     .await
     .map_err(|error| err!(Internal, "cannot subscribe replica stream", @external: error))?;
+    let state = state::ServerState::spawn(state);
+    let actors = (state.clone(), bus.clone());
     let app = AppState {
-        state: state::ServerState::spawn(state),
+        state,
         bus,
         replicas,
     };
     let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {
-            result_tx.send_replace(Some(shutdown.await));
+            let (state, bus) = actors;
+            let result = tokio::select! {
+                result = shutdown => result,
+                error = actor_stopped(&state, &bus) => Err(error),
+            };
+            result_tx.send_replace(Some(result));
+            stop_actors(&state, &bus).await;
         })
         .into_future();
     tokio::pin!(serving);
@@ -139,4 +163,33 @@ pub async fn serve(
         }
     }
     result_rx.borrow().clone().unwrap_or(Ok(()))
+}
+
+/// Resolves when either actor stops on its own, such as after a panic. A
+/// server without them would keep serving stale observers, so this begins
+/// shutdown with an error.
+async fn actor_stopped(
+    state: &ActorRef<state::ServerState>,
+    bus: &ActorRef<relay::RelayBus>,
+) -> AppError {
+    let (actor, reason) = tokio::select! {
+        reason = state.wait_for_shutdown_result() => ("state", reason),
+        reason = bus.wait_for_shutdown_result() => ("relay", reason),
+    };
+    let reason = match reason {
+        Ok(reason) => reason.to_string(),
+        Err(error) => error.to_string(),
+    };
+    err!(Internal, "{} actor stopped: {}", actor, reason)
+}
+
+/// Stops the state actor, then the relay. The state actor goes first so its
+/// queued commits still publish. Dropping the relay drops the replica watch
+/// sender, which ends every attach stream with `serverShutdown` so Axum's
+/// drain can finish. Stopping an actor that already stopped is a no-op.
+async fn stop_actors(state: &ActorRef<state::ServerState>, bus: &ActorRef<relay::RelayBus>) {
+    let _ = state.stop_gracefully().await;
+    state.wait_for_shutdown().await;
+    let _ = bus.stop_gracefully().await;
+    bus.wait_for_shutdown().await;
 }

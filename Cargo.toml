@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core"]
+members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core", "crates/ship-macros"]
 resolver = "3"
 
 [workspace.package]
@@ -12,6 +12,7 @@ readme = "README.md"
 ship-client = { path = "crates/ship-client" }
 ship-server = { path = "crates/ship-server" }
 ship-core = { path = "crates/ship-core" }
+ship-macros = { path = "crates/ship-macros" }
 axum = "0.8"
 clap = { version = "4", features = ["derive"] }
 eventsource-stream = "0.2"
@@ -19,13 +20,16 @@ futures-util = "0.3"
 indexmap = { version = "2", features = ["serde"] }
 kameo = "0.22"
 nix = { version = "0.31", features = ["process"] }
-reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls", "stream"] }
+proc-macro2 = "1"
+quote = "1"
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls", "stream", "zstd", "gzip"] }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 serde_with = "3"
+syn = { version = "2", features = ["full"] }
 tempfile = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time"] }
-tower-http = { version = "0.7", features = ["trace"] }
+tower-http = { version = "0.7", features = ["trace", "compression-zstd", "compression-gzip"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"

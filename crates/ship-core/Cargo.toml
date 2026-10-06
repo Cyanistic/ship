@@ -8,13 +8,14 @@ description = "Shared data and contextual errors for Ship"
 
 [features]
 axum = ["dep:axum"]
-kameo = ["dep:kameo", "dep:tokio"]
+kameo = ["dep:kameo", "dep:ship-macros", "dep:tokio"]
 
 [dependencies]
 axum = { workspace = true, optional = true }
 indexmap.workspace = true
 kameo = { workspace = true, optional = true }
 serde.workspace = true
+ship-macros = { workspace = true, optional = true }
 serde_json.workspace = true
 serde_with.workspace = true
 tokio = { version = "1", features = ["sync"], optional = true }

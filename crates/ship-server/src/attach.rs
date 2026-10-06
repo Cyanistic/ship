@@ -99,8 +99,11 @@ pub(crate) async fn attach(
             return Some((SseEvent::State(replica), Some(replicas)));
         }
     });
+    // Fused because the compression layer polls the body again after it ends,
+    // and `unfold` panics when polled past its end.
     let events = stream::once(ready(SseEvent::Attached(attached)))
         .chain(updates)
+        .fuse()
         .map(move |event| {
             let _ = &guard;
             Event::default().json_data(event)

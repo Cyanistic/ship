@@ -8,6 +8,7 @@ use ship_core::{
     prelude::*,
     protocol::{AttachRequest, Attached, Create, MoveTab, Replica, ViewingRecord},
 };
+use ship_macros::Actor;
 use uuid::Uuid;
 
 use ship_core::relay::{Publish, RelayBus};

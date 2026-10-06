@@ -132,7 +132,6 @@ fn client(server_url: &str) -> Result<Client> {
     Ok(Client {
         http: reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
-            .retry(reqwest::retry::never())
             .connect_timeout(Duration::from_secs(1))
             .build()
             .map_err(|error| err!(Configuration, "cannot initialize HTTP client", @external: error.without_url()))?,
