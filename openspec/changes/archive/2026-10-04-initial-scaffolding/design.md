@@ -4,7 +4,7 @@
 
 See [proposal.md](proposal.md) for motivation and capability scope. The three specs define observable behavior. [design/program.md](design/program.md) supplies the detailed file map and verification exercises; active sections of the product/architecture papers supply the broader constraints.
 
-Cyan's latest program decisions take precedence over older snippets: bare `ship` is the client workflow, unsafe is permitted, dependencies use ordinary compatible constraints, HealthResponse is plain data, and README addresses end users. Superseded details sections are historical. Cyan supplied the reference error module to resolve the previously unknown err! syntax; this artifact records that resolution without modifying the papers.
+Cyan's latest program decisions take precedence over older snippets: bare `ship` is the client workflow, unsafe is permitted, dependencies use ordinary compatible constraints, HealthResponse is plain data, and README addresses end users. Superseded details sections are historical. Cyan supplied a reference error module to resolve the previously unknown err! syntax; this artifact records that resolution without modifying the papers.
 
 Read-only inspection found an incomplete root Cargo.toml, four crate manifests and core lib/protocol files. The root still contains Utoipa 5, Progenitor, exact Reqwest pins, an unsafe denial and unused broader dependencies. Core lib references error.rs, which does not exist. No accepted build or lockfile evidence exists. These are abandoned remnants to reconcile under a later implementation request, not working behavior. The terminal experiment is independent and must not supply production patches or dependencies.
 
@@ -33,7 +33,7 @@ Build a genuine help/version executable first. Health/server operations enter sl
 
 **Error construction.** Retain the planned contextual AppError/internal-external structure, shared categories, optional data/cause and lossy foreign-error strings. ResultExt uses `context`, `error`, `warn`, `debug`, `trace`; reporting returns the unchanged result with caller location.
 
-Use the public err! grammar observed in the reference, adapted to Ship constructors and its category names:
+Use the public err! grammar observed in the reference module, adapted to Ship constructors and its category names:
 
 ```rust
 err!(Configuration, "invalid setting")
@@ -100,7 +100,7 @@ Keep future generator analysis in [design/architecture.md](design/architecture.m
 - [Loopback identity is not authentication] → Preserve the loopback-only server boundary and describe checks as accidental mismatch detection.
 - [Concurrent launch can lose the bind race] → Reprobe for a winner, bound each client outcome and verify no idle losing children survive.
 - [Compatible ranges can select unexpected versions] → Commit Cargo's resolution and establish compatibility through checks and live behavior, not exact manifest pins.
-- [the reference macro source is not drop-in Ship implementation] → Preserve its syntax while adapting storage/helper names, compile representative expansions, and avoid importing unrelated dependencies.
+- [Reference macro source is not drop-in Ship implementation] → Preserve its syntax while adapting storage/helper names, compile representative expansions, and avoid importing unrelated dependencies.
 
 ## Migration Plan
 

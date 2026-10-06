@@ -35,4 +35,4 @@ Implementation will affect the root Cargo workspace, Cargo-owned lockfile, READM
 
 Planning follows the active product and architecture papers plus the latest program review: bare-command client workflow, unsafe permitted, plain DTOs and end-user README. Historical codegen sections and older paper snippets are not implementation instructions.
 
-The `err!` syntax is grounded in Cyan's supplied the reference reference (the reference error module), adapted to Ship's smaller error representation. No CI, deployment, permanent authored tests, terminal/SSE/compression code, deterministic generator, model invocation, experiment integration or new access-control policy is included. Artifact creation does not start implementation.
+The `err!` syntax is grounded in Cyan's supplied reference error module, adapted to Ship's smaller error representation. No CI, deployment, permanent authored tests, terminal/SSE/compression code, deterministic generator, model invocation, experiment integration or new access-control policy is included. Artifact creation does not start implementation.

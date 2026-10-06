@@ -18,11 +18,15 @@ Endpoint methods SHALL be reviewed, checked-in ordinary Rust using the same shar
 - **THEN** the reviewed patch reuses the shared DTO and preserves transport/startup policy unless a separate change was approved
 
 ### Requirement: Schema inspection without server startup
-The server SHALL expose an OpenAPI 3.1 description of the health operation and shared response that can be constructed without a listener, runtime tasks or tracing initialization.
+The server SHALL expose an OpenAPI 3.1 description of every HTTP operation it serves, including health and the `/api/v0` session, tab, pane and attachment operations, together with their shared request and response types. The description SHALL be constructible without a listener, runtime tasks or tracing initialization.
 
 #### Scenario: Inspect the document
 - **WHEN** a developer constructs and serializes the API description through the inspection seam
 - **THEN** GET `/health`, operation identifier `health`, HTTP 200 and response field types/requiredness agree with the actual route and serialization, without starting a server
+
+#### Scenario: Inspect the session API
+- **WHEN** a developer constructs and serializes the API description after the session API is added
+- **THEN** every `/api/v0` route appears with its method, path parameters, request body, success and error statuses, and shared schemas whose field names and types agree with actual serialization, including IDs described as kind-prefixed strings
 
 ### Requirement: Reviewed and exercised client updates
 The project SHALL document updates against server declarations, shared DTOs/serialization, schema and existing client conventions. Applicable local checks and requests against the corresponding rebuilt server SHALL verify updates. Compilation alone SHALL NOT be represented as wire agreement or automatic synchronization.

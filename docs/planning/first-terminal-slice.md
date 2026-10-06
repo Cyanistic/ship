@@ -68,7 +68,7 @@ Later remote access can use SSH port forwarding with the same HTTP/SSE protocol.
 | CLI | Clap derives | Used by the implemented scaffold; terminal commands remain to implement |
 | Runtime | Tokio | User-selected; blocking PTY reads still need appropriate execution |
 | Logging | tracing + tracing-subscriber | Used by the implemented scaffold; keep log output out of UI |
-| Errors | Adapt the reference's shared AppError/Result/context/macros pattern | Read the reference error module; omit unrelated HTTP/Rig conversions; actor-specific errors need review |
+| Errors | Adapt a reference shared AppError/Result/context/macros pattern | Read the reference error module; omit unrelated HTTP/Rig conversions; actor-specific errors need review |
 | UI/input | Ratatui/Crossterm | Starting stack for trial |
 | Terminal emulation | libghostty-vt | Rust bindings inspected; unstable interface and thread-affinity constraints |
 | Session integration | Supplied ratatui-ghostty session with demonstrated compatibility patch | macOS build, 80 enabled upstream tests, user-run example and real-shell capture passed; patch delivery still open |
