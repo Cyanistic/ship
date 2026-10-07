@@ -6,10 +6,10 @@ Every slice runs workflows against a foreground `ship server --port <p>` with `-
 
 ## 1. Optional names: CLI create and rename to nullable names
 
-- [ ] 1.1 Vendor `experiments/terminal-transport/vendor/wrapper-compat` as `vendor/ratatui-ghostty/` with a PROVENANCE file and add it as a `ship-server` path dependency without using it; verify `cargo build -p ship-server` succeeds, which proves the Zig toolchain and the `libghostty-vt` download on this machine.
-- [ ] 1.2 Add `OptionalName` (blank deserializes to `None`) to `model.rs`, switch `Tab` and `Pane` names to it, drop `Named`'s default type parameter, and make `Rename<T, N>` generic in `state.rs` with the route body types to match; verify with `curl` that creating a tab with `{"name":"   "}` stores `"name": null`, and that a session create or rename with a blank name returns 422 and changes nothing.
-- [ ] 1.3 Change client `create_tab` and `rename` to take `Option<&str>`, and add `CreateTabArgs` and `CreatePaneArgs` with `--name` and `RenameArgs` with an optional name in `cli.rs`, wired through `commands.rs`; verify `ship tab create work` and `ship pane create <tab>` print `"name": null`, `--name editor` sets a name, and `rename <id>` with no name, `""` or `"  "` clears it.
-- [ ] 1.4 Verify slice 1 end to end: named entities serialize unchanged, the OpenAPI consumer shows `name` as nullable, fmt, Clippy and both builds pass. Record evidence and stop.
+- [x] 1.1 Vendor `experiments/terminal-transport/vendor/wrapper-compat` as `vendor/ratatui-ghostty/` with a PROVENANCE file and add it as a `ship-server` path dependency without using it; verify `cargo build -p ship-server` succeeds, which proves the Zig toolchain and the `libghostty-vt` download on this machine.
+- [x] 1.2 Add `OptionalName` (blank deserializes to `None`) to `model.rs`, switch `Tab` and `Pane` names to it, drop `Named`'s default type parameter, and make `Rename<T, N>` generic in `state.rs` with the route body types to match; verify with `curl` that creating a tab with `{"name":"   "}` stores `"name": null`, and that a session create or rename with a blank name returns 422 and changes nothing.
+- [x] 1.3 Change client `create_tab` and `rename` to take `Option<&str>`, and add `CreateTabArgs` and `CreatePaneArgs` with `--name` and `RenameArgs` with an optional name in `cli.rs`, wired through `commands.rs`; verify `ship tab create work` and `ship pane create <tab>` print `"name": null`, `--name editor` sets a name, and `rename <id>` with no name, `""` or `"  "` clears it.
+- [x] 1.4 Verify slice 1 end to end: named entities serialize unchanged, the OpenAPI consumer shows `name` as nullable, fmt, Clippy and both builds pass. Record evidence and stop.
 
 ## 2. Every pane runs a program: `ship pane create` to a live child process
 

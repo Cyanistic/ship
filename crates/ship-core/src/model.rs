@@ -1,7 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use utoipa::{
     PartialSchema, ToSchema,
@@ -26,7 +26,8 @@ pub struct Session {
 #[serde(rename_all = "camelCase")]
 pub struct Tab {
     pub id: IdOf<Tab>,
-    pub name: String,
+    #[serde(default)]
+    pub name: OptionalName,
     #[schema(schema_with = tabs_schema)]
     pub tabs: IndexMap<IdOf<Tab>, Tab>,
     #[schema(schema_with = panes_schema)]
@@ -38,7 +39,8 @@ pub struct Tab {
 #[serde(rename_all = "camelCase")]
 pub struct Pane {
     pub id: IdOf<Pane>,
-    pub name: String,
+    #[serde(default)]
+    pub name: OptionalName,
 }
 
 /// Ordered child tabs keyed by ID. Hand-written because the derive inlines
@@ -104,21 +106,47 @@ impl Creatable for Session {
 
 impl Creatable for Tab {
     type Parent = TabParent;
-    type Input = Named;
+    type Input = Named<OptionalName>;
 }
 
 impl Creatable for Pane {
     type Parent = Tab;
-    type Input = Named;
+    type Input = Named<OptionalName>;
 }
 
-/// Creation and rename input. Sessions use `SessionName`; tabs and panes any string.
+/// Creation and rename input. Sessions use `SessionName`; tabs and panes
+/// `OptionalName`.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct Named<N = String> {
+pub struct Named<N> {
     pub name: N,
 }
 
-/// A session name: non-empty and without ':'. The only place the rule lives.
+/// Optional tab or pane name. Blank or whitespace-only input means none, so
+/// missing, `null`, `""` and `"  "` all deserialize to `None`. The only place
+/// the rule lives.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, ToSchema)]
+#[schema(value_type = Option<String>)]
+pub struct OptionalName(Option<String>);
+
+impl OptionalName {
+    pub fn get(&self) -> Option<&str> {
+        self.0.as_deref()
+    }
+}
+
+impl From<Option<String>> for OptionalName {
+    fn from(name: Option<String>) -> Self {
+        Self(name.filter(|name| !name.trim().is_empty()))
+    }
+}
+
+impl<'de> Deserialize<'de> for OptionalName {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Option::<String>::deserialize(deserializer).map(Self::from)
+    }
+}
+
+/// A session name: not blank and without ':'. The only place the rule lives.
 /// The server gets it by deserializing session create/rename bodies; the CLI
 /// gets it by parsing `SessionRef`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, SerializeDisplay, DeserializeFromStr, ToSchema)]
@@ -129,8 +157,8 @@ impl FromStr for SessionName {
     type Err = AppError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        if value.is_empty() {
-            return Err(err!(Validation, "session name must not be empty"));
+        if value.trim().is_empty() {
+            return Err(err!(Validation, "session name must not be blank"));
         }
         if value.contains(':') {
             return Err(err!(

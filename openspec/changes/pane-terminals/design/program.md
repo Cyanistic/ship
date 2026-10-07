@@ -907,3 +907,31 @@ Checks:
 ## Deviation log
 
 During implementation, record each surprise found, question asked or assumption made, and which papers it touched.
+
+### Slice 1 (2026-10-06, macOS arm64)
+
+**D1. Ghostty comes from libghostty-rs `master` by git rev, not crates.io.** Touches this paper's `vendor/ratatui-ghostty/` entry and its dependency settings. The experiment's `[patch.crates-io]` pointed `libghostty-vt` at an unpublished local libghostty-rs checkout (`8953a740`, Ghostty `22d13172`, Zig 0.16). The vendored wrapper's manifest now names that same commit directly: `libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "8953a740bc378cec3e07e1f6ca949f0595eab19b" }`, which is the current tip of upstream `master`. All five experiment changes are kept. Beyond the experiment copy, only that dependency line changed, plus rustfmt on two adapted tests so `cargo fmt --all --check` passes. All 80 wrapper tests pass in a temporary copy outside the repo. History: slice 1 first used crates.io 0.2.1 and reverted changes 3 and 5, because no published `libghostty-vt` (0.2.1 or 0.2.2) has `Terminal::new(cols, rows)`. Cyan then chose `master` in chat, since crates.io's 0.2.x line still builds Ghostty `a887df42`, which needs Zig 0.15.2.
+
+**D2. Building needs Zig 0.16.x, not the Zig on this machine.** Ghostty `22d13172` declares `minimum_zig_version = "0.16.0"`, and its `requireZig` needs the same major.minor version, so 0.17 is rejected. This Mac has Homebrew Zig 0.17.0. The builds ran with a downloaded Zig 0.16.0 first on `PATH`, kept in the job's temp directory, not installed. A durable Zig 0.16 on macOS and Linux is still needed before the next slice. Open: whether to document it or pin it somewhere in the repo.
+
+**D3. `Cargo.lock` records the git source at `8953a740`.** The `rev` pins it, so no `--precise` step is needed. Moving to a newer crates.io release later means swapping the git dependency for a version, once one ships Ghostty `22d13172` or later.
+
+**D4. The workspace excludes `vendor/ratatui-ghostty`.** A path dependency under the workspace root becomes a member by default, which would put the wrapper under Ship's Clippy and `--all-targets`. `exclude` keeps it out, as this paper intends.
+
+**D5. `SessionName` changed by one condition.** This paper says `SessionName` is unchanged (FR-021), but it accepted whitespace-only names, which FR-021 and the session-structure delta reject. `from_str` now checks `trim().is_empty()` and says "must not be blank". Stored names aren't trimmed.
+
+**D6. Small additions outside the skeleton.** `OptionalName` gained `From<Option<String>>`, used by its `Deserialize` and by the client to build create bodies, so the blank rule still lives once. The generic `Create<T>` schema planned for later landed now, because tab and pane inputs changed in this slice. The text observer prints `name.get()` so its output is unchanged until slice 5 deletes it.
+
+**D7. Accepted schema imprecision.** `Named_OptionalName` lists `name` as required, though the server also accepts a body without it. `Tab.name` and `Pane.name` are optional and nullable as intended.
+
+Evidence, against a foreground `ship server` with `--server-url` on each client:
+
+- `cargo build -p ship` succeeds with the wrapper as a dependency, compiling `libghostty-vt` from the git rev (Zig 0.16.0, see D2).
+- `POST /api/v0/tabs` with `{"name":"   "}` and with no `name` both return `"name":null`.
+- Session create with `"   "` or `""` and rename with `"  "` or `null` return 422. `ship session create '  '` and `ship session rename work ' '` fail with "session name must not be blank". `session list` is byte-identical before and after.
+- `ship tab create work`, `ship tab create work --name '  '` and `ship pane create <tab>` print `"name":null`. `--name editor` sets the name. `pane rename <id>` with no name, `""` and `"  "` clear it, and so does `tab rename <id>`.
+- The same named-entity workflow on `main`'s binary and this branch's prints byte-identical JSON once IDs are normalized.
+- The disposable `openapi()` consumer, outside the repo, shows OpenAPI 3.1 with `OptionalName` as `["string","null"]`, `Tab.name` and `Pane.name` not required, `Create_Tab` and `Create_Pane` as `allOf` of `{parent}` and `Named_OptionalName`, tab and pane PATCH bodies as `Named_OptionalName`, and session bodies as `Named_SessionName`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass. The probe reruns on the release binary with the same results.
+- Size: implementation Rust 3,809 lines (+58); tests 0.
+- Linux: not required for slice 1, unverified.

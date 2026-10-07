@@ -121,21 +121,26 @@ where
     IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static,
 {
     pub id: IdOf<T>,
-    pub name: String,
+    /// New name; omitted or blank clears it
+    pub name: Option<String>,
 }
 
 #[derive(Args)]
 pub struct CreateTabArgs {
     /// Session name or ID, or tab ID
     pub parent: TabParentRef,
-    pub name: String,
+    /// Tab name; omitted or blank means none
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Args)]
 pub struct CreatePaneArgs {
     /// Tab ID
     pub tab: IdOf<Tab>,
-    pub name: String,
+    /// Pane name; omitted or blank means none
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Args)]

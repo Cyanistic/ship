@@ -133,9 +133,10 @@ fn ensure_unique(
 
 pub struct ListSessions;
 pub struct Get<T: Identified>(pub IdOf<T>);
-pub struct Rename<T: Identified> {
+/// Sessions rename to a `SessionName`; tabs and panes to an `OptionalName`.
+pub struct Rename<T: Identified, N = OptionalName> {
     pub id: IdOf<T>,
-    pub name: String,
+    pub name: N,
 }
 pub struct Remove<T: Identified>(pub IdOf<T>);
 pub struct Move {
@@ -198,20 +199,19 @@ impl Message<Get<Session>> for ServerState {
     }
 }
 
-impl Message<Rename<Session>> for ServerState {
+impl Message<Rename<Session, SessionName>> for ServerState {
     type Reply = Result<Session>;
 
     async fn handle(
         &mut self,
-        rename: Rename<Session>,
+        rename: Rename<Session, SessionName>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        let name: SessionName = rename.name.parse()?;
         self.commit(|sessions, _| {
             session(sessions, rename.id)?;
-            ensure_unique(sessions, &name, Some(rename.id))?;
+            ensure_unique(sessions, &rename.name, Some(rename.id))?;
             let session = Arc::make_mut(&mut sessions[&rename.id]);
-            session.name = name;
+            session.name = rename.name;
             Ok(session.clone())
         })
         .await

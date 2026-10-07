@@ -201,10 +201,20 @@ impl Observer {
 fn render_tab(out: &mut String, tab: &Tab, depth: usize, selection: NodeId) {
     let indent = "  ".repeat(depth);
     let mark = marker(NodeId::Tab(tab.id), selection);
-    let _ = writeln!(out, "{indent}{} {:?}{mark}", tab.id, tab.name);
+    let _ = writeln!(
+        out,
+        "{indent}{} {:?}{mark}",
+        tab.id,
+        tab.name.get().unwrap_or_default()
+    );
     for pane in tab.panes.values() {
         let mark = marker(NodeId::Pane(pane.id), selection);
-        let _ = writeln!(out, "{indent}  {} {:?}{mark}", pane.id, pane.name);
+        let _ = writeln!(
+            out,
+            "{indent}  {} {:?}{mark}",
+            pane.id,
+            pane.name.get().unwrap_or_default()
+        );
     }
     for child in tab.tabs.values() {
         render_tab(out, child, depth + 1, selection);

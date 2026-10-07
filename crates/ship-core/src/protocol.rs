@@ -4,13 +4,13 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
     PartialSchema, ToSchema,
-    openapi::{Object, ObjectBuilder, Ref, RefOr, schema::Schema},
+    openapi::{AllOfBuilder, Object, ObjectBuilder, Ref, RefOr, schema::Schema},
 };
 use uuid::Uuid;
 
 use crate::{
     id::{Attachment, IdOf},
-    model::{Creatable, Named, NodeId, Session, Tab, TabParent},
+    model::{Creatable, NodeId, Session, Tab, TabParent},
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
@@ -39,25 +39,29 @@ pub struct Create<T: Creatable> {
 }
 
 /// Hand-written: Utoipa's derive cannot see through `IdOf<T::Parent>` and
-/// `T::Input`. Covers every entity created from a plain name (tabs, panes);
-/// routes append the entity, naming the component e.g. `Create_Tab`.
-impl<T: Creatable<Input = Named>> utoipa::__dev::ComposeSchema for Create<T>
+/// `T::Input`. An `allOf` of the parent and the flattened input; routes append
+/// the entity, naming the component e.g. `Create_Tab`.
+impl<T: Creatable> utoipa::__dev::ComposeSchema for Create<T>
 where
     IdOf<T::Parent>: PartialSchema,
+    T::Input: PartialSchema,
 {
     fn compose(_: Vec<RefOr<Schema>>) -> RefOr<Schema> {
-        ObjectBuilder::new()
-            .property("parent", <IdOf<T::Parent> as PartialSchema>::schema())
-            .required("parent")
-            .property("name", String::schema())
-            .required("name")
+        AllOfBuilder::new()
+            .item(
+                ObjectBuilder::new()
+                    .property("parent", <IdOf<T::Parent> as PartialSchema>::schema())
+                    .required("parent"),
+            )
+            .item(<T::Input as PartialSchema>::schema())
             .into()
     }
 }
 
-impl<T: Creatable<Input = Named>> ToSchema for Create<T>
+impl<T: Creatable> ToSchema for Create<T>
 where
     IdOf<T::Parent>: PartialSchema,
+    T::Input: PartialSchema,
 {
     fn name() -> Cow<'static, str> {
         "Create".into()

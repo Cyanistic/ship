@@ -1,0 +1,26 @@
+[package]
+name = "ratatui-ghostty"
+version = "0.2.0"
+edition = "2024"
+description = "Ratatui widget and renderer backed by the ghostty-vt terminal emulator"
+license = "MIT"
+readme = "README.md"
+keywords = ["ratatui", "terminal", "ghostty", "tui", "vt"]
+categories = ["command-line-interface"]
+repository = "https://codeberg.org/jint/ratatui-ghostty"
+
+[dependencies]
+crossbeam-channel = "0.5.15"
+crossterm = "0.29.0"
+libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "8953a740bc378cec3e07e1f6ca949f0595eab19b" }
+libc = "0.2"
+ratatui = "0.30.0"
+
+[[example]]
+name = "demo"
+path = "examples/demo/main.rs"
+
+[dev-dependencies]
+portable-pty = "0.9.0"
+anyhow = "1"
+

@@ -92,9 +92,9 @@ pub(crate) async fn rename_session(
 ) -> Result<Response> {
     let value = app
         .state
-        .ask(Rename::<Session> {
+        .ask(Rename::<Session, _> {
             id,
-            name: body.name.to_string(),
+            name: body.name,
         })
         .await?;
     Ok(Json(value).into_response())
@@ -159,7 +159,7 @@ pub(crate) async fn get_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Resul
     path = "/api/v0/tabs/{id}",
     operation_id = "rename_tab",
     params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
-    request_body = Named<String>,
+    request_body = Named<OptionalName>,
     responses(
         (status = 200, body = Tab),
         (status = 400, description = "Malformed tab ID"),
@@ -171,7 +171,7 @@ pub(crate) async fn get_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Resul
 pub(crate) async fn rename_tab(
     State(app): App,
     Path(id): Path<IdOf<Tab>>,
-    Json(body): Json<Named>,
+    Json(body): Json<Named<OptionalName>>,
 ) -> Result<Response> {
     let value = app
         .state
@@ -265,7 +265,7 @@ pub(crate) async fn get_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Res
     path = "/api/v0/panes/{id}",
     operation_id = "rename_pane",
     params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
-    request_body = Named<String>,
+    request_body = Named<OptionalName>,
     responses(
         (status = 200, body = Pane),
         (status = 400, description = "Malformed pane ID"),
@@ -277,7 +277,7 @@ pub(crate) async fn get_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Res
 pub(crate) async fn rename_pane(
     State(app): App,
     Path(id): Path<IdOf<Pane>>,
-    Json(body): Json<Named>,
+    Json(body): Json<Named<OptionalName>>,
 ) -> Result<Response> {
     let value = app
         .state

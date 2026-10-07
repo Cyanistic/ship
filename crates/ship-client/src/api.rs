@@ -95,11 +95,11 @@ impl Client {
         .await
     }
 
-    pub async fn create_tab(&self, parent: IdOf<TabParent>, name: &str) -> Result<Tab> {
+    pub async fn create_tab(&self, parent: IdOf<TabParent>, name: Option<&str>) -> Result<Tab> {
         let body = Create::<Tab> {
             parent,
             input: Named {
-                name: name.to_owned(),
+                name: name.map(str::to_owned).into(),
             },
         };
         self.request(
@@ -112,11 +112,11 @@ impl Client {
         .await
     }
 
-    pub async fn create_pane(&self, parent: IdOf<Tab>, name: &str) -> Result<Pane> {
+    pub async fn create_pane(&self, parent: IdOf<Tab>, name: Option<&str>) -> Result<Pane> {
         let body = Create::<Pane> {
             parent,
             input: Named {
-                name: name.to_owned(),
+                name: name.map(str::to_owned).into(),
             },
         };
         self.request(
@@ -135,7 +135,8 @@ impl Client {
             .await
     }
 
-    pub async fn rename<T: Resource>(&self, id: IdOf<T>, name: &str) -> Result<T> {
+    /// `None` clears a tab or pane name; sessions reject it.
+    pub async fn rename<T: Resource>(&self, id: IdOf<T>, name: Option<&str>) -> Result<T> {
         let path = format!("{}/{id}", T::COLLECTION);
         let body = Named { name };
         self.request(Method::PATCH, &path, Some(&body), None, StatusCode::OK)
