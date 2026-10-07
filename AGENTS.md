@@ -12,11 +12,23 @@ Questions those documents mark as open stay open. When work depends on one, brin
 
 ## Compactness
 
-Own the domain, rent the mechanisms. Ship owns session/tab/pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism.
+Own the domain, rent the mechanisms. Ship owns session/tab/pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism, and accept a little imprecision (for example in generated schemas) over maintaining a hand-written copy.
 
 Implementation Rust has a budget of roughly 20,000 lines. It is a conservative ceiling that leaning on dependencies should beat, and it shapes design without overriding working behavior or clear boundaries. Only implementation Rust counts; tests, integrations, scripts and docs fall outside it. Get small by expressing each invariant once through Rust types, derives and macros, not through opaque compression or generic frameworks built for hypothetical features.
 
 Ship starts with zero authored test code. Verify work with builds, formatting, Clippy, real workflows and temporary probes. Propose a permanent test only after encountering flaky behavior, and add it once Cyan agrees on its coverage. When reporting size, give implementation Rust and tests as separate counts.
+
+## Design
+
+Keep one source of truth. Store what can't be derived and compute the rest; duplicated or cached state needs a reason.
+
+Model state as state. When something has a current value, send and store the value, not the sequence of changes that produced it. Reserve event streams for things where each occurrence matters.
+
+Name your shapes. Prefer named types over anonymous inline structure, so data can be reused, documented and passed around.
+
+Earn every layer. A wrapper, abstraction or coordination mechanism should do something the thing beneath it doesn't. If it only forwards or restates, remove it.
+
+Check what's already guaranteed. Before building machinery, find out what the platform and dependencies already handle, verify it, and cover only the gap.
 
 ## Client/server boundary
 
