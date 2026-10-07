@@ -11,6 +11,7 @@ use utoipa::{
 use crate::{
     AppError, err,
     id::{Id, IdOf, Identified, Prefixed, ServerRoot, UntaggedEither},
+    protocol::PaneInput,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -34,13 +35,37 @@ pub struct Tab {
     pub panes: IndexMap<IdOf<Pane>, Pane>,
 }
 
-/// Metadata-only leaf. Owns no terminal, layout or children.
+/// A leaf running one program in its own terminal. Owns no layout or children.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Pane {
     pub id: IdOf<Pane>,
     #[serde(default)]
     pub name: OptionalName,
+    /// The argv the pane started; the shell's path for the default login shell.
+    pub command: Vec<String>,
+    /// Starting directory.
+    pub cwd: String,
+    /// The title the program last set; absent when none or cleared.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    pub status: PaneStatus,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(tag = "state", rename_all = "camelCase")]
+pub enum PaneStatus {
+    Running,
+    Exited(ExitStatus),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExitStatus {
+    pub code: u32,
+    /// The signal's name when a signal ended the program.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signal: Option<String>,
 }
 
 /// Ordered child tabs keyed by ID. Hand-written because the derive inlines
@@ -111,7 +136,7 @@ impl Creatable for Tab {
 
 impl Creatable for Pane {
     type Parent = Tab;
-    type Input = Named<OptionalName>;
+    type Input = PaneInput;
 }
 
 /// Creation and rename input. Sessions use `SessionName`; tabs and panes

@@ -69,6 +69,17 @@ pub(crate) fn pane(sessions: &Sessions, id: IdOf<Pane>) -> Result<&Pane> {
         .ok_or_else(|| not_found(NodeId::Pane(id)))
 }
 
+/// Every pane ID in the tree, in no particular order.
+pub(crate) fn pane_ids(sessions: &Sessions) -> impl Iterator<Item = IdOf<Pane>> + '_ {
+    fn walk(tabs: &Tabs) -> Box<dyn Iterator<Item = IdOf<Pane>> + '_> {
+        Box::new(
+            tabs.values()
+                .flat_map(|tab| tab.panes.keys().copied().chain(walk(&tab.tabs))),
+        )
+    }
+    sessions.values().flat_map(|session| walk(&session.tabs))
+}
+
 /// The tab that owns pane `id`.
 pub(crate) fn pane_owner(sessions: &Sessions, id: IdOf<Pane>) -> Result<IdOf<Tab>> {
     fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<IdOf<Tab>> {

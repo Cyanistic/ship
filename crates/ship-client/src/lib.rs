@@ -73,8 +73,8 @@ impl Client {
         url.set_query(None);
         url.set_fragment(None);
         let mut safe = url.clone();
-        let _ = safe.set_username("");
-        let _ = safe.set_password(None);
+        safe.set_username("").ok();
+        safe.set_password(None).ok();
 
         let mut request = self.http.request(method, url);
         if let Some(body) = body {

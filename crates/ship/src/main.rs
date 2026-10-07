@@ -34,9 +34,7 @@ fn run(cli: Cli, explicit_target: bool) -> Result<()> {
             ..
         }))
     ) {
-        nix::unistd::setsid().map_err(
-            |error| err!(Io, "cannot establish background server session", @external: error),
-        )?;
+        detach()?;
     }
     diagnostics::init()?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -44,6 +42,14 @@ fn run(cli: Cli, explicit_target: bool) -> Result<()> {
         .build()
         .map_err(|error| err!(Internal, "cannot create runtime", @external: error))?;
     runtime.block_on(dispatch(cli, explicit_target))
+}
+
+/// Leave the launching terminal's session so the background server outlives it.
+#[cfg(unix)]
+fn detach() -> Result<()> {
+    nix::unistd::setsid()
+        .map(drop)
+        .map_err(|error| err!(Io, "cannot establish background server session", @external: error))
 }
 
 /// Application compatibility boundary, shared by explicit requests and local readiness.

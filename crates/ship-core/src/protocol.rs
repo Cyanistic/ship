@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     id::{Attachment, IdOf},
-    model::{Creatable, NodeId, Session, Tab, TabParent},
+    model::{Creatable, NodeId, OptionalName, Session, Tab, TabParent},
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
@@ -66,6 +66,29 @@ where
     fn name() -> Cow<'static, str> {
         "Create".into()
     }
+}
+
+/// What a pane runs. Pane creation input; also the starter pane on session
+/// creation.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneSpec {
+    /// argv; absent means the server's login shell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<Vec<String>>,
+    /// Absolute directory; absent means the server's home directory.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+}
+
+/// POST /panes input, flattened next to `parent`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneInput {
+    #[serde(default)]
+    pub name: OptionalName,
+    #[serde(flatten)]
+    pub spec: PaneSpec,
 }
 
 /// POST /tabs/{id}/move body. No placement appends.

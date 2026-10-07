@@ -14,13 +14,18 @@ axum.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
 kameo.workspace = true
+portable-pty.workspace = true
 ratatui-ghostty.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
 tower-http.workspace = true
 tracing.workspace = true
 utoipa.workspace = true
 utoipa-axum.workspace = true
 uuid.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+nix.workspace = true
 
 [lints]
 workspace = true

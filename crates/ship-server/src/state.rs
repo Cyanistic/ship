@@ -1,30 +1,42 @@
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+    sync::Arc,
+};
 
+use futures_util::future::join_all;
 use indexmap::IndexMap;
 use kameo::prelude::*;
 use ship_core::{
     id::*,
     model::*,
     prelude::*,
-    protocol::{AttachRequest, Attached, Create, MoveTab, Replica, ViewingRecord},
+    protocol::{AttachRequest, Attached, Create, MoveTab, PaneInput, Replica, ViewingRecord},
+    screen::Size,
 };
 use ship_macros::Actor;
 use uuid::Uuid;
 
 use ship_core::relay::{Publish, RelayBus};
 
+use crate::pane::{self, Launch, PaneChange, PaneEvent, PaneRuntime, Spawned};
+
 mod tree;
 
 pub(crate) type Sessions = IndexMap<IdOf<Session>, Arc<Session>>;
 pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
 
-/// Sole owner of the tree and of every active attachment's viewing record.
+/// Sole owner of the tree, of every active attachment's viewing record and of
+/// every pane's running program.
 #[derive(Actor)]
+#[actor(on_stop = Self::stop_panes)]
 pub struct ServerState {
     incarnation: Uuid,
     revision: u64,
     sessions: Sessions,
     viewers: Viewers,
+    /// Exactly the panes in `sessions` once each `commit` returns.
+    runtimes: HashMap<IdOf<Pane>, PaneRuntime>,
     bus: ActorRef<RelayBus>,
 }
 
@@ -35,6 +47,7 @@ impl ServerState {
             revision: 0,
             sessions: Sessions::new(),
             viewers: Viewers::new(),
+            runtimes: HashMap::new(),
             bus,
         }
     }
@@ -45,13 +58,24 @@ impl ServerState {
     /// leaving state unchanged. Cloning copies only `Arc`s; `Arc::make_mut`
     /// copies the sessions an edit touches. A publish failure after the swap
     /// returns `Unavailable`; the edit stays committed.
+    ///
+    /// On both paths, runtimes whose pane is not in the resulting tree are
+    /// dropped, which tears their programs down. That covers removed panes and
+    /// a runtime started for an edit that failed.
     async fn commit<R>(
         &mut self,
         edit: impl FnOnce(&mut Sessions, &mut Viewers) -> Result<R>,
     ) -> Result<R> {
         let mut sessions = self.sessions.clone();
         let mut viewers = self.viewers.clone();
-        let result = edit(&mut sessions, &mut viewers)?;
+        let result = edit(&mut sessions, &mut viewers);
+        let result = match result {
+            Ok(result) => result,
+            Err(error) => {
+                self.retain_runtimes();
+                return Err(error);
+            }
+        };
         self.viewers = viewers
             .into_iter()
             .filter_map(|(attachment, record)| {
@@ -59,6 +83,7 @@ impl ServerState {
             })
             .collect();
         self.sessions = sessions;
+        self.retain_runtimes();
         self.revision += 1;
         tracing::debug!(revision = self.revision, "publishing replica");
         self.bus
@@ -87,6 +112,59 @@ impl ServerState {
             .find(|node| inside(new, session, *node))
             .unwrap_or(NodeId::Session(session));
         Some(ViewingRecord { session, selection })
+    }
+
+    fn retain_runtimes(&mut self) {
+        let panes: HashSet<_> = tree::pane_ids(&self.sessions).collect();
+        self.runtimes.retain(|pane, _| panes.contains(pane));
+    }
+
+    /// Start a pane's program before the commit that inserts it, and keep its
+    /// runtime. Returns the pane, running, for the edit to insert.
+    fn start_pane(&mut self, tab: IdOf<Tab>, input: PaneInput) -> Result<Pane> {
+        tree::tab(&self.sessions, tab)?;
+        let cwd = match input.spec.cwd {
+            Some(cwd) => PathBuf::from(cwd),
+            None => std::env::home_dir()
+                .ok_or_else(|| err!(Configuration, "the server has no home directory"))?,
+        };
+        if !cwd.is_absolute() || !cwd.is_dir() {
+            return Err(err!(
+                Validation,
+                "'{}' is not an existing absolute directory",
+                cwd.display()
+            ));
+        }
+        let id = Id::new();
+        let Spawned { runtime, command } = pane::spawn(
+            Launch {
+                pane: id,
+                command: input.spec.command,
+                cwd: cwd.clone(),
+                size: Size::FALLBACK,
+            },
+            self.bus.clone(),
+        )?;
+        self.runtimes.insert(id, runtime);
+        Ok(Pane {
+            id,
+            name: input.name,
+            command,
+            cwd: cwd.display().to_string(),
+            title: None,
+            status: PaneStatus::Running,
+        })
+    }
+
+    /// kameo's `on_stop`. Every pane in the tree gets the full hangup, grace
+    /// and kill before the actor finishes stopping.
+    async fn stop_panes(
+        &mut self,
+        _: WeakActorRef<Self>,
+        _: ActorStopReason,
+    ) -> std::result::Result<(), kameo::error::Infallible> {
+        join_all(self.runtimes.drain().map(|(_, runtime)| runtime.stop())).await;
+        Ok(())
     }
 
     pub fn replica(&self) -> Arc<Replica> {
@@ -340,11 +418,8 @@ impl Message<Create<Pane>> for ServerState {
         create: Create<Pane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
+        let pane = self.start_pane(create.parent, create.input)?;
         self.commit(|sessions, _| {
-            let pane = Pane {
-                id: Id::new(),
-                name: create.input.name,
-            };
             tree::tab_mut(sessions, create.parent)?
                 .panes
                 .insert(pane.id, pane.clone());
@@ -510,6 +585,31 @@ impl Message<SwitchSession> for ServerState {
                 selection: NodeId::Session(id),
             };
             Ok(record.clone())
+        })
+        .await
+    }
+}
+
+impl Message<PaneEvent> for ServerState {
+    type Reply = Result<()>;
+
+    /// Title or exit. Ignored for panes no longer in the tree.
+    async fn handle(
+        &mut self,
+        PaneEvent { pane: id, change }: PaneEvent,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        if tree::pane(&self.sessions, id).is_err() {
+            return Ok(());
+        }
+        self.commit(|sessions, _| {
+            let owner = tree::pane_owner(sessions, id)?;
+            let pane = &mut tree::tab_mut(sessions, owner)?.panes[&id];
+            match change {
+                PaneChange::Title(title) => pane.title = title,
+                PaneChange::Exited(status) => pane.status = PaneStatus::Exited(status),
+            }
+            Ok(())
         })
         .await
     }

@@ -11,7 +11,7 @@ use ship_core::{
     model::{Named, NodeId, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
     protocol::{
-        AttachRequest, Create, MoveTab, SelectRequest, SseEvent, SwitchSessionRequest,
+        AttachRequest, Create, MoveTab, PaneInput, SelectRequest, SseEvent, SwitchSessionRequest,
         ViewingRecord,
     },
 };
@@ -112,12 +112,10 @@ impl Client {
         .await
     }
 
-    pub async fn create_pane(&self, parent: IdOf<Tab>, name: Option<&str>) -> Result<Pane> {
+    pub async fn create_pane(&self, parent: IdOf<Tab>, input: &PaneInput) -> Result<Pane> {
         let body = Create::<Pane> {
             parent,
-            input: Named {
-                name: name.map(str::to_owned).into(),
-            },
+            input: input.clone(),
         };
         self.request(
             Method::POST,

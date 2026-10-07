@@ -182,14 +182,15 @@ impl Observer {
         };
         let mut out = String::new();
         let selection = record.selection;
-        let _ = writeln!(
+        writeln!(
             out,
             "{} {:?} (revision {}){}",
             session.id,
             session.name.to_string(),
             replica.revision,
             marker(NodeId::Session(session.id), selection)
-        );
+        )
+        .ok();
         for root in session.tabs.values() {
             render_tab(&mut out, root, 1, selection);
         }
@@ -201,20 +202,22 @@ impl Observer {
 fn render_tab(out: &mut String, tab: &Tab, depth: usize, selection: NodeId) {
     let indent = "  ".repeat(depth);
     let mark = marker(NodeId::Tab(tab.id), selection);
-    let _ = writeln!(
+    writeln!(
         out,
         "{indent}{} {:?}{mark}",
         tab.id,
         tab.name.get().unwrap_or_default()
-    );
+    )
+    .ok();
     for pane in tab.panes.values() {
         let mark = marker(NodeId::Pane(pane.id), selection);
-        let _ = writeln!(
+        writeln!(
             out,
             "{indent}  {} {:?}{mark}",
             pane.id,
             pane.name.get().unwrap_or_default()
-        );
+        )
+        .ok();
     }
     for child in tab.tabs.values() {
         render_tab(out, child, depth + 1, selection);

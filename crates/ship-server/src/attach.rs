@@ -33,7 +33,7 @@ impl Drop for AttachmentGuard {
         };
         let (attachment, state) = (self.attachment, self.state.clone());
         runtime.spawn(async move {
-            let _ = state.tell(Detach(attachment)).await;
+            state.tell(Detach(attachment)).await.ok();
         });
     }
 }

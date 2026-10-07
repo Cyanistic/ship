@@ -4,6 +4,7 @@
 mod app;
 mod attach;
 mod health;
+mod pane;
 mod routes;
 mod state;
 
@@ -21,7 +22,10 @@ use kameo::{
     mailbox,
 };
 use ship_core::{prelude::*, protocol::Replica, relay};
-use tokio::{net::TcpListener, sync::watch};
+use tokio::{
+    net::TcpListener,
+    sync::{mpsc, watch},
+};
 use tower_http::{
     compression::{
         CompressionLayer, Predicate,
@@ -42,9 +46,10 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
 /// Document metadata. Expanding the derive here takes title, version and
 /// description from ship-server's manifest; paths and schemas come from
 /// `routes!`. Schemas reached only through a hand-written `$ref`, such as
-/// `Replica::viewers`, are registered here.
+/// `Replica::viewers` or the flattened `PaneSpec` in `Create_Pane`, are
+/// registered here.
 #[derive(OpenApi)]
-#[openapi(components(schemas(ship_core::protocol::ViewingRecord)))]
+#[openapi(components(schemas(ship_core::protocol::ViewingRecord, ship_core::protocol::PaneSpec)))]
 struct ApiDoc;
 
 /// One `.routes(routes!(handler))` per handler. Registrations on the same path
@@ -134,6 +139,7 @@ pub async fn serve(
     .await
     .map_err(|error| err!(Internal, "cannot subscribe replica stream", @external: error))?;
     let state = state::ServerState::spawn(state);
+    forward_pane_events(&bus, state.clone()).await?;
     let actors = (state.clone(), bus.clone());
     let app = AppState {
         state,
@@ -165,6 +171,28 @@ pub async fn serve(
     result_rx.borrow().clone().unwrap_or(Ok(()))
 }
 
+/// Pane titles and exits reach the state actor through an unbounded sink and
+/// an awaited `tell`, so an exit status waits rather than drops.
+async fn forward_pane_events(
+    bus: &ActorRef<relay::RelayBus>,
+    state: ActorRef<state::ServerState>,
+) -> Result<()> {
+    let (events_tx, mut events) = mpsc::unbounded_channel::<pane::PaneEvent>();
+    bus.ask(relay::Subscribe {
+        sink: Box::new(events_tx),
+    })
+    .await
+    .map_err(|error| err!(Internal, "cannot subscribe pane events", @external: error))?;
+    tokio::spawn(async move {
+        while let Some(event) = events.recv().await {
+            if state.tell(event).await.is_err() {
+                break;
+            }
+        }
+    });
+    Ok(())
+}
+
 /// Resolves when either actor stops on its own, such as after a panic. A
 /// server without them would keep serving stale observers, so this begins
 /// shutdown with an error.
@@ -187,9 +215,11 @@ async fn actor_stopped(
 /// queued commits still publish. Dropping the relay drops the replica watch
 /// sender, which ends every attach stream with `serverShutdown` so Axum's
 /// drain can finish. Stopping an actor that already stopped is a no-op.
+/// `wait_for_shutdown_result`, unlike `wait_for_shutdown`, also waits for the
+/// state actor's `on_stop`, which tears down every pane.
 async fn stop_actors(state: &ActorRef<state::ServerState>, bus: &ActorRef<relay::RelayBus>) {
-    let _ = state.stop_gracefully().await;
-    state.wait_for_shutdown().await;
-    let _ = bus.stop_gracefully().await;
+    state.stop_gracefully().await.ok();
+    state.wait_for_shutdown_result().await.ok();
+    bus.stop_gracefully().await.ok();
     bus.wait_for_shutdown().await;
 }

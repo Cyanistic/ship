@@ -30,6 +30,8 @@ Earn every layer. A wrapper, abstraction or coordination mechanism should do som
 
 Check what's already guaranteed. Before building machinery, find out what the platform and dependencies already handle, verify it, and cover only the gap.
 
+Discard a result you don't need with `.ok()`, not `let _ =`.
+
 ## Client/server boundary
 
 Keep the boundary crossable by a network later. The client reaches the server only through explicit commands, responses and events, never through server internals. Live resources (PTYs, child processes, Ghostty objects, tasks, connections) stay private to the server; serialize descriptions and screen contents, never handles.
@@ -45,6 +47,8 @@ Profile before consequential architecture decisions and before anything that loo
 ## Platforms
 
 Linux is Cyan's primary environment. Linux and macOS are priority platforms; Windows and others are best effort. Choose cross-platform dependencies, validate Linux and macOS deliberately, and report any check not run on a platform as unverified there. Add platform-specific code when a concrete platform need appears.
+
+Keep platform-specific code behind `cfg`. Use the portable std or dependency API wherever one exists. Confine each Unix-only mechanism to one small function or module gated with `#[cfg(unix)]`, and don't call `nix` or `libc` from otherwise portable code. On other platforms, give the item a plain fallback or leave it missing, so a port fails to compile exactly at that boundary.
 
 ## Reference multiplexers
 

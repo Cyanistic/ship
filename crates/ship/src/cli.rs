@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 use ship_client::{SessionRef, TabParentRef};
@@ -32,7 +32,7 @@ pub enum Command {
     /// Create, inspect, rename, remove or move tabs
     #[command(subcommand)]
     Tab(TabCommand),
-    /// Create, inspect, rename or remove logical panes
+    /// Create, inspect, rename or remove panes
     #[command(subcommand)]
     Pane(PaneCommand),
     /// Observe a session as a live text tree; stdin accepts `select <id>` and `switch <session>`
@@ -69,7 +69,7 @@ pub enum TabCommand {
 
 #[derive(Subcommand)]
 pub enum PaneCommand {
-    /// Append a metadata-only pane to a tab and print it as JSON
+    /// Append a pane running a program to a tab and print it as JSON
     Create(CreatePaneArgs),
     /// Print a pane as JSON
     Get(IdArgs<Pane>),
@@ -141,6 +141,12 @@ pub struct CreatePaneArgs {
     /// Pane name; omitted or blank means none
     #[arg(long)]
     pub name: Option<String>,
+    /// Starting directory; defaults to the current directory
+    #[arg(long)]
+    pub cwd: Option<PathBuf>,
+    /// Command and arguments; defaults to your login shell
+    #[arg(last = true, value_name = "COMMAND")]
+    pub command: Vec<String>,
 }
 
 #[derive(Args)]
