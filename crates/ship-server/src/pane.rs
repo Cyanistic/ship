@@ -27,7 +27,7 @@ use ship_core::{
     screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Size},
 };
 use tokio::{
-    sync::{Notify, oneshot, watch},
+    sync::{Notify, mpsc, oneshot, watch},
     time::MissedTickBehavior,
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
@@ -66,6 +66,18 @@ pub(crate) struct Launch {
 pub(crate) struct PaneHandle {
     /// The pane's latest screen. Ends when the pane task does.
     pub screen: watch::Receiver<Arc<Screen>>,
+    /// Input and resizes. Sending never waits on the terminal; a send after
+    /// the pane task ended fails and is ignored.
+    pub commands: mpsc::UnboundedSender<PaneCommand>,
+}
+
+pub(crate) enum PaneCommand {
+    /// Encoded by the wrapper against the terminal's live modes.
+    Key(crossterm::event::KeyEvent),
+    /// Bracketed by the wrapper when the program enabled it.
+    Paste(String),
+    /// Dropped when equal to the pane's current size.
+    Resize(Size),
 }
 
 /// Every running pane, published by the state actor.
@@ -196,9 +208,11 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
     let (screen, screen_rx) = watch::channel(Arc::new(capture(&session)));
     let cancel = CancellationToken::new();
     let (done_tx, done) = oneshot::channel();
+    let (commands, commands_rx) = mpsc::unbounded_channel();
     let task = PaneTask {
         pane,
         session,
+        size,
         master,
         program,
         exit: Exit {
@@ -210,10 +224,13 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
         screen,
         bus,
     };
-    tokio::spawn(task.run(cancel.clone(), done_tx));
+    tokio::spawn(task.run(commands_rx, cancel.clone(), done_tx));
     Ok(Spawned {
         runtime: PaneRuntime {
-            handle: PaneHandle { screen: screen_rx },
+            handle: PaneHandle {
+                screen: screen_rx,
+                commands,
+            },
             cancel: cancel.drop_guard(),
             done,
         },
@@ -225,6 +242,8 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
 struct PaneTask {
     pane: IdOf<Pane>,
     session: SessionHandle,
+    /// The terminal's size as last requested; equal resizes are dropped.
+    size: Size,
     /// Shared with the wrapper's resizer; teardown reads the foreground group from it.
     master: Master,
     program: Program,
@@ -238,12 +257,18 @@ struct PaneTask {
 }
 
 impl PaneTask {
-    async fn run(mut self, cancel: CancellationToken, done: oneshot::Sender<()>) {
+    async fn run(
+        mut self,
+        mut commands: mpsc::UnboundedReceiver<PaneCommand>,
+        cancel: CancellationToken,
+        done: oneshot::Sender<()>,
+    ) {
         let mut frame = tokio::time::interval(FRAME);
         frame.set_missed_tick_behavior(MissedTickBehavior::Delay);
         loop {
             tokio::select! {
                 () = cancel.cancelled() => break,
+                Some(command) = commands.recv() => self.command(command),
                 () = self.dirty.notified() => {
                     frame.tick().await;
                     self.publish().await;
@@ -259,6 +284,23 @@ impl PaneTask {
         }
         self.teardown().await;
         done.send(()).ok();
+    }
+
+    /// Hand input and resizes to the wrapper. An exited program's pane keeps
+    /// its last screen, so everything is ignored then.
+    fn command(&mut self, command: PaneCommand) {
+        if self.exit.reaped {
+            return;
+        }
+        match command {
+            PaneCommand::Key(key) => self.session.send_key(key),
+            PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),
+            PaneCommand::Resize(size) if size != self.size => {
+                self.size = size;
+                self.session.send_resize(size.cols, size.rows);
+            }
+            PaneCommand::Resize(_) => {}
+        }
     }
 
     /// Drain the wrapper's events, publish the screen, then the title if one

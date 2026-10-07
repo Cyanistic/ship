@@ -11,7 +11,9 @@ use ship_core::{
     id::*,
     model::*,
     prelude::*,
-    protocol::{AttachRequest, Attached, Create, MoveTab, PaneInput, Replica, ViewingRecord},
+    protocol::{
+        AttachRequest, Attached, Create, MoveTab, PaneInput, Replica, ViewInput, ViewingRecord,
+    },
     screen::Size,
 };
 use ship_macros::Actor;
@@ -20,7 +22,9 @@ use uuid::Uuid;
 
 use ship_core::relay::{Publish, RelayBus};
 
-use crate::pane::{self, Launch, LivePanes, PaneChange, PaneEvent, PaneRuntime, Spawned};
+use crate::pane::{
+    self, Launch, LivePanes, PaneChange, PaneCommand, PaneEvent, PaneRuntime, Spawned,
+};
 
 pub(crate) mod tree;
 
@@ -62,7 +66,8 @@ impl ServerState {
     /// in, bump `revision` and publish. An `Err` from `edit` discards the clones,
     /// leaving state unchanged. Cloning copies only `Arc`s; `Arc::make_mut`
     /// copies the sessions an edit touches. A publish failure after the swap
-    /// returns `Unavailable`; the edit stays committed.
+    /// returns `Unavailable`; the edit stays committed. After publishing, each
+    /// viewed tab's panes are sent its size.
     ///
     /// On both paths, runtimes whose pane is not in the resulting tree are
     /// dropped, which tears their programs down. That covers removed panes and
@@ -95,6 +100,7 @@ impl ServerState {
             .tell(Publish(self.replica()))
             .await
             .map_err(|error| err!(Unavailable, "cannot publish state", @external: error))?;
+        self.apply_sizes();
         Ok(result)
     }
 
@@ -116,7 +122,10 @@ impl ServerState {
             .rev()
             .find(|node| inside(new, session, *node))
             .unwrap_or(NodeId::Session(session));
-        Some(ViewingRecord { session, selection })
+        Some(ViewingRecord {
+            selection,
+            ..record
+        })
     }
 
     /// Drop runtimes whose panes are gone and publish the rest's handles,
@@ -132,8 +141,46 @@ impl ServerState {
         );
     }
 
+    /// Each viewed tab's size: the smallest of its viewers' terminals in each
+    /// dimension, one row less for the status line. Derived, never stored.
+    fn tab_sizes(&self) -> HashMap<IdOf<Tab>, Size> {
+        let mut sizes: HashMap<IdOf<Tab>, Size> = HashMap::new();
+        for record in self.viewers.values() {
+            let Some(tab) = tree::viewed_tab(&self.sessions, record.selection) else {
+                continue;
+            };
+            let size = Size {
+                cols: record.size.cols.max(1),
+                rows: record.size.rows.saturating_sub(1).max(1),
+            };
+            sizes
+                .entry(tab)
+                .and_modify(|smallest| {
+                    smallest.cols = smallest.cols.min(size.cols);
+                    smallest.rows = smallest.rows.min(size.rows);
+                })
+                .or_insert(size);
+        }
+        sizes
+    }
+
+    /// Send each viewed tab's size to its own panes; pane tasks drop resizes
+    /// that change nothing. A tab nobody views gets nothing and keeps its size.
+    fn apply_sizes(&self) {
+        for (tab, size) in self.tab_sizes() {
+            let Ok(tab) = tree::tab(&self.sessions, tab) else {
+                continue;
+            };
+            for pane in tab.panes.keys() {
+                if let Some(runtime) = self.runtimes.get(pane) {
+                    runtime.handle.commands.send(PaneCommand::Resize(size)).ok();
+                }
+            }
+        }
+    }
+
     /// Start a pane's program before the commit that inserts it, and keep its
-    /// runtime. Returns the pane, running, for the edit to insert.
+    /// runtime. It starts at its tab's size, else 80x24. Returns the pane, running, for the edit to insert.
     fn start_pane(&mut self, tab: IdOf<Tab>, input: PaneInput) -> Result<Pane> {
         tree::tab(&self.sessions, tab)?;
         let cwd = match input.spec.cwd {
@@ -154,7 +201,11 @@ impl ServerState {
                 pane: id,
                 command: input.spec.command,
                 cwd: cwd.clone(),
-                size: Size::FALLBACK,
+                size: self
+                    .tab_sizes()
+                    .get(&tab)
+                    .copied()
+                    .unwrap_or(Size::FALLBACK),
             },
             self.bus.clone(),
         )?;
@@ -239,6 +290,13 @@ pub struct Attach {
     pub request: AttachRequest,
 }
 pub struct Detach(pub IdOf<Attachment>);
+/// Whether an attachment is active, before the input route reads its body.
+pub struct CheckAttachment(pub IdOf<Attachment>);
+/// Replace an attachment's view.
+pub struct SetView {
+    pub attachment: IdOf<Attachment>,
+    pub view: ViewInput,
+}
 pub struct Select {
     pub attachment: IdOf<Attachment>,
     pub selection: NodeId,
@@ -515,6 +573,7 @@ impl Message<Attach> for ServerState {
             let record = ViewingRecord {
                 session: request.session,
                 selection,
+                size: request.size,
             };
             viewers.insert(attachment, record);
             Ok(())
@@ -543,6 +602,56 @@ impl Message<Detach> for ServerState {
         self.commit(|_, viewers| {
             viewers.shift_remove(&attachment);
             Ok(())
+        })
+        .await
+    }
+}
+
+impl Message<CheckAttachment> for ServerState {
+    type Reply = Result<u64>;
+
+    /// The current revision, whose replica holds the attachment; 404 if it
+    /// isn't active.
+    async fn handle(
+        &mut self,
+        CheckAttachment(attachment): CheckAttachment,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        if !self.viewers.contains_key(&attachment) {
+            return Err(err!(NotFound, "attachment {} not found", attachment));
+        }
+        Ok(self.revision)
+    }
+}
+
+impl Message<SetView> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    /// The record becomes the view, in the selection's session, and is
+    /// returned as stored. A selection no longer in the tree, such as a pane
+    /// removed a moment ago, leaves the record as it was. 404 if the
+    /// attachment isn't active.
+    async fn handle(
+        &mut self,
+        SetView { attachment, view }: SetView,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        let record = self
+            .viewers
+            .get(&attachment)
+            .cloned()
+            .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
+        let Some(session) = tree::session_of(&self.sessions, view.selection) else {
+            return Ok(record);
+        };
+        let record = ViewingRecord {
+            session,
+            selection: view.selection,
+            size: view.size,
+        };
+        self.commit(|_, viewers| {
+            viewers.insert(attachment, record.clone());
+            Ok(record)
         })
         .await
     }
@@ -596,6 +705,7 @@ impl Message<SwitchSession> for ServerState {
             *record = ViewingRecord {
                 session: id,
                 selection: NodeId::Session(id),
+                size: record.size,
             };
             Ok(record.clone())
         })

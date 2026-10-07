@@ -4,6 +4,7 @@
 mod app;
 mod attach;
 mod health;
+mod input;
 mod pane;
 mod routes;
 mod state;
@@ -16,7 +17,7 @@ use std::{
 };
 
 pub use app::AppState;
-use axum::Router;
+use axum::{Router, serve::ListenerExt};
 use kameo::{
     actor::{ActorRef, Spawn},
     mailbox,
@@ -79,6 +80,8 @@ fn api_router() -> OpenApiRouter<AppState> {
         routes::rename_pane,
         routes::remove_pane,
         attach::attach,
+        input::input,
+        attach::view,
         attach::select,
         attach::switch_session,
     )
@@ -126,6 +129,10 @@ pub async fn serve(
         };
         err!(code, "cannot bind server at {}", address, @external: error)
     })?;
+    // Keys are tiny writes that must not wait for an ACK.
+    let listener = listener.tap_io(|tcp| {
+        tcp.set_nodelay(true).ok();
+    });
     tracing::info!(%address, pid = std::process::id(), protocol_version = ship_core::PROTOCOL_VERSION, "server listening");
     // Axum awaits shutdown directly. This channel only observes its result so
     // the outer task can propagate errors and bound draining after signal receipt.

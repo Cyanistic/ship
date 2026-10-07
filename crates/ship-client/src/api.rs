@@ -11,8 +11,8 @@ use ship_core::{
     model::{Named, NodeId, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
     protocol::{
-        AttachRequest, Create, MoveTab, PaneInput, SelectRequest, SseEvent, SwitchSessionRequest,
-        ViewingRecord,
+        AttachRequest, Create, InputFrame, MoveTab, PaneInput, SelectRequest, SseEvent,
+        SwitchSessionRequest, ViewInput, ViewingRecord,
     },
 };
 
@@ -213,6 +213,38 @@ impl Client {
                 Err(EventStreamError::Transport(error)) => Err(http_error(error)),
                 Err(error) => Err(err!(Serialization, "malformed attach stream", @external: error)),
             }))
+    }
+
+    /// Stream `frames` to the attachment's panes in one POST, until `frames`
+    /// ends or the server answers. Only the connect timeout applies.
+    pub async fn input(
+        &self,
+        attachment: IdOf<Attachment>,
+        frames: impl Stream<Item = InputFrame> + Send + 'static,
+    ) -> Result<()> {
+        self.send_stream(
+            "/api/v0/attach/input",
+            attachment,
+            frames,
+            StatusCode::NO_CONTENT,
+        )
+        .await
+    }
+
+    /// Replace the attachment's view; returns the record as stored.
+    pub async fn set_view(
+        &self,
+        attachment: IdOf<Attachment>,
+        view: &ViewInput,
+    ) -> Result<ViewingRecord> {
+        self.request(
+            Method::PUT,
+            "/api/v0/attach/view",
+            Some(view),
+            Some(attachment),
+            StatusCode::OK,
+        )
+        .await
     }
 
     /// Select within the attachment's session. The attachment ID is the one

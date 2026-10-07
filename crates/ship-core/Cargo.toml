@@ -12,6 +12,7 @@ kameo = ["dep:kameo", "dep:ship-macros", "dep:tokio"]
 
 [dependencies]
 axum = { workspace = true, optional = true }
+crossterm.workspace = true
 indexmap.workspace = true
 kameo = { workspace = true, optional = true }
 serde.workspace = true

@@ -11,6 +11,7 @@ ship-core = { workspace = true, features = ["axum", "kameo"] }
 ship-macros.workspace = true
 
 axum.workspace = true
+crossterm.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
 kameo.workspace = true

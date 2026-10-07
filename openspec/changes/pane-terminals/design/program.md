@@ -1026,3 +1026,35 @@ Evidence for D26, release binary against a foreground server with `RUST_LOG=ship
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
 - Size: implementation Rust 4,766 lines (−61 from the table shape); tests 0.
 - Linux: unverified.
+
+### Slice 4 (2026-10-06, macOS arm64)
+
+**D27. `CheckAttachment` replies with the current revision, not `()`.** Touches this paper's `state.rs` messages and `input.rs` step 1. The input loop ends when a replica lacks the attachment, but the replica watch lags the state actor: a replica committed before the attach can still be queued on the bus when the input POST arrives, and it lacks the attachment. The reply carries the revision at the check, and the loop only ends on a replica at least that new, as `attach.rs` already does with its own revision.
+
+**D28. A bad input line is answered with an explicit 422.** This paper says 422 on a malformed or oversized line. `ErrorCode` maps only `InvalidStructure` to 422, which means something else, so `input` returns `StatusCode::UNPROCESSABLE_ENTITY` with a `Validation` error body. Every `LinesCodec` error counts, including invalid UTF-8 and a body read error, whose response nobody reads. Blank lines are skipped rather than rejected.
+
+**D29. Sizes come from one `tab_sizes()` map.** This paper names `tab_size(tab)`. `start_pane` and `apply_sizes` both need it, so one pass over the viewing records builds every viewed tab's size. The minimum is taken per dimension, and a size never drops below 1x1, so a client reporting 0 rows can't give a pane a zero-height terminal.
+
+**D30. `tree::session_of` landed in slice 4.** Planned for slice 5, but `SetView` derives the record's session from the selection.
+
+**D31. The size field forced small changes in slice 4.1.** `ViewingRecord.size` and `AttachRequest.size` are required, so `repair`, `Select` and `SwitchSession` carry the record's size, and the old text observer sends `Size::FALLBACK`. Until slice 5 deletes it, a text observer viewing a tab holds it at 80x23 at most. `PaneHandle` (D26) gained `commands`, and the input route routes through `AppState.live`. Pane tasks ignore resizes as well as input once the program has exited.
+
+**D32. Resolved question 6 is verified.** `ship-core` builds on its own with crossterm `default-features = false, features = ["events", "serde"]`. No Ship manifest names bitflags; it arrives through crossterm.
+
+**D33. The OpenAPI consumer reused the built Ghostty.** Built outside the repo with a copy of `Cargo.lock` and `CARGO_TARGET_DIR` set to the workspace's `target`, it reused the existing `libghostty-vt` build and needed no Zig 0.16. D2 is still open.
+
+Evidence, against a foreground `ship server` with `--server-url` on each client, debug binary and then the release binary with the same results:
+
+- A `curl -X POST -T -` input stream fed from a FIFO with a `paste` of `echo hi` and an `Enter` `key` shows `echo hi`, `hi` and a new prompt in the next screen event while the body is still open. Closing the FIFO returns 204.
+- A line of exactly 65,536 bytes returns 204. One of 65,537 returns 422 (`max line length exceeded`), and a truncated JSON line returns 422 (`malformed input frame`).
+- A frame for an unknown pane is dropped, and the next frame on the same stream reaches its pane.
+- An ended attachment gets 404 on the input route within 0.5 s while the request body is still held open, and 404 on `PUT /attach/view`.
+- Two attach streams on one tab at 100x30 and 80x24 give 80x23 screens, and the program's SIGWINCH trap prints `23 80`. A pane created in that tab starts at 80x23. Detaching the smaller gives 100x29. After detaching both, a new 100x30 viewer's first screen is still 100x29 with no further SIGWINCH.
+- `PUT /attach/view` with a pane in another session returns 200 with the record in that session at the new size. With a pane removed a moment before, it returns 200 with the record unchanged.
+- `curl --http2-prior-knowledge` on `/health` answers over HTTP/2, and `--http1.1` still works.
+- Through `ship-client`, from a disposable probe outside the repo: `set_view` returns the stored record, and `input` streams a `Paste` and a crossterm `KeyEvent::new(Enter)` that run `echo from-client` in the pane, then returns `Ok` on 204.
+- `kill -TERM` on the server with an idle input stream and an attach stream open: the input request completes with 204, the attach stream ends with `serverShutdown`, and the server exits in 0.05 s.
+- The disposable `openapi()` consumer, outside the repo, shows OpenAPI 3.1 with `POST /api/v0/attach/input` (`application/x-ndjson` body of `InputFrame`, responses 204, 400, 404, 422, 503) and `PUT /api/v0/attach/view` (`ViewInput`, returning `ViewingRecord`), `KeyInput.key` as a bare `object`, `size` required on `AttachRequest`, `ViewInput` and `ViewingRecord`, and no dangling `$ref`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 5,165 lines (+399); tests 0.
+- Linux: not required for slice 4, unverified.

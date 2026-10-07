@@ -7,6 +7,7 @@ use ship_core::{
     model::{NodeId, Session, Tab},
     prelude::*,
     protocol::{AttachRequest, EndReason, Ended, Replica, SseEvent, ViewingRecord},
+    screen::Size,
 };
 
 use crate::controls;
@@ -26,9 +27,11 @@ const MAX_BACKOFF: Duration = Duration::from_secs(5);
 /// the outage: it prints `session removed` and exits 0. Otherwise it exits
 /// only on SIGINT, with 0.
 pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
+    // A text observer has no terminal size; slice 5's client sends its own.
     let mut request = AttachRequest {
         session,
         selection: None,
+        size: Size::FALLBACK,
     };
     let reattach = |request: AttachRequest, delay: Duration| {
         Box::pin(async move {
@@ -170,6 +173,7 @@ impl Observer {
         Some(AttachRequest {
             session: record.session,
             selection: Some(record.selection),
+            size: record.size,
         })
     }
 

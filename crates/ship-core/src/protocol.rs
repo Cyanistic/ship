@@ -11,15 +11,18 @@ use uuid::Uuid;
 use crate::{
     id::{Attachment, IdOf},
     model::{Creatable, NodeId, OptionalName, Pane, Session, Tab, TabParent},
-    screen::Screen,
+    screen::{Screen, Size},
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
 pub const PROTOCOL_VERSION: u32 = 2;
-/// Names the attachment a selection or session-switch request controls.
+/// Names the attachment a view, input, selection or session-switch request
+/// controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
+/// Longest line of the input stream, in bytes without the newline.
+pub const INPUT_LINE_MAX: usize = 64 * 1024;
 
 /// Server identity and protocol compatibility, not an authentication boundary.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -117,6 +120,18 @@ pub struct AttachRequest {
     pub session: IdOf<Session>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
+    /// The client's whole terminal.
+    pub size: Size,
+}
+
+/// PUT /attach/view body: the client's whole view. The server replaces the
+/// attachment's record with it, deriving the session from the selection.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ViewInput {
+    pub selection: NodeId,
+    /// The client's whole terminal.
+    pub size: Size,
 }
 
 /// Server-owned view of one attachment. Always names a session; the record
@@ -126,6 +141,8 @@ pub struct AttachRequest {
 pub struct ViewingRecord {
     pub session: IdOf<Session>,
     pub selection: NodeId,
+    /// The client's whole terminal. Tab sizes derive from it.
+    pub size: Size,
 }
 
 /// Complete replicated state. Session `Arc`s are shared with the state actor.
@@ -208,6 +225,35 @@ pub struct Attached {
     #[schema(schema_with = attachment_schema)]
     pub attachment: IdOf<Attachment>,
     pub replica: Arc<Replica>,
+}
+
+/// One NDJSON line of POST /attach/input, e.g.
+/// `{"type": "paste", "pane": "pane:...", "text": "ls"}`. View changes use
+/// PUT /attach/view instead.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum InputFrame {
+    Key(KeyInput),
+    Paste(PasteInput),
+}
+
+/// A key press, encoded on the server against the pane's live terminal modes.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct KeyInput {
+    pub pane: IdOf<Pane>,
+    /// crossterm's own serialization, e.g. `{"code": "Enter", "modifiers": "",
+    /// "kind": "Press", "state": ""}`; modifiers read `"SHIFT | CONTROL"`.
+    #[schema(value_type = Object)]
+    pub key: crossterm::event::KeyEvent,
+}
+
+/// Text sent as one paste; bracketed when the program asked for it.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PasteInput {
+    pub pane: IdOf<Pane>,
+    pub text: String,
 }
 
 /// PUT /attach/selection body. The selection must be in the attached session.

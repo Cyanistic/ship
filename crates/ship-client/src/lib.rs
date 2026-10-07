@@ -5,7 +5,8 @@ mod api;
 use std::{error::Error, io, time::Duration};
 
 pub use api::{Client, Resource, SessionRef, TabParentRef};
-use reqwest::{Error as HttpError, Method, RequestBuilder, Response, StatusCode};
+use futures_util::{Stream, StreamExt};
+use reqwest::{Body, Error as HttpError, Method, RequestBuilder, Response, StatusCode, header};
 use serde::{Serialize, de::DeserializeOwned};
 use ship_core::{
     id::{Attachment, IdOf},
@@ -57,6 +58,31 @@ impl Client {
         tokio::time::timeout(TIMEOUT, open(request, StatusCode::OK))
             .await
             .unwrap_or_else(|_| Err(err!(Network, "HTTP request timed out")))
+            .context(format!("request to {safe} failed"))
+    }
+
+    /// POST `items` as an NDJSON body, one line each as they arrive, and wait
+    /// for `expected_status`. No timeout: the body lasts as long as `items`.
+    async fn send_stream<T: Serialize + Send + 'static>(
+        &self,
+        path: &str,
+        attachment: IdOf<Attachment>,
+        items: impl Stream<Item = T> + Send + 'static,
+        expected_status: StatusCode,
+    ) -> Result<()> {
+        let (request, safe) = self.build(Method::POST, path, NO_BODY, Some(attachment));
+        let lines = items.map(|item| {
+            serde_json::to_vec(&item).map(|mut line| {
+                line.push(b'\n');
+                line
+            })
+        });
+        let request = request
+            .header(header::CONTENT_TYPE, "application/x-ndjson")
+            .body(Body::wrap_stream(lines));
+        open(request, expected_status)
+            .await
+            .map(drop)
             .context(format!("request to {safe} failed"))
     }
 

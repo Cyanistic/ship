@@ -6,7 +6,7 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use ship_core::{
     id::{IdOf, UntaggedEither},
-    model::{NodeId, Pane, Tab, TabParent},
+    model::{NodeId, Pane, Session, Tab, TabParent},
     prelude::*,
     protocol::Placement,
 };
@@ -33,6 +33,14 @@ pub(crate) fn path(sessions: &Sessions, node: NodeId) -> Option<Vec<NodeId>> {
             Some(path)
         }
     }
+}
+
+/// The session `node` belongs to. `None` if absent.
+pub(crate) fn session_of(sessions: &Sessions, node: NodeId) -> Option<IdOf<Session>> {
+    let NodeId::Session(session) = path(sessions, node)?[0] else {
+        unreachable!("a path starts at its session");
+    };
+    Some(session)
 }
 
 /// Pushes the IDs from `tabs` down to `id` onto `path`; false if absent.

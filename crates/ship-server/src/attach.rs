@@ -18,7 +18,7 @@ use tokio_stream::{StreamMap, wrappers::WatchStream};
 use crate::{
     AppState,
     pane::LivePanes,
-    state::{Attach, Detach, Select, ServerState, SwitchSession, tree},
+    state::{Attach, Detach, Select, ServerState, SetView, SwitchSession, tree},
 };
 
 /// Created before asking the state actor, so cancellation at any point still
@@ -193,6 +193,31 @@ impl<S: Send + Sync> FromRequestParts<S> for AttachmentHeader {
         )?;
         value.parse().map(Self)
     }
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v0/attach/view",
+    operation_id = "view",
+    params(("x-ship-attachment-id" = String, Header,
+        description = "Attachment ID from the stream's `attached` event, e.g. attachment:3f2a...")),
+    request_body = ViewInput,
+    responses(
+        (status = 200, description = "The attachment's viewing record as stored. A selection \
+            no longer in the tree leaves it unchanged.", body = ViewingRecord),
+        (status = 400, description = "Missing or malformed attachment header", body = AppError),
+        (status = 404, description = "Attachment not found", body = AppError),
+        (status = 422, description = "Malformed selection or size"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn view(
+    State(app): State<AppState>,
+    AttachmentHeader(attachment): AttachmentHeader,
+    Json(view): Json<ViewInput>,
+) -> Result<Response> {
+    let record = app.state.ask(SetView { attachment, view }).await?;
+    Ok(Json(record).into_response())
 }
 
 #[utoipa::path(
