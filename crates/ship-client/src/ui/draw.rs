@@ -6,9 +6,13 @@ use ratatui::{
     text::Line,
     widgets::{Paragraph, Wrap},
 };
+use std::path::Path;
+
 use ship_core::{
-    model::PaneStatus,
+    id::IdOf,
+    model::{NodeId, Pane, PaneStatus, Tab},
     screen::{Attr, Cell, Color, Screen},
+    tree::{self, Sessions},
 };
 
 use super::observer::{Observer, Selected};
@@ -58,7 +62,7 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer) {
         ),
     }
     frame.render_widget(
-        Line::from(status_line(selected.as_ref(), observer.connected)).reversed(),
+        Line::from(status_line(observer, selected.as_ref())).reversed(),
         status,
     );
 }
@@ -77,21 +81,19 @@ fn hint(selected: Option<&Selected>) -> String {
     }
 }
 
-/// `session › tab › pane`, with names where they're set, then the pane's
-/// exit status and the connection.
-fn status_line(selected: Option<&Selected>, connected: bool) -> String {
+/// `session › tab › pane` labels as far as the selection goes, then the
+/// pane's exit status and the connection.
+fn status_line(observer: &Observer, selected: Option<&Selected>) -> String {
     let mut line = String::from(" ");
-    if let Some(selected) = selected {
+    if let (Some(selected), Some(replica)) = (selected, &observer.replica) {
         line.push_str(&selected.session.name.to_string());
-        for name in [
-            selected.tab.and_then(|tab| tab.name.get()),
-            selected.pane.and_then(|pane| pane.name.get()),
-        ]
-        .into_iter()
-        .flatten()
-        {
+        if let Some(tab) = selected.tab {
             line.push_str(" › ");
-            line.push_str(name);
+            line.push_str(&tab_label(tab, position(&replica.sessions, tab.id)));
+        }
+        if let Some(pane) = selected.pane {
+            line.push_str(" › ");
+            line.push_str(pane_label(pane));
         }
         if let Some(PaneStatus::Exited(status)) = selected.pane.map(|pane| &pane.status) {
             match &status.signal {
@@ -100,10 +102,47 @@ fn status_line(selected: Option<&Selected>, connected: bool) -> String {
             }
         }
     }
-    if !connected {
+    if !observer.connected {
         line.push_str("  disconnected, reconnecting");
     }
     line
+}
+
+/// The pane's name, else its program's title, else its command's file name.
+pub(super) fn pane_label(pane: &Pane) -> &str {
+    pane.name
+        .get()
+        .or(pane.title.as_deref())
+        .or_else(|| {
+            let program = Path::new(pane.command.first()?).file_name()?;
+            program.to_str()
+        })
+        .unwrap_or_default()
+}
+
+/// The tab's name, else its first pane's label, else its 1-based `position`
+/// among its siblings.
+pub(super) fn tab_label(tab: &Tab, position: usize) -> String {
+    tab.name
+        .get()
+        .or_else(|| tab.panes.values().next().map(pane_label))
+        .map_or_else(|| (position + 1).to_string(), str::to_owned)
+}
+
+/// The tab's 0-based index among its siblings.
+fn position(sessions: &Sessions, tab: IdOf<Tab>) -> usize {
+    let siblings = match tree::path(sessions, NodeId::Tab(tab)).as_deref() {
+        Some([.., NodeId::Session(session), _]) => {
+            sessions.get(session).map(|session| &session.tabs)
+        }
+        Some([.., NodeId::Tab(parent), _]) => {
+            tree::tab(sessions, *parent).ok().map(|parent| &parent.tabs)
+        }
+        _ => None,
+    };
+    siblings
+        .and_then(|tabs| tabs.get_index_of(&tab))
+        .unwrap_or_default()
 }
 
 /// The dim filler over `area` outside `shown`.

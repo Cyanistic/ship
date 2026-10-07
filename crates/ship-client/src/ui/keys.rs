@@ -10,6 +10,12 @@ use ship_core::{
 pub(super) enum Action {
     /// A key or paste for the selected pane; dropped while disconnected.
     Frame(InputFrame),
+    /// `C-b n`, `C-b p`
+    NextPane,
+    PrevPane,
+    /// `C-b )`, `C-b (`
+    NextSession,
+    PrevSession,
     /// `C-b d`
     Detach,
     /// The prefix, an unbound key after it, or input with no pane selected.
@@ -28,15 +34,14 @@ impl Keys {
     pub fn handle(&mut self, event: Event, selected: Option<IdOf<Pane>>) -> Action {
         match event {
             Event::Key(key) if key.kind != KeyEventKind::Release => {
-                if std::mem::take(&mut self.prefixed) {
-                    match key.code {
-                        KeyCode::Char('d') if key.modifiers.is_empty() => return Action::Detach,
-                        _ if is_prefix(&key) => {}
-                        _ => return Action::None,
+                let prefixed = std::mem::take(&mut self.prefixed);
+                match (prefixed, is_prefix(&key)) {
+                    (false, true) => {
+                        self.prefixed = true;
+                        return Action::None;
                     }
-                } else if is_prefix(&key) {
-                    self.prefixed = true;
-                    return Action::None;
+                    (true, false) => return bound(&key),
+                    _ => {}
                 }
                 selected.map_or(Action::None, |pane| {
                     Action::Frame(InputFrame::Key(KeyInput { pane, key }))
@@ -50,6 +55,22 @@ impl Keys {
             }
             _ => Action::None,
         }
+    }
+}
+
+/// The action for a key after the prefix.
+fn bound(key: &KeyEvent) -> Action {
+    // Terminals differ on whether `(` and `)` carry Shift.
+    if !(key.modifiers - KeyModifiers::SHIFT).is_empty() {
+        return Action::None;
+    }
+    match key.code {
+        KeyCode::Char('n') => Action::NextPane,
+        KeyCode::Char('p') => Action::PrevPane,
+        KeyCode::Char(')') => Action::NextSession,
+        KeyCode::Char('(') => Action::PrevSession,
+        KeyCode::Char('d') => Action::Detach,
+        _ => Action::None,
     }
 }
 

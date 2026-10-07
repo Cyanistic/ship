@@ -107,6 +107,8 @@ impl ServerState {
     }
 
     /// Keep `record.selection` if it is still inside `record.session` in `new`.
+    /// A removed pane goes to the next pane of its tab, else the previous one,
+    /// while the tab stays in the session (FR-017).
     /// Otherwise walk its ancestors in `old`, nearest first, and pick the first
     /// one still inside that session in `new`. `None` when the session is gone,
     /// which deletes the record and ends its stream.
@@ -117,6 +119,20 @@ impl ServerState {
         }
         if inside(new, session, record.selection) {
             return Some(record);
+        }
+        // A removed pane whose tab stayed: the pane that took its place, else
+        // the new last one, which was its predecessor.
+        if let NodeId::Pane(pane) = record.selection
+            && let Ok(owner) = tree::pane_owner(old, pane)
+            && inside(new, session, NodeId::Tab(owner))
+            && let (Ok(before), Ok(after)) = (tree::tab(old, owner), tree::tab(new, owner))
+            && let Some(index) = before.panes.get_index_of(&pane)
+            && let Some((&next, _)) = after.panes.get_index(index).or_else(|| after.panes.last())
+        {
+            return Some(ViewingRecord {
+                selection: NodeId::Pane(next),
+                ..record
+            });
         }
         let selection = tree::path(old, record.selection)
             .unwrap_or_default()

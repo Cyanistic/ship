@@ -15,10 +15,11 @@ use crossterm::event::{Event, EventStream};
 use futures_util::{Stream, StreamExt};
 use ship_core::{
     id::IdOf,
-    model::Session,
+    model::{NodeId, Session},
     prelude::*,
-    protocol::{AttachRequest, EndReason, Ended, InputFrame, SseEvent, ViewInput, ViewingRecord},
+    protocol::{AttachRequest, EndReason, Ended, InputFrame, SseEvent, ViewInput},
     screen::Size,
+    tree::{self, Sessions},
 };
 use tokio::{sync::mpsc, time::MissedTickBehavior};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -49,8 +50,9 @@ enum Exit {
 
 /// `ship attach`. Opens the attach stream at the terminal's size, then takes
 /// over the terminal. On every `Attached` it starts the input POST for that
-/// attachment. Resizes mark the view dirty, and the frame tick sends at most
-/// one view per frame, latest wins. A cut connection keeps the last screen,
+/// attachment. Navigation keys and resizes mark the view dirty, and the frame
+/// tick sends at most one view per frame, latest wins. The screen follows the
+/// replica, not the keys. A cut connection keeps the last screen,
 /// drops keys and reconnects with backoff (250 ms doubling to 5 s).
 ///
 /// Returns Ok after detach, `Ended(SessionRemoved)`, `Ended(ServerShutdown)`
@@ -98,7 +100,9 @@ async fn drive(
     let mut sending: Pending<()> = None;
     let mut size = request.size;
     let mut view_dirty = false;
-    let mut putting: Pending<ViewingRecord> = None;
+    // Where navigation moved the selection, until a view PUT carries it.
+    let mut chosen: Option<NodeId> = None;
+    let mut putting: Pending<NodeId> = None;
     let mut tick = tokio::time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     redraw(guard, &observer)?;
@@ -126,6 +130,7 @@ async fn drive(
                     input = None;
                     sending = None;
                     putting = None;
+                    chosen = None;
                     observer.connected = false;
                     if let Some(remembered) = observer.remembered(size) {
                         request = remembered;
@@ -155,8 +160,13 @@ async fn drive(
                 input = None;
                 false
             }
-            _ = finish(&mut putting) => {
+            result = finish(&mut putting) => {
                 putting = None;
+                match result {
+                    // Moved again since; that view goes out next.
+                    Ok(sent) if chosen != Some(sent) => {}
+                    _ => chosen = None,
+                }
                 false
             }
             event = terminal_events.next() => match event {
@@ -175,6 +185,17 @@ async fn drive(
                         }
                         Action::Detach => return Ok(Exit::Detached),
                         Action::None => {}
+                        action => {
+                            if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
+                                let from = chosen.unwrap_or(record.selection);
+                                if let Some(to) = navigate(&replica.sessions, from, &action)
+                                    && to != from
+                                {
+                                    chosen = Some(to);
+                                    view_dirty = true;
+                                }
+                            }
+                        }
                     }
                     false
                 }
@@ -184,8 +205,10 @@ async fn drive(
             _ = tick.tick(), if view_dirty && putting.is_none() && observer.connected => {
                 view_dirty = false;
                 if let (Some(attachment), Some(record)) = (observer.attachment, observer.record()) {
-                    let view = ViewInput { selection: record.selection, size };
-                    putting = Some(Box::pin(async move { client.set_view(attachment, &view).await }));
+                    let view = ViewInput { selection: chosen.unwrap_or(record.selection), size };
+                    putting = Some(Box::pin(async move {
+                        client.set_view(attachment, &view).await.map(|_| view.selection)
+                    }));
                 }
                 false
             }
@@ -207,6 +230,44 @@ fn redraw(guard: &mut TerminalGuard, observer: &Observer) -> Result<()> {
         .and_then(|selected| selected.pane)
         .and_then(|pane| observer.screens.get(&pane.id));
     guard.set_cursor(screen.and_then(|screen| screen.cursor))
+}
+
+/// Where a navigation action moves the selection `from`. Panes cycle within
+/// their tab; from a tab, or from a session through its first tab, they go to
+/// the first or last pane. Sessions cycle in creation order and land on their
+/// first pane, else the session. `None` when there is nowhere to go.
+fn navigate(sessions: &Sessions, from: NodeId, action: &Action) -> Option<NodeId> {
+    let session = tree::session_of(sessions, from)?;
+    match action {
+        Action::NextSession | Action::PrevSession => {
+            let index = sessions.get_index_of(&session)?;
+            let forward = matches!(action, Action::NextSession);
+            let (&next, _) = sessions.get_index(step(index, sessions.len(), forward))?;
+            Some(tree::first_pane(sessions, next).map_or(NodeId::Session(next), NodeId::Pane))
+        }
+        Action::NextPane | Action::PrevPane => {
+            let tab = match from {
+                NodeId::Session(_) => sessions.get(&session)?.tabs.values().next()?,
+                node => tree::tab(sessions, tree::viewed_tab(sessions, node)?).ok()?,
+            };
+            let forward = matches!(action, Action::NextPane);
+            let index = match from {
+                NodeId::Pane(pane) => {
+                    step(tab.panes.get_index_of(&pane)?, tab.panes.len(), forward)
+                }
+                _ if forward => 0,
+                _ => tab.panes.len().checked_sub(1)?,
+            };
+            let (&pane, _) = tab.panes.get_index(index)?;
+            Some(NodeId::Pane(pane))
+        }
+        Action::Frame(_) | Action::Detach | Action::None => None,
+    }
+}
+
+/// The index after or before `index` among `len`, wrapping around.
+fn step(index: usize, len: usize, forward: bool) -> usize {
+    (index + if forward { 1 } else { len - 1 }) % len
 }
 
 /// Attach after `delay`; zero for the first attach.

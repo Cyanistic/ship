@@ -1149,3 +1149,25 @@ Evidence, macOS arm64, debug build, against a foreground server on port 44150:
 **D48. Tree lookups moved to `ship-core::tree`.** From Cyan's review of slice 5 ("go for it!"). The client's `observer.rs` had its own recursive tab search because the server's lookups were crate-private. The read-only lookups (`path`, `session_of`, `first_pane`, `tab`, `pane`, `pane_ids`, `pane_owner`, `viewed_tab`, `not_found`) and the `Sessions` and `Tabs` aliases now live in `ship-core/src/tree.rs`. `Replica.sessions` uses `Sessions`. The server's `state/tree.rs` keeps the edits and re-exports the lookups, so its call sites are unchanged. In the same pass, the client's input body uses tokio-stream's `UnboundedReceiverStream` in place of a hand-written `unfold`, `reattach` is now `attach_after`, and a comment says why `next` and `finish` exist. The `Selected` shape is left for slice 6.
 
 Evidence, macOS arm64, debug build, against a foreground server: the no-tab and no-pane hints, typing into a named pane (status ` e › sh`), a relay cut that keeps the screen and drops keys typed meanwhile, typing after the reconnect, and the hint after the selected pane is removed. fmt, Clippy, debug and release builds pass. Size: implementation Rust 5,583 lines; tests 0.
+
+### Slice 6 (2026-10-07, macOS arm64)
+
+**D49. With the session selected, `C-b n` and `C-b p` use the session's first root tab.** FR-018 says they select the first or last pane "of the selected tab", but a selected session has no selected tab. They use the same tab the empty-state hint already names, so the hint and the keys agree. A session whose first root tab has no panes of its own stays put.
+
+**D50. Navigation keeps an unconfirmed target.** This paper says navigation edits the local view's selection. `ui::run` keeps that as `chosen`, the target not yet carried by a view PUT, and computes the next press from it, so two quick presses move twice even before the replica arrives. It's cleared when the PUT that carried it returns, and on disconnect. The screen still follows the replica.
+
+**D51. `(` and `)` are matched with or without Shift.** Terminals differ on whether those keys report Shift, so a key after the prefix counts as bound when its only modifier is Shift. Other modifiers make it unbound, which drops it.
+
+**D52. Known gap: pane titles have no title stack ([#3](https://github.com/Cyanistic/ship/issues/3)).** Ghostty's VT library parses `CSI 22 t` and `CSI 23 t` (push and pop the title) and drops them, with no callback to the wrapper; Ghostty's own app leaves them unimplemented too. tmux and Zellij keep a per-pane title stack. After Neovim quits, an unnamed pane under plain `sh` keeps Neovim's title as its label; Cyan's zsh hides this by setting a title at each prompt. Deferred by Cyan. Options, preferred first: fix it upstream in Ghostty, or scan for the two sequences in the vendored wrapper and keep a stack there.
+
+Evidence, against a foreground debug `ship server` with `--server-url` on each client, then the release binary with the same results. A disposable pty harness rendered the client with Python `pyte`, and view PUTs were counted from the server's request log.
+
+- Three panes in a tab: `C-b n` four times shows `p2`, `p3`, `p1`, `p2`, and `C-b p` four times shows `p1`, `p3`, `p2`, `p1`, each with the pane's own output on screen and one view PUT per press.
+- Sessions `a1`, `b1` and `c1` (no tabs), in creation order: `C-b )` goes `b1` (its first pane), `c1` (`no tab: ship tab create c1`, status ` c1`), `a1`, and `C-b (` goes back the other way. Each press sent one view PUT.
+- Removing the selected middle pane from another terminal selects the next one (`p2` to `p3`). Removing the selected last pane selects the previous one (`q3` to `q2`). Removing the last remaining pane shows ` a1 › 1` and `no pane: ship pane create tab:…`.
+- With the tab selected, `C-b n` selects its first pane. With the session selected, `C-b p` selects the last pane of its first tab, and switching into it with `C-b )` selects the first pane.
+- In `cat -v`, `C-b C-b` then Enter shows a single `^B` echoed and a single `^B` printed.
+- SC-008: an unnamed `sh` pane in tab `work` shows ` lab › work › sh`. `nvim -u NONE -c 'set title'` changes the label to Neovim's title, and `:e /tmp/…` changes it again. In Cyan's login zsh the label goes `zsh`, then `[No Name] - VIM`, then the shell's `cyan@MacBook-Pro:…` title after `:q`; under plain `sh` it keeps Neovim's title (D52). `tab rename <id>` with no name turns `work` into the first pane's label. Setting the title to `custom` and clearing it switch the label to `custom` and back to `sh`. Naming the pane `ed` and clearing the name with `"  "` switches between `ed` and `sh`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass. No routes or protocol types changed, so the OpenAPI consumer wasn't rerun.
+- Size: implementation Rust 5,720 lines (+137); tests 0.
+- Linux: not required for slice 6, unverified. Task 7.3 reruns this slice's workflows there.

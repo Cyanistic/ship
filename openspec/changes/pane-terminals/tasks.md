@@ -41,10 +41,10 @@ Every slice runs workflows against a foreground `ship server --port <p>` with `-
 
 ## 6. Navigation, selection rules and labels: fixed keys to moving selections
 
-- [ ] 6.1 Add `NextPane`, `PrevPane`, `NextSession` and `PrevSession` to `ui/keys.rs` and their handling in `ui/mod.rs` against the replica, each editing the local view; verify three panes in a tab cycle with wraparound under `C-b n` and `C-b p`, and `C-b )` and `C-b (` cycle two sessions in creation order with one view PUT each.
-- [ ] 6.2 Add the FR-017 pane rule to `repair` in `state.rs`; verify removing the selected pane from another terminal selects the next pane, or the previous one when it was last, and removing the rest shows the empty-state hint.
-- [ ] 6.3 Add `pane_label` and `tab_label` to `ui/draw.rs` and use them in the status line; verify an unnamed pane's label follows `nvim`'s title and clearing a tab name shows its first pane's label (SC-008).
-- [ ] 6.4 Verify slice 6 end to end: in `cat -v`, `C-b C-b` shows one `^B`; with a tab or session selected, `C-b n` and `C-b p` select the first or last pane of the selected tab; a session without panes selects the session and shows the empty state. fmt, Clippy and both builds pass. Record evidence and stop.
+- [x] 6.1 Add `NextPane`, `PrevPane`, `NextSession` and `PrevSession` to `ui/keys.rs` and their handling in `ui/mod.rs` against the replica, each editing the local view; verify three panes in a tab cycle with wraparound under `C-b n` and `C-b p`, and `C-b )` and `C-b (` cycle two sessions in creation order with one view PUT each.
+- [x] 6.2 Add the FR-017 pane rule to `repair` in `state.rs`; verify removing the selected pane from another terminal selects the next pane, or the previous one when it was last, and removing the rest shows the empty-state hint.
+- [x] 6.3 Add `pane_label` and `tab_label` to `ui/draw.rs` and use them in the status line; verify an unnamed pane's label follows `nvim`'s title and clearing a tab name shows its first pane's label (SC-008).
+- [x] 6.4 Verify slice 6 end to end: in `cat -v`, `C-b C-b` shows one `^B`; with a tab or session selected, `C-b n` and `C-b p` select the first or last pane of the selected tab; a session without panes selects the session and shows the empty state. fmt, Clippy and both builds pass. Record evidence and stop.
 
 ## 7. Two clients, feel and platforms: shared panes to recorded evidence
 
