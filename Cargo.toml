@@ -56,6 +56,12 @@ incremental = true
 [profile.dev.build-override]
 opt-level = 3
 
+# Ghostty's build script picks Zig `Debug` when `DEBUG=true`, and its page
+# integrity checks then dominate under output. `debug = false` here gives
+# dev builds a `ReleaseFast` Ghostty.
+[profile.dev.package.libghostty-vt-sys]
+debug = false
+
 [profile.release]
 opt-level = 3
 lto = true

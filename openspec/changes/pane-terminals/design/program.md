@@ -294,8 +294,9 @@ crates/ship-client/src/ui/
 /// attachment. Navigation and resizes edit a local `ViewInput` and mark it
 /// dirty; on the frame tick (`FRAME`, missed ticks: Delay) a dirty view is sent
 /// with `set_view`, latest wins. It reconnects with the existing backoff (250 ms doubling to 5 s).
-/// It returns Ok after detach or `Ended(SessionRemoved)`, or after a 404 on
-/// reattach, printing why after the terminal is restored.
+/// It returns Ok after detach, `Ended(SessionRemoved)` or
+/// `Ended(ServerShutdown)`, or after a 404 on reattach, printing why after
+/// the terminal is restored. (Amended before slice 5, D34.)
 /// SIGTERM and SIGHUP restore the terminal and return.
 pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()>;
 
@@ -1058,3 +1059,15 @@ Evidence, against a foreground `ship server` with `--server-url` on each client,
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
 - Size: implementation Rust 5,165 lines (+399); tests 0.
 - Linux: not required for slice 4, unverified.
+
+### Before slice 5 (2026-10-06)
+
+Cyan approved four recommendations in chat ("i approve all 4").
+
+**D34. The client exits after `Ended(ServerShutdown)`.** Amends this paper's `ui::run` contract, which listed only detach, session removal and a reattach 404, to match product P1 and the session-observation delta. The client restores the terminal, reports that the server stopped and exits. Task 5.4 implements it.
+
+**D35. Resolves D15: the exit watcher reaps with `waitpid`.** On Unix it takes the signal name from `WaitStatus::Signaled` (`Signal::as_str()`, e.g. `SIGTERM`) instead of portable-pty's `strsignal` text, so the status line can show `exited (SIGTERM)`. Other platforms keep portable-pty's status. Lands in slice 5 with the status line.
+
+**D36. Resolves D20: dev builds compile Ghostty in `ReleaseFast`.** The workspace manifest sets `[profile.dev.package.libghostty-vt-sys] debug = false`, so its build script sees `DEBUG=false`. Release builds were already `ReleaseFast`.
+
+**D37. Resolves D24: `ship attach` checks health for every target.** Slice 5's `ui::run` path runs the health check for an explicit `--server-url` too, so a protocol mismatch is refused instead of misread.
