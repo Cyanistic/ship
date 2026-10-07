@@ -6,7 +6,7 @@ use tokio::sync::watch;
 
 use ship_core::relay::RelayBus;
 
-use crate::state::ServerState;
+use crate::{pane::LivePanes, state::ServerState};
 
 /// The one Axum state. Every handler extracts this; each actor ref is cheap to clone.
 #[derive(Clone)]
@@ -15,4 +15,6 @@ pub struct AppState {
     pub bus: ActorRef<RelayBus>,
     /// Latest published replica. Each SSE stream clones this receiver.
     pub replicas: watch::Receiver<Arc<Replica>>,
+    /// Every running pane's handle. SSE streams find screens through it.
+    pub(crate) live: watch::Receiver<LivePanes>,
 }

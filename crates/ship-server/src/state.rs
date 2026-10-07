@@ -15,13 +15,14 @@ use ship_core::{
     screen::Size,
 };
 use ship_macros::Actor;
+use tokio::sync::watch;
 use uuid::Uuid;
 
 use ship_core::relay::{Publish, RelayBus};
 
-use crate::pane::{self, Launch, PaneChange, PaneEvent, PaneRuntime, Spawned};
+use crate::pane::{self, Launch, LivePanes, PaneChange, PaneEvent, PaneRuntime, Spawned};
 
-mod tree;
+pub(crate) mod tree;
 
 pub(crate) type Sessions = IndexMap<IdOf<Session>, Arc<Session>>;
 pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
@@ -37,17 +38,21 @@ pub struct ServerState {
     viewers: Viewers,
     /// Exactly the panes in `sessions` once each `commit` returns.
     runtimes: HashMap<IdOf<Pane>, PaneRuntime>,
+    /// The runtimes' handles, written directly rather than through the bus,
+    /// so streams find every pane of a replica they hold.
+    live: watch::Sender<LivePanes>,
     bus: ActorRef<RelayBus>,
 }
 
 impl ServerState {
-    pub fn new(bus: ActorRef<RelayBus>) -> Self {
+    pub(crate) fn new(bus: ActorRef<RelayBus>, live: watch::Sender<LivePanes>) -> Self {
         Self {
             incarnation: Uuid::now_v7(),
             revision: 0,
             sessions: Sessions::new(),
             viewers: Viewers::new(),
             runtimes: HashMap::new(),
+            live,
             bus,
         }
     }
@@ -114,9 +119,17 @@ impl ServerState {
         Some(ViewingRecord { session, selection })
     }
 
+    /// Drop runtimes whose panes are gone and publish the rest's handles,
+    /// before `commit` publishes the replica.
     fn retain_runtimes(&mut self) {
         let panes: HashSet<_> = tree::pane_ids(&self.sessions).collect();
         self.runtimes.retain(|pane, _| panes.contains(pane));
+        self.live.send_replace(
+            self.runtimes
+                .iter()
+                .map(|(pane, runtime)| (*pane, runtime.handle.clone()))
+                .collect(),
+        );
     }
 
     /// Start a pane's program before the commit that inserts it, and keep its

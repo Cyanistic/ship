@@ -28,6 +28,15 @@ This copy keeps all five. Two edits differ from the experiment copy:
 
 All 80 wrapper tests pass against that rev.
 
+## Ship changes
+
+Made for Ship's pane-terminals slice 3 on 2026-10-06, beyond the experiment copy:
+
+6. Colors reach the caller unresolved. `convert/to_ratatui.rs` maps a palette color to `Color::Indexed` instead of looking it up in Ghostty's palette, and `widget.rs` no longer fills unset foreground and background with Ghostty's defaults, so they stay `Reset`. A background set by erasing with a color, which Ghostty keeps in the cell content rather than its style, is read from the raw cell. A viewing terminal then shows default and palette colors in its own theme. `tests/convert_to_ratatui.rs` renames `style_fg_palette_resolves` and `style_bg_palette_resolves` to `_stays_indexed` and expects `Color::Indexed`.
+7. The session thread renders during sustained output. Its loop drained queued PTY output until the queue was empty before rendering, so a program like `yes` kept it draining and nothing rendered or woke the caller until output stopped. `session.rs` now stops draining after `DRAIN_BUDGET` (8 ms), renders and wakes, then continues.
+
+All 80 wrapper tests pass after both changes, run in a copy outside the repo.
+
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 
 ## License

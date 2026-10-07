@@ -96,6 +96,16 @@ pub(crate) fn pane_owner(sessions: &Sessions, id: IdOf<Pane>) -> Result<IdOf<Tab
         .ok_or_else(|| not_found(NodeId::Pane(id)))
 }
 
+/// The tab a selection views: the tab itself, or a pane's tab. `None` for a
+/// session or a node that isn't in the tree.
+pub(crate) fn viewed_tab(sessions: &Sessions, selection: NodeId) -> Option<IdOf<Tab>> {
+    match selection {
+        NodeId::Session(_) => None,
+        NodeId::Tab(tab) => Some(tab),
+        NodeId::Pane(pane) => pane_owner(sessions, pane).ok(),
+    }
+}
+
 /// Mutable access through `Arc::make_mut`, copying only the owning session.
 pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab> {
     let node = NodeId::Tab(id);

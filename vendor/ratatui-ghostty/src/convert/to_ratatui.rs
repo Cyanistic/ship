@@ -5,11 +5,12 @@ pub fn rgb_color(c: style::RgbColor) -> Color {
     Color::Rgb(c.r, c.g, c.b)
 }
 
-fn resolve_color(color: &style::StyleColor, palette: &[style::RgbColor; 256]) -> Option<Color> {
+/// Palette colors stay indexed, so the host terminal's palette shows them.
+fn resolve_color(color: &style::StyleColor, _palette: &[style::RgbColor; 256]) -> Option<Color> {
     match color {
         style::StyleColor::None => None,
         style::StyleColor::Rgb(c) => Some(rgb_color(*c)),
-        style::StyleColor::Palette(idx) => Some(rgb_color(palette[idx.0 as usize])),
+        style::StyleColor::Palette(idx) => Some(Color::Indexed(idx.0)),
     }
 }
 

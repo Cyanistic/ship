@@ -1,4 +1,5 @@
 use libghostty_vt::render::{CellIterator, CursorVisualStyle, RenderState, RowIterator};
+use libghostty_vt::screen::CellContentTag;
 use libghostty_vt::style::RgbColor;
 use libghostty_vt::terminal::Terminal;
 use ratatui::buffer::Buffer;
@@ -93,9 +94,6 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
             self.cursor.blinking = cursor_blinking;
         }
 
-        let default_fg = rgb_to_color(colors.foreground);
-        let default_bg = rgb_to_color(colors.background);
-
         let mut row_iter = match RowIterator::new() {
             Ok(r) => r,
             Err(_) => return,
@@ -134,25 +132,25 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
                     },
                 };
 
-                let fg = cell
-                    .fg_color()
-                    .ok()
-                    .flatten()
-                    .map(rgb_to_color)
-                    .unwrap_or(default_fg);
-                let bg = cell
-                    .bg_color()
-                    .ok()
-                    .flatten()
-                    .map(rgb_to_color)
-                    .unwrap_or(default_bg);
-
+                // Unset colors stay `Reset`, so the host terminal's defaults
+                // show. A background from erasing with a color set lives in
+                // the cell content rather than its style.
                 let cell_style = cell.style().ok();
                 let mut ratatui_style = cell_style
                     .as_ref()
                     .map(|s| to_ratatui::style(s, &colors.palette))
                     .unwrap_or_default();
-                ratatui_style = ratatui_style.fg(fg).bg(bg);
+                if ratatui_style.bg.is_none()
+                    && let Ok(raw) = cell.raw_cell()
+                {
+                    ratatui_style.bg = match raw.content_tag() {
+                        Ok(CellContentTag::BgColorPalette) => {
+                            raw.bg_color_palette().ok().map(|idx| Color::Indexed(idx.0))
+                        }
+                        Ok(CellContentTag::BgColorRgb) => raw.bg_color_rgb().ok().map(rgb_to_color),
+                        _ => None,
+                    };
+                }
 
                 let buf_x = area.x + col_idx;
                 let buf_y = area.y + row_idx;

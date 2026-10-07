@@ -6,7 +6,7 @@ use ship_core::{
     id::{Attachment, IdOf},
     model::{NodeId, Session, Tab},
     prelude::*,
-    protocol::{AttachRequest, EndReason, Replica, SseEvent, ViewingRecord},
+    protocol::{AttachRequest, EndReason, Ended, Replica, SseEvent, ViewingRecord},
 };
 
 use crate::controls;
@@ -46,11 +46,11 @@ pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
         tokio::select! {
             event = next(&mut events) => {
                 let reason = match event {
-                    Some(Ok(SseEvent::Ended { reason: EndReason::SessionRemoved })) => {
+                    Some(Ok(SseEvent::Ended(Ended { reason: EndReason::SessionRemoved }))) => {
                         eprintln!("session removed");
                         return Ok(());
                     }
-                    Some(Ok(SseEvent::Ended { reason: EndReason::ServerShutdown })) => {
+                    Some(Ok(SseEvent::Ended(Ended { reason: EndReason::ServerShutdown }))) => {
                         "server shutting down".to_owned()
                     }
                     Some(Ok(event)) => {
@@ -153,7 +153,8 @@ impl Observer {
                 }
                 _ => false,
             },
-            SseEvent::Ended { .. } => false,
+            // Screens wait for the full-screen client.
+            SseEvent::Screen(_) | SseEvent::Ended(_) => false,
         }
     }
 

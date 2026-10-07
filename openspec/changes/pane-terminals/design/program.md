@@ -974,3 +974,55 @@ Evidence, against a foreground `ship server` with `--server-url` on each client,
 - After D17, the release build gives the same results: background job gone 0.3 s after `pane rm`, the HUP-ignoring program alive at 1.5 s and gone by 2.5 s, and SIGTERM with four HUP-ignoring panes exits in 2.05 s with no pane process left.
 - Size: implementation Rust 4,471 lines (+662); tests 0.
 - Linux: unverified. No Linux machine was used for this slice.
+
+### Slice 3 (2026-10-06, macOS arm64)
+
+**D18. The wrapper now leaves colors unresolved (vendored change 6).** Touches this paper's `screen.rs` note that named ratatui colors map to `Indexed(0..=15)`. The wrapper resolved every palette color through Ghostty's palette and filled unset foreground and background with Ghostty's defaults, so `capture` would only ever see RGB: clients would show Ghostty's palette instead of their own theme, and a blank cell would serialize as two RGB objects instead of `{}`. Cyan chose to patch the vendored copy in chat. Palette colors now arrive as `Indexed`, unset colors as `Reset` (mapped to `Default`), and a background set by erasing with a color is read from the raw cell. Two wrapper tests were adapted. Recorded in `vendor/ratatui-ghostty/PROVENANCE.md`.
+
+**D19. The wrapper renders during sustained output (vendored change 7).** Touches the architecture risk "the wrapper renders on every output batch". In practice it was the reverse: the session thread drained queued PTY output until the queue was empty and only then rendered and woke the pane task, so `-- yes` published 2 screens in 10 s. It now stops draining after 8 ms, renders and wakes. The risk's own remedy was to patch the vendored copy, so this went ahead without reopening the paper. Recorded in PROVENANCE.
+
+**D20. Open: dev builds compile Ghostty in Zig `Debug` mode.** libghostty-vt-sys picks `Debug` when Cargo sets `DEBUG=true`, which the dev profile does, and Ghostty's page integrity checks then dominate a profile under `yes`. Pacing and size were measured on release builds. Recommendation: set `[profile.dev.package.libghostty-vt-sys] debug = false` in the workspace manifest, so dev builds get `ReleaseFast` Ghostty and feel like release ones. Needs Cyan's decision; nothing changed.
+
+**D21. `tree.rs` gained `viewed_tab`.** This paper lists `tree.rs` as untouched apart from `first_pane` and the pane-ID iterator. The attach stream needs the tab a selection views (the tab, or a pane's tab), and slice 4's `tab_size` needs the same rule, so it lives once in `tree.rs`, and `state::tree` became `pub(crate)`.
+
+**D22. Every pane publishes a screen when its task starts.** This paper doesn't say how a program that never prints gets a screen-table entry. The pane task publishes once before its loop, taking the frame interval's first tick (which completes at once), so the initial screen and the first output still sit a frame apart.
+
+**D23. Small shape changes in `screen.rs` and `AppState`.** `Cell` has no `Default`: the derive would give an empty `symbol`, contradicting the `" "` default, and nothing needs it. A wide character's trailing cell is blank (`" "`, so `{}`), as the emulator reports it, not `""` as this paper's comment says. `AppState.screens` is `pub(crate)`, because `ScreenTable` is crate-private and `AppState` is public.
+
+**D24. Observation: `attach` with an explicit `--server-url` skips the health check.** The slice 2 binary run as `ship --server-url <url>` against this server fails with `expected service ship and protocol 1` and exits 1, as the health-exchange delta requires. But `ship --server-url <url> attach <id>` from that binary attached and printed the tree, because `connect` only checks health for the default local server. The current client has the same gap. Recommendation: have slice 5's `ui::run` path check health for explicit targets too. Not changed in this slice.
+
+**D25. Zig 0.16 was downloaded again.** D2 is still open: this Mac has Zig 0.17, so the protocol-1 build, the OpenAPI consumer and the wrapper tests ran with Zig 0.16.0 from the job's temp directory.
+
+Evidence, against a foreground `ship server` with `--server-url` on each client, release binary unless noted:
+
+- `curl -N` attach on a session, then the old `select` route onto a tab holding `-- top`: one `screen` event at the select and then about one a second, each an 80x24 grid whose first row is `top`'s `Processes: ...` header, with a cursor. The session-selected stream sent no screens before the select. (Debug and release.)
+- A quiet pane (`sh -c 'echo quiet-pane; sleep 1000'`) selected in `AttachRequest`: the first event after `attached` is its screen showing `quiet-pane`. The same stream got no screens from `top` running in another tab of the session, over 3 s and again over 5 s.
+- `-- yes` for 10 s: 626 screen events on the stream, 630 publishes in the trace log (`RUST_LOG=ship_server=trace`), median gap 16.2 ms and none under 13.4 ms. Before D19: 2 publishes in 10 s.
+- Size: `yes` repaints identical screens, 3.9 MB raw against 8.1 KB over zstd in 10 s (about 6.2 KB and 13 B per event). A changing workload (`while :; do ls -la /usr/bin; done`) for 10 s: 626 events, 10.95 MB raw against 205 KB over zstd, about 17.5 KB and 327 B per event, or 20 KB/s.
+- Staleness: after `pane rm` on the `yes` pane, the last event is the `state` that removes it, with no screen after it. A pane running `sh -c 'yes | head -n 300000; echo DONE; sleep 1000'` ends with a screen showing `DONE` on its last line.
+- Colors on the wire: `\033[31m` gives `{"fg":{"indexed":1}}`, 24-bit gives `{"fg":{"rgb":[1,2,3]}}`, bold underline gives `attrs`, `\033[44m\033[K` gives `{"bg":{"indexed":4}}` across the row, `中` is followed by a `{}` cell, and the program sees `xterm-256color truecolor` and `tput colors` 256.
+- `GET /health` reports `"protocolVersion":2`. The slice 2 binary (commit `7aa3342`, protocol 1, built in a temporary worktree) fails the health check and exits 1 (D24 for `attach`).
+- `kill -TERM` on the server with two open attach streams and running panes exits in 0.08 s, and both streams end with `ended` `serverShutdown`.
+- The disposable `openapi()` consumer, outside the repo, shows OpenAPI 3.1 with `SseEvent` as `attached`, `state`, `screen` and `ended`, `PaneScreen` with `pane` and `screen`, `Ended` with `reason`, `Screen`, `Cell` (no required fields), `Color` as `default`, `indexed` or `rgb`, `Attr`, `Cursor`, `CursorShape` and `Size`, and no dangling `$ref`.
+- All 80 vendored wrapper tests pass after D18 and D19 (one ignored, as before), in a copy outside the repo.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass. The probe worktree and temporary target directories were removed.
+- Size: implementation Rust 4,827 lines (+356); tests 0.
+- Linux: not required for slice 3, unverified.
+
+**D26. Screens reach streams through per-pane watches, not a server-wide table.** Reverses architecture decisions 3 and 6 for screens, and replaces this paper's `screens.rs`, `ScreenUpdate`, `PaneClosed`, `Shown` and per-pane sequence numbers. Cyan chose this in chat after reviewing `Progress`. With one table watch, every frame from any pane woke every attach stream, and each stream kept a per-pane `sent` map of sequence numbers to work out what had changed. A watch already tracks what each receiver has seen, so one watch per pane does that job.
+
+- Each pane task owns a `watch::Sender<Arc<Screen>>`, seeded at spawn with the blank grid. `publish` writes to it, and teardown drops it. That also replaces D22's initial publish: the pane task no longer publishes before its loop. Titles and exits still go over the bus to the state actor.
+- `PaneRuntime` carries a `PaneHandle { screen }`. The state actor publishes `LivePanes`, a map from each running pane to its `PaneHandle`, on a watch it writes directly in `retain_runtimes`. That runs before every replica publish and before the `Attached` reply, so a stream always finds every pane of a replica it holds. This brings slice 4's handle map forward, renamed from `PaneHandles`. Slice 4 adds the command sender to `PaneHandle`, and the input route reads `AppState.live`. Publishing it directly rather than through the bus also departs from decision 2 ("one generic sink per server-wide table") for this table.
+- `Progress` keeps the replica it sent and a `StreamMap` of the viewed tab's screen watches (`tokio-stream`, new dependency, feature `sync`). Each newer replica re-syncs the map, and a new `WatchStream` yields the current screen first. A wake now comes only from a newer replica or from a watched pane drawing, and each wake yields one event.
+- Tasks 3.1 and 3.2 still describe the table shape. Their verification was rerun on this one.
+
+Evidence for D26, release binary against a foreground server with `RUST_LOG=ship_server=trace`:
+
+- A stream attached with a quiet pane (`sh -c 'echo quiet-pane; sleep 1000'`) selected gets its screen showing `quiet-pane` as the first event after `attached`. It gets no other screens over 11 s, while `top`, `yes` and a `yes | head` pane run in other tabs.
+- A stream attached at the session root gets no screens. After the old `select` route moves it onto the `top` tab, it gets the `state` and then `top`'s 80x24 screens with the `Processes: ...` header, 8 in about 8 s.
+- `-- yes` for 10 s: 628 screen events on the stream, 633 publishes in the trace log, median gap 16.2 ms and none under 13.4 ms. 3.9 MB raw against 8.6 KB over zstd.
+- After `pane rm` on the `yes` pane, the last event is the `state` that removes it. The `yes | head -n 300000; echo DONE` pane's last screen ends in `DONE`.
+- `kill -TERM` with two open streams exits in 0.04 s, and both streams end with `ended` `serverShutdown`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 4,766 lines (−61 from the table shape); tests 0.
+- Linux: unverified.

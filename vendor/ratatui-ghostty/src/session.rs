@@ -12,6 +12,7 @@ use std::io::{Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use crate::colors::HostColors;
 use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
@@ -23,6 +24,10 @@ use libghostty_vt::{key, mouse};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::Widget;
+
+/// Longest the session thread drains queued output before rendering. Without
+/// it, sustained output keeps the queue full and nothing renders until it stops.
+const DRAIN_BUDGET: Duration = Duration::from_millis(8);
 
 /// Callback used to resize the PTY when the terminal dimensions change.
 pub type Resizer =
@@ -705,6 +710,7 @@ fn session_thread(
         }
 
         let mut had_pty = false;
+        let drain_start = Instant::now();
         while let Ok(data) = pty_rx.try_recv() {
             state.terminal.vt_write(&data);
             had_pty = true;
@@ -714,7 +720,7 @@ fn session_thread(
                     break;
                 }
             }
-            if shutdown {
+            if shutdown || drain_start.elapsed() >= DRAIN_BUDGET {
                 break;
             }
         }

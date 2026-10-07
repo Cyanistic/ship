@@ -10,13 +10,14 @@ use uuid::Uuid;
 
 use crate::{
     id::{Attachment, IdOf},
-    model::{Creatable, NodeId, OptionalName, Session, Tab, TabParent},
+    model::{Creatable, NodeId, OptionalName, Pane, Session, Tab, TabParent},
+    screen::Screen,
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 1;
+pub const PROTOCOL_VERSION: u32 = 2;
 /// Names the attachment a selection or session-switch request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 
@@ -170,9 +171,25 @@ pub enum SseEvent {
     Attached(Attached),
     /// A newer complete state, replacing the previous one.
     State(Arc<Replica>),
+    /// The latest screen of a pane in the attachment's viewed tab. Sent when
+    /// it changes, and for every such pane when the viewed tab changes.
+    Screen(PaneScreen),
     /// Always last: why the server is closing the stream. A stream that ends
     /// without it was cut.
-    Ended { reason: EndReason },
+    Ended(Ended),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneScreen {
+    pub pane: IdOf<Pane>,
+    pub screen: Arc<Screen>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Ended {
+    pub reason: EndReason,
 }
 
 /// Derived by each stream from the latest replica, never published.

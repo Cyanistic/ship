@@ -2,6 +2,7 @@
 //! task that owns them until teardown.
 
 use std::{
+    collections::HashMap,
     path::PathBuf,
     sync::{Arc, Mutex},
     time::Duration,
@@ -9,16 +10,24 @@ use std::{
 
 use kameo::actor::ActorRef;
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
-use ratatui_ghostty::session::{SessionEvent, SessionHandle, SessionIo};
+use ratatui::{
+    buffer::{self, Buffer},
+    layout::Rect,
+    style::{self as tui, Modifier},
+};
+use ratatui_ghostty::{
+    session::{SessionEvent, SessionHandle, SessionIo},
+    widget::CursorStyle,
+};
 use ship_core::{
     id::IdOf,
     model::{ExitStatus, Pane},
     prelude::*,
     relay::{Publish, RelayBus},
-    screen::Size,
+    screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Size},
 };
 use tokio::{
-    sync::{Notify, oneshot},
+    sync::{Notify, oneshot, watch},
     time::MissedTickBehavior,
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
@@ -28,6 +37,7 @@ pub(crate) const FRAME: Duration = Duration::from_millis(16);
 /// Owned by the state actor. Dropping it cancels the pane task, which runs
 /// teardown in the background. `stop` does the same and waits for it.
 pub(crate) struct PaneRuntime {
+    pub handle: PaneHandle,
     cancel: DropGuard,
     /// The pane task sends `()` after teardown.
     done: oneshot::Receiver<()>,
@@ -36,7 +46,7 @@ pub(crate) struct PaneRuntime {
 impl PaneRuntime {
     /// Cancel, then await `done`. An `Err` (task already gone) also counts as done.
     pub async fn stop(self) {
-        let Self { cancel, done } = self;
+        let Self { cancel, done, .. } = self;
         drop(cancel);
         done.await.ok();
     }
@@ -51,8 +61,17 @@ pub(crate) struct Launch {
     pub size: Size,
 }
 
-/// Bus publication for the state actor. One sender per pane, so the bus keeps
-/// their order.
+/// What the rest of the server may hold of a running pane.
+#[derive(Clone)]
+pub(crate) struct PaneHandle {
+    /// The pane's latest screen. Ends when the pane task does.
+    pub screen: watch::Receiver<Arc<Screen>>,
+}
+
+/// Every running pane, published by the state actor.
+pub(crate) type LivePanes = HashMap<IdOf<Pane>, PaneHandle>;
+
+/// Bus publication for the state actor.
 #[derive(Clone)]
 pub(crate) struct PaneEvent {
     pub pane: IdOf<Pane>,
@@ -173,6 +192,8 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
             err!(Io, "cannot watch {} for exit", argv[0], @external: error)
         })?;
 
+    // The blank grid, so a pane that never prints still has a screen.
+    let (screen, screen_rx) = watch::channel(Arc::new(capture(&session)));
     let cancel = CancellationToken::new();
     let (done_tx, done) = oneshot::channel();
     let task = PaneTask {
@@ -186,11 +207,13 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
         },
         dirty,
         title: None,
+        screen,
         bus,
     };
     tokio::spawn(task.run(cancel.clone(), done_tx));
     Ok(Spawned {
         runtime: PaneRuntime {
+            handle: PaneHandle { screen: screen_rx },
             cancel: cancel.drop_guard(),
             done,
         },
@@ -210,6 +233,7 @@ struct PaneTask {
     dirty: Arc<Notify>,
     /// Latest title seen this frame; the tree keeps the lasting copy.
     title: Option<String>,
+    screen: watch::Sender<Arc<Screen>>,
     bus: ActorRef<RelayBus>,
 }
 
@@ -237,7 +261,8 @@ impl PaneTask {
         done.send(()).ok();
     }
 
-    /// Drain the wrapper's events and publish the title if one arrived.
+    /// Drain the wrapper's events, publish the screen, then the title if one
+    /// arrived.
     async fn publish(&mut self) {
         let mut changed = false;
         while let Some(event) = self.session.poll_event() {
@@ -246,6 +271,8 @@ impl PaneTask {
                 changed = true;
             }
         }
+        tracing::trace!(pane = %self.pane, "screen published");
+        self.screen.send_replace(Arc::new(capture(&self.session)));
         if changed {
             self.event(PaneChange::Title(self.title.clone())).await;
         }
@@ -263,8 +290,84 @@ impl PaneTask {
 
     async fn teardown(mut self) {
         self.program.end(&self.master, &mut self.exit).await;
+        drop(self.session);
         tracing::debug!(pane = %self.pane, "pane torn down");
     }
+}
+
+/// The wrapper's rendered buffer and cursor as an owned `Screen`.
+fn capture(session: &SessionHandle) -> Screen {
+    let (cols, rows) = session.size();
+    let area = Rect::new(0, 0, cols, rows);
+    let mut buffer = Buffer::empty(area);
+    session.blit_to(&mut buffer, area);
+    let cursor = session.cursor_state();
+    Screen {
+        size: Size { cols, rows },
+        cells: buffer.content.iter().map(cell).collect(),
+        cursor: cursor.position.map(|position| Cursor {
+            x: position.x,
+            y: position.y,
+            shape: match cursor.style {
+                CursorStyle::Block => CursorShape::Block,
+                CursorStyle::Underline => CursorShape::Underline,
+                CursorStyle::Bar => CursorShape::Bar,
+            },
+            blinking: cursor.blinking,
+        }),
+    }
+}
+
+const ATTRS: [(Modifier, Attr); 9] = [
+    (Modifier::BOLD, Attr::Bold),
+    (Modifier::DIM, Attr::Dim),
+    (Modifier::ITALIC, Attr::Italic),
+    (Modifier::UNDERLINED, Attr::Underlined),
+    (Modifier::SLOW_BLINK, Attr::SlowBlink),
+    (Modifier::RAPID_BLINK, Attr::RapidBlink),
+    (Modifier::REVERSED, Attr::Reversed),
+    (Modifier::HIDDEN, Attr::Hidden),
+    (Modifier::CROSSED_OUT, Attr::CrossedOut),
+];
+
+fn cell(cell: &buffer::Cell) -> Cell {
+    Cell {
+        symbol: cell.symbol().to_owned(),
+        fg: color(cell.fg),
+        bg: color(cell.bg),
+        attrs: ATTRS
+            .iter()
+            .filter(|(modifier, _)| cell.modifier.contains(*modifier))
+            .map(|(_, attr)| *attr)
+            .collect(),
+    }
+}
+
+/// Named colors are the first sixteen palette entries.
+fn color(color: tui::Color) -> Color {
+    use tui::Color::*;
+    let indexed = match color {
+        Reset => return Color::Default,
+        Rgb(r, g, b) => return Color::Rgb(r, g, b),
+        Indexed(index) => index,
+        Black => 0,
+        Red => 1,
+        Green => 2,
+        Yellow => 3,
+        Blue => 4,
+        Magenta => 5,
+        Cyan => 6,
+        Gray => 7,
+        DarkGray => 8,
+        LightRed => 9,
+        LightGreen => 10,
+        LightYellow => 11,
+        LightBlue => 12,
+        LightMagenta => 13,
+        LightCyan => 14,
+        White => 15,
+    };
+    Color::Indexed(indexed)
 }
 
 /// The child's exit status, fed by a std thread blocked in `child.wait()`.

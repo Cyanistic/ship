@@ -178,17 +178,17 @@ fn style_bg_none() {
 }
 
 #[test]
-fn style_fg_palette_resolves() {
+fn style_fg_palette_stays_indexed() {
     let mut palette = default_palette();
     palette[1] = RgbColor { r: 170, g: 0, b: 0 };
     let mut s = make_style();
     s.fg_color = StyleColor::Palette(PaletteIndex(1));
     let result = to_ratatui::style(&s, &palette);
-    assert_eq!(result.fg, Some(Color::Rgb(170, 0, 0)));
+    assert_eq!(result.fg, Some(Color::Indexed(1)));
 }
 
 #[test]
-fn style_bg_palette_resolves() {
+fn style_bg_palette_stays_indexed() {
     let mut palette = default_palette();
     palette[255] = RgbColor {
         r: 238,
@@ -198,7 +198,7 @@ fn style_bg_palette_resolves() {
     let mut s = make_style();
     s.bg_color = StyleColor::Palette(PaletteIndex(255));
     let result = to_ratatui::style(&s, &palette);
-    assert_eq!(result.bg, Some(Color::Rgb(238, 238, 238)));
+    assert_eq!(result.bg, Some(Color::Indexed(255)));
 }
 
 #[test]
