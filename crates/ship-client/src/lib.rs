@@ -1,6 +1,8 @@
-//! Shared-type HTTP client; identity validation and startup belong to the application.
+//! Shared-type HTTP client and the full-screen client; identity validation and
+//! startup belong to the application.
 
 mod api;
+pub mod ui;
 
 use std::{error::Error, io, time::Duration};
 
@@ -148,9 +150,11 @@ fn http_error(error: HttpError) -> AppError {
                 .downcast_ref::<io::Error>()
                 .is_some_and(|error| error.kind() == io::ErrorKind::ConnectionRefused)
         });
-    let code = if connection_refused {
-        ErrorCode::ConnectionRefused
-    } else if error.is_decode() {
+    // reqwest only says "error sending request"; this is what it means.
+    if connection_refused {
+        return err!(ConnectionRefused, "no server running");
+    }
+    let code = if error.is_decode() {
         ErrorCode::Serialization
     } else {
         ErrorCode::Network

@@ -1,23 +1,21 @@
 mod cli;
 mod commands;
-mod controls;
 mod diagnostics;
 mod local;
-mod observe;
 
 use std::{process::ExitCode, time::Duration};
 
 use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
 use ship_client::{Client, SessionRef};
-use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*};
+use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*, protocol::PaneSpec};
 use url::Url;
 
 fn main() -> ExitCode {
     let matches = Cli::command().get_matches();
-    let explicit_target = matches.value_source("server_url") == Some(ValueSource::CommandLine);
+    let source = matches.value_source("server_url");
     let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|error| error.exit());
-    match run(cli, explicit_target) {
+    match run(cli, source) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("ship: {error}");
@@ -26,7 +24,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(cli: Cli, explicit_target: bool) -> Result<()> {
+fn run(cli: Cli, source: Option<ValueSource>) -> Result<()> {
     if matches!(
         cli.command,
         Some(Command::Server(cli::ServerArgs {
@@ -41,7 +39,7 @@ fn run(cli: Cli, explicit_target: bool) -> Result<()> {
         .enable_all()
         .build()
         .map_err(|error| err!(Internal, "cannot create runtime", @external: error))?;
-    runtime.block_on(dispatch(cli, explicit_target))
+    runtime.block_on(dispatch(cli, source))
 }
 
 /// Leave the launching terminal's session so the background server outlives it.
@@ -66,9 +64,21 @@ async fn health(client: &Client) -> Result<HealthResponse> {
     Ok(response)
 }
 
-async fn dispatch(cli: Cli, explicit_target: bool) -> Result<()> {
+/// `--server-url` or `SHIP_SERVER_URL` makes the target explicit for client
+/// commands. `ship server` refuses only the flag, so an exported variable
+/// doesn't stop a terminal from running a server.
+async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
+    let explicit_target = matches!(
+        source,
+        Some(ValueSource::CommandLine | ValueSource::EnvVariable)
+    );
     match cli.command {
-        Some(Command::Server(_)) if explicit_target => Err(err!(
+        // Never starts a server, so a stopped default server stays stopped.
+        Some(Command::Server(cli::ServerArgs {
+            command: Some(cli::ServerCommand::Stop),
+            ..
+        })) => commands::stop_server(&client(&cli.server_url)?).await,
+        Some(Command::Server(_)) if source == Some(ValueSource::CommandLine) => Err(err!(
             Configuration,
             "--server-url selects a server for clients; ship server does not take it"
         )),
@@ -93,11 +103,21 @@ async fn dispatch(cli: Cli, explicit_target: bool) -> Result<()> {
         }
         Some(Command::Attach(args)) => {
             let client = connect(&cli.server_url, explicit_target).await?;
+            // A full-screen client must not misread another protocol.
+            if explicit_target {
+                health(&client).await?;
+            }
             let session = match args.session {
                 SessionRef::Id(id) => id,
-                SessionRef::Name(name) => client.ensure_session(&name).await?,
+                SessionRef::Name(name) => {
+                    let starter = PaneSpec {
+                        command: None,
+                        cwd: Some(commands::current_dir()?.display().to_string()),
+                    };
+                    client.ensure_session(&name, &starter).await?
+                }
             };
-            observe::run(&client, session).await
+            ship_client::ui::run(&client, session).await
         }
         None => {
             let client = client(&cli.server_url)?;

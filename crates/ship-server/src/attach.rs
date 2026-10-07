@@ -18,7 +18,7 @@ use tokio_stream::{StreamMap, wrappers::WatchStream};
 use crate::{
     AppState,
     pane::LivePanes,
-    state::{Attach, Detach, Select, ServerState, SetView, SwitchSession, tree},
+    state::{Attach, Detach, ServerState, SetView, tree},
 };
 
 /// Created before asking the state actor, so cancellation at any point still
@@ -217,65 +217,5 @@ pub(crate) async fn view(
     Json(view): Json<ViewInput>,
 ) -> Result<Response> {
     let record = app.state.ask(SetView { attachment, view }).await?;
-    Ok(Json(record).into_response())
-}
-
-#[utoipa::path(
-    put,
-    path = "/api/v0/attach/selection",
-    operation_id = "select",
-    params(("x-ship-attachment-id" = String, Header,
-        description = "Attachment ID from the stream's `attached` event, e.g. attachment:3f2a...")),
-    request_body = SelectRequest,
-    responses(
-        (status = 200, description = "The attachment's updated viewing record", body = ViewingRecord),
-        (status = 400, description = "Missing or malformed attachment header", body = AppError),
-        (status = 404, description = "Attachment or selection not found", body = AppError),
-        (status = 422, description = "Selection outside the attached session, or malformed selection", body = AppError),
-        (status = 503, body = AppError),
-    ),
-)]
-pub(crate) async fn select(
-    State(app): State<AppState>,
-    AttachmentHeader(attachment): AttachmentHeader,
-    Json(body): Json<SelectRequest>,
-) -> Result<Response> {
-    let record = app
-        .state
-        .ask(Select {
-            attachment,
-            selection: body.selection,
-        })
-        .await?;
-    Ok(Json(record).into_response())
-}
-
-#[utoipa::path(
-    put,
-    path = "/api/v0/attach/session",
-    operation_id = "switch_session",
-    params(("x-ship-attachment-id" = String, Header,
-        description = "Attachment ID from the stream's `attached` event, e.g. attachment:3f2a...")),
-    request_body = SwitchSessionRequest,
-    responses(
-        (status = 200, description = "The attachment's updated viewing record, at the new session's root", body = ViewingRecord),
-        (status = 400, description = "Missing or malformed attachment header", body = AppError),
-        (status = 404, description = "Attachment or session not found", body = AppError),
-        (status = 422, description = "Malformed session ID"),
-        (status = 503, body = AppError),
-    ),
-)]
-pub(crate) async fn switch_session(
-    State(app): State<AppState>,
-    AttachmentHeader(attachment): AttachmentHeader,
-    Json(body): Json<SwitchSessionRequest>,
-) -> Result<Response> {
-    let record = app
-        .state
-        .ask(SwitchSession {
-            attachment,
-            session: body.session,
-        })
-        .await?;
     Ok(Json(record).into_response())
 }

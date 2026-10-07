@@ -10,16 +10,16 @@ use uuid::Uuid;
 
 use crate::{
     id::{Attachment, IdOf},
-    model::{Creatable, NodeId, OptionalName, Pane, Session, Tab, TabParent},
+    model::{Creatable, NodeId, OptionalName, Pane, Session, SessionName, Tab, TabParent},
     screen::{Screen, Size},
+    tree::Sessions,
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
 pub const PROTOCOL_VERSION: u32 = 2;
-/// Names the attachment a view, input, selection or session-switch request
-/// controls.
+/// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// Longest line of the input stream, in bytes without the newline.
 pub const INPUT_LINE_MAX: usize = 64 * 1024;
@@ -83,6 +83,16 @@ pub struct PaneSpec {
     /// Absolute directory; absent means the server's home directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
+}
+
+/// POST /sessions body. A starter creates one unnamed tab holding one pane in
+/// the same commit; `ship session create` sends none.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSession {
+    pub name: SessionName,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starter: Option<PaneSpec>,
 }
 
 /// POST /panes input, flattened next to `parent`.
@@ -154,7 +164,7 @@ pub struct Replica {
     pub incarnation: Uuid,
     pub revision: u64,
     #[schema(schema_with = sessions_schema)]
-    pub sessions: IndexMap<IdOf<Session>, Arc<Session>>,
+    pub sessions: Sessions,
     #[schema(schema_with = viewers_schema)]
     pub viewers: IndexMap<IdOf<Attachment>, ViewingRecord>,
 }
@@ -254,16 +264,4 @@ pub struct KeyInput {
 pub struct PasteInput {
     pub pane: IdOf<Pane>,
     pub text: String,
-}
-
-/// PUT /attach/selection body. The selection must be in the attached session.
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct SelectRequest {
-    pub selection: NodeId,
-}
-
-/// PUT /attach/session body. The new selection is the session itself.
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct SwitchSessionRequest {
-    pub session: IdOf<Session>,
 }

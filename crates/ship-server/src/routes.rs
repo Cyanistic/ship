@@ -28,7 +28,7 @@ pub(crate) async fn list_sessions(State(app): App) -> Result<Response> {
     post,
     path = "/api/v0/sessions",
     operation_id = "create_session",
-    request_body = Named<SessionName>,
+    request_body = CreateSession,
     responses(
         (status = 201, body = Session),
         (status = 409, description = "Session name already exists", body = AppError),
@@ -38,7 +38,7 @@ pub(crate) async fn list_sessions(State(app): App) -> Result<Response> {
 )]
 pub(crate) async fn create_session(
     State(app): App,
-    Json(body): Json<Named<SessionName>>,
+    Json(body): Json<CreateSession>,
 ) -> Result<Response> {
     let session = app
         .state
@@ -304,4 +304,18 @@ pub(crate) async fn rename_pane(
 pub(crate) async fn remove_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Result<Response> {
     app.state.ask(Remove::<Pane>(id)).await?;
     Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/server/stop",
+    operation_id = "stop_server",
+    responses(
+        (status = 202, description = "Shutdown started, as on SIGTERM. The server keeps \
+            answering until its panes are torn down, then exits."),
+    ),
+)]
+pub(crate) async fn stop_server(State(app): App) -> StatusCode {
+    app.stop.cancel();
+    StatusCode::ACCEPTED
 }

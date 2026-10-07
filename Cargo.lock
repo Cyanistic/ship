@@ -532,6 +532,7 @@ dependencies = [
  "crossterm_winapi",
  "derive_more",
  "document-features",
+ "futures-core",
  "mio",
  "parking_lot",
  "rustix",
@@ -2771,7 +2772,6 @@ name = "ship"
 version = "0.1.0"
 dependencies = [
  "clap",
- "futures-util",
  "nix 0.31.3",
  "reqwest",
  "serde",
@@ -2790,14 +2790,17 @@ dependencies = [
 name = "ship-client"
 version = "0.1.0"
 dependencies = [
+ "crossterm",
  "eventsource-stream",
  "futures-util",
  "indexmap 2.14.2",
+ "ratatui",
  "reqwest",
  "serde",
  "serde_json",
  "ship-core",
  "tokio",
+ "tokio-stream",
  "url",
 ]
 

@@ -1,0 +1,101 @@
+use std::{collections::HashMap, sync::Arc};
+
+use ship_core::{
+    id::{Attachment, IdOf},
+    model::{NodeId, Pane, Session, Tab},
+    protocol::{AttachRequest, PaneScreen, Replica, SseEvent, ViewingRecord},
+    screen::{Screen, Size},
+    tree,
+};
+
+/// The client's copy of server-owned state: the replica and the latest screen
+/// of each pane it has been sent.
+#[derive(Default)]
+pub(super) struct Observer {
+    pub attachment: Option<IdOf<Attachment>>,
+    pub replica: Option<Arc<Replica>>,
+    pub screens: HashMap<IdOf<Pane>, Arc<Screen>>,
+    /// Whether an attach stream is open. Screens stay while it isn't.
+    pub connected: bool,
+}
+
+/// The record's selection resolved against the replica.
+pub(super) struct Selected<'a> {
+    pub session: &'a Session,
+    /// The selected tab, or the selected pane's tab.
+    pub tab: Option<&'a Tab>,
+    pub pane: Option<&'a Pane>,
+}
+
+impl Observer {
+    /// The only writer of server-owned state. `Attached` replaces the
+    /// replica, `State` applies only for the same incarnation and a higher
+    /// revision, and `Screen` replaces that pane's screen. Returns whether
+    /// anything visible changed.
+    pub fn apply(&mut self, event: SseEvent) -> bool {
+        match event {
+            SseEvent::Attached(attached) => {
+                self.attachment = Some(attached.attachment);
+                self.replica = Some(attached.replica);
+                self.connected = true;
+            }
+            SseEvent::State(replica) => match &self.replica {
+                Some(current)
+                    if current.incarnation == replica.incarnation
+                        && current.revision < replica.revision =>
+                {
+                    self.replica = Some(replica);
+                }
+                _ => return false,
+            },
+            SseEvent::Screen(PaneScreen { pane, screen }) => {
+                self.screens.insert(pane, screen);
+                return self
+                    .selected()
+                    .and_then(|selected| selected.pane)
+                    .is_some_and(|selected| selected.id == pane);
+            }
+            SseEvent::Ended(_) => return false,
+        }
+        self.reconcile();
+        true
+    }
+
+    /// Drop screens for panes no longer in the replica.
+    fn reconcile(&mut self) {
+        let Some(replica) = &self.replica else {
+            return;
+        };
+        self.screens
+            .retain(|pane, _| tree::pane(&replica.sessions, *pane).is_ok());
+    }
+
+    /// This client's record, matched by attachment ID.
+    pub fn record(&self) -> Option<&ViewingRecord> {
+        self.replica.as_ref()?.viewers.get(&self.attachment?)
+    }
+
+    /// What to send on reattach: the last record's session and selection at
+    /// the terminal's current size. `None` before the first `Attached` event.
+    pub fn remembered(&self, size: Size) -> Option<AttachRequest> {
+        let record = self.record()?;
+        Some(AttachRequest {
+            session: record.session,
+            selection: Some(record.selection),
+            size,
+        })
+    }
+
+    pub fn selected(&self) -> Option<Selected<'_>> {
+        let record = self.record()?;
+        let sessions = &self.replica.as_ref()?.sessions;
+        let session = sessions.get(&record.session)?;
+        let tab = tree::viewed_tab(sessions, record.selection)
+            .and_then(|tab| tree::tab(sessions, tab).ok());
+        let pane = match record.selection {
+            NodeId::Pane(id) => tab.and_then(|tab| tab.panes.get(&id)),
+            _ => None,
+        };
+        Some(Selected { session, tab, pane })
+    }
+}

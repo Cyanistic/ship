@@ -11,7 +11,7 @@ use utoipa::{
 use crate::{
     AppError, err,
     id::{Id, IdOf, Identified, Prefixed, ServerRoot, UntaggedEither},
-    protocol::PaneInput,
+    protocol::{CreateSession, PaneInput},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -126,7 +126,7 @@ pub trait Creatable: Identified {
 
 impl Creatable for Session {
     type Parent = ServerRoot;
-    type Input = Named<SessionName>;
+    type Input = CreateSession;
 }
 
 impl Creatable for Tab {

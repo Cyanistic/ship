@@ -8,11 +8,11 @@ use serde::de::DeserializeOwned;
 use ship_core::{
     HEALTH_PATH, HealthResponse,
     id::{Attachment, Id, IdOf, Identified, Prefixed, UntaggedEither},
-    model::{Named, NodeId, Pane, Session, SessionName, Tab, TabParent},
+    model::{Named, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
     protocol::{
-        AttachRequest, Create, InputFrame, MoveTab, PaneInput, SelectRequest, SseEvent,
-        SwitchSessionRequest, ViewInput, ViewingRecord,
+        AttachRequest, Create, CreateSession, InputFrame, MoveTab, PaneInput, PaneSpec, SseEvent,
+        ViewInput, ViewingRecord,
     },
 };
 
@@ -72,6 +72,18 @@ impl Client {
             .await
     }
 
+    /// Starts the server's shutdown; it exits once its panes are torn down.
+    pub async fn stop_server(&self) -> Result<()> {
+        self.request(
+            Method::POST,
+            "/api/v0/server/stop",
+            NO_BODY,
+            None,
+            StatusCode::ACCEPTED,
+        )
+        .await
+    }
+
     pub async fn sessions(&self) -> Result<IndexMap<IdOf<Session>, Session>> {
         self.request(
             Method::GET,
@@ -83,12 +95,11 @@ impl Client {
         .await
     }
 
-    pub async fn create_session(&self, name: &SessionName) -> Result<Session> {
-        let body = Named { name };
+    pub async fn create_session(&self, body: &CreateSession) -> Result<Session> {
         self.request(
             Method::POST,
             Session::COLLECTION,
-            Some(&body),
+            Some(body),
             None,
             StatusCode::CREATED,
         )
@@ -177,15 +188,24 @@ impl Client {
         })
     }
 
-    /// Attach-or-create for `ship attach <name>`: resolve, create if absent,
-    /// and resolve again after a `409` from a concurrent creator.
-    pub async fn ensure_session(&self, name: &SessionName) -> Result<IdOf<Session>> {
+    /// Attach-or-create for `ship attach <name>`: resolve, create with
+    /// `starter` if absent, and resolve again after a `409` from a concurrent
+    /// creator.
+    pub async fn ensure_session(
+        &self,
+        name: &SessionName,
+        starter: &PaneSpec,
+    ) -> Result<IdOf<Session>> {
         let session = SessionRef::Name(name.clone());
         match self.resolve_session(&session).await {
             Err(error) if *error.code() == ErrorCode::NotFound => {}
             resolved => return resolved,
         }
-        match self.create_session(name).await {
+        let body = CreateSession {
+            name: name.clone(),
+            starter: Some(starter.clone()),
+        };
+        match self.create_session(&body).await {
             Ok(created) => Ok(created.id),
             Err(error) if *error.code() == ErrorCode::Conflict => {
                 self.resolve_session(&session).await
@@ -241,41 +261,6 @@ impl Client {
             Method::PUT,
             "/api/v0/attach/view",
             Some(view),
-            Some(attachment),
-            StatusCode::OK,
-        )
-        .await
-    }
-
-    /// Select within the attachment's session. The attachment ID is the one
-    /// the caller's own stream received, so observers never share it.
-    pub async fn select(
-        &self,
-        attachment: IdOf<Attachment>,
-        selection: NodeId,
-    ) -> Result<ViewingRecord> {
-        let body = SelectRequest { selection };
-        self.request(
-            Method::PUT,
-            "/api/v0/attach/selection",
-            Some(&body),
-            Some(attachment),
-            StatusCode::OK,
-        )
-        .await
-    }
-
-    /// Move the attachment to another session, selecting the session itself.
-    pub async fn switch_session(
-        &self,
-        attachment: IdOf<Attachment>,
-        session: IdOf<Session>,
-    ) -> Result<ViewingRecord> {
-        let body = SwitchSessionRequest { session };
-        self.request(
-            Method::PUT,
-            "/api/v0/attach/session",
-            Some(&body),
             Some(attachment),
             StatusCode::OK,
         )

@@ -27,6 +27,7 @@ use tokio::{
     net::TcpListener,
     sync::{mpsc, watch},
 };
+use tokio_util::sync::CancellationToken;
 use tower_http::{
     compression::{
         CompressionLayer, Predicate,
@@ -82,8 +83,7 @@ fn api_router() -> OpenApiRouter<AppState> {
         attach::attach,
         input::input,
         attach::view,
-        attach::select,
-        attach::switch_session,
+        routes::stop_server,
     )
 }
 
@@ -149,17 +149,23 @@ pub async fn serve(
     let state = state::ServerState::spawn(state);
     forward_pane_events(&bus, state.clone()).await?;
     let actors = (state.clone(), bus.clone());
+    let stop = CancellationToken::new();
     let app = AppState {
         state,
         bus,
         replicas,
         live,
+        stop: stop.clone(),
     };
     let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {
             let (state, bus) = actors;
             let result = tokio::select! {
                 result = shutdown => result,
+                () = stop.cancelled() => {
+                    tracing::info!("stop requested");
+                    Ok(())
+                }
                 error = actor_stopped(&state, &bus) => Err(error),
             };
             result_tx.send_replace(Some(result));

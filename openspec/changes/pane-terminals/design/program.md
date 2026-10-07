@@ -126,7 +126,7 @@ use ship_core::{id::IdOf, model::*, prelude::*, relay::{Publish, RelayBus}, scre
 use tokio::sync::{Notify, mpsc, oneshot};
 use tokio_util::sync::{CancellationToken, DropGuard};
 
-pub(crate) const FRAME: Duration = Duration::from_millis(16);
+pub(crate) const FRAME: Duration = Duration::from_millis(4); // amended by D45
 const GRACE: Duration = Duration::from_secs(2);
 
 /// Owned by the state actor. Dropping it cancels the pane task, which runs
@@ -202,7 +202,8 @@ impl PaneTask {
     ///   cancel                  -> teardown
     ///   commands                -> session.send_key / send_paste / send_resize (if the size
     ///                              changed); ignored once exited
-    ///   dirty, then the frame interval (missed ticks: Delay) -> publish()
+    ///   dirty                   -> mark pending (amended by D45)
+    ///   FRAME after the last publish, if pending -> publish()
     ///   exit                    -> publish() a final frame, then PaneEvent Exited
     async fn run(self, commands: mpsc::UnboundedReceiver<PaneCommand>, cancel: CancellationToken);
 
@@ -1071,3 +1072,80 @@ Cyan approved four recommendations in chat ("i approve all 4").
 **D36. Resolves D20: dev builds compile Ghostty in `ReleaseFast`.** The workspace manifest sets `[profile.dev.package.libghostty-vt-sys] debug = false`, so its build script sees `DEBUG=false`. Release builds were already `ReleaseFast`.
 
 **D37. Resolves D24: `ship attach` checks health for every target.** Slice 5's `ui::run` path runs the health check for an explicit `--server-url` too, so a protocol mismatch is refused instead of misread.
+
+### Slice 5 (2026-10-07, macOS arm64)
+
+**D38. Attach starts the starter pane in the CLI's directory.** `ship attach <name>` for a missing session sends `starter: PaneSpec { command: None, cwd: <current dir> }`, so the shell opens where `ship attach` ran, as tmux and Zellij do. With no `cwd` it would open in the server's home directory.
+
+**D39. The status line shows names only until slice 6.** It reads `session › tab › pane` with a segment only where a name is set, then `exited (code)` or `exited (SIGNAL)` and `disconnected, reconnecting`. Slice 6.3 replaces the missing segments with derived labels.
+
+**D40. SIGINT restores the terminal too.** `ui::run` waits on SIGTERM, SIGHUP and SIGINT. Raw mode turns `C-c` into a key, so SIGINT only arrives from `kill -INT`, and it should restore the terminal like the other two.
+
+**D41. Pane creation checks the tab before starting the program.** The starter pane is started before its tab exists, so `start_pane` no longer looks up the tab. `Create<Pane>` looks it up first and still answers 404 for a missing parent. `Create<Session>` checks name uniqueness before starting the starter, so a conflict starts no program.
+
+**D42. `Attached` keeps screens until the replica says otherwise.** The observer keeps its screens across a reconnect and drops only those whose panes are gone from the new replica, so the last screen stays up through the outage and is replaced as soon as the stream sends the current one.
+
+**D43. The cursor shape goes through crossterm.** The terminal guard sets `SetCursorStyle` from the selected screen's `Cursor` only when shape or blinking changes, and restores `DefaultUserShape` on exit. ratatui draws the cursor position only.
+
+**D44. Zig 0.16.0 is now installed at `/opt/homebrew/bin/zig`.** D2 is still open for the build itself, which no longer needs it here: D33's reuse of the built Ghostty held for this slice's OpenAPI consumer.
+
+Other changes: the `ship` crate drops `futures-util` and tokio's `sync` feature, which only the deleted text observer used. An unbound key after `C-b` is dropped, per this paper.
+
+Evidence, against a foreground debug `ship server` with `--server-url` on each client. A disposable pty harness rendered the client with Python `pyte` in place of a terminal window and checked raw output bytes where pyte doesn't model the alternate screen. Closing the harness's pty stands in for closing the window; it delivers SIGHUP the same way.
+
+- `ship attach work2` from `/tmp` with no `work2` session lands in Cyan's zsh with status ` work2`. `echo hi-$((40+2))` prints `hi-42`, `pwd` prints `/private/tmp`, and the cursor sits at the prompt.
+- `C-b d` exits 0 and prints `detached`. The output ends with `\e[?2004l` and `\e[?1049l`, and `stty` afterwards shows `icanon echo`. Reattaching shows `hi-42` again.
+- SC-001: `ls -G /` (macOS `ls --color`) shows `Applications` bold in indexed cyan. Resizing the harness to 80x24 makes `stty size` print `23 80`. In `nvim -u NONE -c 'set autoindent'`, a bracketed four-line Python paste in insert mode writes the file byte for byte with no staircase, and a resize gives `&columns &lines` = `110 34`. Pi renders at 100x30, redraws at 70x20, takes typed text and exits cleanly.
+- SC-002: `top -s 1` keeps refreshing after `C-b d` and reattach. After the client's pty is closed, the client exits, `top` is still running, and a new attach shows it refreshing.
+- Empty state: `ship session create x` then `ship attach x` shows `no tab: ship tab create x`. After `ship tab create x` it shows `no pane: ship pane create tab:…`.
+- Disconnect, through a disposable Python TCP relay in the scratchpad: killing it keeps the screen and shows ` work  disconnected, reconnecting`. Text typed during the outage never reaches the pane. Output printed by the shell during the outage appears after the relay restarts, and typing works again.
+- SC-004: `sh -c 'echo bye; exit 3'` shows `bye` and ` y  exited (3)`. `kill -TERM $$` shows ` z  exited (SIGTERM)`, and `pane get` returns `{"state":"exited","code":1,"signal":"SIGTERM"}` (D35).
+- SC-005: `kill -TERM` on the client exits it with the terminal restored (`icanon echo`, alternate screen and bracketed paste off). A temporary `panic!` on F12 in a probe build restores the terminal before the panic message prints, exits 101 and leaves `icanon echo`. The panic was reverted and the workspace rebuilt.
+- 5.4: `kill -TERM` on the server ends the client within 1.3 s with the terminal restored, `server stopped` and exit 0.
+- The release binary repeats attach to a new session, typing, detach, reattach and `server stopped`.
+- `ship --help` describes attach as a full-screen client; no "text tree" or "metadata-only" remains.
+- The disposable `openapi()` consumer, outside the repo, shows OpenAPI 3.1 with only `/api/v0/attach`, `/api/v0/attach/input` and `/api/v0/attach/view` under attach, `POST /api/v0/sessions` taking `CreateSession` (`name` required, `starter` a nullable `PaneSpec`), no `SelectRequest` or `SwitchSessionRequest`, and no dangling `$ref`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 5,491 lines (+326); tests 0.
+- Linux: unverified. Slice 5 is one of the slices to run there, and it has not been.
+
+### After slice 5 (2026-10-07)
+
+Cyan approved the fix in chat ("let's go for it! update it!") after a profiling pass on held keys feeling stuttery.
+
+**D45. Panes publish from their own timer arm, at most every 4 ms.** Amends `FRAME` (16 ms) and the pane task's `select!` in this paper. The task used to await the frame tick inside the `dirty` arm, so for up to 16 ms no key or paste reached the program. `lf` redraws twice per key about 15 ms apart, so with a held key some moves landed a frame late and others didn't. Now `dirty` only marks the screen pending, and a separate arm publishes once `FRAME` has passed since the last publish, so commands are never held. A change after a quiet frame publishes at once.
+
+Evidence, macOS arm64, release builds, a pty harness sending `j` to `lf` every 30 ms (Cyan's `KeyRepeat` of 2), two runs each:
+
+- At 120x40 the move interval p95 went from 48 ms to 40 ms, the same as `lf` run directly, and key-to-screen p95 from 20 to 27 ms down to 3 ms.
+- At 300x80 the move interval p95 went from 48 ms to 40 ms, and key-to-screen p95 from 32 to 38 ms down to 12 ms. A 1 ms `FRAME` probe build, since discarded, gave the same intervals.
+- `yes` for 3 s: the old build showed the program's next output 4.3 s late and used 7.3 s of server CPU at 120x40. The new build is on time with 4.7 s at 120x40 and 4.9 s at 300x80. Client CPU is 0.17 s and 0.72 s. Detach answers in under 10 ms in both builds.
+- `sample` on a symbol build at 300x80 shows the rest of the large-terminal cost is whole-screen work: Ghostty's render state and `capture` on the server; `eventsource_stream::parse_event` (about 40% of the client's busy time) and serde's tagged-enum buffering of `SseEvent` on the client. Left alone unless large windows still feel slow.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+
+
+**D46. `ship server stop`.** Cyan asked for it in chat ("can we add that quick stop command somehow? same as the other commands?"). It isn't in the product paper or this one. `POST /api/v0/server/stop` answers 202 and cancels a token that the server's graceful shutdown selects on next to SIGINT and SIGTERM, so a stop runs the same teardown as a signal. `ship server stop` takes `--server-url` like the other client commands but never starts a server, then waits up to ten seconds for the server to refuse connections. `ship server` keeps running a server when given no subcommand, and `--port` conflicts with `stop`. Like every route, it is open to anything that can reach the loopback port, the same trust as removing a session.
+
+Evidence, macOS arm64, release build:
+
+- With a client attached and a pane running `sleep 4242`, `ship --server-url … server stop` exits 0 in 0.06 s with no output. The server logs `stop requested` and exits 0, the client prints `server stopped` and exits 0, and the `sleep` is gone.
+- Run again, it prints `ship: no server running at http://127.0.0.1:44140` and exits 1. The default-port case wasn't run, because Cyan's own server was up there; `stop` builds its client without `connect`, so it can't start one.
+- A server built before this route answers 404, so `ship server stop` fails with `expected HTTP 202, received HTTP 404` and the server keeps running.
+- `ship server --port 5 stop` is refused by clap. `ship server --help` lists `stop`.
+- The disposable `openapi()` consumer, outside the repo, lists `POST /api/v0/server/stop` (`stop_server`, 202) and no dangling `$ref`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+
+**D47. `SHIP_SERVER_URL`, a global `--server-url`, and one refused-connection message.** Cyan approved the plan in chat ("i like that plan! go for it!"). `--server-url` is `global`, so it also works after the subcommand, and it reads `SHIP_SERVER_URL` when the flag is absent (clap's `env` feature; the flag wins). Either one makes the target explicit for client commands, so they never start or fall back to a local server. `ship server` still refuses the flag but ignores the variable, so a terminal with it exported can still run a server. A refused connection now reads `no server running` for every command, from the client's one error mapping, in place of reqwest's `error sending request`.
+
+Evidence, macOS arm64, debug build, against a foreground server on port 44150:
+
+- `session create a --server-url …` and `tab create a --name t --server-url …` work with the flag last.
+- `SHIP_SERVER_URL=…` alone lists sessions. Pointed at an unused port, it fails with `request to http://127.0.0.1:44199/api/v0/sessions failed: no server running` and starts nothing. With both set, the flag wins.
+- `ship --server-url … server` and `ship server --server-url …` are both refused. With `SHIP_SERVER_URL` exported, `ship server --port 44151` runs, and `ship server stop` with the variable stops it.
+- `pane get` and `server stop` against an unused port both say `no server running`. Bare `ship` still checks the default local server.
+- `--help` shows `[env: SHIP_SERVER_URL=]`.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+
+**D48. Tree lookups moved to `ship-core::tree`.** From Cyan's review of slice 5 ("go for it!"). The client's `observer.rs` had its own recursive tab search because the server's lookups were crate-private. The read-only lookups (`path`, `session_of`, `first_pane`, `tab`, `pane`, `pane_ids`, `pane_owner`, `viewed_tab`, `not_found`) and the `Sessions` and `Tabs` aliases now live in `ship-core/src/tree.rs`. `Replica.sessions` uses `Sessions`. The server's `state/tree.rs` keeps the edits and re-exports the lookups, so its call sites are unchanged. In the same pass, the client's input body uses tokio-stream's `UnboundedReceiverStream` in place of a hand-written `unfold`, `reattach` is now `attach_after`, and a comment says why `next` and `finish` exist. The `Selected` shape is left for slice 6.
+
+Evidence, macOS arm64, debug build, against a foreground server: the no-tab and no-pane hints, typing into a named pane (status ` e › sh`), a relay cut that keeps the screen and drops keys typed meanwhile, typing after the reconnect, and the hint after the selected pane is removed. fmt, Clippy, debug and release builds pass. Size: implementation Rust 5,583 lines; tests 0.

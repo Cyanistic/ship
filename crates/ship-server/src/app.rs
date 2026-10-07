@@ -3,6 +3,7 @@ use std::sync::Arc;
 use kameo::actor::ActorRef;
 use ship_core::protocol::Replica;
 use tokio::sync::watch;
+use tokio_util::sync::CancellationToken;
 
 use ship_core::relay::RelayBus;
 
@@ -17,4 +18,6 @@ pub struct AppState {
     pub replicas: watch::Receiver<Arc<Replica>>,
     /// Every running pane's handle. SSE streams find screens through it.
     pub(crate) live: watch::Receiver<LivePanes>,
+    /// Cancelled by `POST /api/v0/server/stop`; shuts down like SIGTERM.
+    pub(crate) stop: CancellationToken,
 }

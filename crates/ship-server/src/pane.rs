@@ -28,11 +28,12 @@ use ship_core::{
 };
 use tokio::{
     sync::{Notify, mpsc, oneshot, watch},
-    time::MissedTickBehavior,
+    time::Instant,
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
 
-pub(crate) const FRAME: Duration = Duration::from_millis(16);
+/// The shortest gap between two published screens of one pane.
+pub(crate) const FRAME: Duration = Duration::from_millis(4);
 
 /// Owned by the state actor. Dropping it cancels the pane task, which runs
 /// teardown in the background. `stop` does the same and waits for it.
@@ -190,13 +191,8 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
     std::thread::Builder::new()
         .name("pane-exit".into())
         .spawn(move || {
-            if let Ok(status) = child.wait() {
-                exit_tx
-                    .send(ExitStatus {
-                        code: status.exit_code(),
-                        signal: status.signal().map(str::to_owned),
-                    })
-                    .ok();
+            if let Some(status) = program::wait(child) {
+                exit_tx.send(status).ok();
             }
         })
         .map_err(|error| {
@@ -263,15 +259,20 @@ impl PaneTask {
         cancel: CancellationToken,
         done: oneshot::Sender<()>,
     ) {
-        let mut frame = tokio::time::interval(FRAME);
-        frame.set_missed_tick_behavior(MissedTickBehavior::Delay);
+        // Waiting for the frame happens in its own arm, so commands keep
+        // reaching the program meanwhile. A change after a quiet frame
+        // publishes at once, since `next` has passed.
+        let mut pending = false;
+        let mut next = Instant::now();
         loop {
             tokio::select! {
                 () = cancel.cancelled() => break,
                 Some(command) = commands.recv() => self.command(command),
-                () = self.dirty.notified() => {
-                    frame.tick().await;
+                () = self.dirty.notified(), if !pending => pending = true,
+                () = tokio::time::sleep_until(next), if pending => {
+                    pending = false;
                     self.publish().await;
+                    next = Instant::now() + FRAME;
                 }
                 status = &mut self.exit.status, if !self.exit.reaped => {
                     self.exit.reaped = true;
@@ -412,7 +413,7 @@ fn color(color: tui::Color) -> Color {
     Color::Indexed(indexed)
 }
 
-/// The child's exit status, fed by a std thread blocked in `child.wait()`.
+/// The child's exit status, fed by a std thread blocked in `program::wait`.
 struct Exit {
     status: oneshot::Receiver<ExitStatus>,
     reaped: bool,
@@ -436,7 +437,11 @@ use program::Program;
 #[cfg(unix)]
 mod program {
     use nix::{
-        sys::signal::{Signal, killpg},
+        errno::Errno,
+        sys::{
+            signal::{Signal, killpg},
+            wait::{WaitStatus, waitpid},
+        },
         unistd::Pid,
     };
 
@@ -486,6 +491,26 @@ mod program {
         }
     }
 
+    /// Block until the child is reaped. A signal death reports its name, such
+    /// as `SIGTERM`, with code 1. `None` if the child can't be waited for.
+    pub fn wait(child: Box<dyn Child + Send + Sync>) -> Option<ExitStatus> {
+        let pid = Pid::from_raw(i32::try_from(child.process_id()?).ok()?);
+        loop {
+            return match waitpid(pid, None) {
+                Ok(WaitStatus::Exited(_, code)) => Some(ExitStatus {
+                    code: code.unsigned_abs(),
+                    signal: None,
+                }),
+                Ok(WaitStatus::Signaled(_, signal, _)) => Some(ExitStatus {
+                    code: 1,
+                    signal: Some(signal.as_str().to_owned()),
+                }),
+                Ok(_) | Err(Errno::EINTR) => continue,
+                Err(_) => None,
+            };
+        }
+    }
+
     /// Signal every group; one that is already gone is fine.
     fn signal(groups: &[Pid], signal: Signal) {
         for group in groups {
@@ -521,5 +546,14 @@ mod program {
             self.kill();
             exit.wait().await;
         }
+    }
+
+    /// Block until the child exits, with portable-pty's status.
+    pub fn wait(mut child: Box<dyn Child + Send + Sync>) -> Option<ExitStatus> {
+        let status = child.wait().ok()?;
+        Some(ExitStatus {
+            code: status.exit_code(),
+            signal: status.signal().map(str::to_owned),
+        })
     }
 }

@@ -4,19 +4,22 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 readme.workspace = true
-description = "HTTP client library for Ship"
+description = "HTTP client library and full-screen client for Ship"
 
 [dependencies]
 ship-core.workspace = true
 
+crossterm = { workspace = true, features = ["bracketed-paste", "event-stream"] }
 eventsource-stream.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
+ratatui.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 url.workspace = true
 tokio.workspace = true
+tokio-stream.workspace = true
 
 [lints]
 workspace = true

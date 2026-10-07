@@ -1,20 +1,31 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use serde::Serialize;
 use ship_client::Client;
 use ship_core::{
     model::{Pane, Session, Tab},
     prelude::*,
-    protocol::{MoveTab, PaneInput, PaneSpec, Placement},
+    protocol::{CreateSession, MoveTab, PaneInput, PaneSpec, Placement},
 };
 
+use tokio::time::{Instant, sleep};
+
 use crate::cli::{PaneCommand, SessionCommand, TabCommand};
+
+/// Panes get two seconds to exit and the drain five, so ten covers a stop.
+const STOP_WAIT: Duration = Duration::from_secs(10);
 
 /// Each command prints its JSON result on stdout, or nothing for removal.
 pub async fn session(client: &Client, command: SessionCommand) -> Result<()> {
     match command {
         SessionCommand::List => print(&client.sessions().await?),
-        SessionCommand::Create(args) => print(&client.create_session(&args.name).await?),
+        SessionCommand::Create(args) => {
+            let body = CreateSession {
+                name: args.name,
+                starter: None,
+            };
+            print(&client.create_session(&body).await?)
+        }
         SessionCommand::Get(args) => {
             let id = client.resolve_session(&args.session).await?;
             print(&client.get::<Session>(id).await?)
@@ -85,9 +96,25 @@ pub async fn pane(client: &Client, command: PaneCommand) -> Result<()> {
     }
 }
 
+/// `ship server stop`: start shutdown, then wait until the server refuses
+/// connections. Prints nothing, like removal.
+pub async fn stop_server(client: &Client) -> Result<()> {
+    client.stop_server().await?;
+    let deadline = Instant::now() + STOP_WAIT;
+    loop {
+        match client.health().await {
+            Err(error) if *error.code() == ErrorCode::ConnectionRefused => return Ok(()),
+            _ if Instant::now() >= deadline => {
+                return Err(err!(Network, "server still running after ten seconds"));
+            }
+            _ => sleep(Duration::from_millis(50)).await,
+        }
+    }
+}
+
 /// `$PWD` when it names the current directory, so a symlinked path such as
 /// macOS's `/tmp` is kept as the user typed it, as shells do.
-fn current_dir() -> Result<PathBuf> {
+pub fn current_dir() -> Result<PathBuf> {
     let current = std::env::current_dir()
         .map_err(|error| err!(Io, "cannot read the current directory", @external: error))?;
     let real = std::fs::canonicalize(&current).ok();

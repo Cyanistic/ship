@@ -12,7 +12,8 @@ use ship_core::{
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, Create, MoveTab, PaneInput, Replica, ViewInput, ViewingRecord,
+        AttachRequest, Attached, Create, CreateSession, MoveTab, PaneInput, Replica, ViewInput,
+        ViewingRecord,
     },
     screen::Size,
 };
@@ -28,7 +29,8 @@ use crate::pane::{
 
 pub(crate) mod tree;
 
-pub(crate) type Sessions = IndexMap<IdOf<Session>, Arc<Session>>;
+use tree::Sessions;
+
 pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
 
 /// Sole owner of the tree, of every active attachment's viewing record and of
@@ -179,10 +181,10 @@ impl ServerState {
         }
     }
 
-    /// Start a pane's program before the commit that inserts it, and keep its
-    /// runtime. It starts at its tab's size, else 80x24. Returns the pane, running, for the edit to insert.
+    /// Start a pane's program before the commit that inserts it into `tab`,
+    /// and keep its runtime. It starts at the tab's size, else 80x24. Returns
+    /// the pane, running, for the edit to insert.
     fn start_pane(&mut self, tab: IdOf<Tab>, input: PaneInput) -> Result<Pane> {
-        tree::tab(&self.sessions, tab)?;
         let cwd = match input.spec.cwd {
             Some(cwd) => PathBuf::from(cwd),
             None => std::env::home_dir()
@@ -252,12 +254,6 @@ fn inside(sessions: &Sessions, session: IdOf<Session>, node: NodeId) -> bool {
     tree::path(sessions, node).is_some_and(|path| path[0] == NodeId::Session(session))
 }
 
-fn viewer(viewers: &mut Viewers, attachment: IdOf<Attachment>) -> Result<&mut ViewingRecord> {
-    viewers
-        .get_mut(&attachment)
-        .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))
-}
-
 /// Session names are unique; `except` is the session being renamed.
 fn ensure_unique(
     sessions: &Sessions,
@@ -297,14 +293,6 @@ pub struct SetView {
     pub attachment: IdOf<Attachment>,
     pub view: ViewInput,
 }
-pub struct Select {
-    pub attachment: IdOf<Attachment>,
-    pub selection: NodeId,
-}
-pub struct SwitchSession {
-    pub attachment: IdOf<Attachment>,
-    pub session: IdOf<Session>,
-}
 
 impl Message<ListSessions> for ServerState {
     type Reply = Result<Sessions>;
@@ -322,13 +310,32 @@ impl Message<Create<Session>> for ServerState {
         create: Create<Session>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| {
-            ensure_unique(sessions, &create.input.name, None)?;
-            let session = Session {
-                id: Id::new(),
-                name: create.input.name,
+        let CreateSession { name, starter } = create.input;
+        ensure_unique(&self.sessions, &name, None)?;
+        let mut tabs = IndexMap::new();
+        if let Some(spec) = starter {
+            let tab = Id::new();
+            let pane = self.start_pane(
+                tab,
+                PaneInput {
+                    name: OptionalName::default(),
+                    spec,
+                },
+            )?;
+            let tab = Tab {
+                id: tab,
+                name: OptionalName::default(),
                 tabs: IndexMap::new(),
+                panes: IndexMap::from([(pane.id, pane)]),
             };
+            tabs.insert(tab.id, tab);
+        }
+        let session = Session {
+            id: Id::new(),
+            name,
+            tabs,
+        };
+        self.commit(|sessions, _| {
             sessions.insert(session.id, Arc::new(session.clone()));
             Ok(session)
         })
@@ -489,6 +496,7 @@ impl Message<Create<Pane>> for ServerState {
         create: Create<Pane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
+        tree::tab(&self.sessions, create.parent)?;
         let pane = self.start_pane(create.parent, create.input)?;
         self.commit(|sessions, _| {
             tree::tab_mut(sessions, create.parent)?
@@ -552,7 +560,8 @@ impl Message<Attach> for ServerState {
 
     /// Commit the new record and return it with the committed replica as the
     /// stream's seed. A requested selection is kept only if it is inside the
-    /// requested session now; otherwise the record starts at the session root.
+    /// requested session now; otherwise the record starts at the session's
+    /// first pane, else the session itself.
     async fn handle(
         &mut self,
         Attach {
@@ -569,6 +578,7 @@ impl Message<Attach> for ServerState {
             let selection = request
                 .selection
                 .filter(|node| inside(sessions, request.session, *node))
+                .or_else(|| tree::first_pane(sessions, request.session).map(NodeId::Pane))
                 .unwrap_or(NodeId::Session(request.session));
             let record = ViewingRecord {
                 session: request.session,
@@ -652,62 +662,6 @@ impl Message<SetView> for ServerState {
         self.commit(|_, viewers| {
             viewers.insert(attachment, record.clone());
             Ok(record)
-        })
-        .await
-    }
-}
-
-impl Message<Select> for ServerState {
-    type Reply = Result<ViewingRecord>;
-
-    /// The selection must exist and belong to the attachment's session.
-    async fn handle(
-        &mut self,
-        Select {
-            attachment,
-            selection,
-        }: Select,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        self.commit(|sessions, viewers| {
-            let record = viewer(viewers, attachment)?;
-            tree::path(sessions, selection).ok_or_else(|| tree::not_found(selection))?;
-            if !inside(sessions, record.session, selection) {
-                return Err(err!(
-                    InvalidStructure,
-                    "{} is not in attached session {}",
-                    selection,
-                    record.session
-                ));
-            }
-            record.selection = selection;
-            Ok(record.clone())
-        })
-        .await
-    }
-}
-
-impl Message<SwitchSession> for ServerState {
-    type Reply = Result<ViewingRecord>;
-
-    /// Attach to another session, selecting the session itself.
-    async fn handle(
-        &mut self,
-        SwitchSession {
-            attachment,
-            session: id,
-        }: SwitchSession,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        self.commit(|sessions, viewers| {
-            let record = viewer(viewers, attachment)?;
-            session(sessions, id)?;
-            *record = ViewingRecord {
-                session: id,
-                selection: NodeId::Session(id),
-                size: record.size,
-            };
-            Ok(record.clone())
         })
         .await
     }
