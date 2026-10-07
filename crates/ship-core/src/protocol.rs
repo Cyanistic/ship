@@ -18,7 +18,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// Longest line of the input stream, in bytes without the newline.
@@ -190,9 +190,12 @@ fn viewers_schema() -> Object {
         .build()
 }
 
-/// One `data:` line of the attach stream.
+/// One event of the attach stream, sent as one SSE `data:` line, e.g.
+/// `{"type": "screen", "data": {"pane": "pane:...", "screen": {...}}}`.
+// Adjacently tagged: serde reads `type` first and deserializes `data` directly.
+// Internally tagged, it buffered every screen cell to find the tag.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
 pub enum SseEvent {
     /// Always first: the new attachment's ID and the state it starts from.
     Attached(Attached),

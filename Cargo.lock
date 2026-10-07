@@ -759,17 +759,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eventsource-stream"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74fef4569247a5f429d9156b9d0a2599914385dd189c539334c625d8099d90ab"
-dependencies = [
- "futures-core",
- "nom",
- "pin-project-lite",
-]
-
-[[package]]
 name = "fancy-regex"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2791,7 +2780,6 @@ name = "ship-client"
 version = "0.1.0"
 dependencies = [
  "crossterm",
- "eventsource-stream",
  "futures-util",
  "indexmap 2.14.2",
  "ratatui",
@@ -2799,6 +2787,7 @@ dependencies = [
  "serde",
  "serde_json",
  "ship-core",
+ "sse-stream",
  "tokio",
  "tokio-stream",
  "url",
@@ -2844,6 +2833,7 @@ dependencies = [
  "portable-pty",
  "ratatui",
  "ratatui-ghostty",
+ "serde_json",
  "ship-core",
  "ship-macros",
  "tokio",
@@ -2941,6 +2931,22 @@ checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "sse-stream"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d385160fc0fba84f7b9cc8ef3263e410d0e3ca7ab4927f1356df33145ace69a4"
+dependencies = [
+ "bytes",
+ "futures-util",
+ "http-body",
+ "http-body-util",
+ "memchr",
+ "pin-project-lite",
+ "simdutf8",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

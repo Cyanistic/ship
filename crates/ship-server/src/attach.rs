@@ -96,7 +96,7 @@ pub(crate) async fn attach(
         .fuse()
         .map(move |event| {
             let _ = &guard;
-            Event::default().json_data(event)
+            serde_json::to_string(&event).map(|json| Event::default().data(json))
         });
     Ok(Sse::new(events)
         .keep_alive(KeepAlive::new().interval(Duration::from_secs(15)))

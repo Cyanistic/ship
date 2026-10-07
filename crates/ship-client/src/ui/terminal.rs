@@ -1,7 +1,7 @@
 //! The user's terminal while the client runs: raw mode, the alternate screen
 //! and bracketed paste, restored on every exit path the process survives.
 
-use std::io::{self, Stdout};
+use std::io::{self, BufWriter, Stdout};
 
 use crossterm::{
     cursor::{SetCursorStyle, Show},
@@ -15,10 +15,15 @@ use ship_core::{
     screen::{Cursor, CursorShape},
 };
 
+/// Room for a full-screen frame of a large terminal.
+const FRAME_BUFFER: usize = 256 * 1024;
+
 /// Restores the terminal on drop. `enter` also installs a panic hook that
 /// restores it before the panic message prints.
 pub(super) struct TerminalGuard {
-    pub terminal: Terminal<CrosstermBackend<Stdout>>,
+    /// Buffered so a frame reaches the terminal in one write when ratatui
+    /// flushes; `Stdout` alone flushes about every kilobyte.
+    pub terminal: Terminal<CrosstermBackend<BufWriter<Stdout>>>,
     /// The cursor shape last set, so it's only written when it changes.
     cursor: Option<(CursorShape, bool)>,
 }
@@ -32,8 +37,11 @@ impl TerminalGuard {
         }));
         enable_raw_mode().map_err(|error| err!(Io, "cannot enter raw mode", @external: error))?;
         // From here on, the guard restores whatever succeeded.
-        let terminal = Terminal::new(CrosstermBackend::new(io::stdout()))
-            .map_err(|error| err!(Io, "cannot open the terminal", @external: error));
+        let terminal = Terminal::new(CrosstermBackend::new(BufWriter::with_capacity(
+            FRAME_BUFFER,
+            io::stdout(),
+        )))
+        .map_err(|error| err!(Io, "cannot open the terminal", @external: error));
         let guard = Self {
             terminal: terminal.inspect_err(|_| restore())?,
             cursor: None,

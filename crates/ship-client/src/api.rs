@@ -1,7 +1,6 @@
-use std::str::FromStr;
+use std::{future::ready, str::FromStr};
 
-use eventsource_stream::{EventStreamError, Eventsource};
-use futures_util::{Stream, StreamExt};
+use futures_util::{Stream, StreamExt, TryStreamExt};
 use indexmap::IndexMap;
 use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
@@ -15,7 +14,7 @@ use ship_core::{
         ViewInput, ViewingRecord,
     },
 };
-
+use sse_stream::SseByteStream;
 use url::Url;
 
 use crate::{NO_BODY, http_error};
@@ -216,6 +215,10 @@ impl Client {
 
     /// Open the attach stream. The two-second timeout covers only the
     /// response head. The returned stream yields decoded events and ends on EOF.
+    ///
+    /// `sse-stream` scans each received chunk once; `eventsource-stream`
+    /// rescanned a partial line on every chunk, which was quadratic in the size
+    /// of a screen event. Blocks without data are skipped.
     pub async fn attach(
         &self,
         request: &AttachRequest,
@@ -223,14 +226,18 @@ impl Client {
         let response = self
             .stream(Method::POST, "/api/v0/attach", Some(request))
             .await?;
-        Ok(response
-            .bytes_stream()
-            .eventsource()
-            .map(|event| match event {
-                Ok(event) => serde_json::from_str(&event.data).map_err(
+        Ok(SseByteStream::new(response.bytes_stream())
+            .try_filter_map(|block| ready(Ok(block.data)))
+            .map(|data| match data {
+                Ok(data) => serde_json::from_str(&data).map_err(
                     |error| err!(Serialization, "cannot decode attach event", @external: error),
                 ),
-                Err(EventStreamError::Transport(error)) => Err(http_error(error)),
+                Err(sse_stream::Error::Body(error)) => match error.downcast::<reqwest::Error>() {
+                    Ok(error) => Err(http_error(*error)),
+                    Err(error) => {
+                        Err(err!(Serialization, "malformed attach stream", @external: error))
+                    }
+                },
                 Err(error) => Err(err!(Serialization, "malformed attach stream", @external: error)),
             }))
     }

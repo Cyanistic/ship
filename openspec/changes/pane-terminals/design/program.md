@@ -425,7 +425,7 @@ impl Creatable for Pane    { type Parent = Tab;        type Input = PaneInput; }
 #### `crates/ship-core/src/protocol.rs` (slices 1 to 4)
 
 ```rust
-pub const PROTOCOL_VERSION: u32 = 2;                         // slice 3
+pub const PROTOCOL_VERSION: u32 = 3;                         // slice 3; 3 after slice 7, D55
 pub const INPUT_LINE_MAX: usize = 64 * 1024;                 // slice 4
 
 /// Pane creation input; also the starter pane on session creation.
@@ -606,7 +606,7 @@ Behavior changes:
 - `State` when the replica's revision moved;
 - `Screen` for each pane of the record's viewed tab whose `seq` differs from what this stream last sent. That includes every pane of a newly viewed tab.
 
-A `HashMap<IdOf<Pane>, u64>` per stream tracks sent sequence numbers and is pruned to the viewed tab. Batches are flattened, fused and mapped to `Event::json_data` as today. The `Attach` message carries the request's `size` into the record (slice 4). `AttachmentHeader` becomes `pub(crate)` for `input.rs`.
+A `HashMap<IdOf<Pane>, u64>` per stream tracks sent sequence numbers and is pruned to the viewed tab. Batches are flattened, fused and mapped to `Event::json_data` as today (`Event::data` over `serde_json::to_string` after slice 7, D56). The `Attach` message carries the request's `size` into the record (slice 4). `AttachmentHeader` becomes `pub(crate)` for `input.rs`.
 
 The view route replaces `select` and `switch_session` (A4):
 
@@ -1171,3 +1171,51 @@ Evidence, against a foreground debug `ship server` with `--server-url` on each c
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass. No routes or protocol types changed, so the OpenAPI consumer wasn't rerun.
 - Size: implementation Rust 5,720 lines (+137); tests 0.
 - Linux: not required for slice 6, unverified. Task 7.3 reruns this slice's workflows there.
+
+### Slice 7 (2026-10-07, macOS arm64)
+
+No fixes were needed and no source changed. A disposable pty harness in the session scratchpad rendered each client with Python `pyte`, against a foreground release `ship server` with `--server-url` or `SHIP_SERVER_URL` on each client.
+
+**D53. SC-007's tmux comparison used Zellij.** tmux isn't installed on this Mac. Typing latency was compared against Zellij and against running the program directly. The by-feel judgement in real use is Cyan's and is still open, so task 7.2 stays unchecked.
+
+**D54. Linux was partly run and is recorded as unverified.** In a Debian trixie aarch64 container under Colima (kernel 6.8, rustc 1.99, Zig 0.16.0), debug and release builds, `cargo fmt --all -- --check` and Clippy with `-D warnings` pass. The scripted slice 2, 5 and 6 workflows passed 43 of 45 checks on the release build. The two failures are both in the relay disconnect check: 1 s after the relay was cut, the status line had no `disconnected, reconnecting`, and typing after the restart didn't show up within 3 s. Whether that's Ship or the harness wasn't investigated, because Cyan said not to pursue Linux in this run. Windows is unverified.
+
+Evidence:
+
+- SC-006: clients at 100x30 and 80x24 on one tab show identical 80x23 regions, and the larger one fills the rest with `·` drawn after `\e[2m`. The smaller client shows no filler. Both typed into the pane (`echo from-a`, `echo from-b`), and `stty size` printed `23 80`. After the smaller client left with `C-b )` (to another session's tab), `stty size` printed `29 100` and the filler was gone. When it came back with `C-b (`, the tab shrank to 80x23 again with identical regions.
+- SC-007 typing, key-to-screen over 150 keys 30 ms apart at 120x40, p50 / p95: `sh` directly 3.1 / 3.3 ms, in Ship 3.1 to 5.3 / 3.2 to 5.6 ms across runs, in Zellij 16.6 / 18.6 ms. Neovim insert mode: directly 2.5 / 2.7 ms, in Ship 10.6 / 12.0 ms, in Zellij 16.3 / 18.8 ms. Neovim in Ship is slower than the shell in Ship but faster than Zellij. It wasn't profiled, because nothing was changed.
+- SC-007 load: with another client viewing a pane looping `cat` over a 50 MB file of varied base64 lines, typing in a shell in another session stays at p50 3.1 ms, p95 3.2 ms, max 3.3 ms. The server used about 160% CPU while the loop ran, and the viewing client drained 3.9 MB of output in about 5 s using 0.8 s of CPU.
+- SC-007 drag: a second client on the typing client's tab, resized every 2 ms for 4.8 s (about 1,660 resizes), sent about 250 view PUTs (about 52 a second). Meanwhile the typing client stayed at p50 3.1 ms, p95 7.9 ms, max 9.3 ms. In one earlier run the max was 48 ms.
+- SC-009 on macOS, release build, scripted: slice 2 passes 11 of 11 checks. These cover a login shell in the CLI's directory, one child per pane, an unstartable command and a missing `--cwd` leaving `session get` unchanged, the title `hello`, exit code 3, a background job gone 0.03 s after `pane rm`, a HUP-ignoring program alive at 1.5 s and gone at 1.96 s, tab and nested session removal, and SIGTERM with HUP-ignoring panes exiting in 2.00 s with nothing left. Slice 5 passes 19 of 19, covering attach-or-create, typing, detach and restore (`\e[?1049l`, `\e[?2004l`), reattach, `ls` colors, a resize to `23 80`, a Neovim bracketed paste with `autoindent` written byte for byte, `top` surviving both detach and a closed pty, a relay cut that shows `disconnected, reconnecting` and drops keys typed meanwhile, typing after the reconnect, SIGTERM on the client, `exited (3)`, `SIGTERM` as the signal, both empty-state hints, and server SIGTERM ending the client with `server stopped`. Slice 6 passes 15 of 15, covering pane and session cycling, the removal fallback, the tab-selected `C-b p`, `C-b C-b` in `cat -v`, and the labels. Pi and the forced-panic probe were not rerun.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass. The working tree holds no probes, harnesses or OpenAPI consumers; they lived in the scratchpad. No `#[test]` exists under `crates/`.
+- Size: implementation Rust 5,720 lines (unchanged); tests 0.
+
+### After slice 7 (2026-10-07)
+
+Cyan approved the change in chat ("please do it that way so that it has the content field") after a profiling pass on nvim scrolling.
+
+**D55. `SseEvent` is adjacently tagged, and `PROTOCOL_VERSION` goes to 3.** Amends `PROTOCOL_VERSION = 2` in this paper's skeleton; the paper's `SseEvent` doesn't say how it is tagged. `#[serde(tag = "type")]` became `#[serde(tag = "type", content = "data")]`, so each attach event is `{"type": "screen", "data": {"pane": ..., "screen": ...}}`. Internally tagged, serde parsed every event into its generic `Content` tree to find the tag, then deserialized that tree a second time, so each screen cell was allocated, walked and freed twice. Adjacently tagged with `type` first, serde deserializes `data` directly. The server always writes `type` first. A protocol-2 client is refused by the health check. `InputFrame` stays internally tagged; its lines are a few bytes.
+
+Evidence, macOS arm64, release builds:
+
+- Decoding a captured 142 KB nvim screen event, best of 300: 0.80 ms internally tagged, 0.31 ms adjacently tagged.
+- nvim scrolling with Ctrl-E at 60 a second, 300 scrolls, CPU per process. `HEAD` (internally tagged, `eventsource-stream`): server 13%, client 36%. This build: server 21 to 25%, client 10 to 11%. Scroll latency p50 is unchanged at about 5.5 ms. Server CPU rises as the client gets faster; the likely cause is that a slow reader let the attach stream skip intermediate screens, so more screens are now encoded and delivered. That wasn't verified.
+- `curl -N` on the attach route shows `{"type":"attached","data":{...}}` and `{"type":"screen","data":{...}}`; `/health` reports `protocolVersion` 3; the `HEAD` binary refuses to attach with `expected service ship and protocol 2`. A real client in a 300x80 pty types, draws 400 lines of 299 columns, and shows `disconnected, reconnecting` when the server is killed.
+- The disposable OpenAPI consumer, run outside the repo, shows each `SseEvent` variant as an object with required `type` (a one-value enum) and `data` (a `$ref` to `Attached`, `Replica`, `PaneScreen` or `Ended`), with the variant descriptions kept.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 5,730 lines (+10, including the `sse-stream` parser change in `api.rs`, D56); tests 0.
+
+**D56. Attach events are serialized whole, the client parses SSE with `sse-stream`, and the client buffers its frames.** Amends "mapped to `Event::json_data`" in the `attach.rs` section (slices 3 and 4). Approved by Cyan in chat after an A/B run. Three changes, none of them to the wire format:
+
+- The server builds each event with `serde_json::to_string` and `Event::data`. `Event::json_data` hands serde_json axum's `EventDataWriter`, which scans for newlines and copies on every small write serde makes, which is several per screen cell. The whole event was in memory either way. axum has no report of this.
+- The client parses the attach stream with `sse-stream` instead of `eventsource-stream`, which rescanned a partial line on every received chunk, so parsing a screen event was quadratic in its size. Blocks without `data` are skipped.
+- The client's ratatui backend writes through a 256 KB `BufWriter`, so a frame reaches the terminal in one write when ratatui flushes instead of about every kilobyte. It had no measurable CPU effect in the harness; it's kept because it's small and a frame that arrives whole is less likely to be drawn half-finished, which is unverified.
+
+Evidence, macOS arm64, release builds, nvim scrolling with Ctrl-E at 60 a second, 300 scrolls, three alternating runs each:
+
+- `Event::json_data`: server 20 to 23% CPU, client 9 to 11%. `to_string`: server 11 to 13%, client about 12.5%. The `sse-stream` change is in both and in D55's "this build" figures.
+- Adding the `BufWriter`: server 11 to 13%, client 11 to 12%, scroll p95 7.0 to 7.5 ms, against 12 to 13% and 7.0 to 7.6 ms without it.
+- Against Herdr and Zellij after these changes, p50 key-to-screen and scroll CPU: scrolling 4.8 to 6.4 ms in Ship, 17.9 ms in Herdr, 19.0 ms in Zellij; CPU 26 to 29% (server plus client), 16% and 4.4%. Typing in `sh` 3.4 to 3.8 ms, 4.8 ms, 13.5 ms; in nvim 5.4 ms, 5.3 ms, 14.5 ms. Herdr ran in its own `shiplat` session.
+- Two candidate fixes were tried and dropped: deferring the vendored session thread's render to its drain loop changed nothing measurable, and capturing the screen inside the wrapper's lock raised scroll p95 to 12 to 13 ms.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 5,738 lines (+8); tests 0.
