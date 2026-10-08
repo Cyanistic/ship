@@ -50,6 +50,10 @@ Linux is Cyan's primary environment. Linux and macOS are priority platforms; Win
 
 Keep platform-specific code behind `cfg`. Use the portable std or dependency API wherever one exists. Confine each Unix-only mechanism to one small function or module gated with `#[cfg(unix)]`, and don't call `nix` or `libc` from otherwise portable code. On other platforms, give the item a plain fallback or leave it missing, so a port fails to compile exactly at that boundary.
 
+## Issues and pull requests
+
+Write issues from `.github/ISSUE_TEMPLATE/issue.md` and pull requests from `.github/pull_request_template.md`. The comments in each template are the rules: follow them, delete slots that don't apply, and file a tracking issue for every open decision or workaround a pull request leaves behind.
+
 ## Reference multiplexers
 
 Herdr, Zellij and tmux show what established multiplexers do and what users expect. Use them to ground behavior and to check whether an idea is settled practice. They are inspiration, not templates: Ship's structure and command surface are its own.
