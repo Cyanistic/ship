@@ -19,7 +19,7 @@ use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
 use crate::widget::{CursorState, TerminalWidget};
 use crossbeam_channel::{Receiver, Sender};
 use libghostty_vt::render::RenderState;
-use libghostty_vt::terminal::{ColorScheme, ScrollViewport, Terminal};
+use libghostty_vt::terminal::{ColorScheme, CursorStyle, ScrollViewport, Terminal};
 use libghostty_vt::{key, mouse};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -631,6 +631,11 @@ fn session_thread(
     let mut terminal = Box::new(Terminal::new(cols, rows)?);
     // Preserve the wrapper's documented line-count setting in this probe.
     terminal.set_scrollback_max_lines(Some(scrollback))?;
+    // Ghostty resolves the default cursor (DECSCUSR 0, and the initial state)
+    // to a concrete shape and doesn't expose that it's the default. No escape
+    // sequence selects a hollow block, so it marks the default here, and the
+    // widget reports it as `CursorStyle::Default`.
+    terminal.set_default_cursor_style(Some(CursorStyle::BlockHollow))?;
 
     let events_local: Rc<RefCell<Vec<SessionEvent>>> = Rc::new(RefCell::new(Vec::new()));
 

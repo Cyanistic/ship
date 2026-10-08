@@ -69,6 +69,7 @@ impl TerminalGuard {
             (CursorShape::Underline, false) => SetCursorStyle::SteadyUnderScore,
             (CursorShape::Bar, true) => SetCursorStyle::BlinkingBar,
             (CursorShape::Bar, false) => SetCursorStyle::SteadyBar,
+            (CursorShape::Default, _) => SetCursorStyle::DefaultUserShape,
         };
         execute!(io::stdout(), style)
             .map_err(|error| err!(Io, "cannot set the cursor shape", @external: error))

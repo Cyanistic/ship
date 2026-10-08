@@ -26,6 +26,9 @@ pub enum CursorStyle {
     Block,
     Bar,
     Underline,
+    /// The program never chose a shape, or reset it with DECSCUSR 0, so the
+    /// viewing terminal's own default applies.
+    Default,
 }
 
 pub struct TerminalWidget<'a, 'alloc, 'cb> {
@@ -100,6 +103,8 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
             self.cursor.style = match cursor_visual_style {
                 Some(CursorVisualStyle::Bar) => CursorStyle::Bar,
                 Some(CursorVisualStyle::Underline) => CursorStyle::Underline,
+                // The session's marker for the default; see `session.rs`.
+                Some(CursorVisualStyle::BlockHollow) => CursorStyle::Default,
                 _ => CursorStyle::Block,
             };
             self.cursor.blinking = cursor_blinking;

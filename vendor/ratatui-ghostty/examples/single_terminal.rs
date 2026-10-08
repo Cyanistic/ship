@@ -259,6 +259,7 @@ fn main() -> anyhow::Result<()> {
                             (CursorStyle::Bar, true) => SetCursorStyle::BlinkingBar,
                             (CursorStyle::Underline, false) => SetCursorStyle::SteadyUnderScore,
                             (CursorStyle::Underline, true) => SetCursorStyle::BlinkingUnderScore,
+                            (CursorStyle::Default, _) => SetCursorStyle::DefaultUserShape,
                         };
                         execute!(term.backend_mut(), ct_style)?;
                     }
