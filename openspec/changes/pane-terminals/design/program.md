@@ -1176,7 +1176,7 @@ Evidence, against a foreground debug `ship server` with `--server-url` on each c
 
 No fixes were needed and no source changed. A disposable pty harness in the session scratchpad rendered each client with Python `pyte`, against a foreground release `ship server` with `--server-url` or `SHIP_SERVER_URL` on each client.
 
-**D53. SC-007's tmux comparison used Zellij.** tmux isn't installed on this Mac. Typing latency was compared against Zellij and against running the program directly. The by-feel judgement in real use is Cyan's and is still open, so task 7.2 stays unchecked.
+**D53. SC-007's tmux comparison used Zellij.** tmux isn't installed on this Mac. Typing latency was compared against Zellij and against running the program directly. The by-feel judgement in real use is Cyan's and is still open, so task 7.2 stays unchecked. On 2026-10-07, with D57 and D58 in, Cyan checked typing, a flood beside a typing client and window resizes by feel on macOS and reported no issues, so task 7.2 is checked.
 
 **D54. Linux was partly run and is recorded as unverified.** In a Debian trixie aarch64 container under Colima (kernel 6.8, rustc 1.99, Zig 0.16.0), debug and release builds, `cargo fmt --all -- --check` and Clippy with `-D warnings` pass. The scripted slice 2, 5 and 6 workflows passed 43 of 45 checks on the release build. The two failures are both in the relay disconnect check: 1 s after the relay was cut, the status line had no `disconnected, reconnecting`, and typing after the restart didn't show up within 3 s. Whether that's Ship or the harness wasn't investigated, because Cyan said not to pursue Linux in this run. Windows is unverified.
 
