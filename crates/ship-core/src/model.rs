@@ -12,6 +12,7 @@ use crate::{
     AppError, err,
     id::{Id, IdOf, Identified, Prefixed, ServerRoot, UntaggedEither},
     protocol::{CreateSession, PaneInput},
+    tree::Tabs,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -20,7 +21,7 @@ pub struct Session {
     pub id: IdOf<Session>,
     pub name: SessionName,
     #[schema(schema_with = tabs_schema)]
-    pub tabs: IndexMap<IdOf<Tab>, Tab>,
+    pub tabs: Tabs,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -30,7 +31,7 @@ pub struct Tab {
     #[serde(default)]
     pub name: OptionalName,
     #[schema(schema_with = tabs_schema)]
-    pub tabs: IndexMap<IdOf<Tab>, Tab>,
+    pub tabs: Tabs,
     #[schema(schema_with = panes_schema)]
     pub panes: IndexMap<IdOf<Pane>, Pane>,
 }

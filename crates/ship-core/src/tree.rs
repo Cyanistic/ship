@@ -14,8 +14,9 @@ use crate::{
 
 /// Sessions keyed by ID, in creation order, as the replica carries them.
 pub type Sessions = IndexMap<IdOf<Session>, Arc<Session>>;
-/// A session's or tab's child tabs, in order.
-pub type Tabs = IndexMap<IdOf<Tab>, Tab>;
+/// A session's or tab's child tabs, in order. `Arc` so a commit copies
+/// only the tabs on an edited path.
+pub type Tabs = IndexMap<IdOf<Tab>, Arc<Tab>>;
 
 /// Ancestry of `node`, session first and `node` last. `None` if absent.
 pub fn path(sessions: &Sessions, node: NodeId) -> Option<Vec<NodeId>> {
@@ -70,6 +71,7 @@ fn tab_path(tabs: &Tabs, id: IdOf<Tab>, path: &mut Vec<IdOf<Tab>>) -> bool {
 pub fn tab(sessions: &Sessions, id: IdOf<Tab>) -> Result<&Tab> {
     fn find(tabs: &Tabs, id: IdOf<Tab>) -> Option<&Tab> {
         tabs.get(&id)
+            .map(Arc::as_ref)
             .or_else(|| tabs.values().find_map(|tab| find(&tab.tabs, id)))
     }
     sessions

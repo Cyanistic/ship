@@ -351,7 +351,7 @@ impl Message<Create<Session>> for ServerState {
                 tabs: IndexMap::new(),
                 panes: IndexMap::from([(pane.id, pane)]),
             };
-            tabs.insert(tab.id, tab);
+            tabs.insert(tab.id, Arc::new(tab));
         }
         let session = Session {
             id: Id::new(),
@@ -430,7 +430,7 @@ impl Message<Create<Tab>> for ServerState {
                 tabs: IndexMap::new(),
                 panes: IndexMap::new(),
             };
-            tree::children_mut(sessions, create.parent)?.insert(tab.id, tab.clone());
+            tree::children_mut(sessions, create.parent)?.insert(tab.id, Arc::new(tab.clone()));
             Ok(tab)
         })
         .await
@@ -503,7 +503,7 @@ impl Message<Move> for ServerState {
                 ));
             }
             let tab = tree::take_tab(sessions, id)?;
-            let moved = tab.clone();
+            let moved = Tab::clone(&tab);
             tree::place(tree::children_mut(sessions, to.parent)?, tab, to.placement)?;
             Ok(moved)
         })

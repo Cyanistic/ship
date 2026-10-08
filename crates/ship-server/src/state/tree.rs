@@ -14,7 +14,8 @@ use ship_core::{
     protocol::Placement,
 };
 
-/// Mutable access through `Arc::make_mut`, copying only the owning session.
+/// Mutable access through `Arc::make_mut` on the owning session and each tab
+/// along the path, copying only those.
 pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab> {
     let node = NodeId::Tab(id);
     let path = path(sessions, node).ok_or_else(|| not_found(node))?;
@@ -26,9 +27,11 @@ pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab
         let NodeId::Tab(ancestor) = ancestor else {
             unreachable!("only the first path entry is a session");
         };
-        children = &mut children.get_mut(ancestor).expect("path entries exist").tabs;
+        children = &mut Arc::make_mut(children.get_mut(ancestor).expect("path entries exist")).tabs;
     }
-    Ok(children.get_mut(&id).expect("path entries exist"))
+    Ok(Arc::make_mut(
+        children.get_mut(&id).expect("path entries exist"),
+    ))
 }
 
 pub(crate) fn children_mut(sessions: &mut Sessions, parent: IdOf<TabParent>) -> Result<&mut Tabs> {
@@ -42,7 +45,7 @@ pub(crate) fn children_mut(sessions: &mut Sessions, parent: IdOf<TabParent>) -> 
 }
 
 /// Detach a tab with its subtree and panes from its parent.
-pub(crate) fn take_tab(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<Tab> {
+pub(crate) fn take_tab(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<Arc<Tab>> {
     let node = NodeId::Tab(id);
     let path = path(sessions, node).ok_or_else(|| not_found(node))?;
     let parent = match path[path.len() - 2] {
@@ -56,7 +59,11 @@ pub(crate) fn take_tab(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<Tab> {
 }
 
 /// Insert at the placement sibling, or append when `None`.
-pub(crate) fn place(children: &mut Tabs, tab: Tab, placement: Option<Placement>) -> Result<()> {
+pub(crate) fn place(
+    children: &mut Tabs,
+    tab: Arc<Tab>,
+    placement: Option<Placement>,
+) -> Result<()> {
     let index = match placement {
         None => children.len(),
         Some(Placement::Before(sibling)) => sibling_index(children, sibling)?,

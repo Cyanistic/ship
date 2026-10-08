@@ -1,6 +1,6 @@
 # Drop sessions program
 
-Status: Locked on 2026-10-08. Cyan approved it in Plannotator with "LTGM", after the review changes recorded below and architecture amendment A1. Written from the locked [product](product.md) and [architecture](architecture.md) papers, including product amendment A-1 and architecture amendment A1, and the crates at 37b8ed6. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice.
+Status: Locked on 2026-10-08. Cyan approved it in Plannotator with "LTGM", after the review changes recorded below and architecture amendment A1. Written from the locked [product](product.md) and [architecture](architecture.md) papers, including product amendment A-1 and architecture amendment A1, and the crates at 37b8ed6. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Reopened on 2026-10-08 for amendment P1 (see the Deviation log) and locked again the same day; Cyan re-approved it in Plannotator with "LGTM".
 
 Decided in chat on 2026-10-08, when Cyan agreed with all three calls ("yeah generic struct doesn't make sense anymore. i think i agree with your calls."):
 
@@ -110,7 +110,7 @@ pub fn siblings(tabs: &Tabs, tab: IdOf<Tab>) -> Option<&Tabs>;
 pub fn not_found(node: NodeId) -> AppError;
 ```
 
-Slice 1 only changes `Tabs` to hold `Arc<Tab>` and keeps the session-rooted signatures. Slice 2 removes `Sessions` and `session_of`, roots every walk at `&Tabs`, and changes `first_pane` from taking a session to taking a tab. `siblings` replaces the private sibling lookup in the client's `draw::position`, and the server's `take_tab` uses it too.
+Slice 1 only changes `Tabs` to hold `Arc<Tab>` and keeps the session-rooted signatures. Slice 2 removes `Sessions` and `session_of`, roots every walk at `&Tabs`, and changes `first_pane` from taking a session to taking a tab. `siblings` replaces the private sibling lookup in the client's `draw::position`~~, and the server's `take_tab` uses it too~~. Superseded by P1: the server's edits find a tab's map through `holder_mut` instead.
 
 #### `crates/ship-core/src/protocol.rs` (slice 2)
 
@@ -206,6 +206,9 @@ The `InvalidStructure` doc changes from "session/tab/pane structure" to "tab/pan
 ```rust
 pub(crate) use ship_core::tree::{Tabs, first_pane, not_found, pane, pane_ids, pane_owner, path, siblings, tab, viewed_tab};
 
+/// The map that holds tab `id`, `Arc::make_mut` on each tab on the way down
+/// and no other (P1).
+fn holder_mut(tabs: &mut Tabs, id: IdOf<Tab>) -> Option<&mut Tabs>;
 /// `Arc::make_mut` on each tab along the path, top level first.
 pub(crate) fn tab_mut(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<&mut Tab>;
 /// `None` is the top level.
@@ -217,7 +220,7 @@ pub(crate) fn take_tab(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<Arc<Tab>>;
 pub(crate) fn place(tabs: &mut Tabs, tab: Arc<Tab>, to: MoveTab) -> Result<()>;
 ```
 
-In slice 1 these keep their session-rooted parents (`&mut Sessions`, `IdOf<TabParent>`) and today's `place(children, tab, placement)`. The only change there is that each step down calls `Arc::make_mut`. Slice 2 swaps the roots and parents and gives `place` the `MoveTab` destination, as shown above. `sibling_index` and its "not a child of the destination" error go away.
+In slice 1 these keep their session-rooted parents (`&mut Sessions`, `IdOf<TabParent>`) and today's `place(children, tab, placement)`. The only change there is that each step down calls `Arc::make_mut`. Slice 2 swaps the roots and parents and gives `place` the `MoveTab` destination, as shown above. `sibling_index` and its "not a child of the destination" error go away. Per P1, `tab_mut`, `take_tab` and `place`'s sibling destinations go through `holder_mut`, so `path` and its `expect`s and `unreachable!`s leave this file.
 
 #### `crates/ship-server/src/state.rs` (slice 2; starter in slice 3)
 
@@ -569,4 +572,57 @@ Checks:
 
 ## Deviation log
 
-Empty.
+### P1 (2026-10-08, from slice 1 review): one walk finds and copies a tab's map
+
+Cyan asked in review of slice 1 whether the `expect` calls in `state/tree.rs` could go. They exist because `tab_mut` and `take_tab` compute `path` first and then walk it again with `get_mut`, asserting that the second pass agrees with the first. Slice 2 replaces that with one private helper that finds the map holding a tab while it walks:
+
+```rust
+/// The map that holds tab `id`, copying each tab on the way down.
+fn holder_mut(tabs: &mut Tabs, id: IdOf<Tab>) -> Option<&mut Tabs> {
+    if tabs.contains_key(&id) {
+        return Some(tabs);
+    }
+    let next = tabs.values().position(|tab| tree::tab(&tab.tabs, id).is_ok())?;
+    holder_mut(&mut Arc::make_mut(&mut tabs[next]).tabs, id)
+}
+
+pub(crate) fn tab_mut(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<&mut Tab> {
+    holder_mut(tabs, id)
+        .and_then(|tabs| tabs.get_mut(&id))
+        .map(Arc::make_mut)
+        .ok_or_else(|| not_found(NodeId::Tab(id)))
+}
+
+pub(crate) fn take_tab(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<Arc<Tab>> {
+    holder_mut(tabs, id)
+        .and_then(|tabs| tabs.shift_remove(&id))
+        .ok_or_else(|| not_found(NodeId::Tab(id)))
+}
+```
+
+`place` with a `before` or `after` destination inserts into `holder_mut(tabs, sibling)`, which is the sibling's parent's map, copied for writing. The `position` check is read-only, so tabs off the route are never copied, and its cost matches the `path` walk it replaces. Public signatures and behavior don't change. Deferred to slice 2 because the helper is written against `&Tabs` roots; at slice 1's session roots it would need a session step and a local lookup that slice 2 deletes.
+
+### Slice 1 (2026-10-08): `Arc` at every level
+
+No deviation from the skeleton. Measured cost of decision 2, from `git diff --stat` over the slice's source changes:
+
+```
+ crates/ship-client/src/ui/draw.rs    |  4 ++--
+ crates/ship-core/src/model.rs        |  5 +++--
+ crates/ship-core/src/tree.rs         |  6 ++++--
+ crates/ship-server/src/state.rs      |  6 +++---
+ crates/ship-server/src/state/tree.rs | 17 ++++++++++++-----
+ 5 files changed, 24 insertions(+), 14 deletions(-)
+```
+
+Decision 2 stands. Top-level-only `Arc` would need the top-level half of these edits in slice 2 anyway (the first `make_mut` in `tab_mut`, `Arc::new` on insert, `Arc::as_ref` in `tab`). The extra for every level is roughly ten lines: `make_mut` on each ancestor and on the target in `tab_mut`, the `Arc<Tab>` signatures of `take_tab` and `place`, and `Tab::clone(&tab)` in the `Move` handler, which still copies the moved tab for the reply as `tab.clone()` did before.
+
+Evidence, on macOS against a foreground `ship server --port <p>`:
+
+- `ship tab get` for a session › tab › tab › tab › pane tree is byte-identical to the a403137 build once IDs are normalized.
+- A nested tab with a running shell pane moved from `work` to a tab in a second session and back; the pane read `running` throughout, and the source tab was left with no children while moved.
+- In the deep tab, a pane's OSC title (`deep-after-move`) showed in `pane get`, and `pane rename` on the moved shell pane took effect.
+- `ship attach work`, driven under `expect` in a 30×100 pty, drew `work › nest › …`, echoed a shell command and detached on `C-b d`; the same probe passes on the pre-slice binary.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and debug and release builds pass.
+
+Linux and Windows are unverified for this slice, which the build order only requires on macOS.

@@ -6,7 +6,7 @@ use ratatui::{
     text::Line,
     widgets::{Paragraph, Wrap},
 };
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use ship_core::{
     id::IdOf,
@@ -74,7 +74,7 @@ fn hint(selected: Option<&Selected>) -> String {
     };
     match selected
         .tab
-        .or_else(|| selected.session.tabs.values().next())
+        .or_else(|| selected.session.tabs.values().next().map(Arc::as_ref))
     {
         Some(tab) => format!("no pane: ship pane create {}", tab.id),
         None => format!("no tab: ship tab create {}", selected.session.name),
