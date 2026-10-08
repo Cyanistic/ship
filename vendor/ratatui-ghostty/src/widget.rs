@@ -1,4 +1,4 @@
-use libghostty_vt::render::{CellIterator, CursorVisualStyle, RenderState, RowIterator};
+use libghostty_vt::render::{CellIterator, CursorVisualStyle, Dirty, RenderState, RowIterator};
 use libghostty_vt::screen::CellContentTag;
 use libghostty_vt::style::RgbColor;
 use libghostty_vt::terminal::Terminal;
@@ -32,6 +32,7 @@ pub struct TerminalWidget<'a, 'alloc, 'cb> {
     terminal: &'a mut Terminal<'alloc, 'cb>,
     render_state: &'a mut RenderState<'alloc>,
     focused: bool,
+    incremental: bool,
     cursor: CursorState,
 }
 
@@ -44,12 +45,22 @@ impl<'a, 'alloc, 'cb> TerminalWidget<'a, 'alloc, 'cb> {
             terminal,
             render_state,
             focused: false,
+            incremental: false,
             cursor: CursorState::default(),
         }
     }
 
     pub fn focused(mut self, f: bool) -> Self {
         self.focused = f;
+        self
+    }
+
+    /// Render only the rows Ghostty marks dirty, and clear its dirty state.
+    /// For a caller that renders into the same buffer every time, which then
+    /// keeps its clean rows from the previous render. A frame Ghostty marks
+    /// fully dirty renders every row.
+    pub fn incremental(mut self, incremental: bool) -> Self {
+        self.incremental = incremental;
         self
     }
 
@@ -107,10 +118,23 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
             return;
         };
 
+        let every_row = !self.incremental || snapshot.dirty().map_or(true, |d| d == Dirty::Full);
+        if self.incremental {
+            let _ = snapshot.set_dirty(Dirty::Clean);
+        }
+
         let mut row_idx: u16 = 0;
         while let Some(row) = row_iteration.next() {
             if row_idx >= area.height {
                 break;
+            }
+            if self.incremental {
+                let dirty = row.dirty().unwrap_or(true);
+                let _ = row.set_dirty(false);
+                if !every_row && !dirty {
+                    row_idx += 1;
+                    continue;
+                }
             }
 
             let Ok(mut cell_iteration) = cell_iter.update(row) else {
@@ -156,6 +180,8 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
                 let buf_y = area.y + row_idx;
                 if buf_x < buf.area().right() && buf_y < buf.area().bottom() {
                     let buf_cell = &mut buf[(buf_x, buf_y)];
+                    // `set_style` only patches, so a kept cell starts over.
+                    buf_cell.reset();
                     buf_cell.set_symbol(&symbol);
                     buf_cell.set_style(ratatui_style);
                 }

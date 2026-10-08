@@ -399,17 +399,22 @@ impl SessionHandle {
     /// Call [`Self::mark_clean`] after blitting to acknowledge the update.
     pub fn blit_to(&self, dest: &mut Buffer, dest_area: Rect) {
         let snap = self.shared.render.lock().unwrap_or_else(|e| e.into_inner());
-        let w = snap.buffer.area().width.min(dest_area.width);
-        let h = snap.buffer.area().height.min(dest_area.height);
-        for y in 0..h {
-            for x in 0..w {
-                let dx = dest_area.x + x;
-                let dy = dest_area.y + y;
-                if dx < dest.area().right() && dy < dest.area().bottom() {
-                    dest[(dx, dy)] = snap.buffer[(x, y)].clone();
-                }
-            }
+        snap.blit_to(dest, dest_area);
+    }
+
+    /// Copies the rendered cells into `dest` like [`Self::blit_to`] and returns
+    /// the cursor, clearing the dirty flag, all under one lock. `None`, with
+    /// `dest` untouched, when nothing was rendered since the last clear.
+    ///
+    /// Renders set the flag under the same lock, so a render the copy missed
+    /// leaves it set, and a render it saw can't leave it set.
+    pub fn take_if_dirty(&self, dest: &mut Buffer, dest_area: Rect) -> Option<CursorState> {
+        let snap = self.shared.render.lock().unwrap_or_else(|e| e.into_inner());
+        if !self.shared.dirty.swap(false, Ordering::Relaxed) {
+            return None;
         }
+        snap.blit_to(dest, dest_area);
+        Some(snap.cursor.clone())
     }
 
     /// Returns the current cursor state (position relative to the session, style, blinking).
@@ -462,6 +467,22 @@ enum SessionCommand {
 struct RenderSnapshot {
     buffer: Buffer,
     cursor: CursorState,
+}
+
+impl RenderSnapshot {
+    fn blit_to(&self, dest: &mut Buffer, dest_area: Rect) {
+        let w = self.buffer.area().width.min(dest_area.width);
+        let h = self.buffer.area().height.min(dest_area.height);
+        for y in 0..h {
+            for x in 0..w {
+                let dx = dest_area.x + x;
+                let dy = dest_area.y + y;
+                if dx < dest.area().right() && dy < dest.area().bottom() {
+                    dest[(dx, dy)] = self.buffer[(x, y)].clone();
+                }
+            }
+        }
+    }
 }
 
 struct SharedBuffer {
@@ -537,9 +558,7 @@ impl<'a> SessionState<'a> {
                 let _ = (self.resizer)(cols, rows);
                 self.cols = cols;
                 self.rows = rows;
-                if let Ok(mut snap) = self.shared.render.lock() {
-                    snap.buffer = Buffer::empty(Rect::new(0, 0, cols, rows));
-                }
+                // The render this requests replaces the buffer at the new size.
                 self.shared.cols.store(cols, Ordering::Relaxed);
                 self.shared.rows.store(rows, Ordering::Relaxed);
                 *needs_render = true;
@@ -787,11 +806,14 @@ fn render_to_shared(state: &mut SessionState<'_>, render_state: &mut RenderState
         .render
         .lock()
         .unwrap_or_else(|e| e.into_inner());
-    if snap.buffer.area() != &area {
+    // Clean rows keep their cells from the last render; a new buffer needs them all.
+    let resized = snap.buffer.area() != &area;
+    if resized {
         snap.buffer = Buffer::empty(area);
     }
-    snap.buffer.reset();
-    let mut widget = TerminalWidget::new(&mut state.terminal, render_state).focused(state.focused);
+    let mut widget = TerminalWidget::new(&mut state.terminal, render_state)
+        .focused(state.focused)
+        .incremental(!resized);
     (&mut widget).render(area, &mut snap.buffer);
     snap.cursor = widget.cursor().clone();
     state.shared.dirty.store(true, Ordering::Relaxed);

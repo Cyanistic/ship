@@ -35,6 +35,10 @@ use tokio_util::sync::{CancellationToken, DropGuard};
 /// The shortest gap between two published screens of one pane.
 pub(crate) const FRAME: Duration = Duration::from_millis(4);
 
+/// How long a change after a quiet frame waits before it publishes, so a
+/// program that draws twice in a row (nvim's scroll) lands in one screen.
+const SETTLE: Duration = Duration::from_millis(1);
+
 /// Owned by the state actor. Dropping it cancels the pane task, which runs
 /// teardown in the background. `stop` does the same and waits for it.
 pub(crate) struct PaneRuntime {
@@ -201,7 +205,9 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
         })?;
 
     // The blank grid, so a pane that never prints still has a screen.
-    let (screen, screen_rx) = watch::channel(Arc::new(capture(&session)));
+    let mut buffer = Buffer::default();
+    let first = capture(&session, &mut buffer).expect("a new session starts dirty");
+    let (screen, screen_rx) = watch::channel(Arc::new(first));
     let cancel = CancellationToken::new();
     let (done_tx, done) = oneshot::channel();
     let (commands, commands_rx) = mpsc::unbounded_channel();
@@ -217,6 +223,7 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
         },
         dirty,
         title: None,
+        buffer,
         screen,
         bus,
     };
@@ -248,6 +255,8 @@ struct PaneTask {
     dirty: Arc<Notify>,
     /// Latest title seen this frame; the tree keeps the lasting copy.
     title: Option<String>,
+    /// Kept between captures so each one doesn't allocate a grid.
+    buffer: Buffer,
     screen: watch::Sender<Arc<Screen>>,
     bus: ActorRef<RelayBus>,
 }
@@ -261,14 +270,17 @@ impl PaneTask {
     ) {
         // Waiting for the frame happens in its own arm, so commands keep
         // reaching the program meanwhile. A change after a quiet frame
-        // publishes at once, since `next` has passed.
+        // publishes after `SETTLE`, since `next` has passed.
         let mut pending = false;
         let mut next = Instant::now();
         loop {
             tokio::select! {
                 () = cancel.cancelled() => break,
                 Some(command) = commands.recv() => self.command(command),
-                () = self.dirty.notified(), if !pending => pending = true,
+                () = self.dirty.notified(), if !pending => {
+                    pending = true;
+                    next = next.max(Instant::now() + SETTLE);
+                }
                 () = tokio::time::sleep_until(next), if pending => {
                     pending = false;
                     self.publish().await;
@@ -314,8 +326,10 @@ impl PaneTask {
                 changed = true;
             }
         }
-        tracing::trace!(pane = %self.pane, "screen published");
-        self.screen.send_replace(Arc::new(capture(&self.session)));
+        if let Some(screen) = capture(&self.session, &mut self.buffer) {
+            tracing::trace!(pane = %self.pane, "screen published");
+            self.screen.send_replace(Arc::new(screen));
+        }
         if changed {
             self.event(PaneChange::Title(self.title.clone())).await;
         }
@@ -338,14 +352,17 @@ impl PaneTask {
     }
 }
 
-/// The wrapper's rendered buffer and cursor as an owned `Screen`.
-fn capture(session: &SessionHandle) -> Screen {
+/// The wrapper's rendered buffer and cursor as an owned `Screen`, or `None`
+/// when nothing was rendered since the last capture. `buffer` is replaced
+/// when the size changed, so no cell outlives a resize.
+fn capture(session: &SessionHandle, buffer: &mut Buffer) -> Option<Screen> {
     let (cols, rows) = session.size();
     let area = Rect::new(0, 0, cols, rows);
-    let mut buffer = Buffer::empty(area);
-    session.blit_to(&mut buffer, area);
-    let cursor = session.cursor_state();
-    Screen {
+    if buffer.area != area {
+        *buffer = Buffer::empty(area);
+    }
+    let cursor = session.take_if_dirty(buffer, area)?;
+    Some(Screen {
         size: Size { cols, rows },
         cells: buffer.content.iter().map(cell).collect(),
         cursor: cursor.position.map(|position| Cursor {
@@ -358,7 +375,7 @@ fn capture(session: &SessionHandle) -> Screen {
             },
             blinking: cursor.blinking,
         }),
-    }
+    })
 }
 
 const ATTRS: [(Modifier, Attr); 9] = [

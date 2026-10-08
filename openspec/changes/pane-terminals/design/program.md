@@ -1219,3 +1219,40 @@ Evidence, macOS arm64, release builds, nvim scrolling with Ctrl-E at 60 a second
 - Two candidate fixes were tried and dropped: deferring the vendored session thread's render to its drain loop changed nothing measurable, and capturing the screen inside the wrapper's lock raised scroll p95 to 12 to 13 ms.
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
 - Size: implementation Rust 5,738 lines (+8); tests 0.
+
+**D57. A pane publishes only a screen rendered since its last capture.** Not in this paper, which has `publish` capture and send on every paced wake. The vendored wrapper gains `SessionHandle::take_if_dirty` (its `PROVENANCE.md` change 8), and `capture` returns `None` when it finds nothing new, so `publish` sends nothing. Approved by Cyan in chat after a throwaway A/B.
+
+Each Neovim keypress in normal mode draws twice, about 1 ms apart: `showcmd` puts the key in the bottom-right corner, then the result erases it. The wrapper renders each frame into its shared buffer and wakes the pane afterward, outside the lock, and the pane read cells and cursor under two more locks. When the pane's read landed after the second render but before its wake, that wake published the same screen 4 ms later. Ghostty already set a dirty flag under the render lock; reading, copying and clearing it under one lock closes the gap. Skipping screens equal to the last one sent was measured too: it also removed the duplicates and doesn't touch the wrapper, but still captured each one. A settle delay before publishing gave one screen per scroll but added about 2.5 ms per keystroke, because tokio's timer rounds up to whole milliseconds.
+
+Evidence, macOS arm64, release builds, nvim scrolling with Ctrl-E at 60 a second, 300 scrolls, alternating runs against `HEAD`:
+
+- Screen events, counted by a second attachment: `HEAD` 600 (2.00 per scroll), 285 of them identical to the one before. This build 300 to 319 (1.00 to 1.06), none identical; the extra few are the `showcmd` frame when the capture lands between the two renders.
+- Scroll CPU over seven runs of `HEAD` and eight of this build: `HEAD` server 12.0 to 13.0%, client 11.7 to 12.7%; this build server 7.8 to 9.8%, client 6.7 to 7.7%. Scroll p95 7.2 to 7.6 ms against 7.6 to 8.3 ms.
+- Scroll p50: `HEAD` 4.7 to 5.1 ms in every run; this build 5.0 to 5.3 ms in four runs and 6.1 to 6.6 ms in four. The second attachment saw screens sent sooner than before (90% within 3.5 ms of the key), so the slower runs weren't the server holding screens back. Not explained.
+- Typing p50, `sh` / Neovim insert: this build 3.1 / 5.1 ms, `HEAD` 3.1 / 5.0 to 5.2 ms. With a 50 MB `cat` loop viewed by another client, typing p50 0.75 ms and server CPU 151% in both.
+- A pane running `sleep 30` sends its blank 80x24 screen on attach, and attaching at 80x24 and 50x10 sends 80x23 and 50x9 screens.
+- All 80 wrapper tests pass, run in a copy outside the repo (1 ignored, as before).
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 5,741 lines (+3); tests 0.
+
+**D58. The wrapper renders only dirty rows, a pane waits `SETTLE` (1 ms) after a quiet frame, and `capture` keeps its buffer.** Amends D45's "a change after a quiet frame publishes at once", and reverses D57's note that a settle delay was dropped. Approved by Cyan in chat after throwaway A/B builds.
+
+- The vendored wrapper re-rendered every cell on every PTY read. It now renders only the rows Ghostty marks dirty into the buffer it keeps, and every row after a resize or on a frame Ghostty marks fully dirty (its `PROVENANCE.md` change 9).
+- With the faster render, Neovim's first frame of a scroll (the `showcmd` change) was published alone and the real frame waited out `FRAME`: 2.00 screens per Ctrl-E, scroll p50 6.1 to 11.2 ms. So the first change after a quiet frame now waits `SETTLE` before publishing. During sustained output `next` is already later, so `SETTLE` changes nothing there. Tokio's timer rounds up to whole milliseconds, so the wait is about 2 ms in practice, and typing pays it. A burst allowance (two publishes back to back, same average rate) also fixed scrolling without the typing cost, but Cyan turned it down for its uneven frame spacing.
+- `capture` keeps one `Buffer` in the pane task and replaces it only when the size changes, instead of allocating a grid per capture. Tried alone before `SETTLE`, it caused the same double screens; with it, it doesn't.
+
+Evidence, macOS arm64, release builds, one run per build, so differences of about a point or 1 ms are noise. Columns are the build before the wrapper change, the wrapper change alone, plus `SETTLE`, and plus the kept buffer (this build):
+
+| | before | incremental | + settle | + kept buffer |
+|---|---|---|---|---|
+| screens per Ctrl-E | 1.00 | 2.00 | 1.00 | 1.00 |
+| Ctrl-E scroll p50 | 6.1 ms | 11.2 ms | 8.5 ms | 9.9 ms |
+| scroll CPU | ~21% | 29.6% | 20.6% | 16.9% |
+| typing p50, `sh` / Neovim insert | 3.9 / 6.4 ms | 3.2 / 4.9 ms | 5.4 / 8.1 ms | 5.7 / 7.7 ms |
+| CPU: tick / spinner / matrix / full colour | 14.7 / 9.2 / 13.0 / 28.6% | 11.7 / 7.2 / 11.8 / 26.8% | 11.6 / 7.0 / 11.2 / 19.6% | 11.5 / 7.0 / 11.1 / 19.4% |
+
+- A check build that rendered every row after each incremental render found zero differing cells across about 67,000 renders: the workloads above, Neovim, a `cat` flood and drag-resizes. Workloads and methods are in `docs/research/screen-cost.md`.
+- Screens sent while scrolling are byte-for-byte the same size with and without the kept buffer.
+- All 80 wrapper tests pass, run in a copy outside the repo (1 ignored, as before).
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release builds pass.
+- Size: implementation Rust 5,755 lines (+14); tests 0.
