@@ -139,7 +139,7 @@ pub async fn serve(
     let (result_tx, mut result_rx) = watch::channel(None);
     let bus = relay::RelayBus::spawn_with_mailbox(relay::RelayBus::default(), mailbox::bounded(64));
     let (live_tx, live) = watch::channel(pane::LivePanes::new());
-    let state = state::ServerState::new(bus.clone(), live_tx);
+    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address)?);
     let (replica_tx, replicas) = watch::channel(state.replica());
     bus.ask(relay::Subscribe::<Arc<Replica>> {
         sink: Box::new(replica_tx),

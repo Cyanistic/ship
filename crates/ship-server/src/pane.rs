@@ -3,6 +3,7 @@
 
 use std::{
     collections::HashMap,
+    net::SocketAddr,
     path::PathBuf,
     sync::{Arc, Mutex},
     time::Duration,
@@ -66,6 +67,62 @@ pub(crate) struct Launch {
     pub size: Size,
 }
 
+/// The environment every pane's program starts with, on top of what the
+/// server inherited from the client that launched it. Resolved once at
+/// startup, so a rebuilt binary at the same path is still found.
+pub(crate) struct PaneEnv {
+    server_url: String,
+    bin: PathBuf,
+}
+
+impl PaneEnv {
+    pub fn new(address: SocketAddr) -> Result<Self> {
+        let bin = std::env::current_exe()
+            .map_err(|error| err!(Io, "cannot resolve the server executable", @external: error))?;
+        Ok(Self {
+            server_url: format!("http://{address}"),
+            bin,
+        })
+    }
+
+    /// Advertises Ship as the terminal, since Ship's emulator is what the
+    /// program talks to, and drops the launching client's terminal,
+    /// multiplexer and agent identities. Then tells the program how to reach
+    /// this server about its own pane.
+    fn apply(&self, builder: &mut CommandBuilder, pane: IdOf<Pane>) {
+        builder.env("TERM", "xterm-256color");
+        builder.env("COLORTERM", "truecolor");
+        builder.env("TERM_PROGRAM", "ship");
+        builder.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
+        for key in [
+            "ITERM_SESSION_ID",
+            "LC_TERMINAL",
+            "LC_TERMINAL_VERSION",
+            "WEZTERM_PANE",
+            "KITTY_WINDOW_ID",
+            "WT_SESSION",
+            "TMUX",
+            "TMUX_PANE",
+            "STY",
+            "ZELLIJ",
+            "ZELLIJ_SESSION_NAME",
+            "ZELLIJ_PANE_ID",
+            // A pane is not a child of whatever agent started the server.
+            "CLAUDECODE",
+            "CLAUDE_CODE_CHILD_SESSION",
+            "CLAUDE_CODE_SESSION_ID",
+            "CLAUDE_CODE_MESSAGING_TOKEN",
+            "CODEX_THREAD_ID",
+            "OMPCODE",
+        ] {
+            builder.env_remove(key);
+        }
+        builder.env("SHIP_SERVER_URL", &self.server_url);
+        builder.env("SHIP_BIN", &self.bin);
+        builder.env("SHIP_PANE_ID", pane.to_string());
+    }
+}
+
 /// What the rest of the server may hold of a running pane.
 #[derive(Clone)]
 pub(crate) struct PaneHandle {
@@ -113,11 +170,11 @@ pub(crate) struct Spawned {
 
 /// Synchronous; the state actor calls it just before the commit that inserts
 /// the pane. Opens the PTY, starts the wrapper session, spawns the child with
-/// `TERM=xterm-256color` and `COLORTERM=truecolor`, drops the slave, and
-/// starts the exit-watcher thread and the pane task.
+/// `env` applied, drops the slave, and starts the exit-watcher thread and the
+/// pane task.
 ///
 /// Any failure returns `Err`, and nothing is left running.
-pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> {
+pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> Result<Spawned> {
     let Launch {
         pane,
         command,
@@ -178,8 +235,9 @@ pub(crate) fn spawn(launch: Launch, bus: ActorRef<RelayBus>) -> Result<Spawned> 
         Some(argv) => CommandBuilder::from_argv(argv.iter().map(Into::into).collect()),
     };
     builder.cwd(&cwd);
-    builder.env("TERM", "xterm-256color");
-    builder.env("COLORTERM", "truecolor");
+    // portable-pty leaves PWD as the server's; programs that read it see that.
+    builder.env("PWD", &cwd);
+    env.apply(&mut builder, pane);
     let argv = command.unwrap_or_else(|| vec![builder.get_shell()]);
     let mut child = pty
         .slave

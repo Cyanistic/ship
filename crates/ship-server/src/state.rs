@@ -24,7 +24,7 @@ use uuid::Uuid;
 use ship_core::relay::{Publish, RelayBus};
 
 use crate::pane::{
-    self, Launch, LivePanes, PaneChange, PaneCommand, PaneEvent, PaneRuntime, Spawned,
+    self, Launch, LivePanes, PaneChange, PaneCommand, PaneEnv, PaneEvent, PaneRuntime, Spawned,
 };
 
 pub(crate) mod tree;
@@ -47,11 +47,16 @@ pub struct ServerState {
     /// The runtimes' handles, written directly rather than through the bus,
     /// so streams find every pane of a replica they hold.
     live: watch::Sender<LivePanes>,
+    pane_env: PaneEnv,
     bus: ActorRef<RelayBus>,
 }
 
 impl ServerState {
-    pub(crate) fn new(bus: ActorRef<RelayBus>, live: watch::Sender<LivePanes>) -> Self {
+    pub(crate) fn new(
+        bus: ActorRef<RelayBus>,
+        live: watch::Sender<LivePanes>,
+        pane_env: PaneEnv,
+    ) -> Self {
         Self {
             incarnation: Uuid::now_v7(),
             revision: 0,
@@ -59,6 +64,7 @@ impl ServerState {
             viewers: Viewers::new(),
             runtimes: HashMap::new(),
             live,
+            pane_env,
             bus,
         }
     }
@@ -225,6 +231,7 @@ impl ServerState {
                     .copied()
                     .unwrap_or(Size::FALLBACK),
             },
+            &self.pane_env,
             self.bus.clone(),
         )?;
         self.runtimes.insert(id, runtime);
