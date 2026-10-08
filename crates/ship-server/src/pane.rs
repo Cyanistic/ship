@@ -372,6 +372,7 @@ fn capture(session: &SessionHandle, buffer: &mut Buffer) -> Option<Screen> {
                 CursorStyle::Block => CursorShape::Block,
                 CursorStyle::Underline => CursorShape::Underline,
                 CursorStyle::Bar => CursorShape::Bar,
+                CursorStyle::Default => CursorShape::Default,
             },
             blinking: cursor.blinking,
         }),

@@ -83,6 +83,8 @@ pub enum CursorShape {
     Block,
     Underline,
     Bar,
+    /// The viewing terminal's own default shape and blinking.
+    Default,
 }
 
 /// Terminal size in cells. Also the viewer size and tab size.
