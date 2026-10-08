@@ -211,7 +211,7 @@ The lifecycle composition is added in S4. Earlier CRUD slices instantiate the sa
 
 #### `crates/ship-server/src/relay.rs` — S4
 
-Implement only the local [typed relay contract](../../../../docs/research/typed-relay.md) exercised by this slice. Typed publication is type-erased internally for heterogeneous subscriptions. Mapping is a subscription adapter, not another actor.
+Implement only the local [typed relay contract](../../../../../docs/research/typed-relay.md) exercised by this slice. Typed publication is type-erased internally for heterogeneous subscriptions. Mapping is a subscription adapter, not another actor.
 
 ```rust
 use std::{any::TypeId, future::Future, pin::Pin, sync::Arc};

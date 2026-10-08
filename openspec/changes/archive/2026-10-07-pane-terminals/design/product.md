@@ -1,6 +1,6 @@
 # Pane terminals
 
-Status: Locked on 2026-10-06. Cyan approved the first draft in Plannotator with "LGTM" and the revision that resolved the open unknowns with "GO GO GO". This paper defines observable behavior, not architecture or implementation. Decisions come from the 2026-10-06 grilling and product interview. The broader [product brief](../../../../product-brief.md) remains the roadmap, and the locked [session/tab roundtrip](../../archive/2026-10-06-session-tab-roundtrip/design/product.md) remains in force except where this paper amends it.
+Status: Locked on 2026-10-06. Cyan approved the first draft in Plannotator with "LGTM" and the revision that resolved the open unknowns with "GO GO GO". This paper defines observable behavior, not architecture or implementation. Decisions come from the 2026-10-06 grilling and product interview. The broader [product brief](../../../../../docs/product-brief.md) remains the roadmap, and the locked [session/tab roundtrip](../../2026-10-06-session-tab-roundtrip/design/product.md) remains in force except where this paper amends it.
 
 ## Summary
 

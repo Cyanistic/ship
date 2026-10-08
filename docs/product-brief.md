@@ -6,7 +6,7 @@ The aim is to recover most of the daily-use value of Herdr with substantially le
 
 This brief records product direction and a phased roadmap. It is not an implementation specification. Milestones describe proposed work, not completed capabilities, and have no calendar commitments. Scope remains revisable as working slices provide evidence.
 
-Build through fine-grained, coherent commits. A commit need not be a complete vertical slice; a vertical slice demonstrates a narrow behavior end to end, and a milestone is a checkpoint for judging working behavior and choosing what comes next. See the current [session-structure design](docs/planning/session-structure.md) and [later terminal checkpoint](docs/planning/first-terminal-slice.md). The [Wayfinder decision map](.scratch/first-terminal-slice/map.md) preserves the historical first-slice discussion, not the current implementation contract.
+Build through fine-grained, coherent commits. A commit need not be a complete vertical slice; a vertical slice demonstrates a narrow behavior end to end, and a milestone is a checkpoint for judging working behavior and choosing what comes next.
 
 ## Direction
 
@@ -18,7 +18,7 @@ Use idiomatic Rust types and abstractions to express invariants once. Use derive
 
 The starting stack is Rust with Clap, Tokio, tracing/tracing-subscriber, and shared error handling adapted from an earlier project's error module. Trial Ratatui/Crossterm, `libghostty-vt`, and the supplied `ratatui-ghostty` session before replacing their mechanics with owned code. Kameo is the actor direction, with the historical RelayBus/Sink typed-subscription pattern as a reference; initial actor topology remains a recommendation, not an approved design. `portable-pty` passed the scratch probe and remains the candidate for PTY integration; actual Ship integration and Linux validation remain. Rodio and Copypasta remain later candidates, not selections.
 
-Ratatui draws the workspace; Ghostty interprets programs' terminal output and maintains screen state on the server. The intended reuse path converts the supplied session's rendered Ratatui cells into owned, serializable screen/cell types, then converts those types back for client rendering. The macOS scratch probe verified captured screen conversion and JSON patch application, and Cyan confirmed the patched wrapper's multiplexer example worked. The earlier structdiff and JSON Patch directions are superseded by compressed full snapshots for both structural state and terminal screens; optimize only after profiling the runnable workflow. See [transport evidence](docs/research/terminal-transport-handoff.md). This is feasibility evidence, not complete platform/rendering coverage. See [terminal evidence](docs/research/terminal-feasibility.md).
+Ratatui draws the workspace; Ghostty interprets programs' terminal output and maintains screen state on the server. The intended reuse path converts the supplied session's rendered Ratatui cells into owned, serializable screen/cell types, then converts those types back for client rendering. The macOS scratch probe verified captured screen conversion and JSON patch application, and Cyan confirmed the patched wrapper's multiplexer example worked. The earlier structdiff and JSON Patch directions are superseded by compressed full snapshots for both structural state and terminal screens; optimize only after profiling the runnable workflow. See [transport evidence](research/terminal-transport-handoff.md). This is feasibility evidence, not complete platform/rendering coverage. See [terminal evidence](research/terminal-feasibility.md).
 
 ### Size is a design constraint, not the acceptance test
 
@@ -48,7 +48,7 @@ Local authentication is explicitly deferred. Loopback does not restrict access t
 
 Use a Cargo workspace with `ship` (binary, CLI and startup), `ship-client`, `ship-server`, and `ship-core` (genuinely shared types, traits and helpers). Client and server depend on core rather than each other's internals. A metadata roundtrip before PTYs is the recommended next checkpoint, not yet approved scope. One interactive terminal across the real client/server path remains a later checkpoint.
 
-The server owns sessions, not workspace entities. Each recursive tab owns a pane layout and ordered child tabs; empty tabs are valid and can be selected independently of panes. Client selection names the most specific session/tab/pane and derives ancestry. Typed prefixed IDs identify targets without requiring whole paths. Details, removal/move semantics and unresolved interfaces live in the [session design](docs/planning/session-structure.md); domain terms are in the [glossary](GLOSSARY.md).
+The server owns sessions, not workspace entities. Each recursive tab owns a pane layout and ordered child tabs; empty tabs are valid and can be selected independently of panes. Client selection names the most specific session/tab/pane and derives ancestry. Typed prefixed IDs identify targets without requiring whole paths. Details, removal/move semantics and unresolved interfaces live in the [session structure spec](../openspec/specs/session-structure/spec.md); domain terms are in the [glossary](../GLOSSARY.md).
 
 ## Initial daily-driver scope
 
@@ -56,7 +56,7 @@ The first daily-driver release comprises milestones 1 through 4: a local termina
 
 ### 1. A terminal workspace to work in
 
-Reach this capability milestone through smaller runnable checkpoints, with a proposed [metadata roundtrip](docs/planning/session-structure.md) before [one real terminal across the client/server path](docs/planning/first-terminal-slice.md). The metadata scope is not approved yet. The list below is not a single implementation batch.
+Reach this capability milestone through smaller runnable checkpoints, with a proposed metadata roundtrip before one real terminal across the client/server path. The metadata scope is not approved yet. The list below is not a single implementation batch.
 
 Include:
 
@@ -176,7 +176,7 @@ Completion evidence: clients do not fight over their local focus or corrupt shar
 
 ## Decisions still open
 
-Resolve these during slice design and dependency experiments, not by silently treating this brief as a specification. Current choices are recorded in [session structure](docs/planning/session-structure.md) and the [transport handoff](docs/research/terminal-transport-handoff.md); [the Wayfinder map](.scratch/first-terminal-slice/map.md) is historical context.
+Resolve these during slice design and dependency experiments, not by silently treating this brief as a specification. Current choices are recorded in the [openspec specs](../openspec/specs/) and the [transport handoff](research/terminal-transport-handoff.md).
 
 - Delivery of the demonstrated ratatui-ghostty compatibility patch (pinned fork versus source/subtree import); no method has been selected or installed in Ship. Supplied session plus portable-pty passed macOS feasibility checks; actual application integration, coherent publication and Linux coverage remain.
 - Exact HTTP operations, SSE subscription/snapshot lifecycle, message shapes, and restart identity behavior. Axum/Tower/Reqwest passed temporary synthetic loopback transport probes, not Ship integration. Automatic Reqwest zstd decoding remains unverified; zstd leads the codec candidates and gzip fallback is a recommendation.
@@ -185,7 +185,7 @@ Resolve these during slice design and dependency experiments, not by silently tr
 - Detailed shared-state fields and per-client view state. Focus is client-local but reportable as presence; concurrent terminal input is allowed. Tab geometry follows the minimum available width and height among clients currently viewing that tab; behavior with no viewers remains to be specified.
 - Saved-state format evolution, recovery policy and agent resume descriptions.
 - Agent reporting protocol and the next integrations after Pi.
-- Minimal fixed interaction/exit bindings for the first slice. Configuration format, storage, configurable key matching/reload and plugin ownership are deferred to later slices; see [ownership research](docs/research/config-plugin-ownership.md).
+- Minimal fixed interaction/exit bindings for the first slice. Configuration format, storage, configurable key matching/reload and plugin ownership are deferred to later slices; see [ownership research](research/config-plugin-ownership.md).
 - Remote authentication, command delivery/retry behavior and transport, before remote implementation.
 - Repository location, project license and package/distribution identifiers.
 

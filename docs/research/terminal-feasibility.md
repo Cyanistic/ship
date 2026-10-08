@@ -2,7 +2,7 @@
 
 The supplied session plus a small compatibility patch passed the macOS feasibility checks. Owned screen conversion and JSON patch application worked. Cyan accepted the default whole-vector strategy for the first slice and deferred optimization until profiling real Ship usage shows a bottleneck.
 
-This is dependency evidence, not a completed Ship client/server implementation. Decisions live in the [capture ticket](../../.scratch/first-terminal-slice/issues/02-screen-capture.md) and [diff ticket](../../.scratch/first-terminal-slice/issues/03-screen-diffs.md).
+This is dependency evidence, not a completed Ship client/server implementation. Decisions live in the [capture ticket](https://github.com/Cyanistic/ship/blob/a26c037/.scratch/first-terminal-slice/issues/02-screen-capture.md) and [diff ticket](https://github.com/Cyanistic/ship/blob/a26c037/.scratch/first-terminal-slice/issues/03-screen-diffs.md).
 
 ## Dependency setup and compatibility patch
 

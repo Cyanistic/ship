@@ -10,7 +10,7 @@ The papers are attached here:
 - [Architecture](design/architecture.md): shape A, where the state actor owns pane runtimes and pane tasks publish screens, titles and exits on the relay bus at frame pace. It includes amendments A1 to A6 from program review.
 - [Program](design/program.md): the virtual skeleton, seven independently verifiable implementation slices and an empty deviation log.
 
-Evidence behind the architecture is in the [transport probe note](../../../docs/research/pane-terminals-transport-probe.md).
+Evidence behind the architecture is in the [transport probe note](../../../../docs/research/pane-terminals-transport-probe.md).
 
 ## Goals / Non-Goals
 

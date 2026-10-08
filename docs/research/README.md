@@ -7,6 +7,4 @@
 - [Typed relay contract](typed-relay.md): self-contained typed publication, sink-adapter and client-delivery contract; no private-repository dependency or implemented Ship actor integration.
 - [Config and plugin ownership](config-plugin-ownership.md): config/profile and plugin ownership research.
 
-Current planning: [session structure, typed IDs and actors](../planning/session-structure.md), plus the [later terminal checkpoint](../planning/first-terminal-slice.md).
-
 These notes are research evidence, not implicit authorization to adopt a production protocol or change architecture.
