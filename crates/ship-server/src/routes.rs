@@ -28,7 +28,7 @@ pub(crate) async fn list_sessions(State(app): App) -> Result<Response> {
     post,
     path = "/api/v0/sessions",
     operation_id = "create_session",
-    request_body = Named<SessionName>,
+    request_body = CreateSession,
     responses(
         (status = 201, body = Session),
         (status = 409, description = "Session name already exists", body = AppError),
@@ -38,7 +38,7 @@ pub(crate) async fn list_sessions(State(app): App) -> Result<Response> {
 )]
 pub(crate) async fn create_session(
     State(app): App,
-    Json(body): Json<Named<SessionName>>,
+    Json(body): Json<CreateSession>,
 ) -> Result<Response> {
     let session = app
         .state
@@ -92,9 +92,9 @@ pub(crate) async fn rename_session(
 ) -> Result<Response> {
     let value = app
         .state
-        .ask(Rename::<Session> {
+        .ask(Rename::<Session, _> {
             id,
-            name: body.name.to_string(),
+            name: body.name,
         })
         .await?;
     Ok(Json(value).into_response())
@@ -159,7 +159,7 @@ pub(crate) async fn get_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Resul
     path = "/api/v0/tabs/{id}",
     operation_id = "rename_tab",
     params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
-    request_body = Named<String>,
+    request_body = Named<OptionalName>,
     responses(
         (status = 200, body = Tab),
         (status = 400, description = "Malformed tab ID"),
@@ -171,7 +171,7 @@ pub(crate) async fn get_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Resul
 pub(crate) async fn rename_tab(
     State(app): App,
     Path(id): Path<IdOf<Tab>>,
-    Json(body): Json<Named>,
+    Json(body): Json<Named<OptionalName>>,
 ) -> Result<Response> {
     let value = app
         .state
@@ -265,7 +265,7 @@ pub(crate) async fn get_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Res
     path = "/api/v0/panes/{id}",
     operation_id = "rename_pane",
     params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
-    request_body = Named<String>,
+    request_body = Named<OptionalName>,
     responses(
         (status = 200, body = Pane),
         (status = 400, description = "Malformed pane ID"),
@@ -277,7 +277,7 @@ pub(crate) async fn get_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Res
 pub(crate) async fn rename_pane(
     State(app): App,
     Path(id): Path<IdOf<Pane>>,
-    Json(body): Json<Named>,
+    Json(body): Json<Named<OptionalName>>,
 ) -> Result<Response> {
     let value = app
         .state
@@ -304,4 +304,18 @@ pub(crate) async fn rename_pane(
 pub(crate) async fn remove_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Result<Response> {
     app.state.ask(Remove::<Pane>(id)).await?;
     Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/server/stop",
+    operation_id = "stop_server",
+    responses(
+        (status = 202, description = "Shutdown started, as on SIGTERM. The server keeps \
+            answering until its panes are torn down, then exits."),
+    ),
+)]
+pub(crate) async fn stop_server(State(app): App) -> StatusCode {
+    app.stop.cancel();
+    StatusCode::ACCEPTED
 }

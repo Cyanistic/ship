@@ -1,6 +1,8 @@
 [workspace]
 members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core", "crates/ship-macros"]
 resolver = "3"
+# Vendored with its own lints and tests; a path dependency, not a member.
+exclude = ["vendor/ratatui-ghostty"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,21 +15,27 @@ ship-client = { path = "crates/ship-client" }
 ship-server = { path = "crates/ship-server" }
 ship-core = { path = "crates/ship-core" }
 ship-macros = { path = "crates/ship-macros" }
-axum = "0.8"
-clap = { version = "4", features = ["derive"] }
-eventsource-stream = "0.2"
+ratatui-ghostty = { path = "vendor/ratatui-ghostty" }
+axum = { version = "0.8", features = ["http2"] }
+clap = { version = "4", features = ["derive", "env"] }
+crossterm = { version = "0.29", default-features = false, features = ["events", "serde"] }
 futures-util = "0.3"
 indexmap = { version = "2", features = ["serde"] }
 kameo = "0.22"
-nix = { version = "0.31", features = ["process"] }
+nix = { version = "0.31", features = ["process", "signal"] }
+portable-pty = "=0.9.0"
+ratatui = "0.30"
 proc-macro2 = "1"
 quote = "1"
 reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls", "stream", "zstd", "gzip"] }
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 serde_with = "3"
+sse-stream = "0.3"
 syn = { version = "2", features = ["full"] }
 tempfile = "3"
+tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = { version = "0.7", features = ["io", "codec"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time"] }
 tower-http = { version = "0.7", features = ["trace", "compression-zstd", "compression-gzip"] }
 tracing = "0.1"
@@ -47,6 +55,12 @@ incremental = true
 
 [profile.dev.build-override]
 opt-level = 3
+
+# Ghostty's build script picks Zig `Debug` when `DEBUG=true`, and its page
+# integrity checks then dominate under output. `debug = false` here gives
+# dev builds a `ReleaseFast` Ghostty.
+[profile.dev.package.libghostty-vt-sys]
+debug = false
 
 [profile.release]
 opt-level = 3

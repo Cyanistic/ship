@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
 use ship_client::{SessionRef, TabParentRef};
@@ -16,7 +16,13 @@ use ship_core::{
 )]
 pub struct Cli {
     /// Connect only to this HTTP/HTTPS server; never start or fall back locally
-    #[arg(long, value_name = "URL", default_value = DEFAULT_SERVER_URL)]
+    #[arg(
+        long,
+        global = true,
+        env = "SHIP_SERVER_URL",
+        value_name = "URL",
+        default_value = DEFAULT_SERVER_URL
+    )]
     pub server_url: String,
     #[command(subcommand)]
     pub command: Option<Command>,
@@ -24,7 +30,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Run a foreground server on 127.0.0.1; stop with SIGINT or SIGTERM
+    /// Run a foreground server on 127.0.0.1, or stop one
     Server(ServerArgs),
     /// Create, inspect, rename or remove sessions
     #[command(subcommand)]
@@ -32,10 +38,10 @@ pub enum Command {
     /// Create, inspect, rename, remove or move tabs
     #[command(subcommand)]
     Tab(TabCommand),
-    /// Create, inspect, rename or remove logical panes
+    /// Create, inspect, rename or remove panes
     #[command(subcommand)]
     Pane(PaneCommand),
-    /// Observe a session as a live text tree; stdin accepts `select <id>` and `switch <session>`
+    /// Open a full-screen client on a session; C-b d detaches
     Attach(AttachArgs),
 }
 
@@ -69,7 +75,7 @@ pub enum TabCommand {
 
 #[derive(Subcommand)]
 pub enum PaneCommand {
-    /// Append a metadata-only pane to a tab and print it as JSON
+    /// Append a pane running a program to a tab and print it as JSON
     Create(CreatePaneArgs),
     /// Print a pane as JSON
     Get(IdArgs<Pane>),
@@ -79,12 +85,22 @@ pub enum PaneCommand {
     Rm(IdArgs<Pane>),
 }
 
+/// Bare `ship server` runs one; stop it with SIGINT, SIGTERM or `ship server stop`.
 #[derive(Args)]
+#[command(args_conflicts_with_subcommands = true)]
 pub struct ServerArgs {
+    #[command(subcommand)]
+    pub command: Option<ServerCommand>,
     #[arg(long, default_value_t = DEFAULT_PORT, value_parser = clap::value_parser!(u16).range(1..))]
     pub port: u16,
     #[arg(long, hide = true)]
     pub background_child: bool,
+}
+
+#[derive(Subcommand)]
+pub enum ServerCommand {
+    /// Stop the server, ending every program in it, and wait until it exits
+    Stop,
 }
 
 #[derive(Args)]
@@ -121,21 +137,32 @@ where
     IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static,
 {
     pub id: IdOf<T>,
-    pub name: String,
+    /// New name; omitted or blank clears it
+    pub name: Option<String>,
 }
 
 #[derive(Args)]
 pub struct CreateTabArgs {
     /// Session name or ID, or tab ID
     pub parent: TabParentRef,
-    pub name: String,
+    /// Tab name; omitted or blank means none
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Args)]
 pub struct CreatePaneArgs {
     /// Tab ID
     pub tab: IdOf<Tab>,
-    pub name: String,
+    /// Pane name; omitted or blank means none
+    #[arg(long)]
+    pub name: Option<String>,
+    /// Starting directory; defaults to the current directory
+    #[arg(long)]
+    pub cwd: Option<PathBuf>,
+    /// Command and arguments; defaults to your login shell
+    #[arg(last = true, value_name = "COMMAND")]
+    pub command: Vec<String>,
 }
 
 #[derive(Args)]
@@ -154,6 +181,6 @@ pub struct MoveTabArgs {
 /// A name attaches or creates (`Client::ensure_session`); an ID never creates.
 #[derive(Args)]
 pub struct AttachArgs {
-    /// Session name or ID; a missing name is created
+    /// Session name or ID; a missing name is created with a shell in the current directory
     pub session: SessionRef,
 }

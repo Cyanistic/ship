@@ -1,89 +1,18 @@
-//! Lookups and edits on the nested session tree. Targets are found by
-//! traversal; there is no parent index to keep in sync.
+//! Edits on the nested session tree. Lookups live in `ship_core::tree` and
+//! are re-exported here, so the state actor reaches both through `tree::`.
 
 use std::sync::Arc;
 
-use indexmap::IndexMap;
+pub(crate) use ship_core::tree::{
+    Sessions, Tabs, first_pane, not_found, pane, pane_ids, pane_owner, path, session_of, tab,
+    viewed_tab,
+};
 use ship_core::{
     id::{IdOf, UntaggedEither},
-    model::{NodeId, Pane, Tab, TabParent},
+    model::{NodeId, Tab, TabParent},
     prelude::*,
     protocol::Placement,
 };
-
-use super::Sessions;
-
-type Tabs = IndexMap<IdOf<Tab>, Tab>;
-
-/// Ancestry of `node`, session first and `node` last. `None` if absent.
-pub(crate) fn path(sessions: &Sessions, node: NodeId) -> Option<Vec<NodeId>> {
-    match node {
-        NodeId::Session(session) => sessions.contains_key(&session).then(|| vec![node]),
-        NodeId::Tab(tab) => sessions.values().find_map(|session| {
-            let mut tabs = Vec::new();
-            tab_path(&session.tabs, tab, &mut tabs).then(|| {
-                std::iter::once(NodeId::Session(session.id))
-                    .chain(tabs.into_iter().map(NodeId::Tab))
-                    .collect()
-            })
-        }),
-        NodeId::Pane(pane) => {
-            let mut path = path(sessions, NodeId::Tab(pane_owner(sessions, pane).ok()?))?;
-            path.push(node);
-            Some(path)
-        }
-    }
-}
-
-/// Pushes the IDs from `tabs` down to `id` onto `path`; false if absent.
-fn tab_path(tabs: &Tabs, id: IdOf<Tab>, path: &mut Vec<IdOf<Tab>>) -> bool {
-    for tab in tabs.values() {
-        path.push(tab.id);
-        if tab.id == id || tab_path(&tab.tabs, id, path) {
-            return true;
-        }
-        path.pop();
-    }
-    false
-}
-
-pub(crate) fn tab(sessions: &Sessions, id: IdOf<Tab>) -> Result<&Tab> {
-    fn find(tabs: &Tabs, id: IdOf<Tab>) -> Option<&Tab> {
-        tabs.get(&id)
-            .or_else(|| tabs.values().find_map(|tab| find(&tab.tabs, id)))
-    }
-    sessions
-        .values()
-        .find_map(|session| find(&session.tabs, id))
-        .ok_or_else(|| not_found(NodeId::Tab(id)))
-}
-
-pub(crate) fn pane(sessions: &Sessions, id: IdOf<Pane>) -> Result<&Pane> {
-    fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<&Pane> {
-        tabs.values()
-            .find_map(|tab| tab.panes.get(&id).or_else(|| find(&tab.tabs, id)))
-    }
-    sessions
-        .values()
-        .find_map(|session| find(&session.tabs, id))
-        .ok_or_else(|| not_found(NodeId::Pane(id)))
-}
-
-/// The tab that owns pane `id`.
-pub(crate) fn pane_owner(sessions: &Sessions, id: IdOf<Pane>) -> Result<IdOf<Tab>> {
-    fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<IdOf<Tab>> {
-        tabs.values().find_map(|tab| {
-            tab.panes
-                .contains_key(&id)
-                .then_some(tab.id)
-                .or_else(|| find(&tab.tabs, id))
-        })
-    }
-    sessions
-        .values()
-        .find_map(|session| find(&session.tabs, id))
-        .ok_or_else(|| not_found(NodeId::Pane(id)))
-}
 
 /// Mutable access through `Arc::make_mut`, copying only the owning session.
 pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab> {
@@ -145,12 +74,4 @@ fn sibling_index(children: &Tabs, sibling: IdOf<Tab>) -> Result<usize> {
             sibling
         )
     })
-}
-
-pub(crate) fn not_found(node: NodeId) -> AppError {
-    match node {
-        NodeId::Session(id) => err!(NotFound, "session {} not found", id),
-        NodeId::Tab(id) => err!(NotFound, "tab {} not found", id),
-        NodeId::Pane(id) => err!(NotFound, "pane {} not found", id),
-    }
 }

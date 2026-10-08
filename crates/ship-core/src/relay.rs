@@ -84,6 +84,17 @@ impl<T: Send + 'static> Sink<T> for mpsc::Sender<T> {
     }
 }
 
+/// Never `Full`; `Closed` once the receiver is gone. For publications that
+/// must not drop, such as exit statuses.
+impl<T: Send + 'static> Sink<T> for mpsc::UnboundedSender<T> {
+    fn try_send(&mut self, value: T) -> ControlFlow<SendResult, SendResult> {
+        match self.send(value) {
+            Ok(()) => ControlFlow::Continue(SendResult::Sent),
+            Err(_) => ControlFlow::Break(SendResult::Closed),
+        }
+    }
+}
+
 /// Drops the publication when the mailbox is full, so it must not carry
 /// authoritative state.
 impl<T: Clone + Send + 'static> Sink<T> for Recipient<T> {

@@ -1,11 +1,14 @@
-//! Shared-type HTTP client; identity validation and startup belong to the application.
+//! Shared-type HTTP client and the full-screen client; identity validation and
+//! startup belong to the application.
 
 mod api;
+pub mod ui;
 
 use std::{error::Error, io, time::Duration};
 
 pub use api::{Client, Resource, SessionRef, TabParentRef};
-use reqwest::{Error as HttpError, Method, RequestBuilder, Response, StatusCode};
+use futures_util::{Stream, StreamExt};
+use reqwest::{Body, Error as HttpError, Method, RequestBuilder, Response, StatusCode, header};
 use serde::{Serialize, de::DeserializeOwned};
 use ship_core::{
     id::{Attachment, IdOf},
@@ -60,6 +63,31 @@ impl Client {
             .context(format!("request to {safe} failed"))
     }
 
+    /// POST `items` as an NDJSON body, one line each as they arrive, and wait
+    /// for `expected_status`. No timeout: the body lasts as long as `items`.
+    async fn send_stream<T: Serialize + Send + 'static>(
+        &self,
+        path: &str,
+        attachment: IdOf<Attachment>,
+        items: impl Stream<Item = T> + Send + 'static,
+        expected_status: StatusCode,
+    ) -> Result<()> {
+        let (request, safe) = self.build(Method::POST, path, NO_BODY, Some(attachment));
+        let lines = items.map(|item| {
+            serde_json::to_vec(&item).map(|mut line| {
+                line.push(b'\n');
+                line
+            })
+        });
+        let request = request
+            .header(header::CONTENT_TYPE, "application/x-ndjson")
+            .body(Body::wrap_stream(lines));
+        open(request, expected_status)
+            .await
+            .map(drop)
+            .context(format!("request to {safe} failed"))
+    }
+
     /// The request, and its URL without credentials for error messages.
     fn build<B: Serialize + ?Sized>(
         &self,
@@ -73,8 +101,8 @@ impl Client {
         url.set_query(None);
         url.set_fragment(None);
         let mut safe = url.clone();
-        let _ = safe.set_username("");
-        let _ = safe.set_password(None);
+        safe.set_username("").ok();
+        safe.set_password(None).ok();
 
         let mut request = self.http.request(method, url);
         if let Some(body) = body {
@@ -122,9 +150,11 @@ fn http_error(error: HttpError) -> AppError {
                 .downcast_ref::<io::Error>()
                 .is_some_and(|error| error.kind() == io::ErrorKind::ConnectionRefused)
         });
-    let code = if connection_refused {
-        ErrorCode::ConnectionRefused
-    } else if error.is_decode() {
+    // reqwest only says "error sending request"; this is what it means.
+    if connection_refused {
+        return err!(ConnectionRefused, "no server running");
+    }
+    let code = if error.is_decode() {
         ErrorCode::Serialization
     } else {
         ErrorCode::Network

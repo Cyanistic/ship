@@ -1,7 +1,6 @@
 use std::{future::Future, io::IsTerminal};
 
 use ship_core::prelude::*;
-use tokio::signal::unix::{SignalKind, signal};
 use tracing_subscriber::EnvFilter;
 
 pub fn init() -> Result<()> {
@@ -19,7 +18,11 @@ pub fn init() -> Result<()> {
         .map_err(|error| err!(Internal, "cannot initialize diagnostics", @external: error))
 }
 
+/// Resolves on SIGINT or SIGTERM.
+#[cfg(unix)]
 pub fn shutdown() -> Result<impl Future<Output = Result<()>> + Send + 'static> {
+    use tokio::signal::unix::{SignalKind, signal};
+
     // Register both signals before starting the listener; registration errors are fatal.
     let mut interrupt = signal(SignalKind::interrupt())
         .map_err(|error| err!(Io, "cannot register SIGINT", @external: error))?;

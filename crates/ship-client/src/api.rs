@@ -1,21 +1,20 @@
-use std::str::FromStr;
+use std::{future::ready, str::FromStr};
 
-use eventsource_stream::{EventStreamError, Eventsource};
-use futures_util::{Stream, StreamExt};
+use futures_util::{Stream, StreamExt, TryStreamExt};
 use indexmap::IndexMap;
 use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
 use ship_core::{
     HEALTH_PATH, HealthResponse,
     id::{Attachment, Id, IdOf, Identified, Prefixed, UntaggedEither},
-    model::{Named, NodeId, Pane, Session, SessionName, Tab, TabParent},
+    model::{Named, Pane, Session, SessionName, Tab, TabParent},
     prelude::*,
     protocol::{
-        AttachRequest, Create, MoveTab, SelectRequest, SseEvent, SwitchSessionRequest,
-        ViewingRecord,
+        AttachRequest, Create, CreateSession, InputFrame, MoveTab, PaneInput, PaneSpec, SseEvent,
+        ViewInput, ViewingRecord,
     },
 };
-
+use sse_stream::SseByteStream;
 use url::Url;
 
 use crate::{NO_BODY, http_error};
@@ -72,6 +71,18 @@ impl Client {
             .await
     }
 
+    /// Starts the server's shutdown; it exits once its panes are torn down.
+    pub async fn stop_server(&self) -> Result<()> {
+        self.request(
+            Method::POST,
+            "/api/v0/server/stop",
+            NO_BODY,
+            None,
+            StatusCode::ACCEPTED,
+        )
+        .await
+    }
+
     pub async fn sessions(&self) -> Result<IndexMap<IdOf<Session>, Session>> {
         self.request(
             Method::GET,
@@ -83,23 +94,22 @@ impl Client {
         .await
     }
 
-    pub async fn create_session(&self, name: &SessionName) -> Result<Session> {
-        let body = Named { name };
+    pub async fn create_session(&self, body: &CreateSession) -> Result<Session> {
         self.request(
             Method::POST,
             Session::COLLECTION,
-            Some(&body),
+            Some(body),
             None,
             StatusCode::CREATED,
         )
         .await
     }
 
-    pub async fn create_tab(&self, parent: IdOf<TabParent>, name: &str) -> Result<Tab> {
+    pub async fn create_tab(&self, parent: IdOf<TabParent>, name: Option<&str>) -> Result<Tab> {
         let body = Create::<Tab> {
             parent,
             input: Named {
-                name: name.to_owned(),
+                name: name.map(str::to_owned).into(),
             },
         };
         self.request(
@@ -112,12 +122,10 @@ impl Client {
         .await
     }
 
-    pub async fn create_pane(&self, parent: IdOf<Tab>, name: &str) -> Result<Pane> {
+    pub async fn create_pane(&self, parent: IdOf<Tab>, input: &PaneInput) -> Result<Pane> {
         let body = Create::<Pane> {
             parent,
-            input: Named {
-                name: name.to_owned(),
-            },
+            input: input.clone(),
         };
         self.request(
             Method::POST,
@@ -135,7 +143,8 @@ impl Client {
             .await
     }
 
-    pub async fn rename<T: Resource>(&self, id: IdOf<T>, name: &str) -> Result<T> {
+    /// `None` clears a tab or pane name; sessions reject it.
+    pub async fn rename<T: Resource>(&self, id: IdOf<T>, name: Option<&str>) -> Result<T> {
         let path = format!("{}/{id}", T::COLLECTION);
         let body = Named { name };
         self.request(Method::PATCH, &path, Some(&body), None, StatusCode::OK)
@@ -178,15 +187,24 @@ impl Client {
         })
     }
 
-    /// Attach-or-create for `ship attach <name>`: resolve, create if absent,
-    /// and resolve again after a `409` from a concurrent creator.
-    pub async fn ensure_session(&self, name: &SessionName) -> Result<IdOf<Session>> {
+    /// Attach-or-create for `ship attach <name>`: resolve, create with
+    /// `starter` if absent, and resolve again after a `409` from a concurrent
+    /// creator.
+    pub async fn ensure_session(
+        &self,
+        name: &SessionName,
+        starter: &PaneSpec,
+    ) -> Result<IdOf<Session>> {
         let session = SessionRef::Name(name.clone());
         match self.resolve_session(&session).await {
             Err(error) if *error.code() == ErrorCode::NotFound => {}
             resolved => return resolved,
         }
-        match self.create_session(name).await {
+        let body = CreateSession {
+            name: name.clone(),
+            starter: Some(starter.clone()),
+        };
+        match self.create_session(&body).await {
             Ok(created) => Ok(created.id),
             Err(error) if *error.code() == ErrorCode::Conflict => {
                 self.resolve_session(&session).await
@@ -197,6 +215,10 @@ impl Client {
 
     /// Open the attach stream. The two-second timeout covers only the
     /// response head. The returned stream yields decoded events and ends on EOF.
+    ///
+    /// `sse-stream` scans each received chunk once; `eventsource-stream`
+    /// rescanned a partial line on every chunk, which was quadratic in the size
+    /// of a screen event. Blocks without data are skipped.
     pub async fn attach(
         &self,
         request: &AttachRequest,
@@ -204,47 +226,48 @@ impl Client {
         let response = self
             .stream(Method::POST, "/api/v0/attach", Some(request))
             .await?;
-        Ok(response
-            .bytes_stream()
-            .eventsource()
-            .map(|event| match event {
-                Ok(event) => serde_json::from_str(&event.data).map_err(
+        Ok(SseByteStream::new(response.bytes_stream())
+            .try_filter_map(|block| ready(Ok(block.data)))
+            .map(|data| match data {
+                Ok(data) => serde_json::from_str(&data).map_err(
                     |error| err!(Serialization, "cannot decode attach event", @external: error),
                 ),
-                Err(EventStreamError::Transport(error)) => Err(http_error(error)),
+                Err(sse_stream::Error::Body(error)) => match error.downcast::<reqwest::Error>() {
+                    Ok(error) => Err(http_error(*error)),
+                    Err(error) => {
+                        Err(err!(Serialization, "malformed attach stream", @external: error))
+                    }
+                },
                 Err(error) => Err(err!(Serialization, "malformed attach stream", @external: error)),
             }))
     }
 
-    /// Select within the attachment's session. The attachment ID is the one
-    /// the caller's own stream received, so observers never share it.
-    pub async fn select(
+    /// Stream `frames` to the attachment's panes in one POST, until `frames`
+    /// ends or the server answers. Only the connect timeout applies.
+    pub async fn input(
         &self,
         attachment: IdOf<Attachment>,
-        selection: NodeId,
-    ) -> Result<ViewingRecord> {
-        let body = SelectRequest { selection };
-        self.request(
-            Method::PUT,
-            "/api/v0/attach/selection",
-            Some(&body),
-            Some(attachment),
-            StatusCode::OK,
+        frames: impl Stream<Item = InputFrame> + Send + 'static,
+    ) -> Result<()> {
+        self.send_stream(
+            "/api/v0/attach/input",
+            attachment,
+            frames,
+            StatusCode::NO_CONTENT,
         )
         .await
     }
 
-    /// Move the attachment to another session, selecting the session itself.
-    pub async fn switch_session(
+    /// Replace the attachment's view; returns the record as stored.
+    pub async fn set_view(
         &self,
         attachment: IdOf<Attachment>,
-        session: IdOf<Session>,
+        view: &ViewInput,
     ) -> Result<ViewingRecord> {
-        let body = SwitchSessionRequest { session };
         self.request(
             Method::PUT,
-            "/api/v0/attach/session",
-            Some(&body),
+            "/api/v0/attach/view",
+            Some(view),
             Some(attachment),
             StatusCode::OK,
         )

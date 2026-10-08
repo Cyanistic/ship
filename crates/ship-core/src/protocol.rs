@@ -4,21 +4,25 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
     PartialSchema, ToSchema,
-    openapi::{Object, ObjectBuilder, Ref, RefOr, schema::Schema},
+    openapi::{AllOfBuilder, Object, ObjectBuilder, Ref, RefOr, schema::Schema},
 };
 use uuid::Uuid;
 
 use crate::{
     id::{Attachment, IdOf},
-    model::{Creatable, Named, NodeId, Session, Tab, TabParent},
+    model::{Creatable, NodeId, OptionalName, Pane, Session, SessionName, Tab, TabParent},
+    screen::{Screen, Size},
+    tree::Sessions,
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 1;
-/// Names the attachment a selection or session-switch request controls.
+pub const PROTOCOL_VERSION: u32 = 3;
+/// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
+/// Longest line of the input stream, in bytes without the newline.
+pub const INPUT_LINE_MAX: usize = 64 * 1024;
 
 /// Server identity and protocol compatibility, not an authentication boundary.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -39,29 +43,66 @@ pub struct Create<T: Creatable> {
 }
 
 /// Hand-written: Utoipa's derive cannot see through `IdOf<T::Parent>` and
-/// `T::Input`. Covers every entity created from a plain name (tabs, panes);
-/// routes append the entity, naming the component e.g. `Create_Tab`.
-impl<T: Creatable<Input = Named>> utoipa::__dev::ComposeSchema for Create<T>
+/// `T::Input`. An `allOf` of the parent and the flattened input; routes append
+/// the entity, naming the component e.g. `Create_Tab`.
+impl<T: Creatable> utoipa::__dev::ComposeSchema for Create<T>
 where
     IdOf<T::Parent>: PartialSchema,
+    T::Input: PartialSchema,
 {
     fn compose(_: Vec<RefOr<Schema>>) -> RefOr<Schema> {
-        ObjectBuilder::new()
-            .property("parent", <IdOf<T::Parent> as PartialSchema>::schema())
-            .required("parent")
-            .property("name", String::schema())
-            .required("name")
+        AllOfBuilder::new()
+            .item(
+                ObjectBuilder::new()
+                    .property("parent", <IdOf<T::Parent> as PartialSchema>::schema())
+                    .required("parent"),
+            )
+            .item(<T::Input as PartialSchema>::schema())
             .into()
     }
 }
 
-impl<T: Creatable<Input = Named>> ToSchema for Create<T>
+impl<T: Creatable> ToSchema for Create<T>
 where
     IdOf<T::Parent>: PartialSchema,
+    T::Input: PartialSchema,
 {
     fn name() -> Cow<'static, str> {
         "Create".into()
     }
+}
+
+/// What a pane runs. Pane creation input; also the starter pane on session
+/// creation.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneSpec {
+    /// argv; absent means the server's login shell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<Vec<String>>,
+    /// Absolute directory; absent means the server's home directory.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+}
+
+/// POST /sessions body. A starter creates one unnamed tab holding one pane in
+/// the same commit; `ship session create` sends none.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSession {
+    pub name: SessionName,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starter: Option<PaneSpec>,
+}
+
+/// POST /panes input, flattened next to `parent`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneInput {
+    #[serde(default)]
+    pub name: OptionalName,
+    #[serde(flatten)]
+    pub spec: PaneSpec,
 }
 
 /// POST /tabs/{id}/move body. No placement appends.
@@ -89,6 +130,18 @@ pub struct AttachRequest {
     pub session: IdOf<Session>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
+    /// The client's whole terminal.
+    pub size: Size,
+}
+
+/// PUT /attach/view body: the client's whole view. The server replaces the
+/// attachment's record with it, deriving the session from the selection.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ViewInput {
+    pub selection: NodeId,
+    /// The client's whole terminal.
+    pub size: Size,
 }
 
 /// Server-owned view of one attachment. Always names a session; the record
@@ -98,6 +151,8 @@ pub struct AttachRequest {
 pub struct ViewingRecord {
     pub session: IdOf<Session>,
     pub selection: NodeId,
+    /// The client's whole terminal. Tab sizes derive from it.
+    pub size: Size,
 }
 
 /// Complete replicated state. Session `Arc`s are shared with the state actor.
@@ -109,7 +164,7 @@ pub struct Replica {
     pub incarnation: Uuid,
     pub revision: u64,
     #[schema(schema_with = sessions_schema)]
-    pub sessions: IndexMap<IdOf<Session>, Arc<Session>>,
+    pub sessions: Sessions,
     #[schema(schema_with = viewers_schema)]
     pub viewers: IndexMap<IdOf<Attachment>, ViewingRecord>,
 }
@@ -135,17 +190,36 @@ fn viewers_schema() -> Object {
         .build()
 }
 
-/// One `data:` line of the attach stream.
+/// One event of the attach stream, sent as one SSE `data:` line, e.g.
+/// `{"type": "screen", "data": {"pane": "pane:...", "screen": {...}}}`.
+// Adjacently tagged: serde reads `type` first and deserializes `data` directly.
+// Internally tagged, it buffered every screen cell to find the tag.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
 pub enum SseEvent {
     /// Always first: the new attachment's ID and the state it starts from.
     Attached(Attached),
     /// A newer complete state, replacing the previous one.
     State(Arc<Replica>),
+    /// The latest screen of a pane in the attachment's viewed tab. Sent when
+    /// it changes, and for every such pane when the viewed tab changes.
+    Screen(PaneScreen),
     /// Always last: why the server is closing the stream. A stream that ends
     /// without it was cut.
-    Ended { reason: EndReason },
+    Ended(Ended),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneScreen {
+    pub pane: IdOf<Pane>,
+    pub screen: Arc<Screen>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Ended {
+    pub reason: EndReason,
 }
 
 /// Derived by each stream from the latest replica, never published.
@@ -166,14 +240,31 @@ pub struct Attached {
     pub replica: Arc<Replica>,
 }
 
-/// PUT /attach/selection body. The selection must be in the attached session.
+/// One NDJSON line of POST /attach/input, e.g.
+/// `{"type": "paste", "pane": "pane:...", "text": "ls"}`. View changes use
+/// PUT /attach/view instead.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct SelectRequest {
-    pub selection: NodeId,
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum InputFrame {
+    Key(KeyInput),
+    Paste(PasteInput),
 }
 
-/// PUT /attach/session body. The new selection is the session itself.
+/// A key press, encoded on the server against the pane's live terminal modes.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-pub struct SwitchSessionRequest {
-    pub session: IdOf<Session>,
+#[serde(rename_all = "camelCase")]
+pub struct KeyInput {
+    pub pane: IdOf<Pane>,
+    /// crossterm's own serialization, e.g. `{"code": "Enter", "modifiers": "",
+    /// "kind": "Press", "state": ""}`; modifiers read `"SHIFT | CONTROL"`.
+    #[schema(value_type = Object)]
+    pub key: crossterm::event::KeyEvent,
+}
+
+/// Text sent as one paste; bracketed when the program asked for it.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PasteInput {
+    pub pane: IdOf<Pane>,
+    pub text: String,
 }
