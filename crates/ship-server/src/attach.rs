@@ -50,11 +50,9 @@ impl Drop for AttachmentGuard {
         (status = 200, content_type = "text/event-stream", body = SseEvent,
             description = "Server-sent events whose `data:` lines are `SseEvent` JSON: \
                 `attached` first, then `state` for each newer replica and `screen` for each \
-                changed screen of a pane in the viewed tab, then `ended` with the reason \
-                when the attachment's session is removed or the server shuts down. Viewing \
-                a tab sends each of its panes' current screens."),
-        (status = 404, description = "Session not found", body = AppError),
-        (status = 422, description = "Malformed session or selection"),
+                changed screen of a pane in the viewed tab, then `ended` when the server \
+                shuts down. Viewing a tab sends each of its panes' current screens."),
+        (status = 422, description = "Malformed selection or size"),
         (status = 503, body = AppError),
     ),
 )]
@@ -118,9 +116,7 @@ struct Progress {
 
 impl Progress {
     /// Waits for a newer replica or a watched screen. Replicas no newer than
-    /// the one sent are skipped. The first newer replica without this
-    /// attachment means its session was removed; a closed channel means
-    /// shutdown.
+    /// the one sent are skipped. A closed channel means shutdown.
     async fn next(&mut self) -> std::result::Result<SseEvent, EndReason> {
         loop {
             tokio::select! {
@@ -128,9 +124,6 @@ impl Progress {
                     changed.map_err(|_| EndReason::ServerShutdown)?;
                     let replica = self.replicas.borrow_and_update().clone();
                     if replica.revision > self.replica.revision {
-                        if !replica.viewers.contains_key(&self.attachment) {
-                            return Err(EndReason::SessionRemoved);
-                        }
                         self.replica = replica.clone();
                         self.view();
                         return Ok(SseEvent::State(replica));
@@ -146,13 +139,14 @@ impl Progress {
     /// Watch exactly the viewed tab's panes. A new watch yields its current
     /// screen first, so a quiet pane shows up at once.
     fn view(&mut self) {
-        let sessions = &self.replica.sessions;
+        let tabs = &self.replica.tabs;
         let panes: Vec<IdOf<Pane>> = self
             .replica
             .viewers
             .get(&self.attachment)
-            .and_then(|record| tree::viewed_tab(sessions, record.selection))
-            .and_then(|tab| tree::tab(sessions, tab).ok())
+            .and_then(|record| record.selection)
+            .and_then(|selection| tree::viewed_tab(tabs, selection))
+            .and_then(|tab| tree::tab(tabs, tab).ok())
             .map(|tab| tab.panes.keys().copied().collect())
             .unwrap_or_default();
         let gone: Vec<IdOf<Pane>> = self

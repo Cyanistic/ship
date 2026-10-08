@@ -1,18 +1,18 @@
 use std::{path::PathBuf, str::FromStr};
 
 use clap::{Args, Parser, Subcommand};
-use ship_client::{SessionRef, TabParentRef};
 use ship_core::{
     AppError, DEFAULT_PORT, DEFAULT_SERVER_URL,
     id::{IdOf, Identified},
-    model::{Pane, SessionName, Tab},
+    model::{Pane, Tab},
+    protocol::MoveTab,
 };
 
 #[derive(Parser)]
 #[command(
     version,
-    about = "Check Ship health, run a loopback server or manage sessions",
-    long_about = "Check Ship health, run a loopback server or manage sessions.\n\nBare ship and session commands reuse the default-local server or start a missing one in the background.\nThat server stays running after the client and launching terminal exit."
+    about = "Open the Ship client, run a loopback server or script tabs and panes",
+    long_about = "Open the Ship client, run a loopback server or script tabs and panes.\n\nBare ship opens a full-screen client on the whole server; C-b d detaches.\nBare ship and tab and pane commands reuse the default-local server or start a missing one in the background.\nThat server stays running after the client and launching terminal exit."
 )]
 pub struct Cli {
     /// Connect only to this HTTP/HTTPS server; never start or fall back locally
@@ -30,38 +30,21 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Run a foreground server on 127.0.0.1, or stop one
+    /// Run a foreground server on 127.0.0.1, or stop or check one
     Server(ServerArgs),
-    /// Create, inspect, rename or remove sessions
-    #[command(subcommand)]
-    Session(SessionCommand),
-    /// Create, inspect, rename, remove or move tabs
+    /// List, create, inspect, rename, remove or move tabs
     #[command(subcommand)]
     Tab(TabCommand),
     /// Create, inspect, rename or remove panes
     #[command(subcommand)]
     Pane(PaneCommand),
-    /// Open a full-screen client on a session; C-b d detaches
-    Attach(AttachArgs),
-}
-
-#[derive(Subcommand)]
-pub enum SessionCommand {
-    /// List sessions as JSON, keyed by ID
-    List,
-    /// Create a session and print it as JSON
-    Create(NameArgs),
-    /// Print a session as JSON
-    Get(SessionArgs),
-    /// Rename a session and print it as JSON
-    Rename(RenameSessionArgs),
-    /// Remove a session and everything in it
-    Rm(SessionArgs),
 }
 
 #[derive(Subcommand)]
 pub enum TabCommand {
-    /// Append a tab to a session or tab and print it as JSON
+    /// List top-level tabs and their descendants as JSON, keyed by ID
+    List,
+    /// Append a tab to a tab, or to the top level without one, and print it as JSON
     Create(CreateTabArgs),
     /// Print a tab and its descendants as JSON
     Get(IdArgs<Tab>),
@@ -69,7 +52,7 @@ pub enum TabCommand {
     Rename(RenameArgs<Tab>),
     /// Remove a tab and all its descendants
     Rm(IdArgs<Tab>),
-    /// Move under PARENT; appends unless --before or --after names a sibling
+    /// Append under PARENT or to the top level, or place before or after a sibling
     Move(MoveTabArgs),
 }
 
@@ -101,26 +84,8 @@ pub struct ServerArgs {
 pub enum ServerCommand {
     /// Stop the server, ending every program in it, and wait until it exits
     Stop,
-}
-
-#[derive(Args)]
-pub struct NameArgs {
-    /// Session name; must not contain ':'
-    pub name: SessionName,
-}
-
-#[derive(Args)]
-pub struct SessionArgs {
-    /// Session name or ID
-    pub session: SessionRef,
-}
-
-#[derive(Args)]
-pub struct RenameSessionArgs {
-    /// Session name or ID
-    pub session: SessionRef,
-    /// New session name; must not contain ':'
-    pub name: SessionName,
+    /// Print the server's health as JSON; never starts a server
+    Status,
 }
 
 #[derive(Args)]
@@ -143,8 +108,8 @@ where
 
 #[derive(Args)]
 pub struct CreateTabArgs {
-    /// Session name or ID, or tab ID
-    pub parent: TabParentRef,
+    /// Parent tab ID; omitted means the top level
+    pub parent: Option<IdOf<Tab>>,
     /// Tab name; omitted or blank means none
     #[arg(long)]
     pub name: Option<String>,
@@ -168,19 +133,30 @@ pub struct CreatePaneArgs {
 #[derive(Args)]
 pub struct MoveTabArgs {
     pub id: IdOf<Tab>,
-    /// Session name or ID, or tab ID
-    pub parent: TabParentRef,
-    /// Insert before this sibling in PARENT
-    #[arg(long, conflicts_with = "after")]
+    #[command(flatten)]
+    pub to: Destination,
+}
+
+/// At most one; none means the top level.
+#[derive(Args)]
+#[group(multiple = false)]
+pub struct Destination {
+    /// Parent tab ID; omitted means the top level
+    pub parent: Option<IdOf<Tab>>,
+    /// Insert before this sibling, under its parent
+    #[arg(long)]
     pub before: Option<IdOf<Tab>>,
-    /// Insert after this sibling in PARENT
+    /// Insert after this sibling, under its parent
     #[arg(long)]
     pub after: Option<IdOf<Tab>>,
 }
 
-/// A name attaches or creates (`Client::ensure_session`); an ID never creates.
-#[derive(Args)]
-pub struct AttachArgs {
-    /// Session name or ID; a missing name is created with a shell in the current directory
-    pub session: SessionRef,
+impl From<Destination> for MoveTab {
+    fn from(to: Destination) -> Self {
+        match (to.before, to.after) {
+            (Some(sibling), _) => Self::Before(sibling),
+            (None, Some(sibling)) => Self::After(sibling),
+            (None, None) => Self::Parent(to.parent),
+        }
+    }
 }

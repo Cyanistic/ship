@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use ship_core::{
     id::{Attachment, IdOf},
-    model::{NodeId, Pane, Session, Tab},
+    model::{NodeId, Pane, Tab},
     protocol::{AttachRequest, PaneScreen, Replica, SseEvent, ViewingRecord},
     screen::{Screen, Size},
     tree,
@@ -21,9 +21,8 @@ pub(super) struct Observer {
 
 /// The record's selection resolved against the replica.
 pub(super) struct Selected<'a> {
-    pub session: &'a Session,
     /// The selected tab, or the selected pane's tab.
-    pub tab: Option<&'a Tab>,
+    pub tab: &'a Tab,
     pub pane: Option<&'a Pane>,
 }
 
@@ -67,7 +66,7 @@ impl Observer {
             return;
         };
         self.screens
-            .retain(|pane, _| tree::pane(&replica.sessions, *pane).is_ok());
+            .retain(|pane, _| tree::pane(&replica.tabs, *pane).is_ok());
     }
 
     /// This client's record, matched by attachment ID.
@@ -75,27 +74,25 @@ impl Observer {
         self.replica.as_ref()?.viewers.get(&self.attachment?)
     }
 
-    /// What to send on reattach: the last record's session and selection at
-    /// the terminal's current size. `None` before the first `Attached` event.
+    /// What to send on reattach: the last record's selection at the
+    /// terminal's current size. `None` before the first `Attached` event.
     pub fn remembered(&self, size: Size) -> Option<AttachRequest> {
         let record = self.record()?;
         Some(AttachRequest {
-            session: record.session,
-            selection: Some(record.selection),
+            selection: record.selection,
             size,
         })
     }
 
+    /// `None` when nothing is selected or before the first `Attached`.
     pub fn selected(&self) -> Option<Selected<'_>> {
-        let record = self.record()?;
-        let sessions = &self.replica.as_ref()?.sessions;
-        let session = sessions.get(&record.session)?;
-        let tab = tree::viewed_tab(sessions, record.selection)
-            .and_then(|tab| tree::tab(sessions, tab).ok());
-        let pane = match record.selection {
-            NodeId::Pane(id) => tab.and_then(|tab| tab.panes.get(&id)),
-            _ => None,
+        let selection = self.record()?.selection?;
+        let tabs = &self.replica.as_ref()?.tabs;
+        let tab = tree::tab(tabs, tree::viewed_tab(tabs, selection)?).ok()?;
+        let pane = match selection {
+            NodeId::Pane(id) => tab.panes.get(&id),
+            NodeId::Tab(_) => None,
         };
-        Some(Selected { session, tab, pane })
+        Some(Selected { tab, pane })
     }
 }

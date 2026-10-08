@@ -602,6 +602,33 @@ pub(crate) fn take_tab(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<Arc<Tab>> {
 
 `place` with a `before` or `after` destination inserts into `holder_mut(tabs, sibling)`, which is the sibling's parent's map, copied for writing. The `position` check is read-only, so tabs off the route are never copied, and its cost matches the `path` walk it replaces. Public signatures and behavior don't change. Deferred to slice 2 because the helper is written against `&Tabs` roots; at slice 1's session roots it would need a session step and a local lookup that slice 2 deletes.
 
+### Slice 2 (2026-10-08): top-level tabs replace sessions
+
+Slice 2 follows the skeleton with one deviation that needs Cyan's review. Implementation Rust went from 5,834 to 5,189 lines (−645), already beyond the whole change's −350 to −500 estimate. Tests stay at zero.
+
+**Deviation: `move_tab` reads the body as a JSON value first.** A derived `Json<MoveTab>` answers `{}` and `{"before": …, "after": …}` with 400, not the 422 the spec requires. serde_json reports a map without exactly one key, deserialized as an externally tagged enum, as a syntax error, and axum maps syntax errors to 400. The handler now extracts `Json<serde_json::Value>`, so a body that isn't JSON still gets 400. It then runs `serde_json::from_value::<MoveTab>` and maps a failure to `InvalidStructure` (422) with the message "malformed move body". `MoveTab` stays a derived enum, and the wire format and OpenAPI schema are unchanged. This adds about four lines and a doc comment in `routes.rs`.
+
+Smaller choices, none of which changes the contract:
+
+- `state/tree.rs` re-exports only the lookups the server uses. It doesn't re-export `first_pane` or `siblings`, because unused re-exports warn. `holder_mut` is as written in P1.
+- `commands::server_status` isn't added; it would only forward. The `ServerCommand::Status` arm in `main.rs` calls `commands::print(&health(…).await?)`, and `print` becomes `pub(crate)` (from Cyan's review of slice 2).
+- `Rename<T, N = OptionalName>` loses its name parameter, because only sessions used `SessionName`.
+- With exactly one top-level tab, the hint reads `1 tab · C-b ) to open one`.
+- With nothing selected, the status line is blank, apart from the disconnected marker.
+- A move whose sibling is the moving tab itself fails with 422 as "into itself", not 404.
+
+Evidence, on macOS against a foreground `ship server --port 43311`:
+
+- curl: `GET /api/v0/tabs` returned `{}`. `POST /api/v0/tabs` with `{}` returned 201 with a top-level tab. A move with `{}`, with both `before` and `after`, or with a pane ID as parent returned 422; `not json` returned 400; `{"parent": null}` returned 200 and the tab moved to the top level.
+- CLI: built top › nested (child tab, running `sleep` pane) and other. Moved nested to the top level and back, and its program's PID stayed alive both times. `other --before child` landed under nested, and `--after top` landed at the top level. `tab move top --before nested` and `tab move top child` exited 1 with "into itself or its own descendant", and `tab list` was byte-identical before and after. A missing `--after` sibling exited 1 with not found. `tab move <id> <parent> --before <sib>` and `tab get notes` exited 2. `ship --help` contains no "session".
+- Client, driven in a 30×100 pty and rendered with pyte (temporary probe): opened on `3 tabs · C-b ) to open one`. `C-b )` went one › a, two › b, three › c, one › a, and `C-b (` went three, two, one, each showing that pane's output. `C-b (` from nothing selected went to three › c. Cycling to a paneless tab showed `no pane: ship pane create <id>`. `C-b )` into a tab whose only pane is in a child tab selected `nested › deep`. Removing that nested tab fell back to its parent, and removing the parent, a top-level tab with siblings, selected nothing. Removing every tab showed `no tabs · ship tab create` while attached. Two `ship tab create` calls then showed `2 tabs · C-b ) to open one` without reattaching. `C-b d` printed `detached` and exited 0.
+- A d79868e (protocol 4) build against this server: bare `ship` and `ship attach work` exited 1 with "incompatible health response … expected service ship and protocol 4".
+- `ship server status` printed `{"service":"ship","protocolVersion":5,"version":"0.1.0"}` and exited 0. Against a free port it exited 1 with "no server running", and nothing was listening there afterward. The default port was occupied by Cyan's own server, so the default-URL path wasn't exercised; it runs the same code without `local::default_health`.
+- A disposable `openapi()` consumer crate outside the repo found no "session" in the document. Paths: `list_tabs`, `create_tab`, `get_tab`, `rename_tab`, `remove_tab`, `move_tab`, the pane, attach, input, view, stop and health operations. `MoveTab` is a `oneOf` of three single-key objects, `CreateTab.parent` is optional, and `ViewingRecord.selection` is optional.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and debug and release builds pass.
+
+On Linux (aarch64, Debian trixie in the `ship-linux-probe` Docker image, from a copy of the working tree), fmt, Clippy, and debug and release builds passed. The same CLI tree, curl move, `server status` and pty client probes passed with identical results. The protocol-4 client and OpenAPI checks ran on macOS only; neither depends on the platform. Windows is unverified.
+
 ### Slice 1 (2026-10-08): `Arc` at every level
 
 No deviation from the skeleton. Measured cost of decision 2, from `git diff --stat` over the slice's source changes:

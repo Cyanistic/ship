@@ -7,8 +7,8 @@ use std::{process::ExitCode, time::Duration};
 
 use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
-use ship_client::{Client, SessionRef};
-use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*, protocol::PaneSpec};
+use ship_client::Client;
+use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*};
 use url::Url;
 
 fn main() -> ExitCode {
@@ -73,11 +73,15 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
         Some(ValueSource::CommandLine | ValueSource::EnvVariable)
     );
     match cli.command {
-        // Never starts a server, so a stopped default server stays stopped.
+        // Never start a server, so a stopped default server stays stopped.
         Some(Command::Server(cli::ServerArgs {
             command: Some(cli::ServerCommand::Stop),
             ..
         })) => commands::stop_server(&client(&cli.server_url)?).await,
+        Some(Command::Server(cli::ServerArgs {
+            command: Some(cli::ServerCommand::Status),
+            ..
+        })) => commands::print(&health(&client(&cli.server_url)?).await?),
         Some(Command::Server(_)) if source == Some(ValueSource::CommandLine) => Err(err!(
             Configuration,
             "--server-url selects a server for clients; ship server does not take it"
@@ -89,10 +93,6 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
             )
             .await
         }
-        Some(Command::Session(command)) => {
-            let client = connect(&cli.server_url, explicit_target).await?;
-            commands::session(&client, command).await
-        }
         Some(Command::Tab(command)) => {
             let client = connect(&cli.server_url, explicit_target).await?;
             commands::tab(&client, command).await
@@ -101,36 +101,13 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
             let client = connect(&cli.server_url, explicit_target).await?;
             commands::pane(&client, command).await
         }
-        Some(Command::Attach(args)) => {
+        None => {
             let client = connect(&cli.server_url, explicit_target).await?;
             // A full-screen client must not misread another protocol.
             if explicit_target {
                 health(&client).await?;
             }
-            let session = match args.session {
-                SessionRef::Id(id) => id,
-                SessionRef::Name(name) => {
-                    let starter = PaneSpec {
-                        command: None,
-                        cwd: Some(commands::current_dir()?.display().to_string()),
-                    };
-                    client.ensure_session(&name, &starter).await?
-                }
-            };
-            ship_client::ui::run(&client, session).await
-        }
-        None => {
-            let client = client(&cli.server_url)?;
-            let response = if explicit_target {
-                health(&client).await?
-            } else {
-                local::default_health(&client).await?
-            };
-            let json = serde_json::to_string(&response).map_err(
-                |error| err!(Serialization, "cannot serialize health result", @external: error),
-            )?;
-            println!("{json}");
-            Ok(())
+            ship_client::ui::run(&client).await
         }
     }
 }

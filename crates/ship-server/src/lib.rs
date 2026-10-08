@@ -1,5 +1,4 @@
-//! Loopback HTTP listener, health route, session, tab and pane API and
-//! attach stream.
+//! Loopback HTTP listener, health route, tab and pane API and attach stream.
 
 mod app;
 mod attach;
@@ -48,7 +47,7 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
 /// Document metadata. Expanding the derive here takes title, version and
 /// description from ship-server's manifest; paths and schemas come from
 /// `routes!`. Schemas reached only through a hand-written `$ref`, such as
-/// `Replica::viewers` or the flattened `PaneSpec` in `Create_Pane`, are
+/// `Replica::viewers` or the flattened `PaneSpec` in `CreatePane`, are
 /// registered here.
 #[derive(OpenApi)]
 #[openapi(components(schemas(ship_core::protocol::ViewingRecord, ship_core::protocol::PaneSpec)))]
@@ -66,11 +65,7 @@ fn api_router() -> OpenApiRouter<AppState> {
     api_routes!(
         OpenApiRouter::with_openapi(ApiDoc::openapi()),
         health::health,
-        routes::list_sessions,
-        routes::create_session,
-        routes::get_session,
-        routes::rename_session,
-        routes::remove_session,
+        routes::list_tabs,
         routes::create_tab,
         routes::get_tab,
         routes::rename_tab,

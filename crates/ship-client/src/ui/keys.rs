@@ -14,8 +14,8 @@ pub(super) enum Action {
     NextPane,
     PrevPane,
     /// `C-b )`, `C-b (`
-    NextSession,
-    PrevSession,
+    NextTab,
+    PrevTab,
     /// `C-b d`
     Detach,
     /// The prefix, an unbound key after it, or input with no pane selected.
@@ -67,8 +67,8 @@ fn bound(key: &KeyEvent) -> Action {
     match key.code {
         KeyCode::Char('n') => Action::NextPane,
         KeyCode::Char('p') => Action::PrevPane,
-        KeyCode::Char(')') => Action::NextSession,
-        KeyCode::Char('(') => Action::PrevSession,
+        KeyCode::Char(')') => Action::NextTab,
+        KeyCode::Char('(') => Action::PrevTab,
         KeyCode::Char('d') => Action::Detach,
         _ => Action::None,
     }
