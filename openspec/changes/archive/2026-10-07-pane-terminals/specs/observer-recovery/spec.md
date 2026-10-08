@@ -17,7 +17,7 @@ After reconnecting, the client SHALL replace its view with the server's current 
 - **THEN** the client shows the current structure and the pane's current screen without any further action
 
 ### Requirement: Selection after reconnecting
-On reconnecting to its session, a client SHALL keep its previous selection if that entity still belongs to the session, and otherwise SHALL select the session itself. This SHALL hold even when the selected entity moved to another session with its owning tab. Retention SHALL NOT depend on disk persistence. A newly started client SHALL begin at the session's first pane in tree order, or the session itself when it has no panes.
+On reconnecting to its session, a client SHALL keep its previous selection if that entity still belongs to the session, and otherwise SHALL select the session's first pane in tree order, or the session itself when it has no panes. This SHALL hold even when the selected entity moved to another session with its owning tab. Retention SHALL NOT depend on disk persistence. A newly started client SHALL begin at the session's first pane in tree order, or the session itself when it has no panes.
 
 #### Scenario: Selection still present
 - **WHEN** a client reconnects and its selected pane is still in its session
@@ -25,7 +25,7 @@ On reconnecting to its session, a client SHALL keep its previous selection if th
 
 #### Scenario: Selection removed or moved away
 - **WHEN** a client reconnects after its selected pane was removed, or moved to another session with its tab
-- **THEN** the client selects its session
+- **THEN** the client selects its session's first pane in tree order, or the session itself when no panes remain
 
 ### Requirement: Session removed during an outage
 Reconnection SHALL target the client's session by ID and SHALL never recreate a removed session. If the session no longer exists when the client reconnects, the client SHALL restore the terminal, report that the session was removed and exit with status 0.

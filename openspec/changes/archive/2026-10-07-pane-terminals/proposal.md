@@ -17,7 +17,7 @@ Ship can hold sessions, tabs and panes, but a pane is only a name, so nothing us
 - Several clients can view and type into the same pane at once.
 - While disconnected, the client keeps the last screen, shows that it's reconnecting and discards keys.
 - **BREAKING:** Tab and pane names become optional. A blank name means no name, renaming without a name clears it, and the tab name moves from a positional argument to `--name`. Unnamed panes and tabs show derived labels. Session names stay required.
-- **BREAKING:** `PUT /api/v0/attach/view` replaces `PUT /api/v0/attach/selection` and `PUT /api/v0/attach/session`. A streaming `POST /api/v0/attach/input` carries keys and pastes. The attach stream also carries pane screens. The health `protocolVersion` becomes 2, so older clients refuse the server instead of misreading it.
+- **BREAKING:** `PUT /api/v0/attach/view` replaces `PUT /api/v0/attach/selection` and `PUT /api/v0/attach/session`. A streaming `POST /api/v0/attach/input` carries keys and pastes. The attach stream also carries pane screens. The health `protocolVersion` becomes 3, so older clients refuse the server instead of misreading it.
 
 ## Capabilities
 
@@ -31,7 +31,7 @@ Ship can hold sessions, tabs and panes, but a pane is only a name, so nothing us
 - `session-structure`: Panes are no longer metadata only, tab and pane names become optional, and the CLI spellings change.
 - `session-observation`: Attaching opens the full-screen client, a new name creates a starter pane, the selection starts at the first pane, the pane-removal fallback changes, session switching uses keys, and a stopped server ends the client.
 - `observer-recovery`: A reconnecting client keeps its last screen, shows the outage in its status line and discards keys typed meanwhile.
-- `health-exchange`: The protocol version becomes 2.
+- `health-exchange`: The protocol version becomes 3.
 - `client-maintenance`: The OpenAPI document describes the attached key event only as an object.
 
 ## Impact

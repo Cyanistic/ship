@@ -43,7 +43,7 @@ Several clients SHALL be able to view the same pane and send it input at the sam
 - **THEN** the pane receives input from both and both clients show the same screen
 
 ### Requirement: Fixed pane keys
-In the client, `C-b n` SHALL select the next pane in the tab, `C-b p` the previous one, both wrapping around. `C-b d` SHALL detach. `C-b C-b` SHALL send one `C-b` to the pane. Every key not bound after `C-b` SHALL go to the pane.
+In the client, `C-b n` SHALL select the next pane in the tab, `C-b p` the previous one, both wrapping around. `C-b d` SHALL detach. `C-b C-b` SHALL send one `C-b` to the pane. Every key not preceded by `C-b` SHALL go to the pane, and a key after `C-b` that has no binding SHALL be dropped.
 
 #### Scenario: Cycle panes
 - **WHEN** a tab has three panes and the user presses `C-b n` three times
