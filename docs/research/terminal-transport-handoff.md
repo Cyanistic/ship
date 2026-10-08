@@ -1,6 +1,6 @@
 # Ship handoff: compressed full snapshots
 
-Audience: mixed, intended for Cyan and the Ship agent. This records the current design direction and bounded experimental evidence, not an implemented Ship protocol. [Session structure](../planning/session-structure.md) separates agreed direction from proposals and unresolved interfaces. Historical benchmark sections below retain their original workloads and results.
+Audience: mixed, intended for Cyan and the Ship agent. This records the current design direction and bounded experimental evidence, not an implemented Ship protocol. Historical benchmark sections below retain their original workloads and results.
 
 ## Decision to carry back
 
@@ -332,7 +332,7 @@ Temporary reproduction: `sh reproduce-codecs.sh` from `/tmp/ship-sse-flush-Rkwfo
 
 ## Proposed next work and remaining protocol decisions
 
-The proposed metadata checkpoint, before PTYs, is recorded in [session structure](../planning/session-structure.md). Its scope is not yet approved. There is no existing Ship state/publication code to reconcile or patch cache to retain.
+The proposed metadata checkpoint, before PTYs, has since shipped; see the [session structure spec](../../openspec/specs/session-structure/spec.md). There is no existing Ship state/publication code to reconcile or patch cache to retain.
 
 For implementation planning, retain ordinary authoritative structs and full snapshots. Design coordinated attachment, latest-state coalescing and eventual flush rather than copying the temporary transport producer or historical bus unchanged. Validate the actual client decompression path, reconnects, slow clients and any deployed proxies. Only real terminal integration can establish capture/render cost and representative sustained-load performance.
 

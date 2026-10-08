@@ -6,7 +6,7 @@ Ship is a compact Rust terminal workspace for coding-agent work. A server owns s
 
 ## Which documents authorize work
 
-A locked openspec paper, meaning one whose status reads "Locked" with Cyan's recorded approval, is the implementation contract. Everything else is evidence or direction: the product brief, `docs/planning/`, `docs/research/`, `.scratch/`, `experiments/`, and archived or superseded drafts. Earlier directions in those documents (structdiff and JSON Patch screen diffs) are history, even where the text describes them in detail.
+A locked openspec paper, meaning one whose status reads "Locked" with Cyan's recorded approval, is the implementation contract. Everything else is evidence or direction: the product brief (`docs/product-brief.md`), `docs/research/`, `experiments/`, and archived or superseded drafts. Earlier directions in those documents (structdiff and JSON Patch screen diffs) are history, even where the text describes them in detail.
 
 Questions those documents mark as open stay open. When work depends on one, bring it to Cyan with a recommendation and leave it unsettled in the code until Cyan decides.
 

@@ -65,6 +65,6 @@ Reconnect opens a new attachment. Local selection retention is client behavior, 
 
 ## Evidence and limits
 
-The typed dispatch, composable sinks and registration-time mapping behavior were inspected in source during planning. That source inspection is evidence for the reusable pattern, not for a copied Ship implementation or compatibility with a selected Kameo version. The reliable publication policy and streaming attachment lifecycle above are Ship design proposals evaluated through the current [architecture paper](../../openspec/changes/session-tab-roundtrip/design/architecture.md).
+The typed dispatch, composable sinks and registration-time mapping behavior were inspected in source during planning. That source inspection is evidence for the reusable pattern, not for a copied Ship implementation or compatibility with a selected Kameo version. The reliable publication policy and streaming attachment lifecycle above are Ship design proposals evaluated through the current [architecture paper](../../openspec/changes/archive/2026-10-06-session-tab-roundtrip/design/architecture.md).
 
 Implementation must verify direct publication, mapped publication, deliberate filter omission, downstream failure, attachment seeding and final-state delivery through real command/client workflows. No permanent tests or new actor framework are authorized by this reference.

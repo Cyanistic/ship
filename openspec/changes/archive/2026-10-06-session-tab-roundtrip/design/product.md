@@ -1,6 +1,6 @@
 # Session/tab roundtrip
 
-Status: Locked again on 2026-10-05 after Cyan approved the [amendments](#amendments-2026-10-05) in Plannotator with “lgtm”. Text they supersede is kept and marked. Previously: Locked after revised product review. Cyan approved the logical-pane scope in Plannotator with “looks good to me!” The previously approved session/tab-only scope is superseded by this paper; architecture remains open and must be reconciled with the added pane requirements. This paper defines observable behavior, not architecture or implementation. The broader [product brief](../../../../product-brief.md) remains the roadmap.
+Status: Locked again on 2026-10-05 after Cyan approved the [amendments](#amendments-2026-10-05) in Plannotator with “lgtm”. Text they supersede is kept and marked. Previously: Locked after revised product review. Cyan approved the logical-pane scope in Plannotator with “looks good to me!” The previously approved session/tab-only scope is superseded by this paper; architecture remains open and must be reconciled with the added pane requirements. This paper defines observable behavior, not architecture or implementation. The broader [product brief](../../../../../docs/product-brief.md) remains the roadmap.
 
 ## Goal
 
