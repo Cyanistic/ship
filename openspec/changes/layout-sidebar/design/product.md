@@ -92,7 +92,8 @@ Independent verification: build a three-level tree with the CLI, fold and unfold
 - The Agents section, per-row agent state markers and notifications. Those belong to milestone 3.
 - Scrollback, copy mode, search, and text selection with the mouse. Once the mouse is captured, the outer terminal's own drag-to-select needs Shift in most terminals; a capture switch (FR-016) covers users who want their terminal's selection back.
 - Dragging borders to resize.
-- Floating panes, popups and swap layouts.
+- Floating panes. They are planned as the next change after this one: panes that keep running while hidden and toggle over the tiled layout (`toggle_floating`, `alt+w` in the proposed defaults), as in Zellij. The use case is keeping a dev server or build one key away from the editor.
+- Throwaway popups and swap layouts.
 - Configurable keys, the config file and its location. The keys and config change owns them.
 - Saving layouts to disk or restoring them after a server restart.
 - Themes or a configurable sidebar row layout.
@@ -134,7 +135,7 @@ Verification is through real workflows and temporary probes; this paper does not
 
 Each has a recommendation, not a decision.
 
-1. **U-1 Layout model.** How the split tree relates to the tab's current pane order, and what `ship pane create` does to the layout. Recommendation: the split tree replaces pane order as the source of truth, and `ship pane create` splits the tab's last pane right unless told otherwise. The data model belongs to the architecture paper.
+1. **U-1 Layout model.** How the split tree relates to the tab's current pane order, and what `ship pane create` does to the layout. Recommendation: the split tree replaces pane order as the source of truth, and `ship pane create` splits the tab's last pane right unless told otherwise. A pane belongs to its tab, not to the split tree; the tree only places panes, so the planned floating panes change can place some outside it. The data model belongs to the architecture paper.
 2. **U-2 New tab placement.** In a tree, a new tab can be a sibling after the selected tab or a child of it. Recommendation: the main "new tab" action adds a sibling; "new child tab" is its own action.
 3. **U-3 Tab keys outside nav mode.** Recommendation: next and previous tab walk visible rows in order, and `alt+1..9` select visible rows 1 to 9.
 4. **U-4 Session switching.** Recommendation: a session picker (`alt+o` in the proposed defaults) replaces cycling. The sidebar header could open it on click.
