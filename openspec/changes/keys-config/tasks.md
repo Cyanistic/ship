@@ -24,10 +24,10 @@ Every slice runs workflows against a foreground `ship server --port <p>` with `-
 
 ## 2. Config path and server settings: a `[server] shell` line to the shell new panes run
 
-- [ ] 2.1 Add `etcetera` and `figment` to the workspace and the `ship`/`ship-server` manifests. Add the global `--config` (with `env = "SHIP_CONFIG"`) and `Cli::config_path` to `cli.rs`, and pass the path to `serve`, `ui::run` and `local::default_health`, which forwards `--config` to the background server. Verify `ship --help` shows `--config` and `[env: SHIP_CONFIG]`.
-- [ ] 2.2 Add `ship-server/src/settings.rs` with `ServerSettings::load`, give `PaneEnv` the config path, and in `pane::spawn` set `SHELL` on the default-program builder from the setting, logging and falling back when the file is bad. Verify that `shell = "/bin/sh"` makes `ship pane create --tab <t>` run `/bin/sh` with `-sh` in `ps`, and that a relative `shell` resolves from the file's folder.
-- [ ] 2.3 Add `ship config check [FILE]` (server half), printing each error with its location and exiting 1 on any. Verify that a bad `shell` value (`shell = 3`) is named as `server.shell` with exit 1, and that a valid file exits 0 with no output.
-- [ ] 2.4 Verify slice 2 end to end, recording evidence:
+- [x] 2.1 Add `etcetera` and `figment` to the workspace and the `ship`/`ship-server` manifests. Add the global `--config` (with `env = "SHIP_CONFIG"`) and `Cli::config_path` to `cli.rs`, and pass the path to `serve`, `ui::run` and `local::default_health`, which forwards `--config` to the background server. Verify `ship --help` shows `--config` and `[env: SHIP_CONFIG]`.
+- [x] 2.2 Add `ship-server/src/settings.rs` with `ServerSettings::load`, give `PaneEnv` the config path, and in `pane::spawn` set `SHELL` on the default-program builder from the setting, logging and falling back when the file is bad. Verify that `shell = "/bin/sh"` makes `ship pane create --tab <t>` run `/bin/sh` with `-sh` in `ps`, and that a relative `shell` resolves from the file's folder.
+- [x] 2.3 Add `ship config check [FILE]` (server half), printing each error with its location and exiting 1 on any. Verify that a bad `shell` value (`shell = 3`) is named as `server.shell` with exit 1, and that a valid file exits 0 with no output.
+- [x] 2.4 Verify slice 2 end to end, recording evidence:
   - Saving a new `shell` applies to the next pane and leaves running panes alone.
   - A syntax error gives the login shell and a warning in the server log.
   - With no server running, `SHIP_CONFIG=/elsewhere.toml ship` starts a server that reads `/elsewhere.toml`.

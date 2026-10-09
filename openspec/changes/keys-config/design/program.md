@@ -705,3 +705,33 @@ Cyan's Plannotator review of slice 1 pointed out that `Scope::Keys { selection, 
 Checking the rest of the diff against `code.md` found one more fix, which Cyan approved with the first: the command tree derived `Serialize`, and nothing serializes a command. Dropping it also removed `From<TabTarget> for Option<NodeId>`, which existed only for `serde(into)` and silently dropped `pane` when both were set. Two other findings stayed as they are. The "at most one destination" rule lives in both the clap group and `Destination::resolve`, because the config has no clap and the spec needs exit 2 on the CLI. `KeyScope` owns a per-call snapshot of `Arc`s, which isn't stored state.
 
 Implementation Rust is now 5,566 lines, with tests at zero. fmt, workspace Clippy, Clippy and debug builds on `ship-core` with and without `clap`, and the workspace debug and release builds passed. The serde probe accepted and rejected the same inputs as before, and both slice 1 workflow scripts gave the same results as before.
+
+### Slice 2: config path and server settings (2026-10-09, macOS)
+
+All slice 2 checks passed on macOS. Linux and Windows are unverified. No locked paper reopened. Implementation Rust went from 5,566 to 5,707 lines (+141), with tests at zero.
+
+Cyan's review: `ship config check` first failed on a missing file. Cyan rejected that ("you're merging... nothing... with the defaults"), so a missing or empty file passes, the same as loading. Removing the guard exposed a bug: `Toml::file_exact` treats a missing file as an error, so with no config file every shell spawn logged a warning (still falling back to the login shell). `Toml::file` treats it as empty, and with the absolute path from `config_path` it doesn't search parent directories. A server started with `--config` naming a missing file then ran `/bin/zsh` with no WARN line.
+
+Small departures from the skeleton, none changing behavior the papers specify:
+
+- **`ui::run` doesn't take the config path yet.** Nothing in the client reads it until slice 3, so the parameter arrives with the keymap instead of as an unused argument.
+- **`ServerSettings::load` extracts a private `Root { server }`** instead of focusing on `server`. Focusing drops `server` from error key paths. Errors read `<file>: <key path>: <message>`, built from figment's key path because its own message adds the `default.` profile. Syntax errors have no key path and carry line and column.
+- **`shell` is a plain `PathBuf` joined onto the file's folder**, not figment's `RelativePathBuf`, which adds a `___figment_relative_path` segment to every error's key path (probe).
+- **`Cli::config_path` makes the path absolute**, so the background server and a relative `shell` resolve against the same file whatever directory the server runs in. It's only computed where a server is started or the file is read, so `ship server status`, `ship server stop` and explicit-target commands don't depend on finding a config directory.
+- **`ship config check` prints each error on stderr, then exits 1 with `ship: invalid config`** through the usual error path.
+
+Surprises:
+
+- portable-pty's `get_shell` falls back to the password-database shell when `SHELL` isn't executable, logging through the `log` crate, which Ship doesn't route. So a well-formed `shell = "/nonexistent"` gives the login shell with no line in Ship's log. FR-008 only promises the log line for a bad file, so this isn't a spec gap, but it's quiet.
+- figment's unknown-field message doubles the backticks around the expected field names. Cosmetic, from figment.
+- A `[srever]` table passes `ship config check` until slice 3 adds the client half, as planned: the server's `Root` ignores other tables.
+
+Evidence, against foreground servers with `--server-url` unless noted:
+
+- `ship --help` shows `--config <FILE>` with `[env: SHIP_CONFIG=]`, and `ship config --help` lists `check`.
+- `ship config check bad.toml` with `shell = 3` printed ``bad.toml: server.shell: invalid type: found signed int `3`, expected path string`` and exited 1. A valid file exited 0 with no output. `shel = …` printed `server.shel: unknown field`, and a syntax error printed the line and column, each exiting 1. `SHIP_CONFIG=<bad>` with no `FILE` checked that file. A missing file and an empty file each exited 0 with no output.
+- With `shell = "/bin/sh"`, `ship pane create --tab <t>` ran `-sh` in `ps`. Changing the file to `shell = "shells/mysh"` (a symlink to bash next to the file) made the next pane run `<config folder>/shells/mysh` as `-mysh`. Breaking the file's syntax made the next pane run `/bin/zsh`, with `WARN … using the login shell error=<file>: TOML parse error at line 1, column 8` in the server log. All three panes stayed running with their own shells.
+- With no default server running, `SHIP_CONFIG=<scratch>/elsewhere.toml ship` (under `script` for a pty) started `ship server --port 43179 --starter --background-child --config <scratch>/elsewhere.toml`, whose starter pane ran `/bin/sh`.
+- `ship server --port <p> --starter --config elsewhere.toml` listed one tab whose pane ran `/bin/sh`.
+- Every test server was stopped afterward, and no test shells remained.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed. No route or protocol type changed, so the OpenAPI consumer wasn't rerun.

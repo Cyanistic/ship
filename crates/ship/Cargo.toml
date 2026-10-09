@@ -8,6 +8,7 @@ description = "Local command-line application foundation"
 
 [dependencies]
 clap.workspace = true
+etcetera.workspace = true
 ship-client.workspace = true
 ship-server.workspace = true
 ship-core = { workspace = true, features = ["clap"] }

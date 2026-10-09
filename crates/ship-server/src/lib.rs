@@ -6,11 +6,13 @@ mod health;
 mod input;
 mod pane;
 mod routes;
+mod settings;
 mod state;
 
 use std::{
     future::{Future, IntoFuture},
     net::SocketAddr,
+    path::PathBuf,
     sync::Arc,
     time::Duration,
 };
@@ -21,6 +23,7 @@ use kameo::{
     actor::{ActorRef, Spawn},
     mailbox,
 };
+pub use settings::ServerSettings;
 use ship_core::{
     model::OptionalName,
     prelude::*,
@@ -117,6 +120,7 @@ pub fn router(app: AppState) -> Router {
 pub async fn serve(
     address: SocketAddr,
     starter: bool,
+    config: PathBuf,
     shutdown: impl Future<Output = Result<()>> + Send + 'static,
 ) -> Result<()> {
     if !address.ip().is_loopback() || address.port() == 0 {
@@ -143,7 +147,7 @@ pub async fn serve(
     let (result_tx, mut result_rx) = watch::channel(None);
     let bus = relay::RelayBus::spawn_with_mailbox(relay::RelayBus::default(), mailbox::bounded(64));
     let (live_tx, live) = watch::channel(pane::LivePanes::new());
-    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address)?);
+    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address, config)?);
     let (replica_tx, replicas) = watch::channel(state.replica());
     bus.ask(relay::Subscribe::<Arc<Replica>> {
         sink: Box::new(replica_tx),

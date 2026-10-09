@@ -33,6 +33,8 @@ use tokio::{
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
 
+use crate::settings::ServerSettings;
+
 /// The shortest gap between two published screens of one pane.
 pub(crate) const FRAME: Duration = Duration::from_millis(4);
 
@@ -58,8 +60,8 @@ impl PaneRuntime {
     }
 }
 
-/// What to start. `command: None` is the login shell from portable-pty's
-/// `CommandBuilder::new_default_prog`.
+/// What to start. `command: None` is the configured shell, else the login
+/// shell, from portable-pty's `CommandBuilder::new_default_prog`.
 pub(crate) struct Launch {
     pub pane: IdOf<Pane>,
     pub command: Option<Vec<String>>,
@@ -73,16 +75,30 @@ pub(crate) struct Launch {
 pub(crate) struct PaneEnv {
     server_url: String,
     bin: PathBuf,
+    /// Re-read for `[server] shell` on every shell spawn.
+    config: PathBuf,
 }
 
 impl PaneEnv {
-    pub fn new(address: SocketAddr) -> Result<Self> {
+    pub fn new(address: SocketAddr, config: PathBuf) -> Result<Self> {
         let bin = std::env::current_exe()
             .map_err(|error| err!(Io, "cannot resolve the server executable", @external: error))?;
         Ok(Self {
             server_url: format!("http://{address}"),
             bin,
+            config,
         })
+    }
+
+    /// portable-pty starts `SHELL` from the builder as a login shell, so the
+    /// configured shell only needs to be put there. A bad file leaves the
+    /// login shell (FR-008).
+    fn shell(&self, builder: &mut CommandBuilder) {
+        match ServerSettings::load(&self.config) {
+            Ok(ServerSettings { shell: Some(shell) }) => builder.env("SHELL", shell),
+            Ok(ServerSettings { shell: None }) => {}
+            Err(error) => tracing::warn!(%error, "using the login shell"),
+        }
     }
 
     /// Advertises Ship as the terminal, since Ship's emulator is what the
@@ -231,7 +247,11 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     .map_err(|error| err!(Io, "cannot start the terminal", @external: error))?;
 
     let mut builder = match &command {
-        None => CommandBuilder::new_default_prog(),
+        None => {
+            let mut builder = CommandBuilder::new_default_prog();
+            env.shell(&mut builder);
+            builder
+        }
         Some(argv) => CommandBuilder::from_argv(argv.iter().map(Into::into).collect()),
     };
     builder.cwd(&cwd);

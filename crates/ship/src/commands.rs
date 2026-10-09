@@ -1,8 +1,9 @@
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 use serde::Serialize;
 use ship_client::{Client, Outcome, Scope};
 use ship_core::{command::Command, prelude::*};
+use ship_server::ServerSettings;
 
 use tokio::time::{Instant, sleep};
 
@@ -15,6 +16,19 @@ pub async fn action(client: &Client, command: Command) -> Result<()> {
     match client.execute(command, &Scope::Cli).await? {
         Outcome::Closed => Ok(()),
         outcome => print(&outcome),
+    }
+}
+
+/// `ship config check`: loads each part of the file the way its process
+/// does and prints every error on stderr. No warnings.
+pub fn check_config(path: &Path) -> Result<()> {
+    let errors: Vec<AppError> = ServerSettings::load(path).err().into_iter().collect();
+    for error in &errors {
+        eprintln!("{error}");
+    }
+    match errors.is_empty() {
+        true => Ok(()),
+        false => Err(err!(Configuration, "invalid config")),
     }
 }
 

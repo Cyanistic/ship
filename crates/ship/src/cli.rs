@@ -1,5 +1,8 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
-use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL};
+use etcetera::BaseStrategy;
+use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, prelude::*};
 
 #[derive(Parser)]
 #[command(
@@ -17,8 +20,28 @@ pub struct Cli {
         default_value = DEFAULT_SERVER_URL
     )]
     pub server_url: String,
+    /// Config file; defaults to ship/config.toml in the platform config directory
+    #[arg(long, global = true, env = "SHIP_CONFIG", value_name = "FILE")]
+    pub config: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Option<Command>,
+}
+
+impl Cli {
+    /// `--config`, `SHIP_CONFIG`, then etcetera's config directory. Absolute,
+    /// so the background server and relative settings see the same file.
+    pub fn config_path(&self) -> Result<PathBuf> {
+        let path = match &self.config {
+            Some(path) => path.clone(),
+            None => etcetera::choose_base_strategy()
+                .map_err(|error| err!(Configuration, "cannot find the config directory", @external: error))?
+                .config_dir()
+                .join("ship/config.toml"),
+        };
+        std::path::absolute(&path).map_err(
+            |error| err!(Io, "cannot resolve config path {}", path.display(), @external: error),
+        )
+    }
 }
 
 #[derive(Subcommand)]
@@ -27,6 +50,18 @@ pub enum Command {
     Server(ServerArgs),
     #[command(flatten)]
     Action(ship_core::command::Command),
+    /// Check the config file
+    #[command(subcommand)]
+    Config(ConfigCommand),
+}
+
+#[derive(Subcommand)]
+pub enum ConfigCommand {
+    /// Report every error in a config file and exit non-zero if any
+    Check {
+        /// File to check; defaults to the config file in use
+        file: Option<PathBuf>,
+    },
 }
 
 /// Bare `ship server` runs one; stop it with SIGINT, SIGTERM or `ship server stop`.

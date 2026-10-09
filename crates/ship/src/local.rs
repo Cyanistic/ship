@@ -1,4 +1,5 @@
 use std::{
+    path::Path,
     process::{Command, Stdio},
     time::Duration,
 };
@@ -9,7 +10,8 @@ use tokio::time::{Instant, sleep};
 
 /// Reuse the default server, or launch one with the starter tab. True when
 /// this call launched it, even if a concurrent launcher's server won the bind.
-pub async fn default_health(client: &Client) -> Result<bool> {
+/// The launched server reads `config`.
+pub async fn default_health(client: &Client, config: &Path) -> Result<bool> {
     match crate::health(client).await {
         Ok(_) => return Ok(false),
         Err(error) if *error.code() == ErrorCode::ConnectionRefused => {}
@@ -38,6 +40,8 @@ pub async fn default_health(client: &Client) -> Result<bool> {
             "--starter",
             "--background-child",
         ])
+        .arg("--config")
+        .arg(config)
         .stdin(Stdio::null())
         .stdout(Stdio::from(file))
         .stderr(Stdio::from(stderr))
