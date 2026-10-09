@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Let users organize server-owned work into sessions, recursive tabs and panes through explicit CLI commands.
+Let users organize server-owned work into top-level tabs, recursive tabs and panes through explicit CLI commands.
 
 ## Requirements
 

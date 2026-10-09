@@ -11,7 +11,7 @@
 </div>
 
 > [!WARNING]
-> **Ship is a work in progress.** There are no releases yet, and it can't host a terminal today. The [Features](#features) section describes where Ship is headed. [Status](#status) covers what works right now.
+> **Ship is a work in progress.** There are no releases yet, and much of what the [Features](#features) section describes isn't built yet. [Status](#status) covers what works right now.
 
 ## Overview
 
@@ -65,7 +65,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and remove them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Panes are placeholders for now: there's no terminal inside them yet. Next up is giving them real PTYs, so a pane runs an actual shell, editor or agent that the server keeps alive while clients come and go.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Split layouts, agent status and restoring after a restart are still to come.
 
 ## Installation
 

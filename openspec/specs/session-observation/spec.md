@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Let independently running full-screen clients attach to a session, see its live state and pane screens, and keep their own selections without affecting each other.
+Let independently running full-screen clients open the whole server, see its live state and pane screens, and keep their own selections without affecting each other.
 
 ## Requirements
 
