@@ -35,6 +35,7 @@ use self::{
 use crate::{
     Client, KeyScope, Outcome, Scope,
     keymap::{Action, ClientAction, ClientPane, ClientTab, ConfigAction, Keymap, Sidebar},
+    watch,
 };
 
 const FIRST_BACKOFF: Duration = Duration::from_millis(250);
@@ -43,6 +44,8 @@ const MAX_BACKOFF: Duration = Duration::from_secs(5);
 const FRAME: Duration = Duration::from_millis(16);
 
 type Events = Pin<Box<dyn Stream<Item = Result<SseEvent>>>>;
+/// One item per save of the config file.
+type Saves = Pin<Box<dyn Stream<Item = ()>>>;
 /// A request the loop awaits alongside everything else.
 type Pending<'a, T> = Option<Pin<Box<dyn Future<Output = Result<T>> + 'a>>>;
 
@@ -65,7 +68,9 @@ enum Exit {
 /// launched the server: then the attach asks for the first tab's pane. On
 /// every `Attached` it starts the input POST for that attachment. Keys go
 /// through the keymap loaded from `config`, or the defaults with the error on
-/// the status line. Bound keys queue their actions, which run one at a time.
+/// the status line, and reloaded when the file is saved; a bad save keeps the
+/// running keymap and shows the error. Bound keys queue their actions, which
+/// run one at a time.
 /// Navigation, created tabs and panes, and resizes mark the view dirty, and
 /// the frame tick sends at most one view per frame, latest wins. The screen
 /// follows the replica, not the keys. A cut connection keeps the last screen,
@@ -114,6 +119,13 @@ async fn drive(
         Err(errors) => (Keymap::defaults(), Some(summary(&errors))),
     };
     let mut keys = Keys::new(keymap);
+    let mut saves: Option<Saves> = match watch::changes(config) {
+        Ok(saves) => Some(Box::pin(saves)),
+        Err(error) => {
+            message = message.or(Some(error.to_string()));
+            None
+        }
+    };
     // Each bound key's actions still to run, oldest first. A failure drops
     // the rest of its key's actions.
     let mut queued: VecDeque<VecDeque<Action>> = VecDeque::new();
@@ -195,6 +207,13 @@ async fn drive(
                         message = Some(error.to_string());
                         queued.pop_front();
                     }
+                }
+                true
+            }
+            save = next(&mut saves) => {
+                match save {
+                    Some(()) => message = reload(&mut keys, config).err().map(|error| error.to_string()),
+                    None => saves = None,
                 }
                 true
             }
@@ -318,13 +337,7 @@ async fn drive(
                         }
                     }
                     ClientAction::Detach {} => return Ok(Exit::Detached),
-                    ClientAction::Config(ConfigAction::Reload {}) => match Keymap::load(config) {
-                        Ok(keymap) => {
-                            keys.replace(keymap);
-                            Ok(())
-                        }
-                        Err(errors) => Err(err!(Configuration, "{}", summary(&errors))),
-                    },
+                    ClientAction::Config(ConfigAction::Reload {}) => reload(&mut keys, config),
                 },
             };
             if let Err(error) = done {
@@ -355,6 +368,14 @@ fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
         mode: keys.shown_mode(),
         message,
     }
+}
+
+/// Loads `config` into `keys`. A bad file keeps the running keymap.
+fn reload(keys: &mut Keys, config: &Path) -> Result<()> {
+    let keymap =
+        Keymap::load(config).map_err(|errors| err!(Configuration, "{}", summary(&errors)))?;
+    keys.replace(keymap);
+    Ok(())
 }
 
 /// The first error of a keymap that failed to load, and how many more.

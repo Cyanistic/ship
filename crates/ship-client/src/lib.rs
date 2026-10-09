@@ -5,6 +5,7 @@ mod api;
 mod execute;
 pub mod keymap;
 pub mod ui;
+mod watch;
 
 use std::{error::Error, io, time::Duration};
 

@@ -62,8 +62,8 @@ Every slice runs workflows against a foreground `ship server --port <p>` with `-
 
 ## 4. Reload on save: an edited file to new keys in a running client
 
-- [ ] 4.1 Add `notify-debouncer-mini` to `ship-client` and `watch.rs` with `changes(path)`, which watches the file's directory and, for a symlink, its target's directory too. Wire it into `drive` as a `select!` arm, and make `client.config.reload` take the same path, keeping the running keymap and showing the error on failure. Verify the workspace builds.
-- [ ] 4.2 Verify slice 4 end to end, recording evidence:
+- [x] 4.1 Add `notify-debouncer-mini` to `ship-client` and `watch.rs` with `changes(path)`, which watches the file's directory and, for a symlink, its target's directory too. Wire it into `drive` as a `select!` arm, and make `client.config.reload` take the same path, keeping the running keymap and showing the error on failure. Verify the workspace builds.
+- [x] 4.2 Verify slice 4 end to end, recording evidence:
   - With a client attached, adding `"alt-y" = { server.tab.create = {} }` and saving makes `alt-y` work while `alt-n` still does.
   - The same works with vim's rename-save (`:set backupcopy=no`) and with the config path a symlink into another directory.
   - A broken save keeps the old keys and shows the error.

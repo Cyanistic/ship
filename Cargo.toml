@@ -26,6 +26,7 @@ futures-util = "0.3"
 indexmap = { version = "2", features = ["serde"] }
 kameo = "0.22"
 nix = { version = "0.31", features = ["process", "signal"] }
+notify-debouncer-mini = "0.7"
 portable-pty = "=0.9.0"
 ratatui = "0.30"
 proc-macro2 = "1"

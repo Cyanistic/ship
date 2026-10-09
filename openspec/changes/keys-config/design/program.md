@@ -798,3 +798,31 @@ Evidence, with a disposable probe binary and a Python harness (pyte in a pty, on
 - A binding and the matching CLI command gave the same tab shape in the same position.
 - `rg 'C-b' crates` found nothing. Every test server was stopped afterward.
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed.
+
+### Slice 4: reload on save (2026-10-09, macOS)
+
+All slice 4 checks passed on macOS. Linux and Windows are unverified. No locked paper reopened. Implementation Rust went from 6,281 to 6,366 lines (+85, against the estimate of about 50 for watching), with tests at zero. `watch.rs` is 63 of those; the rest is the `select!` arm, the watcher's setup and a shared `reload` in `ui/mod.rs`.
+
+Surprise:
+
+- **vim doesn't rename-save under `/tmp`.** Its default `backupskip` covers `/tmp/*` and `$TMPDIR/*`, and with no backup to make it writes the file in place, even with `backupcopy=no`. The scratchpad lives under `/private/tmp`, so the first vim run kept the inode and tested nothing. With `backupskip=` cleared, each vim save changed the inode. This is a test-setup trap, not a Ship behavior.
+
+Small departures from the skeleton, none changing behavior the papers specify:
+
+- **A config folder that doesn't exist isn't watched, and that isn't an error.** With no config folder, which is the default for anyone without a config, the watcher has nothing to watch and never yields, and the status line stays clear. If the folder is created later, the client won't notice saves until it restarts, though `client.config.reload` still works. Any other watch failure goes on the status line, after a keymap error if there is one. Cyan should confirm this choice.
+- **A successful save clears the status line message**, so fixing a broken file removes its error. `client.config.reload` leaves the message alone, as before, since the key press already cleared it.
+- **Events match on file name across the watched folders.** A file in the link's folder with the target's name, or the other way round, also triggers a reload. A spurious reload costs one file read and is otherwise harmless.
+- **The debounce is 100 ms.**
+- **The symlink is resolved once, at startup.** If the link is repointed into a third folder, saves there should go unnoticed until restart. Not exercised.
+
+Evidence, from a Python harness (pyte in a pty, one foreground server per scenario, `--config` on server and client) in the scratchpad:
+
+- In-place write: before the save `alt-y` did nothing. After adding `"alt-y" = { server.tab.create = {} }`, `alt-y` made an empty tab and `alt-n` still made a tab with a shell.
+- Broken save: the status line showed `<file>: TOML parse error at line 10, column 6 …`, and `alt-y` still made a tab with the old keys. A key bound to `client.config.reload`, pressed on the still-broken file, put the same error back on the status line.
+- Removing the active mode: `alt-p` entered the sticky `panes` mode (`[panes]` shown, `x` swallowed). Saving a file without `panes` dropped the indicator, and `alt-y` then worked, so the client was back in normal.
+- vim rename-save (`set backupcopy=no writebackup backupskip=`): the inode changed (86318731 to 86318753) and `alt-y` worked afterward.
+- Symlink: `links/config.toml` pointed to `dotfiles/ship.toml`, and vim rename-saved the target. The inode changed, `alt-y` worked afterward, and the link stayed a link. A second vim save then added `alt-u`, which worked, so the watch survives a rename.
+- Writing `other.toml` in both folders didn't reload: with the file broken and its message cleared by a key, the message stayed clear until the config itself was touched again.
+- With `--config` in a folder that doesn't exist, the client started with an empty status line and the default `alt-n` worked.
+- Every test server was stopped afterward, and no `ship` processes remained.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed. No route or protocol type changed, so the OpenAPI consumer wasn't rerun.

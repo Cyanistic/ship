@@ -14,6 +14,7 @@ crossterm = { workspace = true, features = ["bracketed-paste", "event-stream"] }
 figment.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
+notify-debouncer-mini.workspace = true
 ratatui.workspace = true
 reqwest.workspace = true
 serde.workspace = true
