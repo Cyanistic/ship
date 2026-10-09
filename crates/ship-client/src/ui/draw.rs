@@ -10,9 +10,9 @@ use std::path::Path;
 
 use ship_core::{
     id::IdOf,
-    model::{NodeId, Pane, PaneStatus, Tab},
+    model::{Pane, PaneStatus, Tab},
     screen::{Attr, Cell, Color, Screen},
-    tree::{self, Sessions},
+    tree::{self, Tabs},
 };
 
 use super::observer::{Observer, Selected};
@@ -23,7 +23,7 @@ const FILLER: &str = "·";
 
 /// The selected pane's screen at its own size in the top-left corner, the
 /// filler pattern over the rest, and the status line on the last row. With
-/// no pane selected, a hint for creating one instead of the screen.
+/// no pane selected, a hint instead of the screen.
 pub(super) fn draw(frame: &mut Frame, observer: &Observer) {
     let [main, status] =
         Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(frame.area());
@@ -51,7 +51,7 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer) {
             }
         }
         None => frame.render_widget(
-            Paragraph::new(hint(selected.as_ref()))
+            Paragraph::new(hint(observer, selected.as_ref()))
                 .centered()
                 .wrap(Wrap { trim: true }),
             Rect {
@@ -67,30 +67,28 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer) {
     );
 }
 
-/// `no pane: ship pane create <tab-id>`, or the tab to create first.
-fn hint(selected: Option<&Selected>) -> String {
-    let Some(selected) = selected else {
+/// "connecting" while the observer has no record; with nothing selected,
+/// `3 tabs · C-b ) to open one` or `no tabs · ship tab create`; with a tab
+/// and no pane, `no pane: ship pane create <tab-id>`.
+fn hint(observer: &Observer, selected: Option<&Selected>) -> String {
+    let (Some(replica), Some(_)) = (&observer.replica, observer.record()) else {
         return "connecting".into();
     };
-    match selected
-        .tab
-        .or_else(|| selected.session.tabs.values().next())
-    {
-        Some(tab) => format!("no pane: ship pane create {}", tab.id),
-        None => format!("no tab: ship tab create {}", selected.session.name),
+    match (selected, replica.tabs.len()) {
+        (Some(selected), _) => format!("no pane: ship pane create {}", selected.tab.id),
+        (None, 0) => "no tabs · ship tab create".into(),
+        (None, 1) => "1 tab · C-b ) to open one".into(),
+        (None, count) => format!("{count} tabs · C-b ) to open one"),
     }
 }
 
-/// `session › tab › pane` labels as far as the selection goes, then the
-/// pane's exit status and the connection.
+/// `tab › pane` labels as far as the selection goes, then the pane's exit
+/// status and the connection.
 fn status_line(observer: &Observer, selected: Option<&Selected>) -> String {
     let mut line = String::from(" ");
     if let (Some(selected), Some(replica)) = (selected, &observer.replica) {
-        line.push_str(&selected.session.name.to_string());
-        if let Some(tab) = selected.tab {
-            line.push_str(" › ");
-            line.push_str(&tab_label(tab, position(&replica.sessions, tab.id)));
-        }
+        let tab = selected.tab;
+        line.push_str(&tab_label(tab, position(&replica.tabs, tab.id)));
         if let Some(pane) = selected.pane {
             line.push_str(" › ");
             line.push_str(pane_label(pane));
@@ -130,18 +128,9 @@ pub(super) fn tab_label(tab: &Tab, position: usize) -> String {
 }
 
 /// The tab's 0-based index among its siblings.
-fn position(sessions: &Sessions, tab: IdOf<Tab>) -> usize {
-    let siblings = match tree::path(sessions, NodeId::Tab(tab)).as_deref() {
-        Some([.., NodeId::Session(session), _]) => {
-            sessions.get(session).map(|session| &session.tabs)
-        }
-        Some([.., NodeId::Tab(parent), _]) => {
-            tree::tab(sessions, *parent).ok().map(|parent| &parent.tabs)
-        }
-        _ => None,
-    };
-    siblings
-        .and_then(|tabs| tabs.get_index_of(&tab))
+fn position(tabs: &Tabs, tab: IdOf<Tab>) -> usize {
+    tree::siblings(tabs, tab)
+        .and_then(|siblings| siblings.get_index_of(&tab))
         .unwrap_or_default()
 }
 

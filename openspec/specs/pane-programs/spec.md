@@ -15,7 +15,7 @@ Every pane SHALL run exactly one program in its own terminal, started when the p
 
 #### Scenario: Program cannot start
 - **WHEN** a user runs `ship pane create <tab> -- definitely-not-a-command`
-- **THEN** the command fails with a message saying why, and inspecting the session shows the same output as before the attempt
+- **THEN** the command fails with a message saying why, and `ship tab list` shows the same output as before the attempt
 
 ### Requirement: Program and starting directory
 `ship pane create <tab>` SHALL start the user's login shell by default, in the CLI's current directory. `--cwd DIR` SHALL set the starting directory, and SHALL fail creation without changing anything when `DIR` is not an existing directory. `-- COMMAND ARGS...` SHALL run that command instead of the shell. `--name NAME` SHALL be optional.
@@ -60,8 +60,8 @@ Detaching, closing a client's terminal window or losing a client's connection SH
 - **WHEN** a pane runs a counting loop, its only client detaches, and a client attaches again later
 - **THEN** the loop kept running and the client shows its current output
 
-### Requirement: Ending programs
-Removing a pane, removing a tab or session containing it, or stopping the server SHALL end the pane's program and every process it started in its terminal. They SHALL get about two seconds to exit after hangup before being forced. On Linux and macOS no such process SHALL remain running or unreaped, except two gaps the architecture accepts: a process that ignores hangup in its own process group, and a pane removed under two seconds before server shutdown.
+### Requirement: Ending pane programs
+Removing a pane, removing a tab containing it, or stopping the server SHALL end the pane's program and every process it started in its terminal. They SHALL get about two seconds to exit after hangup before being forced. On Linux and macOS no such process SHALL remain running or unreaped, except two gaps the architecture accepts: a process that ignores hangup in its own process group, and a pane removed under two seconds before server shutdown.
 
 #### Scenario: Remove a pane with a background job
 - **WHEN** a pane's shell has started `sleep 1000 &` and the user runs `ship pane rm` on the pane
@@ -71,8 +71,8 @@ Removing a pane, removing a tab or session containing it, or stopping the server
 - **WHEN** a pane runs `sh -c 'trap "" HUP; sleep 1000'` and the pane is removed
 - **THEN** the program is killed after the grace period and no process remains
 
-#### Scenario: Remove a tab or session
-- **WHEN** a user removes a tab or a session containing running panes
+#### Scenario: Remove a tab
+- **WHEN** a user removes a top-level or nested tab containing running panes, directly or in its descendants
 - **THEN** every program in those panes ends the same way
 
 #### Scenario: Stop the server

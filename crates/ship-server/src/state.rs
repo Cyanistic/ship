@@ -12,8 +12,8 @@ use ship_core::{
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, Create, CreateSession, MoveTab, PaneInput, Replica, ViewInput,
-        ViewingRecord,
+        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, PaneSpec, Replica,
+        ViewInput, ViewingRecord,
     },
     screen::Size,
 };
@@ -29,7 +29,7 @@ use crate::pane::{
 
 pub(crate) mod tree;
 
-use tree::Sessions;
+use tree::Tabs;
 
 pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
 
@@ -40,9 +40,9 @@ pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
 pub struct ServerState {
     incarnation: Uuid,
     revision: u64,
-    sessions: Sessions,
+    tabs: Tabs,
     viewers: Viewers,
-    /// Exactly the panes in `sessions` once each `commit` returns.
+    /// Exactly the panes in `tabs` once each `commit` returns.
     runtimes: HashMap<IdOf<Pane>, PaneRuntime>,
     /// The runtimes' handles, written directly rather than through the bus,
     /// so streams find every pane of a replica they hold.
@@ -60,7 +60,7 @@ impl ServerState {
         Self {
             incarnation: Uuid::now_v7(),
             revision: 0,
-            sessions: Sessions::new(),
+            tabs: Tabs::new(),
             viewers: Viewers::new(),
             runtimes: HashMap::new(),
             live,
@@ -69,11 +69,10 @@ impl ServerState {
         }
     }
 
-    /// Clone `sessions` and `viewers`, run `edit` on the clones, repair every
-    /// viewing record (deleting those whose session is gone), swap the clones
-    /// in, bump `revision` and publish. An `Err` from `edit` discards the clones,
-    /// leaving state unchanged. Cloning copies only `Arc`s; `Arc::make_mut`
-    /// copies the sessions an edit touches. A publish failure after the swap
+    /// Clone `tabs` and `viewers`, run `edit` on the clones, repair every
+    /// viewing record, swap the clones in, bump `revision` and publish. An
+    /// `Err` from `edit` discards the clones, leaving state unchanged. Cloning
+    /// copies only `Arc`s; `Arc::make_mut` copies the tabs an edit touches. A publish failure after the swap
     /// returns `Unavailable`; the edit stays committed. After publishing, each
     /// viewed tab's panes are sent its size.
     ///
@@ -82,11 +81,11 @@ impl ServerState {
     /// a runtime started for an edit that failed.
     async fn commit<R>(
         &mut self,
-        edit: impl FnOnce(&mut Sessions, &mut Viewers) -> Result<R>,
+        edit: impl FnOnce(&mut Tabs, &mut Viewers) -> Result<R>,
     ) -> Result<R> {
-        let mut sessions = self.sessions.clone();
+        let mut tabs = self.tabs.clone();
         let mut viewers = self.viewers.clone();
-        let result = edit(&mut sessions, &mut viewers);
+        let result = edit(&mut tabs, &mut viewers);
         let result = match result {
             Ok(result) => result,
             Err(error) => {
@@ -96,11 +95,9 @@ impl ServerState {
         };
         self.viewers = viewers
             .into_iter()
-            .filter_map(|(attachment, record)| {
-                Self::repair(&self.sessions, &sessions, record).map(|record| (attachment, record))
-            })
+            .map(|(attachment, record)| (attachment, Self::repair(&self.tabs, &tabs, record)))
             .collect();
-        self.sessions = sessions;
+        self.tabs = tabs;
         self.retain_runtimes();
         self.revision += 1;
         tracing::debug!(revision = self.revision, "publishing replica");
@@ -112,50 +109,45 @@ impl ServerState {
         Ok(result)
     }
 
-    /// Keep `record.selection` if it is still inside `record.session` in `new`.
-    /// A removed pane goes to the next pane of its tab, else the previous one,
-    /// while the tab stays in the session (FR-017).
-    /// Otherwise walk its ancestors in `old`, nearest first, and pick the first
-    /// one still inside that session in `new`. `None` when the session is gone,
-    /// which deletes the record and ends its stream.
-    fn repair(old: &Sessions, new: &Sessions, record: ViewingRecord) -> Option<ViewingRecord> {
-        let session = record.session;
-        if !new.contains_key(&session) {
-            return None;
-        }
-        if inside(new, session, record.selection) {
-            return Some(record);
+    /// Keep `record.selection` if it is still in `new`. A removed pane goes
+    /// to the next pane of its tab, else the previous one, while the tab
+    /// stays (FR-017). Otherwise walk its ancestors in `old`, nearest first,
+    /// and pick the first one still in `new`, else nothing.
+    fn repair(old: &Tabs, new: &Tabs, record: ViewingRecord) -> ViewingRecord {
+        let Some(selection) = record.selection else {
+            return record;
+        };
+        if tree::path(new, selection).is_some() {
+            return record;
         }
         // A removed pane whose tab stayed: the pane that took its place, else
         // the new last one, which was its predecessor.
-        if let NodeId::Pane(pane) = record.selection
+        if let NodeId::Pane(pane) = selection
             && let Ok(owner) = tree::pane_owner(old, pane)
-            && inside(new, session, NodeId::Tab(owner))
             && let (Ok(before), Ok(after)) = (tree::tab(old, owner), tree::tab(new, owner))
             && let Some(index) = before.panes.get_index_of(&pane)
             && let Some((&next, _)) = after.panes.get_index(index).or_else(|| after.panes.last())
         {
-            return Some(ViewingRecord {
-                selection: NodeId::Pane(next),
+            return ViewingRecord {
+                selection: Some(NodeId::Pane(next)),
                 ..record
-            });
+            };
         }
-        let selection = tree::path(old, record.selection)
+        let selection = tree::path(old, selection)
             .unwrap_or_default()
             .into_iter()
             .rev()
-            .find(|node| inside(new, session, *node))
-            .unwrap_or(NodeId::Session(session));
-        Some(ViewingRecord {
+            .find(|node| tree::path(new, *node).is_some());
+        ViewingRecord {
             selection,
             ..record
-        })
+        }
     }
 
     /// Drop runtimes whose panes are gone and publish the rest's handles,
     /// before `commit` publishes the replica.
     fn retain_runtimes(&mut self) {
-        let panes: HashSet<_> = tree::pane_ids(&self.sessions).collect();
+        let panes: HashSet<_> = tree::pane_ids(&self.tabs).collect();
         self.runtimes.retain(|pane, _| panes.contains(pane));
         self.live.send_replace(
             self.runtimes
@@ -166,11 +158,15 @@ impl ServerState {
     }
 
     /// Each viewed tab's size: the smallest of its viewers' terminals in each
-    /// dimension, one row less for the status line. Derived, never stored.
+    /// dimension, one row less for the status line. Records without a
+    /// selection are skipped. Derived, never stored.
     fn tab_sizes(&self) -> HashMap<IdOf<Tab>, Size> {
         let mut sizes: HashMap<IdOf<Tab>, Size> = HashMap::new();
         for record in self.viewers.values() {
-            let Some(tab) = tree::viewed_tab(&self.sessions, record.selection) else {
+            let Some(tab) = record
+                .selection
+                .and_then(|selection| tree::viewed_tab(&self.tabs, selection))
+            else {
                 continue;
             };
             let size = Size {
@@ -192,7 +188,7 @@ impl ServerState {
     /// that change nothing. A tab nobody views gets nothing and keeps its size.
     fn apply_sizes(&self) {
         for (tab, size) in self.tab_sizes() {
-            let Ok(tab) = tree::tab(&self.sessions, tab) else {
+            let Ok(tab) = tree::tab(&self.tabs, tab) else {
                 continue;
             };
             for pane in tab.panes.keys() {
@@ -260,44 +256,20 @@ impl ServerState {
         Arc::new(Replica {
             incarnation: self.incarnation,
             revision: self.revision,
-            sessions: self.sessions.clone(),
+            tabs: self.tabs.clone(),
             viewers: self.viewers.clone(),
         })
     }
 }
 
-fn session(sessions: &Sessions, id: IdOf<Session>) -> Result<&Arc<Session>> {
-    sessions
-        .get(&id)
-        .ok_or_else(|| err!(NotFound, "session {} not found", id))
-}
-
-/// Whether `node` exists in `sessions` and belongs to `session`.
-fn inside(sessions: &Sessions, session: IdOf<Session>, node: NodeId) -> bool {
-    tree::path(sessions, node).is_some_and(|path| path[0] == NodeId::Session(session))
-}
-
-/// Session names are unique; `except` is the session being renamed.
-fn ensure_unique(
-    sessions: &Sessions,
-    name: &SessionName,
-    except: Option<IdOf<Session>>,
-) -> Result<()> {
-    if sessions
-        .values()
-        .any(|session| &session.name == name && Some(session.id) != except)
-    {
-        return Err(err!(Conflict, "session name '{}' already exists", name));
-    }
-    Ok(())
-}
-
-pub struct ListSessions;
+/// GET /tabs.
+pub struct ListTabs;
+/// Startup only: one top-level tab holding one pane running `PaneSpec`.
+pub struct Starter(pub PaneSpec);
 pub struct Get<T: Identified>(pub IdOf<T>);
-/// Sessions rename to a `SessionName`; tabs and panes to an `OptionalName`.
-pub struct Rename<T: Identified, N = OptionalName> {
+pub struct Rename<T: Identified> {
     pub id: IdOf<T>,
-    pub name: N,
+    pub name: OptionalName,
 }
 pub struct Remove<T: Identified>(pub IdOf<T>);
 pub struct Move {
@@ -317,120 +289,61 @@ pub struct SetView {
     pub view: ViewInput,
 }
 
-impl Message<ListSessions> for ServerState {
-    type Reply = Result<Sessions>;
+impl Message<ListTabs> for ServerState {
+    type Reply = Result<Tabs>;
 
-    async fn handle(&mut self, _: ListSessions, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
-        Ok(self.sessions.clone())
+    async fn handle(&mut self, _: ListTabs, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
+        Ok(self.tabs.clone())
     }
 }
 
-impl Message<Create<Session>> for ServerState {
-    type Reply = Result<Session>;
+impl Message<Starter> for ServerState {
+    type Reply = Result<Tab>;
 
+    /// The pane starts before the one commit that inserts the tab with it.
     async fn handle(
         &mut self,
-        create: Create<Session>,
+        Starter(spec): Starter,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        let CreateSession { name, starter } = create.input;
-        ensure_unique(&self.sessions, &name, None)?;
-        let mut tabs = IndexMap::new();
-        if let Some(spec) = starter {
-            let tab = Id::new();
-            let pane = self.start_pane(
-                tab,
-                PaneInput {
-                    name: OptionalName::default(),
-                    spec,
-                },
-            )?;
-            let tab = Tab {
-                id: tab,
+        let id = Id::new();
+        let pane = self.start_pane(
+            id,
+            PaneInput {
                 name: OptionalName::default(),
-                tabs: IndexMap::new(),
-                panes: IndexMap::from([(pane.id, pane)]),
-            };
-            tabs.insert(tab.id, tab);
-        }
-        let session = Session {
-            id: Id::new(),
-            name,
-            tabs,
+                spec,
+            },
+        )?;
+        let tab = Tab {
+            id,
+            name: OptionalName::default(),
+            tabs: IndexMap::new(),
+            panes: IndexMap::from([(pane.id, pane)]),
         };
-        self.commit(|sessions, _| {
-            sessions.insert(session.id, Arc::new(session.clone()));
-            Ok(session)
+        self.commit(|tabs, _| {
+            tabs.insert(tab.id, Arc::new(tab.clone()));
+            Ok(tab)
         })
         .await
     }
 }
 
-impl Message<Get<Session>> for ServerState {
-    type Reply = Result<Session>;
-
-    async fn handle(
-        &mut self,
-        Get(id): Get<Session>,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        session(&self.sessions, id).map(|session| (**session).clone())
-    }
-}
-
-impl Message<Rename<Session, SessionName>> for ServerState {
-    type Reply = Result<Session>;
-
-    async fn handle(
-        &mut self,
-        rename: Rename<Session, SessionName>,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        self.commit(|sessions, _| {
-            session(sessions, rename.id)?;
-            ensure_unique(sessions, &rename.name, Some(rename.id))?;
-            let session = Arc::make_mut(&mut sessions[&rename.id]);
-            session.name = rename.name;
-            Ok(session.clone())
-        })
-        .await
-    }
-}
-
-impl Message<Remove<Session>> for ServerState {
-    type Reply = Result<()>;
-
-    async fn handle(
-        &mut self,
-        Remove(id): Remove<Session>,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        self.commit(|sessions, _| {
-            sessions
-                .shift_remove(&id)
-                .map(drop)
-                .ok_or_else(|| err!(NotFound, "session {} not found", id))
-        })
-        .await
-    }
-}
-
-impl Message<Create<Tab>> for ServerState {
+impl Message<CreateTab> for ServerState {
     type Reply = Result<Tab>;
 
     async fn handle(
         &mut self,
-        create: Create<Tab>,
+        create: CreateTab,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| {
+        self.commit(|tabs, _| {
             let tab = Tab {
                 id: Id::new(),
-                name: create.input.name,
+                name: create.name,
                 tabs: IndexMap::new(),
                 panes: IndexMap::new(),
             };
-            tree::children_mut(sessions, create.parent)?.insert(tab.id, tab.clone());
+            tree::children_mut(tabs, create.parent)?.insert(tab.id, Arc::new(tab.clone()));
             Ok(tab)
         })
         .await
@@ -445,7 +358,7 @@ impl Message<Get<Tab>> for ServerState {
         Get(id): Get<Tab>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        tree::tab(&self.sessions, id).cloned()
+        tree::tab(&self.tabs, id).cloned()
     }
 }
 
@@ -457,8 +370,8 @@ impl Message<Rename<Tab>> for ServerState {
         rename: Rename<Tab>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| {
-            let tab = tree::tab_mut(sessions, rename.id)?;
+        self.commit(|tabs, _| {
+            let tab = tree::tab_mut(tabs, rename.id)?;
             tab.name = rename.name;
             Ok(tab.clone())
         })
@@ -474,7 +387,7 @@ impl Message<Remove<Tab>> for ServerState {
         Remove(id): Remove<Tab>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| tree::take_tab(sessions, id).map(drop))
+        self.commit(|tabs, _| tree::take_tab(tabs, id).map(drop))
             .await
     }
 }
@@ -482,47 +395,54 @@ impl Message<Remove<Tab>> for ServerState {
 impl Message<Move> for ServerState {
     type Reply = Result<Tab>;
 
-    /// A placement sibling equal to the moving tab is gone after `take_tab`,
-    /// so it fails as a missing sibling.
+    /// A destination parent or sibling inside the moving tab, or the tab
+    /// itself, is rejected before anything is taken.
     async fn handle(
         &mut self,
         Move { id, to }: Move,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| {
+        self.commit(|tabs, _| {
             let node = NodeId::Tab(id);
-            tree::path(sessions, node).ok_or_else(|| tree::not_found(node))?;
-            let parent = NodeId::from(to.parent);
-            let destination =
-                tree::path(sessions, parent).ok_or_else(|| tree::not_found(parent))?;
-            if destination.contains(&node) {
+            tree::path(tabs, node).ok_or_else(|| tree::not_found(node))?;
+            let target = match to {
+                MoveTab::Parent(None) => None,
+                MoveTab::Parent(Some(tab)) | MoveTab::Before(tab) | MoveTab::After(tab) => {
+                    Some(NodeId::Tab(tab))
+                }
+            };
+            if let Some(target) = target
+                && tree::path(tabs, target)
+                    .ok_or_else(|| tree::not_found(target))?
+                    .contains(&node)
+            {
                 return Err(err!(
                     InvalidStructure,
                     "cannot move tab {} into itself or its own descendant",
                     id
                 ));
             }
-            let tab = tree::take_tab(sessions, id)?;
-            let moved = tab.clone();
-            tree::place(tree::children_mut(sessions, to.parent)?, tab, to.placement)?;
+            let tab = tree::take_tab(tabs, id)?;
+            let moved = Tab::clone(&tab);
+            tree::place(tabs, tab, to)?;
             Ok(moved)
         })
         .await
     }
 }
 
-impl Message<Create<Pane>> for ServerState {
+impl Message<CreatePane> for ServerState {
     type Reply = Result<Pane>;
 
     async fn handle(
         &mut self,
-        create: Create<Pane>,
+        create: CreatePane,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        tree::tab(&self.sessions, create.parent)?;
+        tree::tab(&self.tabs, create.parent)?;
         let pane = self.start_pane(create.parent, create.input)?;
-        self.commit(|sessions, _| {
-            tree::tab_mut(sessions, create.parent)?
+        self.commit(|tabs, _| {
+            tree::tab_mut(tabs, create.parent)?
                 .panes
                 .insert(pane.id, pane.clone());
             Ok(pane)
@@ -539,7 +459,7 @@ impl Message<Get<Pane>> for ServerState {
         Get(id): Get<Pane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        tree::pane(&self.sessions, id).cloned()
+        tree::pane(&self.tabs, id).cloned()
     }
 }
 
@@ -551,9 +471,9 @@ impl Message<Rename<Pane>> for ServerState {
         rename: Rename<Pane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| {
-            let owner = tree::pane_owner(sessions, rename.id)?;
-            let pane = &mut tree::tab_mut(sessions, owner)?.panes[&rename.id];
+        self.commit(|tabs, _| {
+            let owner = tree::pane_owner(tabs, rename.id)?;
+            let pane = &mut tree::tab_mut(tabs, owner)?.panes[&rename.id];
             pane.name = rename.name;
             Ok(pane.clone())
         })
@@ -569,9 +489,9 @@ impl Message<Remove<Pane>> for ServerState {
         Remove(id): Remove<Pane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, _| {
-            let owner = tree::pane_owner(sessions, id)?;
-            tree::tab_mut(sessions, owner)?.panes.shift_remove(&id);
+        self.commit(|tabs, _| {
+            let owner = tree::pane_owner(tabs, id)?;
+            tree::tab_mut(tabs, owner)?.panes.shift_remove(&id);
             Ok(())
         })
         .await
@@ -582,9 +502,8 @@ impl Message<Attach> for ServerState {
     type Reply = Result<Attached>;
 
     /// Commit the new record and return it with the committed replica as the
-    /// stream's seed. A requested selection is kept only if it is inside the
-    /// requested session now; otherwise the record starts at the session's
-    /// first pane, else the session itself.
+    /// stream's seed. A requested selection is kept only if it is in the tree
+    /// now; otherwise nothing is selected.
     async fn handle(
         &mut self,
         Attach {
@@ -593,19 +512,14 @@ impl Message<Attach> for ServerState {
         }: Attach,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|sessions, viewers| {
-            session(sessions, request.session)?;
+        self.commit(|tabs, viewers| {
             if viewers.contains_key(&attachment) {
                 return Err(err!(Conflict, "attachment {} already exists", attachment));
             }
-            let selection = request
-                .selection
-                .filter(|node| inside(sessions, request.session, *node))
-                .or_else(|| tree::first_pane(sessions, request.session).map(NodeId::Pane))
-                .unwrap_or(NodeId::Session(request.session));
             let record = ViewingRecord {
-                session: request.session,
-                selection,
+                selection: request
+                    .selection
+                    .filter(|node| tree::path(tabs, *node).is_some()),
                 size: request.size,
             };
             viewers.insert(attachment, record);
@@ -622,8 +536,7 @@ impl Message<Attach> for ServerState {
 impl Message<Detach> for ServerState {
     type Reply = Result<()>;
 
-    /// Idempotent: an attachment already gone, for example with its session,
-    /// commits nothing.
+    /// Idempotent: an attachment already gone commits nothing.
     async fn handle(
         &mut self,
         Detach(attachment): Detach,
@@ -660,8 +573,8 @@ impl Message<CheckAttachment> for ServerState {
 impl Message<SetView> for ServerState {
     type Reply = Result<ViewingRecord>;
 
-    /// The record becomes the view, in the selection's session, and is
-    /// returned as stored. A selection no longer in the tree, such as a pane
+    /// The record becomes the view and is returned as stored. No selection is
+    /// always accepted; a selection no longer in the tree, such as a pane
     /// removed a moment ago, leaves the record as it was. 404 if the
     /// attachment isn't active.
     async fn handle(
@@ -674,11 +587,12 @@ impl Message<SetView> for ServerState {
             .get(&attachment)
             .cloned()
             .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
-        let Some(session) = tree::session_of(&self.sessions, view.selection) else {
+        if let Some(selection) = view.selection
+            && tree::path(&self.tabs, selection).is_none()
+        {
             return Ok(record);
-        };
+        }
         let record = ViewingRecord {
-            session,
             selection: view.selection,
             size: view.size,
         };
@@ -699,12 +613,12 @@ impl Message<PaneEvent> for ServerState {
         PaneEvent { pane: id, change }: PaneEvent,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        if tree::pane(&self.sessions, id).is_err() {
+        if tree::pane(&self.tabs, id).is_err() {
             return Ok(());
         }
-        self.commit(|sessions, _| {
-            let owner = tree::pane_owner(sessions, id)?;
-            let pane = &mut tree::tab_mut(sessions, owner)?.panes[&id];
+        self.commit(|tabs, _| {
+            let owner = tree::pane_owner(tabs, id)?;
+            let pane = &mut tree::tab_mut(tabs, owner)?.panes[&id];
             match change {
                 PaneChange::Title(title) => pane.title = title,
                 PaneChange::Exited(status) => pane.status = PaneStatus::Exited(status),

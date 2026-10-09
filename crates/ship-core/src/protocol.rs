@@ -1,24 +1,24 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
     PartialSchema, ToSchema,
-    openapi::{AllOfBuilder, Object, ObjectBuilder, Ref, RefOr, schema::Schema},
+    openapi::{Object, ObjectBuilder, Ref, RefOr, schema::Schema},
 };
 use uuid::Uuid;
 
 use crate::{
     id::{Attachment, IdOf},
-    model::{Creatable, NodeId, OptionalName, Pane, Session, SessionName, Tab, TabParent},
+    model::{NodeId, OptionalName, Pane, Tab, tabs_schema},
     screen::{Screen, Size},
-    tree::Sessions,
+    tree::Tabs,
 };
 
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 4;
+pub const PROTOCOL_VERSION: u32 = 5;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// Longest line of the input stream, in bytes without the newline.
@@ -33,47 +33,26 @@ pub struct HealthResponse {
     pub version: String,
 }
 
-/// Create body: `{"parent": "...", "name": "..."}`. Sessions take only the
-/// input, since their parent is the server root.
-#[derive(Serialize, Deserialize)]
-pub struct Create<T: Creatable> {
-    pub parent: IdOf<T::Parent>,
+/// POST /tabs body. No parent means the top level.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateTab {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<IdOf<Tab>>,
+    #[serde(default)]
+    pub name: OptionalName,
+}
+
+/// POST /panes body.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePane {
+    pub parent: IdOf<Tab>,
     #[serde(flatten)]
-    pub input: T::Input,
+    pub input: PaneInput,
 }
 
-/// Hand-written: Utoipa's derive cannot see through `IdOf<T::Parent>` and
-/// `T::Input`. An `allOf` of the parent and the flattened input; routes append
-/// the entity, naming the component e.g. `Create_Tab`.
-impl<T: Creatable> utoipa::__dev::ComposeSchema for Create<T>
-where
-    IdOf<T::Parent>: PartialSchema,
-    T::Input: PartialSchema,
-{
-    fn compose(_: Vec<RefOr<Schema>>) -> RefOr<Schema> {
-        AllOfBuilder::new()
-            .item(
-                ObjectBuilder::new()
-                    .property("parent", <IdOf<T::Parent> as PartialSchema>::schema())
-                    .required("parent"),
-            )
-            .item(<T::Input as PartialSchema>::schema())
-            .into()
-    }
-}
-
-impl<T: Creatable> ToSchema for Create<T>
-where
-    IdOf<T::Parent>: PartialSchema,
-    T::Input: PartialSchema,
-{
-    fn name() -> Cow<'static, str> {
-        "Create".into()
-    }
-}
-
-/// What a pane runs. Pane creation input; also the starter pane on session
-/// creation.
+/// What a pane runs. Pane creation input; also the `--starter` pane.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PaneSpec {
@@ -83,16 +62,6 @@ pub struct PaneSpec {
     /// Absolute directory; absent means the server's home directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
-}
-
-/// POST /sessions body. A starter creates one unnamed tab holding one pane in
-/// the same commit; `ship session create` sends none.
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateSession {
-    pub name: SessionName,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub starter: Option<PaneSpec>,
 }
 
 /// POST /panes input, flattened next to `parent`.
@@ -105,29 +74,25 @@ pub struct PaneInput {
     pub spec: PaneSpec,
 }
 
-/// POST /tabs/{id}/move body. No placement appends.
-#[derive(Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct MoveTab {
-    #[schema(inline)]
-    pub parent: IdOf<TabParent>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub placement: Option<Placement>,
-}
-
-/// A sibling in the destination to insert next to.
+/// POST /tabs/{id}/move body: exactly one destination. `{"parent": "tab:…"}`,
+/// `{"parent": null}` for the top level, `{"before": "tab:…"}` or
+/// `{"after": "tab:…"}`.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum Placement {
+pub enum MoveTab {
+    /// Append under the parent, or to the top level when `null`.
+    Parent(Option<IdOf<Tab>>),
+    /// Insert before the sibling, under its parent.
     Before(IdOf<Tab>),
+    /// Insert after the sibling, under its parent.
     After(IdOf<Tab>),
 }
 
-/// POST /attach body. The selection is what a reconnecting observer last had.
+/// POST /attach body. The selection is what a reconnecting client last had;
+/// kept if it still exists, else nothing is selected.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AttachRequest {
-    pub session: IdOf<Session>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
     /// The client's whole terminal.
@@ -135,27 +100,28 @@ pub struct AttachRequest {
 }
 
 /// PUT /attach/view body: the client's whole view. The server replaces the
-/// attachment's record with it, deriving the session from the selection.
+/// attachment's record with it.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewInput {
-    pub selection: NodeId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<NodeId>,
     /// The client's whole terminal.
     pub size: Size,
 }
 
-/// Server-owned view of one attachment. Always names a session; the record
-/// is deleted when the attachment ends or its session is removed.
+/// Server-owned view of one attachment. Deleted only when the attachment
+/// ends; a removed selection falls back to an ancestor or to nothing.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewingRecord {
-    pub session: IdOf<Session>,
-    pub selection: NodeId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<NodeId>,
     /// The client's whole terminal. Tab sizes derive from it.
     pub size: Size,
 }
 
-/// Complete replicated state. Session `Arc`s are shared with the state actor.
+/// Complete replicated state. Tab `Arc`s are shared with the state actor.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Replica {
@@ -163,19 +129,10 @@ pub struct Replica {
     #[schema(value_type = String, format = "uuid")]
     pub incarnation: Uuid,
     pub revision: u64,
-    #[schema(schema_with = sessions_schema)]
-    pub sessions: Sessions,
+    #[schema(schema_with = tabs_schema)]
+    pub tabs: Tabs,
     #[schema(schema_with = viewers_schema)]
     pub viewers: IndexMap<IdOf<Attachment>, ViewingRecord>,
-}
-
-/// Sessions keyed by ID, in order. Written by hand like `Session::tabs`, so
-/// the map key is described as an ID rather than an inlined entity.
-fn sessions_schema() -> Object {
-    ObjectBuilder::new()
-        .property_names(Some(IdOf::<Session>::schema()))
-        .additional_properties(Some(Ref::from_schema_name("Session")))
-        .build()
 }
 
 /// `Attachment` is a marker with no schema of its own for the derive to pass.
@@ -226,8 +183,6 @@ pub struct Ended {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EndReason {
-    /// The attachment's session was removed. Reattaching would fail.
-    SessionRemoved,
     /// The server is shutting down. Reattaching may succeed later.
     ServerShutdown,
 }

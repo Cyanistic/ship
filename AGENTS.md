@@ -1,8 +1,8 @@
 # Ship
 
-Ship is a compact Rust terminal workspace for coding-agent work. A server owns sessions, recursive tabs and panes; clients attach to observe and drive them, and work keeps running after the UI closes. The goal is to recover the daily-use value of Herdr with far less owned code. Ship is Cyan's side project, and Cyan is its primary user.
+Ship is a compact Rust terminal workspace for coding-agent work. A server owns recursive tabs and panes; clients attach to observe and drive them, and work keeps running after the UI closes. The goal is to recover the daily-use value of Herdr with far less owned code. Ship is Cyan's side project, and Cyan is its primary user.
 
-"Workspace" describes the product only. A workspace entity was considered and dropped; the session is the top-level container.
+"Workspace" describes the product only. A workspace entity was considered and dropped; top-level tabs are the top-level container.
 
 ## Which documents authorize work
 
@@ -12,25 +12,9 @@ Questions those documents mark as open stay open. When work depends on one, brin
 
 ## Compactness
 
-Own the domain, rent the mechanisms. Ship owns session/tab/pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism, and accept a little imprecision (for example in generated schemas) over maintaining a hand-written copy.
+Own the domain, rent the mechanisms. Ship owns tab and pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism, and accept a little imprecision (for example in generated schemas) over maintaining a hand-written copy.
 
-Implementation Rust has a budget of roughly 20,000 lines. It is a conservative ceiling that leaning on dependencies should beat, and it shapes design without overriding working behavior or clear boundaries. Only implementation Rust counts; tests, integrations, scripts and docs fall outside it. Get small by expressing each invariant once through Rust types, derives and macros, not through opaque compression or generic frameworks built for hypothetical features.
-
-Ship starts with zero authored test code. Verify work with builds, formatting, Clippy, real workflows and temporary probes. Propose a permanent test only after encountering flaky behavior, and add it once Cyan agrees on its coverage. When reporting size, give implementation Rust and tests as separate counts.
-
-## Design
-
-Keep one source of truth. Store what can't be derived and compute the rest; duplicated or cached state needs a reason.
-
-Model state as state. When something has a current value, send and store the value, not the sequence of changes that produced it. Reserve event streams for things where each occurrence matters.
-
-Name your shapes. Prefer named types over anonymous inline structure, so data can be reused, documented and passed around.
-
-Earn every layer. A wrapper, abstraction or coordination mechanism should do something the thing beneath it doesn't. If it only forwards or restates, remove it.
-
-Check what's already guaranteed. Before building machinery, find out what the platform and dependencies already handle, verify it, and cover only the gap.
-
-Discard a result you don't need with `.ok()`, not `let _ =`.
+Implementation Rust has a budget of roughly 20,000 lines. It is a conservative ceiling that leaning on dependencies should beat, and it shapes design without overriding working behavior or clear boundaries. Only implementation Rust counts; tests, integrations, scripts and docs fall outside it. When reporting size, give implementation Rust and tests as separate counts.
 
 ## Client/server boundary
 
@@ -46,9 +30,7 @@ Profile before consequential architecture decisions and before anything that loo
 
 ## Platforms
 
-Linux is Cyan's primary environment. Linux and macOS are priority platforms; Windows and others are best effort. Choose cross-platform dependencies, validate Linux and macOS deliberately, and report any check not run on a platform as unverified there. Add platform-specific code when a concrete platform need appears.
-
-Keep platform-specific code behind `cfg`. Use the portable std or dependency API wherever one exists. Confine each Unix-only mechanism to one small function or module gated with `#[cfg(unix)]`, and don't call `nix` or `libc` from otherwise portable code. On other platforms, give the item a plain fallback or leave it missing, so a port fails to compile exactly at that boundary.
+Linux is Cyan's primary environment. Linux and macOS are priority platforms; Windows and others are best effort. Choose cross-platform dependencies, validate Linux and macOS deliberately, and report any check not run on a platform as unverified there. Run checks only on the machine you are working on. Don't start Docker containers, VMs or other environments to reach another platform; report that platform as unverified instead. Add platform-specific code when a concrete platform need appears.
 
 ## Issues and pull requests
 
@@ -59,6 +41,10 @@ Write issues from `.github/ISSUE_TEMPLATE/issue.md` and pull requests from `.git
 Herdr, Zellij and tmux show what established multiplexers do and what users expect. Use them to ground behavior and to check whether an idea is settled practice. They are inspiration, not templates: Ship's structure and command surface are its own.
 
 ## Agent skills
+
+### Writing code
+
+Before writing or changing Rust, read `docs/agents/code.md`: verification without tests, design rules, errors, and platform-specific code.
 
 ### Issue tracker
 

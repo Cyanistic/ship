@@ -4,12 +4,14 @@ use std::{
 };
 
 use ship_client::Client;
-use ship_core::{DEFAULT_PORT, HealthResponse, prelude::*};
+use ship_core::{DEFAULT_PORT, prelude::*};
 use tokio::time::{Instant, sleep};
 
-pub async fn default_health(client: &Client) -> Result<HealthResponse> {
+/// Reuse the default server, or launch one with the starter tab. True when
+/// this call launched it, even if a concurrent launcher's server won the bind.
+pub async fn default_health(client: &Client) -> Result<bool> {
     match crate::health(client).await {
-        Ok(response) => return Ok(response),
+        Ok(_) => return Ok(false),
         Err(error) if *error.code() == ErrorCode::ConnectionRefused => {}
         Err(error) => return Err(error),
     }
@@ -33,6 +35,7 @@ pub async fn default_health(client: &Client) -> Result<HealthResponse> {
             "server",
             "--port",
             &DEFAULT_PORT.to_string(),
+            "--starter",
             "--background-child",
         ])
         .stdin(Stdio::null())
@@ -80,9 +83,9 @@ pub async fn default_health(client: &Client) -> Result<HealthResponse> {
     .await;
 
     let error = match readiness {
-        Ok(response) => {
+        Ok(_) => {
             tracing::info!(pid = child.id(), log = %log.display(), "local server launch ready (a concurrent server may have won)");
-            return Ok(response);
+            return Ok(true);
         }
         Err(error) => error,
     };

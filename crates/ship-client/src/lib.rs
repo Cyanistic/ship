@@ -6,7 +6,7 @@ pub mod ui;
 
 use std::{error::Error, io, time::Duration};
 
-pub use api::{Client, Resource, SessionRef, TabParentRef};
+pub use api::{Client, Resource};
 use futures_util::{Stream, StreamExt};
 use reqwest::{Body, Error as HttpError, Method, RequestBuilder, Response, StatusCode, header};
 use serde::{Serialize, de::DeserializeOwned};

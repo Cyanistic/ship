@@ -1,4 +1,4 @@
-//! `ship attach`: the full-screen client.
+//! The full-screen client, opened by bare `ship`.
 
 mod draw;
 mod keys;
@@ -14,12 +14,11 @@ use std::{
 use crossterm::event::{Event, EventStream};
 use futures_util::{Stream, StreamExt};
 use ship_core::{
-    id::IdOf,
-    model::{NodeId, Session},
+    model::NodeId,
     prelude::*,
     protocol::{AttachRequest, EndReason, Ended, InputFrame, SseEvent, ViewInput},
     screen::Size,
-    tree::{self, Sessions},
+    tree::{self, Tabs},
 };
 use tokio::{sync::mpsc, time::MissedTickBehavior};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -43,30 +42,30 @@ type Pending<'a, T> = Option<Pin<Box<dyn Future<Output = Result<T>> + 'a>>>;
 /// Why the client stopped.
 enum Exit {
     Detached,
-    SessionRemoved,
     ServerStopped,
     Signaled,
 }
 
-/// `ship attach`. Opens the attach stream at the terminal's size, then takes
-/// over the terminal. On every `Attached` it starts the input POST for that
+/// Bare `ship`. Opens the attach stream at the terminal's size, then takes
+/// over the terminal. Nothing is selected unless `open_first` says this `ship`
+/// launched the server: then the attach asks for the pane `C-b )` would pick. On every `Attached` it starts the input POST for that
 /// attachment. Navigation keys and resizes mark the view dirty, and the frame
 /// tick sends at most one view per frame, latest wins. The screen follows the
 /// replica, not the keys. A cut connection keeps the last screen,
 /// drops keys and reconnects with backoff (250 ms doubling to 5 s).
 ///
-/// Returns Ok after detach, `Ended(SessionRemoved)`, `Ended(ServerShutdown)`
-/// or a 404 on reattach, printing why after the terminal is restored. SIGTERM,
-/// SIGHUP and SIGINT restore the terminal and return.
-pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
+/// Returns Ok after detach or `Ended(ServerShutdown)`, printing why after
+/// the terminal is restored. SIGTERM, SIGHUP and SIGINT restore the terminal
+/// and return.
+pub async fn run(client: &Client, open_first: bool) -> Result<()> {
     let signaled = signaled()?;
     let size = terminal_size()?;
-    let request = AttachRequest {
-        session,
-        selection: None,
-        size,
+    let selection = match open_first {
+        true => navigate(&client.tabs().await?, None, &Action::NextTab),
+        false => None,
     };
-    // Fail on an unknown session before taking the terminal.
+    let request = AttachRequest { selection, size };
+    // Fail on an unreachable server before taking the terminal.
     let events = attach_after(client, request.clone(), Duration::ZERO).await?;
     let exit = {
         let mut guard = TerminalGuard::enter()?;
@@ -74,7 +73,6 @@ pub async fn run(client: &Client, session: IdOf<Session>) -> Result<()> {
     }?;
     match exit {
         Exit::Detached => eprintln!("detached"),
-        Exit::SessionRemoved => eprintln!("session removed"),
         Exit::ServerStopped => eprintln!("server stopped"),
         Exit::Signaled => {}
     }
@@ -102,7 +100,7 @@ async fn drive(
     let mut view_dirty = false;
     // Where navigation moved the selection, until a view PUT carries it.
     let mut chosen: Option<NodeId> = None;
-    let mut putting: Pending<NodeId> = None;
+    let mut putting: Pending<Option<NodeId>> = None;
     let mut tick = tokio::time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     redraw(guard, &observer)?;
@@ -111,7 +109,6 @@ async fn drive(
             event = next(&mut events) => match event {
                 Some(Ok(SseEvent::Ended(Ended { reason }))) => {
                     return Ok(match reason {
-                        EndReason::SessionRemoved => Exit::SessionRemoved,
                         EndReason::ServerShutdown => Exit::ServerStopped,
                     });
                 }
@@ -145,7 +142,6 @@ async fn drive(
                     events = Some(stream);
                     false
                 }
-                Err(error) if *error.code() == ErrorCode::NotFound => return Ok(Exit::SessionRemoved),
                 Err(_) => {
                     backoff = (backoff * 2).min(MAX_BACKOFF);
                     request.size = size;
@@ -164,7 +160,7 @@ async fn drive(
                 putting = None;
                 match result {
                     // Moved again since; that view goes out next.
-                    Ok(sent) if chosen != Some(sent) => {}
+                    Ok(sent) if chosen != sent => {}
                     _ => chosen = None,
                 }
                 false
@@ -187,9 +183,9 @@ async fn drive(
                         Action::None => {}
                         action => {
                             if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
-                                let from = chosen.unwrap_or(record.selection);
-                                if let Some(to) = navigate(&replica.sessions, from, &action)
-                                    && to != from
+                                let from = chosen.or(record.selection);
+                                if let Some(to) = navigate(&replica.tabs, from, &action)
+                                    && Some(to) != from
                                 {
                                     chosen = Some(to);
                                     view_dirty = true;
@@ -205,7 +201,7 @@ async fn drive(
             _ = tick.tick(), if view_dirty && putting.is_none() && observer.connected => {
                 view_dirty = false;
                 if let (Some(attachment), Some(record)) = (observer.attachment, observer.record()) {
-                    let view = ViewInput { selection: chosen.unwrap_or(record.selection), size };
+                    let view = ViewInput { selection: chosen.or(record.selection), size };
                     putting = Some(Box::pin(async move {
                         client.set_view(attachment, &view).await.map(|_| view.selection)
                     }));
@@ -232,31 +228,37 @@ fn redraw(guard: &mut TerminalGuard, observer: &Observer) -> Result<()> {
     guard.set_cursor(screen.and_then(|screen| screen.cursor))
 }
 
-/// Where a navigation action moves the selection `from`. Panes cycle within
-/// their tab; from a tab, or from a session through its first tab, they go to
-/// the first or last pane. Sessions cycle in creation order and land on their
-/// first pane, else the session. `None` when there is nowhere to go.
-fn navigate(sessions: &Sessions, from: NodeId, action: &Action) -> Option<NodeId> {
-    let session = tree::session_of(sessions, from)?;
+/// Where an action moves the selection `from`. Top-level tabs cycle in order
+/// and land on the tab's first pane, else the tab; from nothing selected they
+/// go to the first or last. Panes cycle within their tab; from a tab, to its
+/// first or last pane. `None` when there is nowhere to go.
+fn navigate(tabs: &Tabs, from: Option<NodeId>, action: &Action) -> Option<NodeId> {
     match action {
-        Action::NextSession | Action::PrevSession => {
-            let index = sessions.get_index_of(&session)?;
-            let forward = matches!(action, Action::NextSession);
-            let (&next, _) = sessions.get_index(step(index, sessions.len(), forward))?;
-            Some(tree::first_pane(sessions, next).map_or(NodeId::Session(next), NodeId::Pane))
+        Action::NextTab | Action::PrevTab => {
+            let forward = matches!(action, Action::NextTab);
+            let index = match from {
+                Some(node) => {
+                    let Some(&NodeId::Tab(top)) = tree::path(tabs, node)?.first() else {
+                        return None;
+                    };
+                    step(tabs.get_index_of(&top)?, tabs.len(), forward)
+                }
+                None if forward => 0,
+                None => tabs.len().checked_sub(1)?,
+            };
+            let (_, tab) = tabs.get_index(index)?;
+            Some(tree::first_pane(tab).map_or(NodeId::Tab(tab.id), NodeId::Pane))
         }
         Action::NextPane | Action::PrevPane => {
-            let tab = match from {
-                NodeId::Session(_) => sessions.get(&session)?.tabs.values().next()?,
-                node => tree::tab(sessions, tree::viewed_tab(sessions, node)?).ok()?,
-            };
+            let from = from?;
+            let tab = tree::tab(tabs, tree::viewed_tab(tabs, from)?).ok()?;
             let forward = matches!(action, Action::NextPane);
             let index = match from {
                 NodeId::Pane(pane) => {
                     step(tab.panes.get_index_of(&pane)?, tab.panes.len(), forward)
                 }
-                _ if forward => 0,
-                _ => tab.panes.len().checked_sub(1)?,
+                NodeId::Tab(_) if forward => 0,
+                NodeId::Tab(_) => tab.panes.len().checked_sub(1)?,
             };
             let (&pane, _) = tab.panes.get_index(index)?;
             Some(NodeId::Pane(pane))

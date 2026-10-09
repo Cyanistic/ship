@@ -21,22 +21,15 @@ After reconnecting, the client SHALL replace its view with the server's current 
 - **THEN** the client shows the current structure and the pane's current screen without any further action
 
 ### Requirement: Selection after reconnecting
-On reconnecting to its session, a client SHALL keep its previous selection if that entity still belongs to the session, and otherwise SHALL select the session's first pane in tree order, or the session itself when it has no panes. This SHALL hold even when the selected entity moved to another session with its owning tab. Retention SHALL NOT depend on disk persistence. A newly started client SHALL begin at the session's first pane in tree order, or the session itself when it has no panes.
+On reconnecting, a client SHALL keep its previous selection if that tab or pane still exists anywhere on the server, and otherwise SHALL select nothing. Retention SHALL NOT depend on disk persistence. Reconnecting SHALL NOT create a tab.
 
 #### Scenario: Selection still present
-- **WHEN** a client reconnects and its selected pane is still in its session
+- **WHEN** a client reconnects and its selected pane still exists
 - **THEN** the pane remains selected
 
 #### Scenario: Selection removed or moved away
-- **WHEN** a client reconnects after its selected pane was removed, or moved to another session with its tab
-- **THEN** the client selects its session's first pane in tree order, or the session itself when no panes remain
-
-### Requirement: Session removed during an outage
-Reconnection SHALL target the client's session by ID and SHALL never recreate a removed session. If the session no longer exists when the client reconnects, the client SHALL restore the terminal, report that the session was removed and exit with status 0.
-
-#### Scenario: Session removed while disconnected
-- **WHEN** a client's session is removed during an outage and the connection is restored
-- **THEN** the client restores the terminal, reports the removal and exits, and no session with that name is recreated
+- **WHEN** a client reconnects after its selected pane's tab moved to the top level, and another client reconnects after its selected pane's tab was removed
+- **THEN** the first keeps the pane selected, and the second selects nothing and shows the nothing-selected hint
 
 ### Requirement: Keys during an outage
 While disconnected, the client SHALL discard keys and pastes the user produces. They SHALL NOT be delivered after the connection returns.

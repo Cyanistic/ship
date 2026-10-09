@@ -1,77 +1,73 @@
-//! Edits on the nested session tree. Lookups live in `ship_core::tree` and
-//! are re-exported here, so the state actor reaches both through `tree::`.
+//! Edits on the tab tree. Lookups live in `ship_core::tree` and are
+//! re-exported here, so the state actor reaches both through `tree::`.
 
 use std::sync::Arc;
 
 pub(crate) use ship_core::tree::{
-    Sessions, Tabs, first_pane, not_found, pane, pane_ids, pane_owner, path, session_of, tab,
-    viewed_tab,
+    Tabs, not_found, pane, pane_ids, pane_owner, path, tab, viewed_tab,
 };
 use ship_core::{
-    id::{IdOf, UntaggedEither},
-    model::{NodeId, Tab, TabParent},
+    id::IdOf,
+    model::{NodeId, Tab},
     prelude::*,
-    protocol::Placement,
+    protocol::MoveTab,
 };
 
-/// Mutable access through `Arc::make_mut`, copying only the owning session.
-pub(crate) fn tab_mut(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<&mut Tab> {
-    let node = NodeId::Tab(id);
-    let path = path(sessions, node).ok_or_else(|| not_found(node))?;
-    let [NodeId::Session(session), ancestors @ .., _] = path.as_slice() else {
-        unreachable!("a tab path is its session, its ancestors and the tab");
-    };
-    let mut children = &mut Arc::make_mut(&mut sessions[session]).tabs;
-    for ancestor in ancestors {
-        let NodeId::Tab(ancestor) = ancestor else {
-            unreachable!("only the first path entry is a session");
-        };
-        children = &mut children.get_mut(ancestor).expect("path entries exist").tabs;
+/// The map that holds tab `id`, `Arc::make_mut` on each tab on the way down
+/// and no other.
+fn holder_mut(tabs: &mut Tabs, id: IdOf<Tab>) -> Option<&mut Tabs> {
+    if tabs.contains_key(&id) {
+        return Some(tabs);
     }
-    Ok(children.get_mut(&id).expect("path entries exist"))
+    let next = tabs
+        .values()
+        .position(|child| tab(&child.tabs, id).is_ok())?;
+    holder_mut(&mut Arc::make_mut(&mut tabs[next]).tabs, id)
 }
 
-pub(crate) fn children_mut(sessions: &mut Sessions, parent: IdOf<TabParent>) -> Result<&mut Tabs> {
+/// Mutable access through `Arc::make_mut` on each tab along the path, top
+/// level first, copying only those.
+pub(crate) fn tab_mut(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<&mut Tab> {
+    holder_mut(tabs, id)
+        .and_then(|tabs| tabs.get_mut(&id))
+        .map(Arc::make_mut)
+        .ok_or_else(|| not_found(NodeId::Tab(id)))
+}
+
+/// `None` is the top level.
+pub(crate) fn children_mut(tabs: &mut Tabs, parent: Option<IdOf<Tab>>) -> Result<&mut Tabs> {
     match parent {
-        UntaggedEither::Left(session) => sessions
-            .get_mut(&session)
-            .map(|session| &mut Arc::make_mut(session).tabs)
-            .ok_or_else(|| not_found(parent.into())),
-        UntaggedEither::Right(tab) => tab_mut(sessions, tab).map(|tab| &mut tab.tabs),
+        None => Ok(tabs),
+        Some(parent) => tab_mut(tabs, parent).map(|tab| &mut tab.tabs),
     }
 }
 
 /// Detach a tab with its subtree and panes from its parent.
-pub(crate) fn take_tab(sessions: &mut Sessions, id: IdOf<Tab>) -> Result<Tab> {
-    let node = NodeId::Tab(id);
-    let path = path(sessions, node).ok_or_else(|| not_found(node))?;
-    let parent = match path[path.len() - 2] {
-        NodeId::Session(session) => UntaggedEither::Left(session),
-        NodeId::Tab(tab) => UntaggedEither::Right(tab),
-        NodeId::Pane(_) => unreachable!("a pane has no child tabs"),
-    };
-    Ok(children_mut(sessions, parent)?
-        .shift_remove(&id)
-        .expect("a tab is among its parent's children"))
+pub(crate) fn take_tab(tabs: &mut Tabs, id: IdOf<Tab>) -> Result<Arc<Tab>> {
+    holder_mut(tabs, id)
+        .and_then(|tabs| tabs.shift_remove(&id))
+        .ok_or_else(|| not_found(NodeId::Tab(id)))
 }
 
-/// Insert at the placement sibling, or append when `None`.
-pub(crate) fn place(children: &mut Tabs, tab: Tab, placement: Option<Placement>) -> Result<()> {
-    let index = match placement {
-        None => children.len(),
-        Some(Placement::Before(sibling)) => sibling_index(children, sibling)?,
-        Some(Placement::After(sibling)) => sibling_index(children, sibling)? + 1,
+/// Insert at the destination: appended under a parent, or next to a sibling
+/// under the sibling's parent. A missing parent or sibling is 404.
+pub(crate) fn place(tabs: &mut Tabs, tab: Arc<Tab>, to: MoveTab) -> Result<()> {
+    let (children, index) = match to {
+        MoveTab::Parent(parent) => {
+            let children = children_mut(tabs, parent)?;
+            let end = children.len();
+            (children, end)
+        }
+        MoveTab::Before(sibling) | MoveTab::After(sibling) => {
+            let after = usize::from(matches!(to, MoveTab::After(_)));
+            holder_mut(tabs, sibling)
+                .and_then(|children| {
+                    let index = children.get_index_of(&sibling)?;
+                    Some((children, index + after))
+                })
+                .ok_or_else(|| not_found(NodeId::Tab(sibling)))?
+        }
     };
     children.shift_insert(index, tab.id, tab);
     Ok(())
-}
-
-fn sibling_index(children: &Tabs, sibling: IdOf<Tab>) -> Result<usize> {
-    children.get_index_of(&sibling).ok_or_else(|| {
-        err!(
-            InvalidStructure,
-            "tab {} is not a child of the destination",
-            sibling
-        )
-    })
 }

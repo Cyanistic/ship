@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use utoipa::openapi::{
     RefOr, Type,
-    schema::{ObjectBuilder, OneOfBuilder, Schema},
+    schema::{ObjectBuilder, Schema},
 };
 use uuid::Uuid;
 
@@ -110,15 +110,8 @@ impl<T: Prefixed> utoipa::__dev::ComposeSchema for Id<T> {
     }
 }
 
-// The default name is `Id`; Utoipa appends the entity, e.g. `Id_Session`.
+// The default name is `Id`; Utoipa appends the entity, e.g. `Id_Tab`.
 impl<T: Prefixed> utoipa::ToSchema for Id<T> {}
-
-/// Parent of root sessions. Its identity is the unit value.
-pub struct ServerRoot;
-
-impl Identified for ServerRoot {
-    type Id = ();
-}
 
 /// Marker for stream attachments; never instantiated.
 pub enum Attachment {}
@@ -132,60 +125,3 @@ impl Prefixed for Attachment {
 impl Identified for Attachment {
     type Id = Id<Attachment>;
 }
-
-/// Untagged choice of two identified kinds. Strict prefixes make it unambiguous.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum UntaggedEither<A, B> {
-    Left(A),
-    Right(B),
-}
-
-impl<A: Identified, B: Identified> Identified for UntaggedEither<A, B> {
-    type Id = UntaggedEither<IdOf<A>, IdOf<B>>;
-}
-
-/// Tries `A`, then `B`. Lets Clap parse a tab parent argument directly. When
-/// both fail, the error names both attempts.
-impl<A, B> FromStr for UntaggedEither<A, B>
-where
-    A: FromStr<Err = AppError>,
-    B: FromStr<Err = AppError>,
-{
-    type Err = AppError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let left = match value.parse() {
-            Ok(left) => return Ok(Self::Left(left)),
-            Err(error) => error,
-        };
-        value
-            .parse()
-            .map(Self::Right)
-            .map_err(|right: AppError| err!(Validation, "{}; or {}", left, right))
-    }
-}
-
-impl<A: fmt::Display, B: fmt::Display> fmt::Display for UntaggedEither<A, B> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Left(left) => left.fmt(f),
-            Self::Right(right) => right.fmt(f),
-        }
-    }
-}
-
-/// A `oneOf` of the two inner schemas. As with `Id<T>`, the schema derive
-/// passes the entity choice's schema for `IdOf<T>`; it is ignored.
-impl<A: utoipa::PartialSchema, B: utoipa::PartialSchema> utoipa::__dev::ComposeSchema
-    for UntaggedEither<A, B>
-{
-    fn compose(_: Vec<RefOr<Schema>>) -> RefOr<Schema> {
-        OneOfBuilder::new()
-            .item(A::schema())
-            .item(B::schema())
-            .into()
-    }
-}
-
-impl<A: utoipa::PartialSchema, B: utoipa::PartialSchema> utoipa::ToSchema for UntaggedEither<A, B> {}

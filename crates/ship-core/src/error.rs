@@ -25,7 +25,7 @@ pub enum ErrorCode {
     Serialization,
     Unauthorized,
     Io,
-    /// A well-formed request that would break the session/tab/pane structure.
+    /// A well-formed request that would break the tab/pane structure.
     InvalidStructure,
     /// Server machinery, such as the state actor, cannot take the request.
     Unavailable,
