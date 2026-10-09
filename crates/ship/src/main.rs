@@ -89,6 +89,7 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
         Some(Command::Server(args)) => {
             ship_server::serve(
                 ship_server::loopback_addr(args.port)?,
+                args.starter,
                 diagnostics::shutdown()?,
             )
             .await
@@ -102,12 +103,16 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
             commands::pane(&client, command).await
         }
         None => {
-            let client = connect(&cli.server_url, explicit_target).await?;
-            // A full-screen client must not misread another protocol.
-            if explicit_target {
+            let client = client(&cli.server_url)?;
+            // A full-screen client must not misread another protocol. Only a
+            // server this call launched holds a starter tab to open.
+            let open_first = if explicit_target {
                 health(&client).await?;
-            }
-            ship_client::ui::run(&client).await
+                false
+            } else {
+                local::default_health(&client).await?
+            };
+            ship_client::ui::run(&client, open_first).await
         }
     }
 }

@@ -46,8 +46,9 @@ enum Exit {
     Signaled,
 }
 
-/// Bare `ship`. Opens the attach stream at the terminal's size with nothing
-/// selected, then takes over the terminal. On every `Attached` it starts the input POST for that
+/// Bare `ship`. Opens the attach stream at the terminal's size, then takes
+/// over the terminal. Nothing is selected unless `open_first` says this `ship`
+/// launched the server: then the attach asks for the pane `C-b )` would pick. On every `Attached` it starts the input POST for that
 /// attachment. Navigation keys and resizes mark the view dirty, and the frame
 /// tick sends at most one view per frame, latest wins. The screen follows the
 /// replica, not the keys. A cut connection keeps the last screen,
@@ -56,13 +57,14 @@ enum Exit {
 /// Returns Ok after detach or `Ended(ServerShutdown)`, printing why after
 /// the terminal is restored. SIGTERM, SIGHUP and SIGINT restore the terminal
 /// and return.
-pub async fn run(client: &Client) -> Result<()> {
+pub async fn run(client: &Client, open_first: bool) -> Result<()> {
     let signaled = signaled()?;
     let size = terminal_size()?;
-    let request = AttachRequest {
-        selection: None,
-        size,
+    let selection = match open_first {
+        true => navigate(&client.tabs().await?, None, &Action::NextTab),
+        false => None,
     };
+    let request = AttachRequest { selection, size };
     // Fail on an unreachable server before taking the terminal.
     let events = attach_after(client, request.clone(), Duration::ZERO).await?;
     let exit = {

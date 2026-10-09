@@ -21,7 +21,11 @@ use kameo::{
     actor::{ActorRef, Spawn},
     mailbox,
 };
-use ship_core::{prelude::*, protocol::Replica, relay};
+use ship_core::{
+    prelude::*,
+    protocol::{PaneSpec, Replica},
+    relay,
+};
 use tokio::{
     net::TcpListener,
     sync::{mpsc, watch},
@@ -106,8 +110,12 @@ pub fn router(app: AppState) -> Router {
     ).split_for_parts().0.with_state(app)
 }
 
+/// Binds, spawns the actors, creates the starter tab when `starter` is set,
+/// then serves. A failed starter stops the actors and returns its error
+/// before any connection is accepted.
 pub async fn serve(
     address: SocketAddr,
+    starter: bool,
     shutdown: impl Future<Output = Result<()>> + Send + 'static,
 ) -> Result<()> {
     if !address.ip().is_loopback() || address.port() == 0 {
@@ -143,6 +151,12 @@ pub async fn serve(
     .map_err(|error| err!(Internal, "cannot subscribe replica stream", @external: error))?;
     let state = state::ServerState::spawn(state);
     forward_pane_events(&bus, state.clone()).await?;
+    // Bound but not accepting: a health probe waits in the backlog until the
+    // starter tab exists.
+    if starter && let Err(error) = state.ask(state::Starter(PaneSpec::default())).await {
+        stop_actors(&state, &bus).await;
+        return Err(AppError::from(error).context("cannot create the starter tab"));
+    }
     let actors = (state.clone(), bus.clone());
     let stop = CancellationToken::new();
     let app = AppState {

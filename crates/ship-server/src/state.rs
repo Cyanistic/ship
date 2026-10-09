@@ -12,8 +12,8 @@ use ship_core::{
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, Replica, ViewInput,
-        ViewingRecord,
+        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, PaneSpec, Replica,
+        ViewInput, ViewingRecord,
     },
     screen::Size,
 };
@@ -264,6 +264,8 @@ impl ServerState {
 
 /// GET /tabs.
 pub struct ListTabs;
+/// Startup only: one top-level tab holding one pane running `PaneSpec`.
+pub struct Starter(pub PaneSpec);
 pub struct Get<T: Identified>(pub IdOf<T>);
 pub struct Rename<T: Identified> {
     pub id: IdOf<T>,
@@ -292,6 +294,37 @@ impl Message<ListTabs> for ServerState {
 
     async fn handle(&mut self, _: ListTabs, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
         Ok(self.tabs.clone())
+    }
+}
+
+impl Message<Starter> for ServerState {
+    type Reply = Result<Tab>;
+
+    /// The pane starts before the one commit that inserts the tab with it.
+    async fn handle(
+        &mut self,
+        Starter(spec): Starter,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        let id = Id::new();
+        let pane = self.start_pane(
+            id,
+            PaneInput {
+                name: OptionalName::default(),
+                spec,
+            },
+        )?;
+        let tab = Tab {
+            id,
+            name: OptionalName::default(),
+            tabs: IndexMap::new(),
+            panes: IndexMap::from([(pane.id, pane)]),
+        };
+        self.commit(|tabs, _| {
+            tabs.insert(tab.id, Arc::new(tab.clone()));
+            Ok(tab)
+        })
+        .await
     }
 }
 

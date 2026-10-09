@@ -76,6 +76,9 @@ pub struct ServerArgs {
     pub command: Option<ServerCommand>,
     #[arg(long, default_value_t = DEFAULT_PORT, value_parser = clap::value_parser!(u16).range(1..))]
     pub port: u16,
+    /// Start with one tab holding a shell in your home directory
+    #[arg(long)]
+    pub starter: bool,
     #[arg(long, hide = true)]
     pub background_child: bool,
 }

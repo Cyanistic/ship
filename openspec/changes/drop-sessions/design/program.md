@@ -1,6 +1,6 @@
 # Drop sessions program
 
-Status: Locked on 2026-10-08. Cyan approved it in Plannotator with "LTGM", after the review changes recorded below and architecture amendment A1. Written from the locked [product](product.md) and [architecture](architecture.md) papers, including product amendment A-1 and architecture amendment A1, and the crates at 37b8ed6. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Reopened on 2026-10-08 for amendment P1 (see the Deviation log) and locked again the same day; Cyan re-approved it in Plannotator with "LGTM".
+Status: Locked again on 2026-10-08 with architecture amendment A2 (see the Deviation log, slice 3); Cyan re-approved it in Plannotator with "LGTM!". First locked on 2026-10-08. Cyan approved it in Plannotator with "LTGM", after the review changes recorded below and architecture amendment A1. Written from the locked [product](product.md) and [architecture](architecture.md) papers, including product amendment A-1 and architecture amendment A1, and the crates at 37b8ed6. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Reopened on 2026-10-08 for amendment P1 (see the Deviation log) and locked again the same day; Cyan re-approved it in Plannotator with "LGTM".
 
 Decided in chat on 2026-10-08, when Cyan agreed with all three calls ("yeah generic struct doesn't make sense anymore. i think i agree with your calls."):
 
@@ -20,14 +20,14 @@ This change is almost all replacement and deletion. No new file is added to the 
 - **The server's edit helpers** in `state/tree.rs` take `&mut Tabs` and an `Option<IdOf<Tab>>` parent, where `None` means the top level.
 - **Optional selection (decisions 3 and 4).** `ViewingRecord`, `ViewInput` and `AttachRequest` carry `selection: Option<NodeId>` and nothing else besides the size. `ServerState::repair` stops returning `Option`, because a record survives every edit. `attach.rs` loses its session-removed ending.
 - **Startup seeding (decisions 6 and 7)** is one new state message, `Starter`, which takes over what `Create<Session>`'s starter did. `ship_server::serve` sends it between bind and accept, and returns its error.
-- **The opening view (decision 5).** `local::default_health` reports whether it launched a server. The UI loop takes an `open_first` flag. On the first `Attached` it queues the view `C-b )` would pick, through the existing frame-tick PUT, and holds drawing until the record has a selection.
+- **The opening view (~~decision 5~~ A2).** `local::default_health` reports whether it launched a server. ~~The UI loop takes an `open_first` flag. On the first `Attached` it queues the view `C-b )` would pick, through the existing frame-tick PUT, and holds drawing until the record has a selection.~~ `ui::run` takes an `open_first` flag; when set, it reads the tabs and attaches with the selection `C-b )` would pick (A2).
 - **Routes (decision 8).** The five session handlers are deleted and `list_tabs` is added. `PROTOCOL_VERSION` becomes 5.
 - **Docs (decision 9)** are their own slice.
 
 Two choices keep it small:
 
 1. **Named create bodies.** `Create<T>` exists so that one generic shape covers three parent kinds, and it needs about 35 lines of hand-written `ComposeSchema`. With sessions gone, two kinds are left and they disagree about optionality. A serde `default` on a projected `IdOf<T::Parent>` field would need bounds the pane case can't meet. Two derived structs are shorter than the generic plus a workaround, and their schemas come from the derive.
-2. **No new client request for the opening view.** The client marks the view dirty with a chosen selection, exactly as a key press does. The frame tick sends the PUT.
+2. **No new client request for the opening view.** ~~The client marks the view dirty with a chosen selection, exactly as a key press does. The frame tick sends the PUT.~~ The client uses `GET /tabs` and the attach request's existing selection (A2).
 
 Estimated change: implementation Rust shrinks by roughly 350 to 500 lines from today's 5,824 (`git ls-files 'crates/*.rs' | xargs wc -l`). This is an estimate from the deleted declarations; slice 4 reports the measured number. Tests stay at zero.
 
@@ -328,13 +328,12 @@ impl Client {
 
 enum Exit { Detached, ServerStopped, Signaled }        // SessionRemoved removed
 
-/// `open_first`: this `ship` launched the server, so on the first `Attached`
-/// queue the view `C-b )` would pick and draw nothing until the record has a
-/// selection or the PUT fails (slice 3).
+/// `open_first`: this `ship` launched the server, so attach with the
+/// selection `C-b )` would pick from nothing selected (slice 3, A2).
 pub async fn run(client: &Client, open_first: bool) -> Result<()>;
 
 async fn drive(client: &Client, guard: &mut TerminalGuard, request: AttachRequest,
-    events: Events, signaled: impl Future<Output = ()>, open_first: bool) -> Result<Exit>;
+    events: Events, signaled: impl Future<Output = ()>) -> Result<Exit>;   // unchanged by slice 3 (A2)
 
 /// Where an action moves the selection `from`. Top-level tabs cycle in order
 /// and land on the tab's first pane, else the tab; from nothing selected they
@@ -474,8 +473,8 @@ pub async fn server_status(client: &Client) -> Result<()>;  // crate::health, th
 // local.rs
 /// Whether the default server was already running or this call launched one.
 /// `launched` stays true when a concurrent launcher's server won the bind.
-pub struct Local { pub health: HealthResponse, pub launched: bool }
-pub async fn default_health(client: &Client) -> Result<Local>;
+pub struct Local { pub health: HealthResponse, pub launched: bool }   // superseded: see Deviation log, slice 3
+pub async fn default_health(client: &Client) -> Result<Local>;     // now Result<bool>, true when launched
 // spawn args gain "--starter" (slice 3)
 ```
 
@@ -545,7 +544,7 @@ Checks:
 
 ### 3. The starter
 
-Files: `ServerArgs.starter`, `serve(…, starter, …)`, `Starter` in `state.rs`, `local.rs` (`Local`, `--starter`), `main.rs` (`open_first`), and `ui/mod.rs` (`open_first`, the hold on drawing).
+Files: `ServerArgs.starter`, `serve(…, starter, …)`, `Starter` in `state.rs`, `local.rs` (`Local`, `--starter`), `main.rs` (`open_first`), and `ui/mod.rs` (`open_first`, ~~the hold on drawing~~ the attach selection, A2).
 
 Delivers: the A-1 stories.
 
@@ -554,7 +553,7 @@ Checks:
 - Run `ship server` and confirm `ship tab list` prints `{}`. Run `ship server --starter` and confirm it lists one tab with one pane.
 - Remove every tab, then run `ship`. Confirm the hint shows and `ship tab list` reads the same before and after (SC-003 A-1).
 - Start two `ship` processes together on a stopped server. Confirm that one tab exists and both clients select it.
-- Point the login shell at a missing binary (`SHELL=/nonexistent ship server --starter`). Confirm the server exits with the error and bare `ship` reports it with the retained log.
+- ~~Point the login shell at a missing binary (`SHELL=/nonexistent ship server --starter`). Confirm the server exits with the error and bare `ship` reports it with the retained log.~~ Point the home directory at a missing path (`HOME=/nonexistent ship server --starter`). Confirm the server exits with the error and bare `ship` reports it with the retained log. (Amended in slice 3; see the Deviation log.)
 - Judge the auto-start delay by feel against slice 2 (architecture risk "Starter timing").
 
 ### 4. Docs and the size report
@@ -571,6 +570,29 @@ Checks:
 - SC-004: opening, cycling and detaching feel as quick as `ship attach` did in slice 1.
 
 ## Deviation log
+
+### Slice 3 (2026-10-08, complete): the starter
+
+**Architecture amendment A2: the opening view travels in the attach request.** Slice 3 first built decision 5 as written: attach with nothing selected, queue the `C-b )` view through the frame-tick PUT, and hold drawing until the record had a selection, the PUT failed, the server kept nothing, or the connection dropped. That hold was an `opening` flag across three `select!` branches and the redraw gate, and the PUT result grew into a tuple, about 30 lines of one-shot state. In review Cyan asked for something cleaner and approved the alternative ("go for it!"): `ui::run` reads `client.tabs()` when `open_first` is set, takes `navigate(&tabs, None, &Action::NextTab)`, and attaches with that as `AttachRequest.selection`. `drive` is untouched by the slice. If the tab disappears between the read and the attach, the server drops the selection and the hint shows. This reopens the architecture paper (A2) and this paper under the ripple rule.
+
+**`default_health` returns `bool`, not `Local`.** Nothing reads `Local.health`: `connect` drops it and bare `ship` never printed it, so Clippy's `-D warnings` rejects the unused field. The function returns `Result<bool>`, true when this call launched the server, including when a concurrent launcher's server won the bind.
+
+**The broken-starter check uses a missing home, not a missing shell.** portable-pty's `get_shell()` skips a non-executable `$SHELL` and falls back to the account's login shell, so `SHELL=/nonexistent ship server --starter` starts normally with a `/bin/zsh` tab. Cyan ruled that a broken `$SHELL` isn't worth handling ("it's not my problem if you have your env this messed up"), so no code changed. The health-exchange scenario, task 3.3 and the verification step above now use `HOME=/nonexistent`, which fails the starter as decision 7 requires. On macOS that printed `ship: cannot create the starter tab: '/nonexistent' is not an existing absolute directory`, exited 1, and left the port unbound.
+
+**A `connecting` frame precedes the opening view.** `drive` draws once before the first event, as it has since slice 1. The probe saw that frame, then the starter pane, and never the empty-tabs hint. The 0.11 s to the first status line includes launching the server.
+
+**Evidence (macOS, Darwin 25.6.0).** A temporary pyte probe in the session scratchpad, not in the repo, drove the scratch release build in a pty against the default port, after Cyan stopped the protocol-4 server there:
+
+- `ship` run from the repo against a stopped server opened on the starter shell, whose `pwd` printed `/Users/cyan`. It drew no empty-tabs hint, and one tab with one pane remained after `C-b d`.
+- With every tab removed, `ship` showed `no tabs · ship tab create`, and `ship tab list` printed `{}` before and after.
+- Two `ship` processes started together on a stopped server left one tab, and both opened on the same pane.
+- `HOME=/nonexistent ship server --starter` exited 1 with `cannot create the starter tab: '/nonexistent' is not an existing absolute directory`. Bare `ship` with that `HOME` reported `local startup failed (child PID 56270, retained log …/ship-server-nw6iQx.log): launched child exited with exit status: 1 before compatible health`, and the log ends with the same starter error. No server was left running.
+- Launch to health, 7 runs each on a foreground port: median 6 ms without `--starter` and 8 ms with it. The starter adds about 2 ms, well below anything noticeable, so the auto-start delay is unchanged by feel from slice 2.
+- `ship server` and `ship server --starter` on ports 43321 and 43322 listed `{}` and one `/bin/zsh` pane in `/Users/cyan` respectively.
+- `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the debug and release builds pass. The release build went to a scratch target directory so the binary Cyan's server was running stayed in place.
+- Linux and Windows are unverified.
+
+Size: `crates/` changed by +79/−19 lines across 6 files, all implementation Rust. Test lines: 0.
 
 ### P1 (2026-10-08, from slice 1 review): one walk finds and copies a tab's map
 

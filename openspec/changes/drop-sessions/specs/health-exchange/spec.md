@@ -10,8 +10,8 @@
 - **THEN** `ship tab list` prints `{}` for the first and one tab with one pane for the second
 
 #### Scenario: Broken starter
-- **WHEN** a user runs `SHELL=/nonexistent ship server --starter`
-- **THEN** the server exits 1 with an error naming the failed program and never accepts a connection
+- **WHEN** a user runs ~~`SHELL=/nonexistent ship server --starter`~~ `HOME=/nonexistent ship server --starter` (amended in slice 3: portable-pty falls back to the login shell when `$SHELL` is bad)
+- **THEN** the server exits 1 with an error ~~naming the failed program~~ naming what failed and never accepts a connection
 
 ## MODIFIED Requirements
 
