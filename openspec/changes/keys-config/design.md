@@ -7,7 +7,7 @@ This is an assembled index, not a fourth design authority or a copy of the paper
 The papers are attached here:
 
 - [Product](design/product.md): one config file with `[server]` (the shell) and `[client]` (user-defined sticky and one-shot modes), Alt-chord defaults from Herdr, `server.`/`client.` actions where `server.` paths are CLI paths, `close` replacing `rm`, and `--tab`/`--pane` with in-pane defaults. Amendment A-1 nests the modes under `[client]`, and A-2 drops config warnings.
-- [Architecture](design/architecture.md): shape B, where each process owns its part of the file and the binary resolves the path. The command tree lives in `ship-core` with clap behind a feature, one `execute` in `ship-client` serves the CLI and keys, figment loads the file with a crokey provider that canonicalizes chords, and notify watches the config's directory.
+- [Architecture](design/architecture.md): shape B, where each process owns its part of the file and the binary resolves the path. The command tree lives in `ship-core` with clap behind a feature, one `execute` in `ship-client` serves the CLI and keys, figment merges the defaults under the file with each default binding as a list, so a file binding replaces it whole, and the loader resolves chords after the merge, and notify watches the config's directory.
 - [Program](design/program.md): the virtual skeleton, five implementation slices and an empty deviation log.
 
 Decisions from conversation before the product paper are in [notes.md](notes.md). The product paper supersedes it wherever the two differ.

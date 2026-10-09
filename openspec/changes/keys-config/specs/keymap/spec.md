@@ -18,7 +18,7 @@ With no bindings in the file, normal mode SHALL bind `alt-n` (new tab with a she
 - **THEN** the pane shows `^B`
 
 ### Requirement: Server and client actions
-Every binding SHALL name one action under `server.` or `client.`, or be `"none"`. A `server.` action SHALL change shared state and SHALL be the `ship` command at the same path without `server.`, taking the same arguments. A `client.` action SHALL change only that client's view and SHALL be reachable only from keys and the mouse. Any action SHALL be bindable in any mode.
+Every binding SHALL name one action under `server.` or `client.`, a list of such actions, or be `"none"`. A `server.` action SHALL change shared state and SHALL be the `ship` command at the same path without `server.`, taking the same arguments. A `client.` action SHALL change only that client's view and SHALL be reachable only from keys and the mouse. Any action SHALL be bindable in any mode.
 
 #### Scenario: Same action from a key and the CLI
 - **WHEN** a user binds `"alt-y" = { server.tab.close = {} }`, presses it with a tab selected, and on another tab runs `ship tab close --tab <id>`
@@ -27,6 +27,17 @@ Every binding SHALL name one action under `server.` or `client.`, or be `"none"`
 #### Scenario: Resize action in normal mode
 - **WHEN** a user binds a `server.pane.resize` action in normal mode
 - **THEN** the file loads without error
+
+### Requirement: Action lists
+A binding written as a list SHALL run its actions in order, each after the one before has finished. It SHALL stop at the first action that fails, keep what the earlier actions did, and show the error on the status line. An empty list, or `"none"` inside a list, SHALL be an error.
+
+#### Scenario: Tab with two panes
+- **WHEN** the file binds `"alt-m" = [{ server.tab.create.starter = "shell" }, { server.pane.create = {} }]` and the user presses `alt-m`
+- **THEN** a new tab is created with two panes running the shell
+
+#### Scenario: A failure stops the list
+- **WHEN** the file binds `"alt-f" = [{ server.pane.resize.direction = "left" }, { server.tab.create = {} }]` before resize exists, and the user presses `alt-f`
+- **THEN** the status line shows "not available yet" and no tab is created
 
 ### Requirement: Chord spelling
 Chords SHALL be case-insensitive and written as crokey parses them: `"alt-X"` means `alt-x`, Shift is written as `shift-`, and modifier order does not matter. Two spellings of one chord in the same mode SHALL be an error naming both.
@@ -45,6 +56,14 @@ A chord in the file SHALL replace the default action on that chord in that mode,
 #### Scenario: Unbind a default
 - **WHEN** the file binds `"alt-q" = "none"` in normal mode and the user presses `alt-q`
 - **THEN** the client stays attached and the program receives `alt-q`
+
+#### Scenario: Rebind a default
+- **WHEN** the file binds `"alt-n" = { server.tab.create = {} }` and the user presses `alt-n`
+- **THEN** an empty tab is created: the default's `starter` doesn't carry over
+
+#### Scenario: Override under another spelling
+- **WHEN** the file binds `"Alt-N" = { server.tab.close = {} }` in normal mode
+- **THEN** the file loads without error and `alt-n` closes the selected tab
 
 #### Scenario: Clear a mode
 - **WHEN** the file sets `clear_defaults = true` on `resize` and binds only `esc`

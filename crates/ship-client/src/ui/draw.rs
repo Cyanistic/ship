@@ -16,6 +16,15 @@ use ship_core::{
 };
 
 use super::observer::{Observer, Selected};
+use crate::keymap::ModeName;
+
+/// What the status line shows besides the selection.
+pub(super) struct Status<'a> {
+    /// The active mode, outside normal.
+    pub mode: Option<&'a ModeName>,
+    /// The last error, or "not available yet".
+    pub message: Option<&'a str>,
+}
 
 /// Marks the client's area outside the pane, when the tab is sized to a
 /// smaller client.
@@ -24,8 +33,8 @@ const FILLER: &str = "·";
 /// The selected pane's screen at its own size in the top-left corner, the
 /// filler pattern over the rest, and the status line on the last row. With
 /// no pane selected, a hint instead of the screen.
-pub(super) fn draw(frame: &mut Frame, observer: &Observer) {
-    let [main, status] =
+pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
+    let [main, status_area] =
         Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(frame.area());
     let selected = observer.selected();
     match selected.as_ref().and_then(|selected| selected.pane) {
@@ -62,13 +71,13 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer) {
         ),
     }
     frame.render_widget(
-        Line::from(status_line(observer, selected.as_ref())).reversed(),
-        status,
+        Line::from(status_line(observer, selected.as_ref(), status)).reversed(),
+        status_area,
     );
 }
 
 /// "connecting" while the observer has no record; with nothing selected,
-/// `3 tabs · C-b ) to open one` or `no tabs · ship tab create`; with a tab
+/// `3 tabs · alt-right to open one` or `no tabs · ship tab create`; with a tab
 /// and no pane, `no pane: ship pane create <tab-id>`.
 fn hint(observer: &Observer, selected: Option<&Selected>) -> String {
     let (Some(replica), Some(_)) = (&observer.replica, observer.record()) else {
@@ -77,15 +86,19 @@ fn hint(observer: &Observer, selected: Option<&Selected>) -> String {
     match (selected, replica.tabs.len()) {
         (Some(selected), _) => format!("no pane: ship pane create {}", selected.tab.id),
         (None, 0) => "no tabs · ship tab create".into(),
-        (None, 1) => "1 tab · C-b ) to open one".into(),
-        (None, count) => format!("{count} tabs · C-b ) to open one"),
+        (None, 1) => "1 tab · alt-right to open one".into(),
+        (None, count) => format!("{count} tabs · alt-right to open one"),
     }
 }
 
-/// `tab › pane` labels as far as the selection goes, then the pane's exit
-/// status and the connection.
-fn status_line(observer: &Observer, selected: Option<&Selected>) -> String {
+/// The active mode outside normal, `tab › pane` labels as far as the
+/// selection goes, then the pane's exit status, the connection and the last
+/// message.
+fn status_line(observer: &Observer, selected: Option<&Selected>, status: &Status) -> String {
     let mut line = String::from(" ");
+    if let Some(mode) = status.mode {
+        line.push_str(&format!("[{}] ", mode.0));
+    }
     if let (Some(selected), Some(replica)) = (selected, &observer.replica) {
         let tab = selected.tab;
         line.push_str(&tab_label(tab, position(&replica.tabs, tab.id)));
@@ -102,6 +115,10 @@ fn status_line(observer: &Observer, selected: Option<&Selected>) -> String {
     }
     if !observer.connected {
         line.push_str("  disconnected, reconnecting");
+    }
+    if let Some(message) = status.message {
+        line.push_str("  · ");
+        line.push_str(message);
     }
     line
 }

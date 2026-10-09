@@ -1,7 +1,7 @@
 use std::{path::Path, time::Duration};
 
 use serde::Serialize;
-use ship_client::{Client, Outcome, Scope};
+use ship_client::{Client, Outcome, Scope, keymap::Keymap};
 use ship_core::{command::Command, prelude::*};
 use ship_server::ServerSettings;
 
@@ -22,7 +22,8 @@ pub async fn action(client: &Client, command: Command) -> Result<()> {
 /// `ship config check`: loads each part of the file the way its process
 /// does and prints every error on stderr. No warnings.
 pub fn check_config(path: &Path) -> Result<()> {
-    let errors: Vec<AppError> = ServerSettings::load(path).err().into_iter().collect();
+    let mut errors: Vec<AppError> = ServerSettings::load(path).err().into_iter().collect();
+    errors.extend(Keymap::load(path).err().into_iter().flatten());
     for error in &errors {
         eprintln!("{error}");
     }

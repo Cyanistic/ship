@@ -1,6 +1,6 @@
 # Keys and config program
 
-Status: Locked on 2026-10-09. Cyan approved it in chat after two Plannotator rounds ("oh alright. fair enough. alright... i think we're ready for openspec docs??"). The rounds dropped config warnings (product amendment A-2) and confirmed by probe that argument-free client actions are empty struct variants (U-1). Written from the locked [product](product.md) paper (including amendments A-1 and A-2) and the locked [architecture](architecture.md) paper, against the crates at 9a05ab8. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Re-approved in chat after slice 1 with product amendment A-3 ("sounds good! go for it! i don't need to review your edits"): `TabTarget` gains `--pane`, `Scope::Cli` becomes a unit variant, and `commands::action` no longer reads `SHIP_PANE_ID`.
+Status: Locked on 2026-10-09. Re-approved in chat during slice 3 with product amendment A-4 (the `keymap.rs`, `keys.rs` and `ui/mod.rs` skeletons): bindings are lists of actions, the defaults go through a list-wrapping provider in place of the `Chords` provider, and the drive loop queues each key's actions. Cyan asked for the code first and the papers once it worked; see the slice 3 entry in the deviation log. Before that, Cyan approved it in chat after two Plannotator rounds ("oh alright. fair enough. alright... i think we're ready for openspec docs??"). The rounds dropped config warnings (product amendment A-2) and confirmed by probe that argument-free client actions are empty struct variants (U-1). Written from the locked [product](product.md) paper (including amendments A-1 and A-2) and the locked [architecture](architecture.md) paper, against the crates at 9a05ab8. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Re-approved in chat after slice 1 with product amendment A-3 ("sounds good! go for it! i don't need to review your edits"): `TabTarget` gains `--pane`, `Scope::Cli` becomes a unit variant, and `commands::action` no longer reads `SHIP_PANE_ID`.
 
 Needs Cyan's attention:
 
@@ -8,7 +8,7 @@ Needs Cyan's attention:
 - **The configured shell goes in through `SHELL`.** portable-pty's default program reads `SHELL` from the command builder and still starts it as a login shell (`-zsh`), so the server sets `SHELL` on the builder and leaves the rest alone. Configuring the shell doesn't need a code path of its own.
 - **`CreateTab` on the wire changes shape.** `parent` becomes `at`, the same `MoveTab` that move takes, so the body reads `{"at": {"after": "tab:…"}, "starter": "shell"}`. `PROTOCOL_VERSION` goes to 6.
 - **Superseded by A-3:** clap is now the only reader of `SHIP_PANE_ID`, through `--pane` on both targets. The original note follows. **`SHIP_PANE_ID` is read in two places.** clap reads it to fill a missing `--pane`, as the architecture says, and the binary reads it again to build `Scope::Cli`, which the `--tab` default needs. The alternative is a hidden global clap argument, which clashes with `--pane`.
-- **U-1, resolved by probe:** figment rejects `{}` for a unit variant ("invalid type: found map, expected unit"), while the `toml` crate accepts it. Empty struct variants (`Next {}`) and structs with all-default fields both accept `{}` under figment, through the whole value and through one `Value` per binding. So client actions with no arguments are empty struct variants, on purpose (see the comment on `ClientAction`). Figment errors name the key path with a `default.` profile prefix (`default.keys.a.client.tab.next.x`), which `Keymap::load` strips.
+- **U-1, resolved by probe:** figment rejects `{}` for a unit variant ("invalid type: found map, expected unit"), while the `toml` crate accepts it. Empty struct variants (`Next {}`) and structs with all-default fields both accept `{}` under figment, through the whole value and through one `Value` per binding. So client actions with no arguments are empty struct variants, on purpose (see the comment on `ClientAction`). Figment errors name the key path with a `default.` profile prefix (`default.keys.a.client.tab.next.x`), so `Keymap::load` builds the location from figment's key path instead of its message.
 
 ## Rationale
 
@@ -289,27 +289,35 @@ impl ServerSettings {
 //! `[client]` in the config file: modes and their bindings.
 
 use crokey::KeyCombination;
-use figment::{Figment, Provider, providers::{Format, Toml}};
+use figment::{Figment, Provider, providers::{Format, Toml}, value::{Dict, Value}};
 use ship_core::command::{Command, Direction};
 
 const DEFAULTS: &str = include_str!("keymap/defaults.toml");
+/// The defaults' figment source name, which tells their bindings apart from
+/// the file's after the merge.
+const DEFAULTS_NAME: &str = "Ship's default keys";
 
 pub struct Keymap { pub modes: HashMap<ModeName, Mode> }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
 #[serde(transparent)]
 pub struct ModeName(pub String);
-impl ModeName { pub const NORMAL: &str = "normal"; }
+impl ModeName { pub const NORMAL: &str = "normal"; pub fn normal() -> Self; }
 
+/// Only bound chords: `"none"` leaves the chord out.
 pub struct Mode { pub kind: ModeKind, pub keys: HashMap<KeyCombination, Binding> }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ModeKind { #[default] Sticky, Oneshot }
 
+/// One action, or a list run in order that stops at the first failure (A-4).
+#[derive(Clone, Debug)]
+pub struct Binding(pub Vec<Action>);
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
-pub enum Binding { Server(Command), Client(ClientAction), None }
+pub enum Action { Server(Command), Client(ClientAction), None }
 
 /// Actions without arguments are empty struct variants (`Detach {}`), not
 /// unit variants: the config writes them as `{}`, which figment accepts for a
@@ -329,39 +337,56 @@ pub enum ClientTab { Next {}, Prev {}, Select { row: Row }, Expand {}, Collapse 
 pub enum ClientPane { Next {}, Prev {}, Focus { direction: Direction } }
 pub enum Sidebar { Toggle {} }
 pub enum ConfigAction { Reload {} }
-/// 1 to 9.
-pub struct Row(u8);
+/// 1 to 9, through `serde(try_from = "u8")`.
+pub struct Row(pub u8);
 
-/// The file's shape before chords are parsed. The root holds only `server`
-/// (ignored here) and `client`.
+/// The top level, checked once: only `server` (left to the server) and
+/// `client`. Modes and bindings are then read from figment's tree, because
+/// deserializing a `Value` drops the tags that say which source it came from.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Root { #[serde(default)] server: serde::de::IgnoredAny, #[serde(default)] client: RawClient }
+struct Root { #[serde(default)] server: IgnoredAny, #[serde(default)] client: RawClient }
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RawClient { #[serde(default)] modes: BTreeMap<String, RawMode> }
+struct RawClient { #[serde(default)] modes: BTreeMap<String, IgnoredAny> }
+/// Each mode deserializes on its own, so one bad mode doesn't hide the rest.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawMode {
     kind: Option<ModeKind>,
     #[serde(default)] clear_defaults: bool,
-    #[serde(default)] keys: BTreeMap<String, figment::value::Value>,
+    #[serde(default)] keys: BTreeMap<String, IgnoredAny>,
 }
 
-/// Rewrites every key under `client.modes.*.keys` to crokey's canonical
-/// spelling, drops `cleared` modes' keys, and fails on two spellings of one
-/// chord in a mode (FR-010).
-struct Chords<P> { inner: P, cleared: BTreeSet<String> }
-impl<P: Provider> Provider for Chords<P>;
+/// The embedded defaults with every binding wrapped in a one-item list, so
+/// figment's merge replaces a default whole instead of blending a file table
+/// into it (architecture decision 8).
+struct Defaults;
+impl Provider for Defaults;
+
+/// A chord's binding and where it came from, while a mode's keys resolve.
+struct Found { spelling: String, default: bool, binding: Option<Binding> }
 
 impl Keymap {
-    /// Defaults merged under the file. A missing file is the defaults.
-    /// Each binding deserializes on its own, so every error is collected,
-    /// each naming the file and its key path.
-    /// Used at startup, on reload and by `ship config check`, so check
-    /// reports exactly what loading rejects (FR-016, product A-2).
+    /// `Figment::from(Defaults).merge(Toml::file(path))`, then per mode:
+    /// parse each chord with crokey, drop default-tagged bindings under
+    /// `clear_defaults`, let a file chord replace a default on the same parsed
+    /// chord, and report two file spellings of one chord (FR-010). A table is
+    /// one action and a list several, dispatched on the value so figment's
+    /// key path stays in the error. Every error is collected, each as
+    /// `<file>: <key path>: <message>`. Used at startup, on reload and by
+    /// `ship config check`, so check reports exactly what loading rejects.
     pub fn load(path: &Path) -> Result<Self, Vec<AppError>>;
+    /// The defaults alone; panics if they don't load.
     pub fn defaults() -> Self;
+}
+
+impl Binding {
+    /// An empty list, `"none"` inside a list, a `client.mode` naming an
+    /// undefined mode.
+    fn check(&self, modes: &Dict) -> Result<(), String>;
+    /// So a one-shot mode doesn't leave for normal on its own.
+    pub fn enters_mode(&self) -> bool;
 }
 ```
 
@@ -468,13 +493,12 @@ Adds `mod execute;` and `pub use execute::{KeyScope, Outcome, Scope, current_dir
 Rewritten as the mode machine (architecture decision 9). The `C-b` prefix, `is_prefix` and `bound` go away.
 
 ```rust
-pub(super) enum Action {
+pub(super) enum Handled {
     /// A key or paste for the selected pane; dropped while disconnected.
     Frame(InputFrame),
-    /// A bound `server.` action, queued by the loop.
-    Server(Command),
-    /// A bound `client.` action other than `mode`, which `Keys` handles.
-    Client(ClientAction),
+    /// A bound key's actions, which the loop runs in order.
+    Run(Binding),
+    /// An unbound key outside normal, or input with no pane selected.
     None,
 }
 
@@ -486,16 +510,20 @@ pub(super) struct Keys {
 impl Keys {
     pub fn new(keymap: Keymap) -> Self;
     /// `KeyCombination::from(key)`, looked up in the active mode. Unbound:
-    /// a frame in normal, dropped in a sticky mode. A one-shot mode returns
-    /// to normal after any key unless the binding was `client.mode`.
-    pub fn handle(&mut self, event: Event, selected: Option<IdOf<Pane>>) -> Action;
+    /// a frame in normal, dropped in any other mode. A one-shot mode returns
+    /// to normal after any key unless the binding enters a mode itself.
+    pub fn handle(&mut self, event: Event, selected: Option<IdOf<Pane>>) -> Handled;
+    /// `client.mode`, run by the loop in its turn.
+    pub fn enter(&mut self, mode: ModeName);
     /// Swap in a reloaded keymap; an active mode it no longer defines falls
     /// back to normal.
     pub fn replace(&mut self, keymap: Keymap);
+    /// The active mode's name, outside normal.
+    pub fn shown_mode(&self) -> Option<&ModeName>;
 }
 ```
 
-`client.send` turns its `KeyCombination` back into a `KeyEvent` for the frame. Whether crokey provides that conversion gets checked in slice 3. If it doesn't, the code builds the `KeyEvent` from the chord's single code and its modifiers.
+`client.send` turns its `KeyCombination` back into a `KeyEvent` for the frame with crokey's `Into<KeyEvent>` (first code, its modifiers, `Press`).
 
 #### `crates/ship-client/src/ui/mod.rs` (slices 3 and 4)
 
@@ -505,9 +533,9 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
 
 Inside `drive`:
 
-- `Keys::new(Keymap::load(config))`. On `Err`, it runs on `Keymap::defaults()` and puts the first error on the status line (FR-007).
-- `queued: VecDeque<Command>` and `running: Pending<Outcome>`. A key's `Action::Server` is pushed onto the queue, and the slot runs the front with `Scope::Keys(KeyScope { selection, tabs })` taken from the observer. A `Tab` or `Pane` outcome becomes `chosen`, so the next view PUT selects it. A tab with a starter pane selects that pane (FR-021, FR-029). An error goes to the status line.
-- `Action::Client`: `tab.next`/`prev` and `pane.next`/`prev` go through the existing `navigate`. `detach` exits. `config.reload` reloads. `send` becomes a frame. The layout actions (`tab.select`, `tab.expand`, `tab.collapse`, `pane.focus` and `sidebar.toggle`) put "not available yet" on the status line.
+- `Keys::new(Keymap::load(config))`. On `Err`, it runs on `Keymap::defaults()` and puts the first error, and how many more, on the status line (FR-007).
+- `queued: VecDeque<VecDeque<Action>>`, one entry per bound key, and `running: Pending<Option<NodeId>>`. After every event the loop runs queued actions in order until it reaches a `server.` action, which goes in the slot with `Scope::Keys(KeyScope { selection, tabs })` taken from the observer; the actions after it wait for it (A-4). A created tab or pane becomes `chosen`, so the next view PUT selects it, and a tab with a starter pane selects that pane (FR-021, FR-029). A failure, from the server or a client action, goes to the status line and drops the rest of that key's actions.
+- `Action::Client`: `tab.next`/`prev` and `pane.next`/`prev` go through the existing `navigate`. `mode` calls `Keys::enter`. `detach` exits. `config.reload` reloads. `send` becomes a frame for the selected pane, or "no pane selected". The layout actions (`tab.select`, `tab.expand`, `tab.collapse`, `pane.focus` and `sidebar.toggle`) put "not available yet" on the status line.
 - Slice 4: `watch::changes(config)` becomes one more `select!` arm, the same as `config.reload`. A failed reload keeps the running keymap and shows the error.
 - The doc comment loses its `C-b )` reference.
 
@@ -735,3 +763,38 @@ Evidence, against foreground servers with `--server-url` unless noted:
 - `ship server --port <p> --starter --config elsewhere.toml` listed one tab whose pane ran `/bin/sh`.
 - Every test server was stopped afterward, and no test shells remained.
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed. No route or protocol type changed, so the OpenAPI consumer wasn't rerun.
+
+### Slice 3: keymap and modes (2026-10-09, macOS)
+
+Tasks 3.1 to 3.4 passed on macOS, and so did every 3.5 check except two: judging key latency by feel is Cyan's to do, and Linux and Windows are unverified, so 3.5 stays open. The papers reopened under amendment A-4, which Cyan approved in chat (product status line). Implementation Rust went from 5,703 lines at the slice 2 commit to 6,281 (+578), counted as every `.rs` file under `crates`, with tests at zero. The slice 2 entry's 5,707 came from a slightly different count.
+
+Surprises:
+
+- **figment blends a rebound binding into the default it replaces.** It merges two tables key by key and replaces anything else whole. With `alt-n = { server.tab.create = {} }` over the default `{ server.tab.create.starter = "shell" }`, the merged value kept `starter`. A table over a table of a different action came out holding both actions, and an externally tagged enum then deserialized whichever key came first alphabetically, with no error (merge probe in the scratchpad). figment2 0.11.5 merges the same way. A-4 is the fix: the `Defaults` provider wraps each default binding in a one-item list, and figment replaces a list whole. Rejected along the way, as recorded in the architecture paper's decision 8: resolving chords in a provider before the merge, pruning default-tagged values, typed per-layer merging, and a custom merge.
+- **Deserializing a figment `Value` into another `Value` drops the tags.** The first probe deserialized each mode to `BTreeMap<String, Value>`, so every binding read as `Tag::Default`. `clear_defaults` then did nothing, and `"Alt-N"` in the file was reported as a duplicate of the default `alt-n`. `build` now reads bindings from `figment.find_value("client.modes")`, which keeps them, and `Root`/`RawClient`/`RawMode` hold `IgnoredAny` where the tree is read instead.
+- **`serde_with::OneOrMany` gave poor errors, so it isn't used.** It buffers the value and tries one shape, then the other, so a typo inside an action reported only the chord (`client.modes.normal.keys.alt-z`) with a multi-line "data did not match any variant" message. `build` dispatches on the value's shape instead: an array deserializes as `Vec<Action>`, anything else as one `Action`. The same typos now read `…keys.alt-z.server.tab.clse: unknown variant …` and `…keys.alt-z.1.client.mdoe: …`. This departs from Cyan's suggestion in chat; ship-client doesn't depend on `serde_with`.
+- **On macOS, Alt was dropped when a key passed through to a pane.** With `"alt-q" = "none"`, `cat -v` showed `q`, not `^[q`. libghostty-vt's `set_options_from_terminal` (`key.rs:134`) resets `macos_option_as_alt` to false, so Option was treated as a macOS text modifier. This predated slice 3, which only made it visible through `"none"`. Herdr sets it back to true right after reading the terminal's modes (`src/pane/input.rs`, since `a124eed7`), because Alt is already decoded from the host terminal. Cyan asked for the same fix in this commit: `encode_key` in `vendor/ratatui-ghostty/src/input.rs` now sets `OptionAsAlt::True` after the modes. `cat -v` then received `^[q`, and plain and Ctrl keys arrived unchanged. Linux doesn't read this option, but it is unverified there.
+- **A top-level error still stops the load before mode errors.** `[srever]` or `[client.mdoes]` fails `Root` and returns that one error, so mode and binding errors in the same file show up only after it's fixed. Errors inside `[client.modes]` are all collected.
+- **A list's later server action reads the replica, not the earlier action's result.** In `[{ server.tab.create.starter = "shell" }, { server.pane.create = {} }]`, the second action's `KeyScope` takes the selection from `chosen` (set from the first result) but the tabs from the replica. If the server's event for the new tab hadn't reached the replica yet, the second action could miss the tab. It passed every time on loopback.
+
+Small departures from the skeleton, none changing behavior the papers specify:
+
+- **`Keymap::defaults()` panics** if the embedded defaults fail to load, since that's a build defect, not a user error.
+- **A failed load shows the first error and a count**: `<first> (and N more; ship config check)`.
+- **The status line shows `[mode]` before the selection and ` · message` after it**, and the message clears on the next bound key.
+- **`client.send` with nothing selected shows "no pane selected"** and stops the rest of the list, like a failed server action.
+- **`Row(pub u8)` deserializes through `try_from = "u8"`**, accepting 1 to 9.
+- **No `Chords` provider.** Chords resolve after the merge, from the tags (architecture decision 8).
+- **3.2 was verified end to end in a pty, not with a probe calling `Keys::handle`**: the same sequences, through the real client.
+
+Evidence, with a disposable probe binary and a Python harness (pyte in a pty, one foreground server per scenario) in the scratchpad:
+
+- Probe: a rebound `alt-n` loaded as `Create { starter: None }`, `"Alt-N"` in the file replaced the default with no error, `clear_defaults` left `resize` with only the file's `esc`, and `"none"` removed the chord. `"alt-n"` plus `"Alt-N"` in the file, `"ctrl-alt-x"` plus `"alt-ctrl-x"`, an undefined mode, `kind` on `normal`, `[srever]` and a typo'd action each failed with its key path.
+- `ship config check` on a file with a typo'd action, an unknown field, an undefined mode and a duplicate chord printed all four and exited 1. A file with an unentered mode exited 0 with no output.
+- Defaults, each checked against `ship tab list`: `alt-n` made a tab with a shell after the selected tab and selected its pane. `alt-|` and `alt--` added panes, `alt-tab` cycled, `alt-shift-x` closed the pane, `alt-left`/`alt-right` moved between tabs, and `alt-x` closed the tab. `alt-b`, `alt-h` and `alt-1` showed "not available yet", and `alt-r` then `h` showed "pane resize is not available yet". In `[tabs]`, keys were swallowed and `j` moved to the next tab. `alt-shift-x` with only a tab selected showed "no pane selected" and changed nothing. `ctrl-b` reached `cat -v` as `^B`. `alt-q` detached, printing "detached" and exiting 0.
+- User config: a `prefix` on `ctrl-b` with `ctrl-b ctrl-b` sent one `^B`, and with `c` created a tab and returned to normal. `"alt-q" = "none"` stayed attached, and `cat -v` received `^[q`. A sticky `panes` mode showed `[panes]`, swallowed `x`, cycled panes on `n` and left on `esc`. `resize` with `clear_defaults` ignored `h`. The rebound `alt-n` made an empty tab. The `alt-m` list made a tab with two panes, the `alt-f` list failed on resize and created no tab, and the `alt-d` list (mode, then detach) exited 0.
+- One-shot: in `prefix`, an unbound `z` was swallowed and returned to normal, so only the following `y` reached `cat -v`. `prefix` then `p` entered the sticky `panes` mode and stayed there.
+- A broken file at startup ran the defaults and showed the error on the status line. `config.reload` on a broken file kept the old keymap and showed the error. After the file was fixed, the next reload applied the new binding.
+- A binding and the matching CLI command gave the same tab shape in the same position.
+- `rg 'C-b' crates` found nothing. Every test server was stopped afterward.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed.

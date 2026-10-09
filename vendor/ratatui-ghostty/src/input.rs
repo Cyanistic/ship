@@ -149,6 +149,9 @@ pub fn encode_key(
     terminal: &Terminal,
 ) -> Result<Vec<u8>, libghostty_vt::Error> {
     encoder.set_options_from_terminal(terminal);
+    // The line above resets this. Alt was already decoded from the host
+    // terminal, so macOS Option must keep its Alt meaning (ESC prefix).
+    encoder.set_macos_option_as_alt(key::OptionAsAlt::True);
     let key_event = build_key_event(input)?;
     let mut buf = Vec::new();
     encoder.encode_to_vec(&key_event, &mut buf)?;

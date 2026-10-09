@@ -1,6 +1,6 @@
 # Keys and config architecture
 
-Status: Locked on 2026-10-09. Re-approved in chat the same day with product amendment A-3 (decision 3 and the `command` and `execute` boxes): `TabTarget` gains `--pane`, and `Scope::Cli` no longer carries a pane. Cyan approved it in Plannotator with "LGTM". During that review, Cyan decided in chat to move the modes under `[client]` (product amendment A-1), and this paper was edited to match while the review was open. It implements the locked [product paper](product.md), including A-1. Shape B was picked in chat ("B makes the most sense to me"), and it and the decisions below are approved architecture. This paper does not authorize code changes.
+Status: Locked on 2026-10-09. Re-approved in chat during slice 3 with product amendment A-4 (decisions 5, 8, 9 and 10, and the `keymap` box): a binding is one action or a list of them, and the defaults are merged under the file as lists so a file binding replaces a default whole. Implementation showed figment's merge blending a file binding into the default it replaced. Cyan chose lists over a post-merge prune ("kill two birds with one stone?") and asked for the papers to follow once the code worked ("can we try implementing this first, seeing if this actually WORKS, and if it does, go back and update the docs"). Before that, re-approved in chat the same day with product amendment A-3 (decision 3 and the `command` and `execute` boxes): `TabTarget` gains `--pane`, and `Scope::Cli` no longer carries a pane. Cyan approved it in Plannotator with "LGTM". During that review, Cyan decided in chat to move the modes under `[client]` (product amendment A-1), and this paper was edited to match while the review was open. It implements the locked [product paper](product.md), including A-1. Shape B was picked in chat ("B makes the most sense to me"), and it and the decisions below are approved architecture. This paper does not authorize code changes.
 
 ## Summary
 
@@ -53,7 +53,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   bin["ship binary<br/>resolves the path<br/>config check runs both"] --> client & server
-  client["ship-client::keymap<br/>modes, Binding, ClientAction,<br/>crokey provider, watcher"] --> core
+  client["ship-client::keymap<br/>modes, Binding, ClientAction,<br/>defaults provider, watcher"] --> core
   server["ship-server::settings<br/>ServerSettings, read on spawn"] --> core
   core["ship-core::command<br/>command tree, targets"]
 ```
@@ -101,7 +101,7 @@ flowchart TB
   check --> keymap & settings
   ui --> keymap
   watch -->|"file changed"| ui
-  ui -->|"Binding::Server, Scope::Keys"| execute
+  ui -->|"Action::Server, Scope::Keys"| execute
   execute --> api -->|HTTP| server
   command --> protocol
   pane -->|"each shell spawn"| settings
@@ -114,7 +114,7 @@ What each box owns:
 - **`protocol` (ship-core):** stays the wire contract. Commands turn into existing bodies (`CreateTab`, `PaneInput`, `MoveTab`). `CreateTab` gains `starter` and a destination (decisions 6 and 7).
 - **`execute` (ship-client):** takes a `Command` and a `Scope` and calls `api.rs`. `Scope::Cli` carries nothing, because clap has already filled `--pane` from `SHIP_PANE_ID` (A-3). `Scope::Keys` carries the client's selection and the replica's tabs. It resolves the target, calls the API and returns the resulting resource. "Not available yet" commands return an `Unavailable` error here.
 - **`api.rs`:** unchanged HTTP wrappers. The utoipa route annotations remain the single description of each route.
-- **`keymap` (ship-client):** `Keymap` maps mode names to `Mode { kind, keys }`, and `keys` maps a `KeyCombination` to a `Binding { Server(Command), Client(ClientAction), None }`. It holds the embedded `defaults.toml` and the loader.
+- **`keymap` (ship-client):** `Keymap` maps mode names to `Mode { kind, keys }`, and `keys` maps a `KeyCombination` to a `Binding`, a list of `Action { Server(Command), Client(ClientAction), None }`. It holds the embedded `defaults.toml` and the loader.
 - **`watch` (ship-client):** a notify debouncer on the config's directory, sending "changed" into the drive loop.
 - **`ui`:** the active mode (client-local), the key-to-binding lookup, one command queue, the mode name and the last config error on the status line.
 - **`settings` (ship-server):** `ServerSettings { shell }`, read from the forwarded path on each shell spawn.
@@ -138,32 +138,37 @@ What each box owns:
 
 4. **The config accepts every non-query command.** `get` and `list` carry `#[serde(skip)]`, so a binding to them is an unknown action (FR-004) while clap still offers them. `rename` and `move` can be bound, which is more than the product's Actions table lists. Rejected: a separate allowlist enum for bindings, which would be a second list.
 
-5. **`Binding` wraps both sides, and both carry a namespace.** `enum Binding { Server(Command), Client(ClientAction), None }` lives in `ship-client::keymap` and is externally tagged in snake_case. TOML dotted keys give `{ server.pane.close = {} }`, and the unit variant gives `"none"`. `ClientAction` is client-local and never serialized to the wire. Rejected: a flat path string such as `action = "pane.close"` with a separate argument table, which needs a hand-written parser and gives worse errors.
+5. **`Action` wraps both sides, both carry a namespace, and a binding is a list of them (A-4).** `enum Action { Server(Command), Client(ClientAction), None }` lives in `ship-client::keymap` and is externally tagged in snake_case. TOML dotted keys give `{ server.pane.close = {} }`, and the unit variant gives `"none"`. `Binding(Vec<Action>)` is what a chord maps to: the file writes one action as a table and several as a list, and `"none"` alone unbinds. `ClientAction` is client-local and never serialized to the wire. Rejected:
+   - A flat path string such as `action = "pane.close"` with a separate argument table, which needs a hand-written parser and gives worse errors.
+   - `serde_with::OneOrMany` for the one-or-list shape. It tries one form and then the other on a buffered copy, so figment's key path stops at the chord and the error carries both attempts on two extra lines. The loader dispatches on the value's shape instead (decision 8).
 
 6. **A new tab takes the move destination.** The tab create command and the `CreateTab` body take `Destination` (`PARENT | --before ID | --after ID`, at most one) in place of the bare parent. Keys send `after = selected tab` (FR-021), and the CLI gains `--before` and `--after` for free. Rejected: create, then move, which takes two requests and briefly shows the tab at the end of its parent.
 
 7. **The starter reuses the server's starter.** `CreateTab` gains an optional `starter` (`"shell"`), and the server reuses the `state::Starter` path that `ship server --starter` already uses, so one request makes the tab and its shell pane (FR-029). `execute` returns the tab, and under `Scope::Keys` the client selects its pane.
 
-8. **figment loads the file, and a small crokey provider canonicalizes the chords.**
-   - The defaults are an embedded `defaults.toml` read through `Toml::string(include_str!(..))`.
-   - Before the merge, a custom provider rewrites every chord key under `client.modes.*.keys` to crokey's canonical form (parse, then `Display`), for both the defaults and the user file, and reports two spellings of one chord in a mode as one error naming both keys (FR-010).
-   - `clear_defaults` drops that mode's default keys before the merge (FR-012).
-   - Each binding is then deserialized on its own, so `ship config check` collects every bad binding in one pass instead of stopping at the first (FR-009).
+8. **figment merges the defaults under the file as lists, and the loader resolves chords after the merge (A-4).**
+   - The defaults are an embedded `defaults.toml`, read by a small `Defaults` provider that wraps every binding in a one-item list. figment merges two tables key by key, which would blend a file binding into the default it replaces (a rebound `alt-n` kept the default's `starter`). A list under a table is replaced whole, so the file's binding wins on the same spelling with nothing left over.
+   - The loader then walks the merged tree, not a deserialized copy, because figment's per-value tags say which source each binding came from and deserializing drops them. Each chord is parsed with crokey. A file chord replaces a default on the same parsed chord however it's spelled, and two file spellings of one chord in a mode are one error naming both (FR-010).
+   - `clear_defaults` drops the mode's bindings tagged as defaults (FR-012).
+   - The top level is checked once. Then each mode and each binding deserializes on its own, a table as one action and a list as several, so `ship config check` collects every bad mode and binding in one pass with its full key path (FR-009). What deserializing can't see is checked per binding: an empty list, `"none"` inside a list, and `client.mode` naming an undefined mode (FR-016).
    - Errors name the file and the key path. Line and column come only from TOML syntax errors, because figment's value tree doesn't keep spans.
 
    Rejected:
    - A custom merge without figment, which owns a mechanism figment rents us.
+   - A provider that canonicalizes chords before the merge (the first version of this decision). Its duplicate error aborts the whole load, so check could no longer report every error, and it doesn't stop two tables blending on the same spelling.
+   - Pruning the merged tree by tag, keeping only what came from the same source as each binding. It works, but it leans on how figment's merge assigns tags, which figment doesn't document. Lists give the same replacement from figment's documented rule that only tables merge, and mean something to users (A-4).
+   - Typed per-layer merging (the `merge` and `schematic` crates). Each layer deserializes separately, so extraction stops at the first error per layer, and `schematic` replaces figment and brings miette and garde with it.
    - A `Deserialize` wrapper on chord keys, which can't help because figment merges on raw `String` keys before any type sees them.
 
 9. **Keys go through crokey, and the mode machine is client-local.** The client converts each event with `KeyCombination::from(KeyEvent)`, which normalizes Shift, and looks it up in the active mode:
    - A bound key runs its binding.
    - An unbound key in `normal` becomes an input frame, as today.
    - An unbound key in a sticky mode is dropped.
-   - A one-shot mode returns to `normal` after any key, unless the binding itself was `client.mode` (FR-014, FR-015).
+   - A one-shot mode returns to `normal` after any key, unless the binding enters a mode itself (FR-014, FR-015).
 
    Paste stays outside the keymap.
 
-10. **The TUI runs server commands one at a time.** Bindings to `server.` actions go into a queue in the drive loop, which awaits them in order in one `Pending` slot. A result that creates something sets the pending selection, so the next view PUT selects it, and a failure goes to the status line. Rejected: running them concurrently, where `alt-n alt-n` could create tabs out of order.
+10. **The TUI runs a binding's actions one at a time.** Each bound key's actions go into a queue in the drive loop. A `server.` action waits in one `Pending` slot, and the `client.` actions after it wait for it, so a list runs in order (A-4). A result that creates something sets the pending selection, so the next view PUT selects it. A failure goes to the status line and drops the rest of that key's actions; actions already run stay done. Rejected: running them concurrently, where `alt-n alt-n` could create tabs out of order.
 
 11. **The client watches the directory, not the file.** A notify debouncer watches the config file's directory without recursing and filters events by file name, so rename-saves work. When the path is a symlink, it also watches the target's directory. A change, or `client.config.reload`, builds a fresh `Keymap`. On failure, the client keeps the running one and shows the error (FR-006, FR-007). Rejected: watching the file itself, which loses the watch after an editor's rename-save.
 

@@ -115,7 +115,7 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
             } else {
                 local::default_health(&client, &cli.config_path()?).await?
             };
-            ship_client::ui::run(&client, open_first).await
+            ship_client::ui::run(&client, open_first, &cli.config_path()?).await
         }
     }
 }

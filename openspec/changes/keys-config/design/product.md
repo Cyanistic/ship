@@ -1,6 +1,6 @@
 # Keys and config
 
-Status: Locked again on 2026-10-09 with amendment A-3: commands that take a tab also accept `--pane ID`, meaning the tab holding that pane, and `--tab` wins when both are given (Command line, FR-026, FR-027). Cyan proposed it in chat after slice 1, for consistency, and approved the edits without another review ("sounds good! go for it! i don't need to review your edits"). A probe showed clap counts an env-filled `--pane` as given, so the two flags aren't a strict either-or: `--tab` takes precedence instead. Before that, amendment A-2: config warnings are dropped, so FR-016 keeps only its error and `ship config check` reports exactly what loading rejects. Cyan decided it in chat during the program review ("yeah go for it.... at least for now"), noting that any later warnings would need a much simpler, declarative design. Before that, amendment A-1: modes move under `[client]` (`[client.modes.<name>]`), so the file's top level holds only `[server]` and `[client]` (Interface, FR-003, FR-014). Cyan decided it in chat during the architecture draft and asked for a direct edit without another Plannotator pass ("just edit it directly"). First locked on 2026-10-09: Cyan approved the draft in Plannotator with "LGTM" and, in conversation, decided three changes made alongside that review: chords stay case-insensitive instead of rejecting uppercase letters (FR-011), new tabs from keys start with a shell (U-1, now FR-029), and floating panes are deferred to their own change (U-2, now a non-goal). It supersedes [notes.md](../notes.md) wherever the two differ. The locked [pane terminals](../../archive/2026-10-07-pane-terminals/design/product.md) and [drop sessions](../../archive/2026-10-08-drop-sessions/design/product.md) papers stay in force except where this paper amends them.
+Status: Locked again on 2026-10-09 with amendment A-4: a binding can be a list of actions, run in order and stopped at the first failure (Summary, Interface, FR-030). Implementing slice 3 showed that figment's merge blends a file binding into the default it replaces, and a list is replaced whole instead. Cyan decided it in chat because action lists are established practice (Zellij binds a list of actions, tmux chains commands with `\;`) and mean something on their own ("if sequences are actually an established pattern, and have real meaning, i don't see why not? kill two birds with one stone?"), then asked for the papers to follow once the code worked. Before that, amendment A-3: commands that take a tab also accept `--pane ID`, meaning the tab holding that pane, and `--tab` wins when both are given (Command line, FR-026, FR-027). Cyan proposed it in chat after slice 1, for consistency, and approved the edits without another review ("sounds good! go for it! i don't need to review your edits"). A probe showed clap counts an env-filled `--pane` as given, so the two flags aren't a strict either-or: `--tab` takes precedence instead. Before that, amendment A-2: config warnings are dropped, so FR-016 keeps only its error and `ship config check` reports exactly what loading rejects. Cyan decided it in chat during the program review ("yeah go for it.... at least for now"), noting that any later warnings would need a much simpler, declarative design. Before that, amendment A-1: modes move under `[client]` (`[client.modes.<name>]`), so the file's top level holds only `[server]` and `[client]` (Interface, FR-003, FR-014). Cyan decided it in chat during the architecture draft and asked for a direct edit without another Plannotator pass ("just edit it directly"). First locked on 2026-10-09: Cyan approved the draft in Plannotator with "LGTM" and, in conversation, decided three changes made alongside that review: chords stay case-insensitive instead of rejecting uppercase letters (FR-011), new tabs from keys start with a shell (U-1, now FR-029), and floating panes are deferred to their own change (U-2, now a non-goal). It supersedes [notes.md](../notes.md) wherever the two differ. The locked [pane terminals](../../archive/2026-10-07-pane-terminals/design/product.md) and [drop sessions](../../archive/2026-10-08-drop-sessions/design/product.md) papers stay in force except where this paper amends them.
 
 ## Summary
 
@@ -9,7 +9,7 @@ Ship gets a config file and configurable keys. The `C-b` placeholder keys go awa
 - **Modes:** each mode is a named table of key bindings. Users can define their own modes, each one either sticky or one-shot.
 - **Server settings:** one setting today, the shell new panes run.
 
-Every binding names an action under `server.` or `client.`:
+Every binding names an action under `server.` or `client.`, or a list of them that runs in order:
 
 - **`server.` actions** change shared state that every attached client sees. Each one is also a `ship` CLI command with the same path.
 - **`client.` actions** change only your own view, so only keys and the mouse can trigger them.
@@ -104,7 +104,15 @@ kind = "sticky"
 [client.modes.panes.keys]
 "h" = { client.pane.focus.direction = "left" }
 "esc" = { client.mode = "normal" }
+
+[client.modes.normal.keys]
+"alt-m" = [                                    # a list runs in order
+  { server.tab.create.starter = "shell" },
+  { server.pane.create = {} },
+]
 ```
+
+A binding is one action, a list of actions, or `"none"`. A list stops at the first action that fails.
 
 Chord spelling comes from [crokey](https://docs.rs/crokey). Ship's docs point there and don't repeat it.
 
@@ -252,6 +260,7 @@ Independent verification: bind keys and run the matching CLI commands, then comp
 - **FR-021:** `server.tab.create` from a key MUST create the tab after the selected tab under the same parent, or at the top level when nothing is selected, and select it.
 - **FR-022:** `client.send` MUST send its chord to the selected pane as if typed.
 - **FR-023:** `client.tab.next` and `client.tab.prev` MUST keep today's order and wrapping until the layout change redefines them as moving between visible rows.
+- **FR-030:** A binding MUST be one action, a list of actions, or `"none"` (A-4). A list MUST run its actions in order, each after the one before has finished. It MUST stop at the first action that fails, keep what the earlier actions did, and show the error. An empty list, or `"none"` inside a list, MUST be an error.
 
 ### Command line
 

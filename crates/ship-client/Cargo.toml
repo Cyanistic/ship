@@ -9,7 +9,9 @@ description = "HTTP client library and full-screen client for Ship"
 [dependencies]
 ship-core.workspace = true
 
+crokey.workspace = true
 crossterm = { workspace = true, features = ["bracketed-paste", "event-stream"] }
+figment.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
 ratatui.workspace = true

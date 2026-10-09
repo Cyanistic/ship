@@ -8,7 +8,7 @@ use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, prelude::*};
 #[command(
     version,
     about = "Open the Ship client, run a loopback server or script tabs and panes",
-    long_about = "Open the Ship client, run a loopback server or script tabs and panes.\n\nBare ship opens a full-screen client on the whole server; C-b d detaches.\nBare ship and tab and pane commands reuse the default-local server or start a missing one in the background.\nThat server stays running after the client and launching terminal exit."
+    long_about = "Open the Ship client, run a loopback server or script tabs and panes.\n\nBare ship opens a full-screen client on the whole server; alt-q detaches.\nBare ship and tab and pane commands reuse the default-local server or start a missing one in the background.\nThat server stays running after the client and launching terminal exit."
 )]
 pub struct Cli {
     /// Connect only to this HTTP/HTTPS server; never start or fall back locally
