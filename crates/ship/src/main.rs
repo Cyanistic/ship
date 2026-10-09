@@ -67,12 +67,12 @@ async fn health(client: &Client) -> Result<HealthResponse> {
 /// `--server-url` or `SHIP_SERVER_URL` makes the target explicit for client
 /// commands. `ship server` refuses only the flag, so an exported variable
 /// doesn't stop a terminal from running a server.
-async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
+async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
     let explicit_target = matches!(
         source,
         Some(ValueSource::CommandLine | ValueSource::EnvVariable)
     );
-    match cli.command {
+    match cli.command.take() {
         // Never start a server, so a stopped default server stays stopped.
         Some(Command::Server(cli::ServerArgs {
             command: Some(cli::ServerCommand::Stop),
@@ -90,17 +90,20 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
             ship_server::serve(
                 ship_server::loopback_addr(args.port)?,
                 args.starter,
+                cli.config_path()?,
                 diagnostics::shutdown()?,
             )
             .await
         }
-        Some(Command::Tab(command)) => {
-            let client = connect(&cli.server_url, explicit_target).await?;
-            commands::tab(&client, command).await
+        Some(Command::Config(cli::ConfigCommand::Check { file })) => {
+            commands::check_config(&match file {
+                Some(file) => file,
+                None => cli.config_path()?,
+            })
         }
-        Some(Command::Pane(command)) => {
-            let client = connect(&cli.server_url, explicit_target).await?;
-            commands::pane(&client, command).await
+        Some(Command::Action(command)) => {
+            let client = connect(&cli, explicit_target).await?;
+            commands::action(&client, command).await
         }
         None => {
             let client = client(&cli.server_url)?;
@@ -110,19 +113,19 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
                 health(&client).await?;
                 false
             } else {
-                local::default_health(&client).await?
+                local::default_health(&client, &cli.config_path()?).await?
             };
-            ship_client::ui::run(&client, open_first).await
+            ship_client::ui::run(&client, open_first, &cli.config_path()?).await
         }
     }
 }
 
 /// An explicit `--server-url` is used as is; otherwise the default local
 /// server is reused or started.
-async fn connect(server_url: &str, explicit_target: bool) -> Result<Client> {
-    let client = client(server_url)?;
+async fn connect(cli: &Cli, explicit_target: bool) -> Result<Client> {
+    let client = client(&cli.server_url)?;
     if !explicit_target {
-        local::default_health(&client).await?;
+        local::default_health(&client, &cli.config_path()?).await?;
     }
     Ok(client)
 }
@@ -137,12 +140,10 @@ fn client(server_url: &str) -> Result<Client> {
             "server URL requires absolute HTTP/HTTPS and a host"
         ));
     }
-    Ok(Client {
-        http: reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .connect_timeout(Duration::from_secs(1))
-            .build()
-            .map_err(|error| err!(Configuration, "cannot initialize HTTP client", @external: error.without_url()))?,
-        url,
-    })
+    let http = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .map_err(|error| err!(Configuration, "cannot initialize HTTP client", @external: error.without_url()))?;
+    Ok(Client::new(http, url))
 }

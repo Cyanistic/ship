@@ -1,4 +1,7 @@
-use std::future::ready;
+use std::{
+    future::ready,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use futures_util::{Stream, StreamExt, TryStreamExt};
 use reqwest::{Method, StatusCode};
@@ -22,6 +25,8 @@ use crate::{NO_BODY, http_error};
 pub struct Client {
     pub http: reqwest::Client,
     pub url: Url,
+    /// Highest `x-ship-revision` a response carried; 0 before any.
+    written: AtomicU64,
 }
 
 /// Collection path for the generic entity methods.
@@ -38,6 +43,30 @@ impl Resource for Pane {
 }
 
 impl Client {
+    pub fn new(http: reqwest::Client, url: Url) -> Self {
+        Self {
+            http,
+            url,
+            written: AtomicU64::new(0),
+        }
+    }
+
+    /// The highest revision a response reported. A replica at or past it
+    /// includes every change this client's requests made.
+    pub fn written(&self) -> u64 {
+        self.written.load(Ordering::Acquire)
+    }
+
+    /// Raise `written` to `revision`; a late response never lowers it.
+    pub(crate) fn wrote(&self, revision: u64) {
+        self.written.fetch_max(revision, Ordering::AcqRel);
+    }
+
+    /// Back to 0, for a server that may have restarted and counts afresh.
+    pub fn forget(&self) {
+        self.written.store(0, Ordering::Release);
+    }
+
     pub async fn health(&self) -> Result<HealthResponse> {
         self.request(Method::GET, HEALTH_PATH, NO_BODY, None, StatusCode::OK)
             .await
@@ -61,16 +90,11 @@ impl Client {
             .await
     }
 
-    /// `None` appends to the top level.
-    pub async fn create_tab(&self, parent: Option<IdOf<Tab>>, name: Option<&str>) -> Result<Tab> {
-        let body = CreateTab {
-            parent,
-            name: name.map(str::to_owned).into(),
-        };
+    pub async fn create_tab(&self, body: &CreateTab) -> Result<Tab> {
         self.request(
             Method::POST,
             Tab::COLLECTION,
-            Some(&body),
+            Some(body),
             None,
             StatusCode::CREATED,
         )

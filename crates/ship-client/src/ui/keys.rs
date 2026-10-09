@@ -1,79 +1,85 @@
-//! The `C-b` prefix: terminal events to client actions.
+//! The mode machine: terminal events to bindings in the active mode.
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crokey::KeyCombination;
+use crossterm::event::{Event, KeyEventKind};
 use ship_core::{
     id::IdOf,
     model::Pane,
     protocol::{InputFrame, KeyInput, PasteInput},
 };
 
-pub(super) enum Action {
+use crate::keymap::{Binding, Keymap, ModeKind, ModeName};
+
+pub(super) enum Handled {
     /// A key or paste for the selected pane; dropped while disconnected.
     Frame(InputFrame),
-    /// `C-b n`, `C-b p`
-    NextPane,
-    PrevPane,
-    /// `C-b )`, `C-b (`
-    NextTab,
-    PrevTab,
-    /// `C-b d`
-    Detach,
-    /// The prefix, an unbound key after it, or input with no pane selected.
+    /// A bound key's actions, which the loop runs in order.
+    Run(Binding),
+    /// An unbound key outside normal, or input with no pane selected.
     None,
 }
 
-#[derive(Default)]
 pub(super) struct Keys {
-    prefixed: bool,
+    pub keymap: Keymap,
+    pub active: ModeName,
 }
 
 impl Keys {
-    /// `selected` is the pane frames go to. With no pane selected, keys after
-    /// the prefix still act and other input is dropped. `C-b C-b` sends one
-    /// `C-b`.
-    pub fn handle(&mut self, event: Event, selected: Option<IdOf<Pane>>) -> Action {
-        match event {
-            Event::Key(key) if key.kind != KeyEventKind::Release => {
-                let prefixed = std::mem::take(&mut self.prefixed);
-                match (prefixed, is_prefix(&key)) {
-                    (false, true) => {
-                        self.prefixed = true;
-                        return Action::None;
-                    }
-                    (true, false) => return bound(&key),
-                    _ => {}
-                }
-                selected.map_or(Action::None, |pane| {
-                    Action::Frame(InputFrame::Key(KeyInput { pane, key }))
-                })
-            }
-            Event::Paste(text) => {
-                self.prefixed = false;
-                selected.map_or(Action::None, |pane| {
-                    Action::Frame(InputFrame::Paste(PasteInput { pane, text }))
-                })
-            }
-            _ => Action::None,
+    pub fn new(keymap: Keymap) -> Self {
+        Self {
+            keymap,
+            active: ModeName::normal(),
         }
     }
-}
 
-/// The action for a key after the prefix.
-fn bound(key: &KeyEvent) -> Action {
-    // Terminals differ on whether `(` and `)` carry Shift.
-    if !(key.modifiers - KeyModifiers::SHIFT).is_empty() {
-        return Action::None;
+    /// `KeyCombination::from(key)`, looked up in the active mode. Unbound:
+    /// a frame in normal, dropped in any other mode. A one-shot mode returns
+    /// to normal after any key unless the binding enters a mode itself.
+    pub fn handle(&mut self, event: Event, selected: Option<IdOf<Pane>>) -> Handled {
+        match event {
+            Event::Key(key) if key.kind != KeyEventKind::Release => {
+                let Some(mode) = self.keymap.modes.get(&self.active) else {
+                    self.active = ModeName::normal();
+                    return Handled::None;
+                };
+                let binding = mode.keys.get(&KeyCombination::from(key)).cloned();
+                let normal = self.active.0 == ModeName::NORMAL;
+                if mode.kind == ModeKind::Oneshot
+                    && !binding.as_ref().is_some_and(Binding::enters_mode)
+                {
+                    self.active = ModeName::normal();
+                }
+                match (binding, selected) {
+                    (Some(binding), _) => Handled::Run(binding),
+                    (None, Some(pane)) if normal => {
+                        Handled::Frame(InputFrame::Key(KeyInput { pane, key }))
+                    }
+                    (None, _) => Handled::None,
+                }
+            }
+            Event::Paste(text) => selected.map_or(Handled::None, |pane| {
+                Handled::Frame(InputFrame::Paste(PasteInput { pane, text }))
+            }),
+            _ => Handled::None,
+        }
     }
-    match key.code {
-        KeyCode::Char('n') => Action::NextPane,
-        KeyCode::Char('p') => Action::PrevPane,
-        KeyCode::Char(')') => Action::NextTab,
-        KeyCode::Char('(') => Action::PrevTab,
-        KeyCode::Char('d') => Action::Detach,
-        _ => Action::None,
-    }
-}
 
-fn is_prefix(key: &KeyEvent) -> bool {
-    key.code == KeyCode::Char('b') && key.modifiers == KeyModifiers::CONTROL
+    /// Enter `mode`; the keymap checked at load that it exists.
+    pub fn enter(&mut self, mode: ModeName) {
+        self.active = mode;
+    }
+
+    /// Swap in a reloaded keymap; an active mode it no longer defines falls
+    /// back to normal.
+    pub fn replace(&mut self, keymap: Keymap) {
+        if !keymap.modes.contains_key(&self.active) {
+            self.active = ModeName::normal();
+        }
+        self.keymap = keymap;
+    }
+
+    /// The active mode's name, outside normal.
+    pub fn shown_mode(&self) -> Option<&ModeName> {
+        Some(&self.active).filter(|mode| mode.0 != ModeName::NORMAL)
+    }
 }

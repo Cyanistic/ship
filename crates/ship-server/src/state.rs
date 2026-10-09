@@ -1,7 +1,10 @@
 use std::{
     collections::{HashMap, HashSet},
     path::PathBuf,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use futures_util::future::join_all;
@@ -12,7 +15,7 @@ use ship_core::{
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, PaneSpec, Replica,
+        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, Replica, Starter,
         ViewInput, ViewingRecord,
     },
     screen::Size,
@@ -40,6 +43,8 @@ pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
 pub struct ServerState {
     incarnation: Uuid,
     revision: u64,
+    /// `revision`, readable outside the actor for `x-ship-revision`.
+    written: Arc<AtomicU64>,
     tabs: Tabs,
     viewers: Viewers,
     /// Exactly the panes in `tabs` once each `commit` returns.
@@ -60,6 +65,7 @@ impl ServerState {
         Self {
             incarnation: Uuid::now_v7(),
             revision: 0,
+            written: Arc::default(),
             tabs: Tabs::new(),
             viewers: Viewers::new(),
             runtimes: HashMap::new(),
@@ -100,6 +106,7 @@ impl ServerState {
         self.tabs = tabs;
         self.retain_runtimes();
         self.revision += 1;
+        self.written.store(self.revision, Ordering::Release);
         tracing::debug!(revision = self.revision, "publishing replica");
         self.bus
             .tell(Publish(self.replica()))
@@ -157,9 +164,9 @@ impl ServerState {
         );
     }
 
-    /// Each viewed tab's size: the smallest of its viewers' terminals in each
-    /// dimension, one row less for the status line. Records without a
-    /// selection are skipped. Derived, never stored.
+    /// Each viewed tab's size: the smallest of its viewers' areas in each
+    /// dimension. Records without a selection are skipped. Derived, never
+    /// stored.
     fn tab_sizes(&self) -> HashMap<IdOf<Tab>, Size> {
         let mut sizes: HashMap<IdOf<Tab>, Size> = HashMap::new();
         for record in self.viewers.values() {
@@ -170,8 +177,8 @@ impl ServerState {
                 continue;
             };
             let size = Size {
-                cols: record.size.cols.max(1),
-                rows: record.size.rows.saturating_sub(1).max(1),
+                cols: record.area.cols.max(1),
+                rows: record.area.rows.max(1),
             };
             sizes
                 .entry(tab)
@@ -252,6 +259,11 @@ impl ServerState {
         Ok(())
     }
 
+    /// The revision as each commit sets it, shared with the HTTP layer.
+    pub(crate) fn written(&self) -> Arc<AtomicU64> {
+        self.written.clone()
+    }
+
     pub fn replica(&self) -> Arc<Replica> {
         Arc::new(Replica {
             incarnation: self.incarnation,
@@ -264,8 +276,6 @@ impl ServerState {
 
 /// GET /tabs.
 pub struct ListTabs;
-/// Startup only: one top-level tab holding one pane running `PaneSpec`.
-pub struct Starter(pub PaneSpec);
 pub struct Get<T: Identified>(pub IdOf<T>);
 pub struct Rename<T: Identified> {
     pub id: IdOf<T>,
@@ -297,53 +307,31 @@ impl Message<ListTabs> for ServerState {
     }
 }
 
-impl Message<Starter> for ServerState {
-    type Reply = Result<Tab>;
-
-    /// The pane starts before the one commit that inserts the tab with it.
-    async fn handle(
-        &mut self,
-        Starter(spec): Starter,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        let id = Id::new();
-        let pane = self.start_pane(
-            id,
-            PaneInput {
-                name: OptionalName::default(),
-                spec,
-            },
-        )?;
-        let tab = Tab {
-            id,
-            name: OptionalName::default(),
-            tabs: IndexMap::new(),
-            panes: IndexMap::from([(pane.id, pane)]),
-        };
-        self.commit(|tabs, _| {
-            tabs.insert(tab.id, Arc::new(tab.clone()));
-            Ok(tab)
-        })
-        .await
-    }
-}
-
 impl Message<CreateTab> for ServerState {
     type Reply = Result<Tab>;
 
+    /// A starter pane starts before the one commit that places the tab with
+    /// it; a missing parent or sibling then fails the commit, which drops the
+    /// pane's runtime.
     async fn handle(
         &mut self,
         create: CreateTab,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
+        let id = Id::new();
+        let mut panes = IndexMap::new();
+        if let Some(Starter::Shell) = create.starter {
+            let pane = self.start_pane(id, PaneInput::default())?;
+            panes.insert(pane.id, pane);
+        }
+        let tab = Tab {
+            id,
+            name: create.name,
+            tabs: IndexMap::new(),
+            panes,
+        };
         self.commit(|tabs, _| {
-            let tab = Tab {
-                id: Id::new(),
-                name: create.name,
-                tabs: IndexMap::new(),
-                panes: IndexMap::new(),
-            };
-            tree::children_mut(tabs, create.parent)?.insert(tab.id, Arc::new(tab.clone()));
+            tree::place(tabs, Arc::new(tab.clone()), create.at)?;
             Ok(tab)
         })
         .await
@@ -520,7 +508,7 @@ impl Message<Attach> for ServerState {
                 selection: request
                     .selection
                     .filter(|node| tree::path(tabs, *node).is_some()),
-                size: request.size,
+                area: request.area,
             };
             viewers.insert(attachment, record);
             Ok(())
@@ -594,7 +582,7 @@ impl Message<SetView> for ServerState {
         }
         let record = ViewingRecord {
             selection: view.selection,
-            size: view.size,
+            area: view.area,
         };
         self.commit(|_, viewers| {
             viewers.insert(attachment, record.clone());

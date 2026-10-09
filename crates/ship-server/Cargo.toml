@@ -12,12 +12,14 @@ ship-macros.workspace = true
 
 axum.workspace = true
 crossterm.workspace = true
+figment.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
 kameo.workspace = true
 portable-pty.workspace = true
 ratatui.workspace = true
 ratatui-ghostty.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true

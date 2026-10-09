@@ -69,18 +69,25 @@ impl Observer {
             .retain(|pane, _| tree::pane(&replica.tabs, *pane).is_ok());
     }
 
+    /// Whether the replica has reached `revision`. Nothing to wait for at 0.
+    pub fn caught_up(&self, revision: u64) -> bool {
+        self.replica
+            .as_ref()
+            .map_or(revision == 0, |replica| replica.revision >= revision)
+    }
+
     /// This client's record, matched by attachment ID.
     pub fn record(&self) -> Option<&ViewingRecord> {
         self.replica.as_ref()?.viewers.get(&self.attachment?)
     }
 
     /// What to send on reattach: the last record's selection at the
-    /// terminal's current size. `None` before the first `Attached` event.
-    pub fn remembered(&self, size: Size) -> Option<AttachRequest> {
+    /// terminal's current tab area. `None` before the first `Attached` event.
+    pub fn remembered(&self, area: Size) -> Option<AttachRequest> {
         let record = self.record()?;
         Some(AttachRequest {
             selection: record.selection,
-            size,
+            area,
         })
     }
 

@@ -6,11 +6,13 @@ mod health;
 mod input;
 mod pane;
 mod routes;
+mod settings;
 mod state;
 
 use std::{
     future::{Future, IntoFuture},
     net::SocketAddr,
+    path::PathBuf,
     sync::Arc,
     time::Duration,
 };
@@ -21,9 +23,11 @@ use kameo::{
     actor::{ActorRef, Spawn},
     mailbox,
 };
+pub use settings::ServerSettings;
 use ship_core::{
+    model::OptionalName,
     prelude::*,
-    protocol::{PaneSpec, Replica},
+    protocol::{CreateTab, MoveTab, Replica, Starter},
     relay,
 };
 use tokio::{
@@ -107,7 +111,9 @@ pub fn router(app: AppState) -> Router {
             .on_response(|response: &axum::http::Response<axum::body::Body>, duration: Duration, _span: &tracing::Span| {
                 tracing::info!(status = response.status().as_u16(), duration_ms = duration.as_secs_f64() * 1000.0, "request completed");
             }),
-    ).split_for_parts().0.with_state(app)
+    ).split_for_parts().0
+        .layer(axum::middleware::from_fn_with_state(app.clone(), app::stamp))
+        .with_state(app)
 }
 
 /// Binds, spawns the actors, creates the starter tab when `starter` is set,
@@ -116,6 +122,7 @@ pub fn router(app: AppState) -> Router {
 pub async fn serve(
     address: SocketAddr,
     starter: bool,
+    config: PathBuf,
     shutdown: impl Future<Output = Result<()>> + Send + 'static,
 ) -> Result<()> {
     if !address.ip().is_loopback() || address.port() == 0 {
@@ -142,8 +149,9 @@ pub async fn serve(
     let (result_tx, mut result_rx) = watch::channel(None);
     let bus = relay::RelayBus::spawn_with_mailbox(relay::RelayBus::default(), mailbox::bounded(64));
     let (live_tx, live) = watch::channel(pane::LivePanes::new());
-    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address)?);
+    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address, config)?);
     let (replica_tx, replicas) = watch::channel(state.replica());
+    let revision = state.written();
     bus.ask(relay::Subscribe::<Arc<Replica>> {
         sink: Box::new(replica_tx),
     })
@@ -153,7 +161,12 @@ pub async fn serve(
     forward_pane_events(&bus, state.clone()).await?;
     // Bound but not accepting: a health probe waits in the backlog until the
     // starter tab exists.
-    if starter && let Err(error) = state.ask(state::Starter(PaneSpec::default())).await {
+    let starter_tab = CreateTab {
+        at: MoveTab::top(),
+        name: OptionalName::default(),
+        starter: Some(Starter::Shell),
+    };
+    if starter && let Err(error) = state.ask(starter_tab).await {
         stop_actors(&state, &bus).await;
         return Err(AppError::from(error).context("cannot create the starter tab"));
     }
@@ -165,6 +178,7 @@ pub async fn serve(
         replicas,
         live,
         stop: stop.clone(),
+        revision,
     };
     let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {

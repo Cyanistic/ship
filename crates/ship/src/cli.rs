@@ -1,18 +1,14 @@
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
-use ship_core::{
-    AppError, DEFAULT_PORT, DEFAULT_SERVER_URL,
-    id::{IdOf, Identified},
-    model::{Pane, Tab},
-    protocol::MoveTab,
-};
+use etcetera::BaseStrategy;
+use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, prelude::*};
 
 #[derive(Parser)]
 #[command(
     version,
     about = "Open the Ship client, run a loopback server or script tabs and panes",
-    long_about = "Open the Ship client, run a loopback server or script tabs and panes.\n\nBare ship opens a full-screen client on the whole server; C-b d detaches.\nBare ship and tab and pane commands reuse the default-local server or start a missing one in the background.\nThat server stays running after the client and launching terminal exit."
+    long_about = "Open the Ship client, run a loopback server or script tabs and panes.\n\nBare ship opens a full-screen client on the whole server; alt-q detaches.\nBare ship and tab and pane commands reuse the default-local server or start a missing one in the background.\nThat server stays running after the client and launching terminal exit."
 )]
 pub struct Cli {
     /// Connect only to this HTTP/HTTPS server; never start or fall back locally
@@ -24,48 +20,48 @@ pub struct Cli {
         default_value = DEFAULT_SERVER_URL
     )]
     pub server_url: String,
+    /// Config file; defaults to ship/config.toml in the platform config directory
+    #[arg(long, global = true, env = "SHIP_CONFIG", value_name = "FILE")]
+    pub config: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Option<Command>,
+}
+
+impl Cli {
+    /// `--config`, `SHIP_CONFIG`, then etcetera's config directory. Absolute,
+    /// so the background server and relative settings see the same file.
+    pub fn config_path(&self) -> Result<PathBuf> {
+        let path = match &self.config {
+            Some(path) => path.clone(),
+            None => etcetera::choose_base_strategy()
+                .map_err(|error| err!(Configuration, "cannot find the config directory", @external: error))?
+                .config_dir()
+                .join("ship/config.toml"),
+        };
+        std::path::absolute(&path).map_err(
+            |error| err!(Io, "cannot resolve config path {}", path.display(), @external: error),
+        )
+    }
 }
 
 #[derive(Subcommand)]
 pub enum Command {
     /// Run a foreground server on 127.0.0.1, or stop or check one
     Server(ServerArgs),
-    /// List, create, inspect, rename, remove or move tabs
+    #[command(flatten)]
+    Action(ship_core::command::Command),
+    /// Check the config file
     #[command(subcommand)]
-    Tab(TabCommand),
-    /// Create, inspect, rename or remove panes
-    #[command(subcommand)]
-    Pane(PaneCommand),
+    Config(ConfigCommand),
 }
 
 #[derive(Subcommand)]
-pub enum TabCommand {
-    /// List top-level tabs and their descendants as JSON, keyed by ID
-    List,
-    /// Append a tab to a tab, or to the top level without one, and print it as JSON
-    Create(CreateTabArgs),
-    /// Print a tab and its descendants as JSON
-    Get(IdArgs<Tab>),
-    /// Rename a tab and print it as JSON
-    Rename(RenameArgs<Tab>),
-    /// Remove a tab and all its descendants
-    Rm(IdArgs<Tab>),
-    /// Append under PARENT or to the top level, or place before or after a sibling
-    Move(MoveTabArgs),
-}
-
-#[derive(Subcommand)]
-pub enum PaneCommand {
-    /// Append a pane running a program to a tab and print it as JSON
-    Create(CreatePaneArgs),
-    /// Print a pane as JSON
-    Get(IdArgs<Pane>),
-    /// Rename a pane and print it as JSON
-    Rename(RenameArgs<Pane>),
-    /// Remove a pane
-    Rm(IdArgs<Pane>),
+pub enum ConfigCommand {
+    /// Report every error in a config file and exit non-zero if any
+    Check {
+        /// File to check; defaults to the config file in use
+        file: Option<PathBuf>,
+    },
 }
 
 /// Bare `ship server` runs one; stop it with SIGINT, SIGTERM or `ship server stop`.
@@ -89,77 +85,4 @@ pub enum ServerCommand {
     Stop,
     /// Print the server's health as JSON; never starts a server
     Status,
-}
-
-#[derive(Args)]
-pub struct IdArgs<T: Identified>
-where
-    IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static,
-{
-    pub id: IdOf<T>,
-}
-
-#[derive(Args)]
-pub struct RenameArgs<T: Identified>
-where
-    IdOf<T>: FromStr<Err = AppError> + Send + Sync + 'static,
-{
-    pub id: IdOf<T>,
-    /// New name; omitted or blank clears it
-    pub name: Option<String>,
-}
-
-#[derive(Args)]
-pub struct CreateTabArgs {
-    /// Parent tab ID; omitted means the top level
-    pub parent: Option<IdOf<Tab>>,
-    /// Tab name; omitted or blank means none
-    #[arg(long)]
-    pub name: Option<String>,
-}
-
-#[derive(Args)]
-pub struct CreatePaneArgs {
-    /// Tab ID
-    pub tab: IdOf<Tab>,
-    /// Pane name; omitted or blank means none
-    #[arg(long)]
-    pub name: Option<String>,
-    /// Starting directory; defaults to the current directory
-    #[arg(long)]
-    pub cwd: Option<PathBuf>,
-    /// Command and arguments; defaults to your login shell
-    #[arg(last = true, value_name = "COMMAND")]
-    pub command: Vec<String>,
-}
-
-#[derive(Args)]
-pub struct MoveTabArgs {
-    pub id: IdOf<Tab>,
-    #[command(flatten)]
-    pub to: Destination,
-}
-
-/// At most one; none means the top level.
-#[derive(Args)]
-#[group(multiple = false)]
-pub struct Destination {
-    /// Parent tab ID; omitted means the top level
-    pub parent: Option<IdOf<Tab>>,
-    /// Insert before this sibling, under its parent
-    #[arg(long)]
-    pub before: Option<IdOf<Tab>>,
-    /// Insert after this sibling, under its parent
-    #[arg(long)]
-    pub after: Option<IdOf<Tab>>,
-}
-
-impl From<Destination> for MoveTab {
-    fn from(to: Destination) -> Self {
-        match (to.before, to.after) {
-            (Some(sibling), _) => Self::Before(sibling),
-            (None, Some(sibling)) => Self::After(sibling),
-            (None, None) => Self::Parent(to.parent),
-        }
-    }
 }

@@ -18,11 +18,15 @@ ship-macros = { path = "crates/ship-macros" }
 ratatui-ghostty = { path = "vendor/ratatui-ghostty" }
 axum = { version = "0.8", features = ["http2"] }
 clap = { version = "4", features = ["derive", "env"] }
+crokey = "1.5"
 crossterm = { version = "0.29", default-features = false, features = ["events", "serde"] }
+etcetera = "0.11"
+figment = { version = "0.10.19", features = ["toml"] }
 futures-util = "0.3"
 indexmap = { version = "2", features = ["serde"] }
 kameo = "0.22"
 nix = { version = "0.31", features = ["process", "signal"] }
+notify-debouncer-mini = "0.7"
 portable-pty = "=0.9.0"
 ratatui = "0.30"
 proc-macro2 = "1"

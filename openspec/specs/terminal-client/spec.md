@@ -42,19 +42,8 @@ Several clients SHALL be able to view the same pane and send it input at the sam
 - **WHEN** two clients view the same pane and both type
 - **THEN** the pane receives input from both and both clients show the same screen
 
-### Requirement: Fixed pane keys
-In the client, `C-b n` SHALL select the next pane in the tab, `C-b p` the previous one, both wrapping around. `C-b d` SHALL detach. `C-b C-b` SHALL send one `C-b` to the pane. Every key not preceded by `C-b` SHALL go to the pane, and a key after `C-b` that has no binding SHALL be dropped.
-
-#### Scenario: Cycle panes
-- **WHEN** a tab has three panes and the user presses `C-b n` three times
-- **THEN** the client shows each pane in turn and returns to the first
-
-#### Scenario: Send the prefix
-- **WHEN** a pane runs `cat -v` and the user presses `C-b C-b`
-- **THEN** the pane shows one `^B`
-
 ### Requirement: Empty state
-When nothing is selected, the client SHALL show the number of top-level tabs and the key that opens one, such as `3 tabs · C-b ) to open one`, or `no tabs · ship tab create` when there are none. When the selection is a tab rather than a pane, the client SHALL show a hint for creating a pane, such as `no pane: ship pane create <tab-id>`, and `C-b n` and `C-b p` SHALL then select the first or last pane of that tab.
+When nothing is selected, the client SHALL show the number of top-level tabs and the default key that opens one, such as `3 tabs · alt-right to open one`, or `no tabs · ship tab create` when there are none. When the selection is a tab rather than a pane, the client SHALL show a hint for creating a pane, such as `no pane: ship pane create --tab <tab-id>`.
 
 #### Scenario: Last pane removed
 - **WHEN** the last pane of the viewed tab is removed
@@ -62,7 +51,7 @@ When nothing is selected, the client SHALL show the number of top-level tabs and
 
 #### Scenario: Nothing selected
 - **WHEN** a client opens on a server with two top-level tabs
-- **THEN** it shows `2 tabs · C-b ) to open one` and keys other than prefixed ones are dropped
+- **THEN** it shows `2 tabs · alt-right to open one` and keys that reach programs are dropped
 
 ### Requirement: Pane size
 A tab's panes SHALL be sized to the smallest client currently viewing that tab, minus the status line, and SHALL follow when a viewing client resizes its terminal. A client viewing another tab SHALL NOT constrain it. A tab nobody views SHALL keep its last size. A client larger than the tab SHALL draw the pane in its top-left corner and mark the unused area.
@@ -76,7 +65,7 @@ A tab's panes SHALL be sized to the smallest client currently viewing that tab, 
 - **THEN** both first show identical screens at the smaller size with the larger client's unused area marked, and afterwards the tab grows to the larger client's size
 
 ### Requirement: Status line
-The status line SHALL show the viewed tab and pane labels, the pane's exit status once its program has exited, and a disconnected indicator while reconnecting. It SHALL NOT show a session.
+The status line SHALL show the viewed tab and pane labels, the pane's exit status once its program has exited, and a disconnected indicator while reconnecting. It SHALL NOT show a session. Outside normal mode it SHALL show the active mode's name. It SHALL show the latest config error, a key action's failure or "not available yet" until the next key action.
 
 #### Scenario: Exited program
 - **WHEN** the selected pane's program exits with code 3
@@ -85,6 +74,10 @@ The status line SHALL show the viewed tab and pane labels, the pane's exit statu
 #### Scenario: Labels without a session
 - **WHEN** a client selects the pane `nvim` in a tab named `work`
 - **THEN** the status line begins with `work › nvim`
+
+#### Scenario: Active mode
+- **WHEN** the user presses `alt-r`
+- **THEN** the status line shows `resize`, and stops showing it after `esc`
 
 ### Requirement: Derived labels
 An unnamed pane's label SHALL be its program's current title, else its command. An unnamed tab's label SHALL be its first pane's label, else its 1-based position among its siblings. Labels SHALL update as titles change and SHALL return to the derived form when a name is cleared.

@@ -1,5 +1,6 @@
 //! Shared contextual diagnostics. No HTTP or process ownership.
 
+pub mod command;
 pub mod error;
 pub mod id;
 pub mod model;
