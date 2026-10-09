@@ -1,8 +1,8 @@
 # Ship
 
-Ship is a compact Rust terminal workspace for coding-agent work. A server owns sessions, recursive tabs and panes; clients attach to observe and drive them, and work keeps running after the UI closes. The goal is to recover the daily-use value of Herdr with far less owned code. Ship is Cyan's side project, and Cyan is its primary user.
+Ship is a compact Rust terminal workspace for coding-agent work. A server owns recursive tabs and panes; clients attach to observe and drive them, and work keeps running after the UI closes. The goal is to recover the daily-use value of Herdr with far less owned code. Ship is Cyan's side project, and Cyan is its primary user.
 
-"Workspace" describes the product only. A workspace entity was considered and dropped; the session is the top-level container.
+"Workspace" describes the product only. A workspace entity was considered and dropped; top-level tabs are the top-level container.
 
 ## Which documents authorize work
 
@@ -12,7 +12,7 @@ Questions those documents mark as open stay open. When work depends on one, brin
 
 ## Compactness
 
-Own the domain, rent the mechanisms. Ship owns session/tab/pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism, and accept a little imprecision (for example in generated schemas) over maintaining a hand-written copy.
+Own the domain, rent the mechanisms. Ship owns tab and pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism, and accept a little imprecision (for example in generated schemas) over maintaining a hand-written copy.
 
 Implementation Rust has a budget of roughly 20,000 lines. It is a conservative ceiling that leaning on dependencies should beat, and it shapes design without overriding working behavior or clear boundaries. Only implementation Rust counts; tests, integrations, scripts and docs fall outside it. When reporting size, give implementation Rust and tests as separate counts.
 

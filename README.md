@@ -24,8 +24,8 @@ The name treats agents as your crew, and it's also about shipping software.
 ## Features
 
 ### Organize your work
-- **Sessions, tabs and split panes:**
-  Group related work into sessions. Tabs can nest inside other tabs, so a big task can hold its own smaller ones.
+- **Tabs and split panes:**
+  Group related work into tabs. Tabs can nest inside other tabs, so a big task can hold its own smaller ones.
 
 - **Multiple clients, independent views:**
   Attach from more than one terminal at a time. Each client keeps its own selection and focus while sharing the same underlying work.
@@ -35,7 +35,7 @@ The name treats agents as your crew, and it's also about shipping software.
   Ship's server owns your terminals, so closing the window doesn't stop anything. Reattach later and everything is where you left it.
 
 - **Restore after a restart:**
-  If the server or machine restarts, Ship rebuilds your sessions, tabs and panes, and resumes agent conversations where the agent supports it.
+  If the server or machine restarts, Ship rebuilds your tabs and panes, and resumes agent conversations where the agent supports it.
 
 ### Know which agent needs you
 - **Agent status at a glance:**
@@ -63,7 +63,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 ## Status
 
-Today, `ship` runs a background server that keeps track of sessions, nested tabs and panes. You can create, rename, move and remove them from the command line. `ship attach` shows a session as a live text tree that updates as things change. Each attached client keeps its own selection and reconnects on its own if the connection drops.
+Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and remove them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
 Panes are placeholders for now: there's no terminal inside them yet. Next up is giving them real PTYs, so a pane runs an actual shell, editor or agent that the server keeps alive while clients come and go.
 
@@ -85,16 +85,13 @@ cargo build --release
 ./target/release/ship
 ```
 
-Running `ship` finds the local server or starts one in the background, then prints its health as one line of JSON. The server keeps running after `ship` exits. When `ship` starts a server it prints the PID, so you can stop it with `kill <PID>`.
+Running `ship` finds the local server or starts one in the background, then opens the client. A server that `ship` starts begins with one tab holding a shell in your home directory, and the client opens on it. Press `C-b d` to detach. The server keeps running after `ship` exits, and `ship server stop` stops it.
 
-To see sessions in action, watch one in a terminal:
+To see tabs change live, leave `ship` open in one terminal and add a tab from another:
 ```sh
-ship attach demo    # creates "demo" if it doesn't exist
+TAB=$(ship tab create --name notes | jq -r .id)
+ship pane create "$TAB" --name scratch
 ```
-Then change it from another terminal and watch the first one update:
-```sh
-TAB=$(ship tab create demo notes | jq -r .id)
-ship pane create "$TAB" scratch
-```
+Then press `C-b )` and `C-b (` in the client to move between top-level tabs.
 
 Run `ship --help` to see everything else.

@@ -571,6 +571,39 @@ Checks:
 
 ## Deviation log
 
+### Slice 4 (2026-10-08, complete): docs and the size report
+
+**The `rg` check can't match only `pane.rs`.** `rg -i session AGENTS.md GLOSSARY.md README.md crates/` also matches three things that stay:
+
+- `GLOSSARY.md`'s _Avoid_ entry for Session, which this slice's own Docs entry asks for.
+- `crates/ship/src/main.rs:45,50`, where "session" is the POSIX process session that `setsid` creates for the background server.
+- In `pane.rs`, besides the `SessionHandle` lines, the inherited terminal variables it clears (`ITERM_SESSION_ID`, `WT_SESSION`, `ZELLIJ_SESSION_NAME`, `CLAUDE_CODE_SESSION_ID` and similar).
+
+None of these is a Ship session, so no code changed.
+
+**README lines beyond the five listed.** Line 88 said bare `ship` prints health and that you stop the server with `kill <PID>`, and the demo used `ship attach demo` and `ship tab create demo notes`. All of these are wrong after slice 2, and "the README's commands run as written" requires fixing them. Line 88 now says `ship` opens the client on the starter shell, `C-b d` detaches and `ship server stop` stops the server. The demo leaves `ship` open and runs `ship tab create --name notes` and `ship pane create "$TAB" --name scratch` from another terminal. Lines 14 ("it can't host a terminal today") and 68 ("Panes are placeholders") have been stale since pane-terminals. They don't mention sessions, so they're out of this slice's scope and left for Cyan.
+
+Smaller choices:
+
+- The glossary's _Avoid: Workspace (as an entity)_ moves from Session to Tab with the Session entry, because Tab is now the top-level container.
+- `AGENTS.md` line 5 doesn't say that sessions were dropped. Saying so would put "session" back in a file that the `rg` check covers.
+- The archived papers use the inline mark form they already used for P1, as `*(Session text superseded by drop-sessions.)*`, with no link because this change's folder moves on archive. Each status line gains one sentence. Marked requirements:
+  - roundtrip product: FR-001 to 004, 006, 007, 009, 011 to 014, SC-001, SC-005 (both entries), SC-007 and amendments P1 to P4;
+  - roundtrip architecture: decisions 1 to 3 and 5 to 8, A1, and A5's `Ended(SessionRemoved)` line;
+  - pane-terminals product: FR-004, 004a, 005, 008, 009, 013, 018 and 021;
+  - pane-terminals architecture: A2 and A4.
+  The two program papers have no requirements, so they carry the status-line note only. The wrapper-session text in pane-terminals is a different thing and stays unmarked. No original text changed: the diff adds 44 marks and status notes and removes nothing.
+
+**Evidence (macOS, Darwin 25.6.0).**
+
+- README flow, run as written with `target/release` on `PATH` and the default port free: a temporary pyte probe in the session scratchpad, not in the repo, ran bare `ship` from the repo. It opened on the starter shell, and `pwd` printed `/Users/cyan`. `ship server status` printed protocol 5. The README's `tab create` and `pane create` lines exited 0. `C-b )` showed `notes › scratch` and `C-b (` returned to the starter. `C-b d` printed `detached` and exited 0. `ship server stop` exited 0, and `ship server status` then reported no server running.
+- SC-004 (feel, measured as a proxy, like slice 3's starter timing): a foreground release server with three top-level tabs, a client in a 30×100 pty, 7 runs. The hint was drawn in a median of 7.5 ms from spawn, `C-b )` redrew the next tab in a median of 15.3 ms (one frame tick), and `C-b d` exited in a median of 1.0 ms. All are well below anything noticeable. Slice 1 recorded no `ship attach` timings to compare against numerically.
+- Size, as `git ls-files 'crates/*.rs' | xargs cat | wc -l`: implementation Rust went from 5,824 at a403137 (before slice 1) to 5,244 after slice 4, which is −580 and beyond the −350 to −500 estimate. Test lines: 0 before and after (no `tests/` files and no `#[test]` or `#[cfg(test)]` in `crates/`).
+- No temporary probes or disposable consumers are in the repo. Every probe and the slice 2 OpenAPI consumer were in the session scratchpad or outside the repo. `git status --ignored` shows only the edited docs and experiment build output that predates this change.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, the debug and release builds, and `openspec validate drop-sessions` pass.
+
+Platforms across the change: macOS ran every slice's checks. Linux ran slice 2's build, CLI, curl, `server status` and pty client checks, in a Docker container on this Mac. Slices 1, 3 and 4 are unverified on Linux. This slice ran no container because `AGENTS.md` now forbids one. Windows is unverified throughout.
+
 ### Slice 3 (2026-10-08, complete): the starter
 
 **Architecture amendment A2: the opening view travels in the attach request.** Slice 3 first built decision 5 as written: attach with nothing selected, queue the `C-b )` view through the frame-tick PUT, and hold drawing until the record had a selection, the PUT failed, the server kept nothing, or the connection dropped. That hold was an `opening` flag across three `select!` branches and the redraw gate, and the PUT result grew into a tuple, about 30 lines of one-shot state. In review Cyan asked for something cleaner and approved the alternative ("go for it!"): `ui::run` reads `client.tabs()` when `open_first` is set, takes `navigate(&tabs, None, &Action::NextTab)`, and attaches with that as `AttachRequest.selection`. `drive` is untouched by the slice. If the tab disappears between the read and the attach, the server drops the selection and the hint shows. This reopens the architecture paper (A2) and this paper under the ripple rule.

@@ -1,6 +1,6 @@
 # Session/tab roundtrip program
 
-Status: Locked again on 2026-10-06 after Cyan approved architecture amendment A5 and this paper's A5 additions in chat ("they're good to go"); the additions are marked inline and land in slice 7. Previously: Locked on 2026-10-05 after Cyan approved it in Plannotator with “LGTM”. Written fresh from the locked [product](product.md) and [architecture](architecture.md) papers and the current crates. No earlier program draft was consulted. Nothing here is created source, and no snippet has been compiled.
+Status: Locked again on 2026-10-06 after Cyan approved architecture amendment A5 and this paper's A5 additions in chat ("they're good to go"); the additions are marked inline and land in slice 7. Previously: Locked on 2026-10-05 after Cyan approved it in Plannotator with “LGTM”. Written fresh from the locked [product](product.md) and [architecture](architecture.md) papers and the current crates. No earlier program draft was consulted. Nothing here is created source, and no snippet has been compiled. Session text in this paper is superseded by the drop-sessions change (2026-10-08), which replaces sessions with top-level tabs; it is kept as written and marked where a requirement defines sessions.
 
 ## Rationale
 
