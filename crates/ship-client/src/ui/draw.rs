@@ -11,7 +11,7 @@ use std::path::Path;
 use ship_core::{
     id::IdOf,
     model::{Pane, PaneStatus, Tab},
-    screen::{Attr, Cell, Color, Screen},
+    screen::{Attr, Cell, Color, Screen, Size},
     tree::{self, Tabs},
 };
 
@@ -26,6 +26,18 @@ pub(super) struct Status<'a> {
     pub message: Option<&'a str>,
 }
 
+/// Rows the status line takes at the bottom.
+const STATUS_ROWS: u16 = 1;
+
+/// The area a terminal of `cols` by `rows` leaves for the tab. The server
+/// sizes panes to it.
+pub(super) fn tab_area(cols: u16, rows: u16) -> Size {
+    Size {
+        cols,
+        rows: rows.saturating_sub(STATUS_ROWS),
+    }
+}
+
 /// Marks the client's area outside the pane, when the tab is sized to a
 /// smaller client.
 const FILLER: &str = "·";
@@ -35,7 +47,8 @@ const FILLER: &str = "·";
 /// no pane selected, a hint instead of the screen.
 pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
     let [main, status_area] =
-        Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(frame.area());
+        Layout::vertical([Constraint::Fill(1), Constraint::Length(STATUS_ROWS)])
+            .areas(frame.area());
     let selected = observer.selected();
     match selected.as_ref().and_then(|selected| selected.pane) {
         Some(pane) => {

@@ -52,7 +52,7 @@ impl Drop for AttachmentGuard {
                 `attached` first, then `state` for each newer replica and `screen` for each \
                 changed screen of a pane in the viewed tab, then `ended` when the server \
                 shuts down. Viewing a tab sends each of its panes' current screens."),
-        (status = 422, description = "Malformed selection or size"),
+        (status = 422, description = "Malformed selection or area"),
         (status = 503, body = AppError),
     ),
 )]
@@ -201,7 +201,7 @@ impl<S: Send + Sync> FromRequestParts<S> for AttachmentHeader {
             no longer in the tree leaves it unchanged.", body = ViewingRecord),
         (status = 400, description = "Missing or malformed attachment header", body = AppError),
         (status = 404, description = "Attachment not found", body = AppError),
-        (status = 422, description = "Malformed selection or size"),
+        (status = 422, description = "Malformed selection or area"),
         (status = 503, body = AppError),
     ),
 )]

@@ -18,9 +18,13 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 6;
+pub const PROTOCOL_VERSION: u32 = 7;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
+/// On every response: the server's revision once the request was handled,
+/// at least that of any commit it made. A client that waits for a replica of
+/// this revision sees its own changes.
+pub const REVISION_HEADER: &str = "x-ship-revision";
 /// Longest line of the input stream, in bytes without the newline.
 pub const INPUT_LINE_MAX: usize = 64 * 1024;
 
@@ -114,8 +118,8 @@ impl MoveTab {
 pub struct AttachRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
-    /// The client's whole terminal.
-    pub size: Size,
+    /// Where the client draws the viewed tab, after its own chrome.
+    pub area: Size,
 }
 
 /// PUT /attach/view body: the client's whole view. The server replaces the
@@ -125,8 +129,8 @@ pub struct AttachRequest {
 pub struct ViewInput {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
-    /// The client's whole terminal.
-    pub size: Size,
+    /// Where the client draws the viewed tab, after its own chrome.
+    pub area: Size,
 }
 
 /// Server-owned view of one attachment. Deleted only when the attachment
@@ -136,8 +140,8 @@ pub struct ViewInput {
 pub struct ViewingRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
-    /// The client's whole terminal. Tab sizes derive from it.
-    pub size: Size,
+    /// Where the client draws the viewed tab. Tab sizes derive from it.
+    pub area: Size,
 }
 
 /// Complete replicated state. Tab `Arc`s are shared with the state actor.

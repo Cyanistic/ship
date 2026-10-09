@@ -17,7 +17,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use ship_core::{
     id::{Attachment, IdOf},
     prelude::*,
-    protocol::ATTACHMENT_HEADER,
+    protocol::{ATTACHMENT_HEADER, REVISION_HEADER},
 };
 use url::Url;
 
@@ -40,6 +40,13 @@ impl Client {
         let (request, safe) = self.build(method, path, body, attachment);
         let exchange = async {
             let response = open(request, expected_status).await?;
+            if let Some(revision) = response
+                .headers()
+                .get(REVISION_HEADER)
+                .and_then(|value| value.to_str().ok()?.parse().ok())
+            {
+                self.wrote(revision);
+            }
             let bytes = response.bytes().await.map_err(http_error)?;
             // A 204 has no body; decode it as JSON null so `()` succeeds.
             let bytes: &[u8] = if bytes.is_empty() { b"null" } else { &bytes };

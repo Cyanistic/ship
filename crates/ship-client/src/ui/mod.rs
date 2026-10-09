@@ -63,7 +63,7 @@ enum Exit {
     Signaled,
 }
 
-/// Bare `ship`. Opens the attach stream at the terminal's size, then takes
+/// Bare `ship`. Opens the attach stream at the terminal's tab area, then takes
 /// over the terminal. Nothing is selected unless `open_first` says this `ship`
 /// launched the server: then the attach asks for the first tab's pane. On
 /// every `Attached` it starts the input POST for that attachment. Keys go
@@ -81,12 +81,12 @@ enum Exit {
 /// and return.
 pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()> {
     let signaled = signaled()?;
-    let size = terminal_size()?;
+    let area = tab_area()?;
     let selection = match open_first {
         true => navigate(&client.tabs().await?, None, Step::Tab, true),
         false => None,
     };
-    let request = AttachRequest { selection, size };
+    let request = AttachRequest { selection, area };
     // Fail on an unreachable server before taking the terminal.
     let events = attach_after(client, request.clone(), Duration::ZERO).await?;
     let exit = {
@@ -135,7 +135,7 @@ async fn drive(
     // Frames for the current input POST; `None` while disconnected.
     let mut input: Option<mpsc::UnboundedSender<InputFrame>> = None;
     let mut sending: Pending<()> = None;
-    let mut size = request.size;
+    let mut area = request.area;
     let mut view_dirty = false;
     // Where navigation moved the selection, until a view PUT carries it.
     let mut chosen: Option<NodeId> = None;
@@ -167,8 +167,9 @@ async fn drive(
                     sending = None;
                     putting = None;
                     chosen = None;
+                    client.forget();
                     observer.connected = false;
-                    if let Some(remembered) = observer.remembered(size) {
+                    if let Some(remembered) = observer.remembered(area) {
                         request = remembered;
                     }
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
@@ -183,7 +184,7 @@ async fn drive(
                 }
                 Err(_) => {
                     backoff = (backoff * 2).min(MAX_BACKOFF);
-                    request.size = size;
+                    request.area = area;
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
                     false
                 }
@@ -228,7 +229,7 @@ async fn drive(
             }
             event = terminal_events.next() => match event {
                 Some(Ok(Event::Resize(cols, rows))) => {
-                    size = Size { cols, rows };
+                    area = draw::tab_area(cols, rows);
                     view_dirty = true;
                     true
                 }
@@ -255,7 +256,7 @@ async fn drive(
             _ = tick.tick(), if view_dirty && putting.is_none() && observer.connected => {
                 view_dirty = false;
                 if let (Some(attachment), Some(record)) = (observer.attachment, observer.record()) {
-                    let view = ViewInput { selection: chosen.or(record.selection), size };
+                    let view = ViewInput { selection: chosen.or(record.selection), area };
                     putting = Some(Box::pin(async move {
                         client.set_view(attachment, &view).await.map(|_| view.selection)
                     }));
@@ -265,8 +266,9 @@ async fn drive(
             () = &mut signaled => return Ok(Exit::Signaled),
         };
         // Run queued actions up to the next server action, which waits for
-        // the one in flight.
+        // the one in flight and then for the replica to show what it did.
         while running.is_none()
+            && observer.caught_up(client.written())
             && let Some(actions) = queued.front_mut()
         {
             let Some(action) = actions.pop_front() else {
@@ -479,10 +481,10 @@ async fn finish<F: Future + Unpin>(request: &mut Option<F>) -> F::Output {
     }
 }
 
-fn terminal_size() -> Result<Size> {
+fn tab_area() -> Result<Size> {
     let (cols, rows) = crossterm::terminal::size()
         .map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
-    Ok(Size { cols, rows })
+    Ok(draw::tab_area(cols, rows))
 }
 
 /// Resolves on SIGTERM, SIGHUP or SIGINT, so the terminal is restored before

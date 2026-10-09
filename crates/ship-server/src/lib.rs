@@ -111,7 +111,9 @@ pub fn router(app: AppState) -> Router {
             .on_response(|response: &axum::http::Response<axum::body::Body>, duration: Duration, _span: &tracing::Span| {
                 tracing::info!(status = response.status().as_u16(), duration_ms = duration.as_secs_f64() * 1000.0, "request completed");
             }),
-    ).split_for_parts().0.with_state(app)
+    ).split_for_parts().0
+        .layer(axum::middleware::from_fn_with_state(app.clone(), app::stamp))
+        .with_state(app)
 }
 
 /// Binds, spawns the actors, creates the starter tab when `starter` is set,
@@ -149,6 +151,7 @@ pub async fn serve(
     let (live_tx, live) = watch::channel(pane::LivePanes::new());
     let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address, config)?);
     let (replica_tx, replicas) = watch::channel(state.replica());
+    let revision = state.written();
     bus.ask(relay::Subscribe::<Arc<Replica>> {
         sink: Box::new(replica_tx),
     })
@@ -175,6 +178,7 @@ pub async fn serve(
         replicas,
         live,
         stop: stop.clone(),
+        revision,
     };
     let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {
