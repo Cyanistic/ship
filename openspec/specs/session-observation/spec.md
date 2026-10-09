@@ -14,7 +14,7 @@ Bare `ship` SHALL attach a full-screen client to the whole server, as described 
 - **THEN** the client's state includes every created tab without any further edit
 
 #### Scenario: Quiet pane on attach
-- **WHEN** a user opens `ship`, presses `C-b )`, and the first tab's first pane shows a shell prompt and produces no further output
+- **WHEN** a user opens `ship`, presses `alt-right`, and the first tab's first pane shows a shell prompt and produces no further output
 - **THEN** the client shows that prompt at once
 
 #### Scenario: Two observers converge
@@ -41,10 +41,10 @@ Each attached client SHALL have its own selection: a tab, a pane, or nothing. A 
 
 #### Scenario: Open with nothing selected
 - **WHEN** a server has three top-level tabs and a user runs `ship`
-- **THEN** the client selects nothing and shows `3 tabs · C-b ) to open one`
+- **THEN** the client selects nothing and shows `3 tabs · alt-right to open one`
 
 #### Scenario: Different selections
-- **WHEN** two clients are on different panes and one presses `C-b n`
+- **WHEN** two clients are on different panes and one presses `alt-tab`
 - **THEN** only that client's selection and screen change
 
 ### Requirement: Selection repair
@@ -75,7 +75,7 @@ An attachment SHALL end only when its client detaches or the server shuts down. 
 
 #### Scenario: Tabs return
 - **WHEN** a client shows no tabs and a user then runs `ship tab create` twice
-- **THEN** the client's hint updates to `2 tabs · C-b ) to open one` without reattaching
+- **THEN** the client's hint updates to `2 tabs · alt-right to open one` without reattaching
 
 ### Requirement: Latest state for slow observers
 A client SHALL never be shown state or a screen older than what it has already shown. A client that stops reading SHALL, once it resumes, receive the latest state and the latest screen of each pane it shows, even if no further change occurs. Intermediate states and screens are not guaranteed to be shown.
@@ -99,14 +99,14 @@ Server shutdown by SIGINT or SIGTERM SHALL end open attach streams so that the s
 - **THEN** it exits within five seconds, and both clients restore their terminals, report that the server stopped and exit
 
 ### Requirement: Cycle top-level tabs
-`C-b )` SHALL select the next top-level tab and `C-b (` the previous one, in order, wrapping around. With nothing selected they SHALL select the first and last top-level tab. Selecting a tab this way SHALL select its first pane in tree order, or the tab itself when it has no panes. The server SHALL accept a client's change of selection to any existing tab or pane, or to nothing.
+`client.tab.next` (by default `alt-right`) SHALL select the next top-level tab and `client.tab.prev` (by default `alt-left`) the previous one, in order, wrapping around. With nothing selected they SHALL select the first and last top-level tab. Selecting a tab this way SHALL select its first pane in tree order, or the tab itself when it has no panes. The server SHALL accept a client's change of selection to any existing tab or pane, or to nothing.
 
 #### Scenario: Cycle tabs
-- **WHEN** three top-level tabs exist and a client on the first presses `C-b )` three times
+- **WHEN** three top-level tabs exist and a client on the first presses `alt-right` three times
 - **THEN** the client shows each tab's first pane in turn and returns to the first
 
 #### Scenario: From nothing selected
-- **WHEN** a client has nothing selected and presses `C-b (`
+- **WHEN** a client has nothing selected and presses `alt-left`
 - **THEN** the last top-level tab's first pane is selected
 
 #### Scenario: Tab without panes
