@@ -799,6 +799,8 @@ Evidence, with a disposable probe binary and a Python harness (pyte in a pty, on
 - `rg 'C-b' crates` found nothing. Every test server was stopped afterward.
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed.
 
+Latency, judged by Cyan afterward: no delay noticeable by feel on macOS. That closes 3.5, with Linux and Windows still unverified.
+
 ### Slice 4: reload on save (2026-10-09, macOS)
 
 All slice 4 checks passed on macOS. Linux and Windows are unverified. No locked paper reopened. Implementation Rust went from 6,281 to 6,366 lines (+85, against the estimate of about 50 for watching), with tests at zero. `watch.rs` is 63 of those; the rest is the `select!` arm, the watcher's setup and a shared `reload` in `ui/mod.rs`.

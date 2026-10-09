@@ -6,7 +6,9 @@
 [Overview](#overview) •
 [Features](#features) •
 [Status](#status) •
-[Installation](#installation)
+[Installation](#installation) •
+[Keys](#keys) •
+[Configuration](#configuration)
 
 </div>
 
@@ -63,7 +65,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 ## Status
 
-Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and remove them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
+Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
 Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Split layouts, agent status and restoring after a restart are still to come.
 
@@ -85,13 +87,72 @@ cargo build --release
 ./target/release/ship
 ```
 
-Running `ship` finds the local server or starts one in the background, then opens the client. A server that `ship` starts begins with one tab holding a shell in your home directory, and the client opens on it. Press `C-b d` to detach. The server keeps running after `ship` exits, and `ship server stop` stops it.
+Running `ship` finds the local server or starts one in the background, then opens the client. A server that `ship` starts begins with one tab holding a shell in your home directory, and the client opens on it. Press `alt-q` to detach. The server keeps running after `ship` exits, and `ship server stop` stops it.
 
 To see tabs change live, leave `ship` open in one terminal and add a tab from another:
 ```sh
 TAB=$(ship tab create --name notes | jq -r .id)
-ship pane create "$TAB" --name scratch
+ship pane create --tab "$TAB" --name scratch
 ```
-Then press `C-b )` and `C-b (` in the client to move between top-level tabs.
+Then press `alt-right` and `alt-left` in the client to move between top-level tabs. `ship tab close --tab "$TAB"` closes it again.
+
+Inside a Ship pane you can leave out `--tab` and `--pane`: commands default to the pane they run in and the tab holding it. So `ship pane close` run in a pane closes that pane, and `ship pane create` adds a pane next to it.
 
 Run `ship --help` to see everything else.
+
+## Keys
+
+Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or the chords type special characters instead.
+
+| Key | Does |
+| --- | --- |
+| `alt-n` | New tab with a shell, after the selected one |
+| `alt-x` | Close the selected tab |
+| `alt-\|` / `alt--` | New pane in the selected tab |
+| `alt-shift-x` | Close the selected pane |
+| `alt-left` / `alt-right` | Previous or next tab |
+| `alt-tab` | Next pane in the tab |
+| `alt-g` | Tab mode: `j` and `k` move between tabs, `esc` leaves |
+| `alt-q` | Detach |
+
+Every other key goes to the selected pane. A few defaults are bound already but wait on split layouts and the sidebar (`alt-1` to `alt-9`, `alt-h`/`j`/`k`/`l`, `alt-b` and the `alt-r` resize mode); for now they say "not available yet".
+
+## Configuration
+
+Ship reads one config file, `ship/config.toml` in your config directory. That's `~/.config/ship/config.toml` on Linux and macOS, or under `$XDG_CONFIG_HOME` if you set it. Use `--config <file>` or `SHIP_CONFIG` to point somewhere else. Without a file, Ship uses its defaults.
+
+`[server]` holds the shell new panes run when you don't give a command:
+```toml
+[server]
+shell = "/bin/bash"          # default: your login shell
+```
+The next pane you open uses it; panes already running keep their shell. A relative path is relative to the config file's folder.
+
+`[client]` holds the keys, grouped into modes. `normal` is where you start. A binding in your file replaces the default on that key and leaves the rest alone:
+```toml
+[client.modes.normal.keys]
+"alt-t"  = { server.tab.create = {} }          # new empty tab
+"alt-q"  = "none"                              # unbind: alt-q reaches the program
+"alt-m"  = [                                   # a list runs in order
+  { server.tab.create.starter = "shell" },
+  { server.pane.create = {} },
+]
+"ctrl-b" = { client.mode = "prefix" }          # tmux habits
+
+[client.modes.prefix]
+kind = "oneshot"                               # back to normal after one key
+
+[client.modes.prefix.keys]
+"c"      = { server.tab.create.starter = "shell" }
+"ctrl-b" = { client.send = "ctrl-b" }          # a literal ctrl-b for the pane
+```
+
+You can define your own modes the same way. A `oneshot` mode takes one key and returns to normal; a `sticky` mode stays until a binding leaves it, and swallows keys it doesn't bind. Set `clear_defaults = true` on a mode to start it with none of Ship's bindings.
+
+The `server.` actions are the CLI's commands with the same names and options: `server.tab.create.starter = "shell"` is `ship tab create --starter shell`. Key spellings like `ctrl-alt-x` and `shift-tab` come from [crokey](https://docs.rs/crokey).
+
+A running client reloads its keys when you save the file. If the file has a mistake, the client keeps its current keys and shows the error at the bottom. To see every mistake at once:
+```sh
+ship config check
+```
+It prints each error with where it is in the file and exits non-zero if there are any.
