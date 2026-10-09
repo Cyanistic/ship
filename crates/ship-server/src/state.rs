@@ -12,7 +12,7 @@ use ship_core::{
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, PaneSpec, Replica,
+        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, Replica, Starter,
         ViewInput, ViewingRecord,
     },
     screen::Size,
@@ -264,8 +264,6 @@ impl ServerState {
 
 /// GET /tabs.
 pub struct ListTabs;
-/// Startup only: one top-level tab holding one pane running `PaneSpec`.
-pub struct Starter(pub PaneSpec);
 pub struct Get<T: Identified>(pub IdOf<T>);
 pub struct Rename<T: Identified> {
     pub id: IdOf<T>,
@@ -297,53 +295,31 @@ impl Message<ListTabs> for ServerState {
     }
 }
 
-impl Message<Starter> for ServerState {
-    type Reply = Result<Tab>;
-
-    /// The pane starts before the one commit that inserts the tab with it.
-    async fn handle(
-        &mut self,
-        Starter(spec): Starter,
-        _: &mut Context<Self, Self::Reply>,
-    ) -> Self::Reply {
-        let id = Id::new();
-        let pane = self.start_pane(
-            id,
-            PaneInput {
-                name: OptionalName::default(),
-                spec,
-            },
-        )?;
-        let tab = Tab {
-            id,
-            name: OptionalName::default(),
-            tabs: IndexMap::new(),
-            panes: IndexMap::from([(pane.id, pane)]),
-        };
-        self.commit(|tabs, _| {
-            tabs.insert(tab.id, Arc::new(tab.clone()));
-            Ok(tab)
-        })
-        .await
-    }
-}
-
 impl Message<CreateTab> for ServerState {
     type Reply = Result<Tab>;
 
+    /// A starter pane starts before the one commit that places the tab with
+    /// it; a missing parent or sibling then fails the commit, which drops the
+    /// pane's runtime.
     async fn handle(
         &mut self,
         create: CreateTab,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
+        let id = Id::new();
+        let mut panes = IndexMap::new();
+        if let Some(Starter::Shell) = create.starter {
+            let pane = self.start_pane(id, PaneInput::default())?;
+            panes.insert(pane.id, pane);
+        }
+        let tab = Tab {
+            id,
+            name: create.name,
+            tabs: IndexMap::new(),
+            panes,
+        };
         self.commit(|tabs, _| {
-            let tab = Tab {
-                id: Id::new(),
-                name: create.name,
-                tabs: IndexMap::new(),
-                panes: IndexMap::new(),
-            };
-            tree::children_mut(tabs, create.parent)?.insert(tab.id, Arc::new(tab.clone()));
+            tree::place(tabs, Arc::new(tab.clone()), create.at)?;
             Ok(tab)
         })
         .await

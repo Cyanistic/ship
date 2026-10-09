@@ -2,11 +2,13 @@
 //! startup belong to the application.
 
 mod api;
+mod execute;
 pub mod ui;
 
 use std::{error::Error, io, time::Duration};
 
 pub use api::{Client, Resource};
+pub use execute::{KeyScope, Outcome, Scope, current_dir};
 use futures_util::{Stream, StreamExt};
 use reqwest::{Body, Error as HttpError, Method, RequestBuilder, Response, StatusCode, header};
 use serde::{Serialize, de::DeserializeOwned};

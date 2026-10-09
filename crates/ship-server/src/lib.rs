@@ -22,8 +22,9 @@ use kameo::{
     mailbox,
 };
 use ship_core::{
+    model::OptionalName,
     prelude::*,
-    protocol::{PaneSpec, Replica},
+    protocol::{CreateTab, MoveTab, Replica, Starter},
     relay,
 };
 use tokio::{
@@ -153,7 +154,12 @@ pub async fn serve(
     forward_pane_events(&bus, state.clone()).await?;
     // Bound but not accepting: a health probe waits in the backlog until the
     // starter tab exists.
-    if starter && let Err(error) = state.ask(state::Starter(PaneSpec::default())).await {
+    let starter_tab = CreateTab {
+        at: MoveTab::top(),
+        name: OptionalName::default(),
+        starter: Some(Starter::Shell),
+    };
+    if starter && let Err(error) = state.ask(starter_tab).await {
         stop_actors(&state, &bus).await;
         return Err(AppError::from(error).context("cannot create the starter tab"));
     }

@@ -94,13 +94,9 @@ async fn dispatch(cli: Cli, source: Option<ValueSource>) -> Result<()> {
             )
             .await
         }
-        Some(Command::Tab(command)) => {
+        Some(Command::Action(command)) => {
             let client = connect(&cli.server_url, explicit_target).await?;
-            commands::tab(&client, command).await
-        }
-        Some(Command::Pane(command)) => {
-            let client = connect(&cli.server_url, explicit_target).await?;
-            commands::pane(&client, command).await
+            commands::action(&client, command).await
         }
         None => {
             let client = client(&cli.server_url)?;

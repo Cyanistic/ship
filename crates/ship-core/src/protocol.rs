@@ -18,7 +18,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 5;
+pub const PROTOCOL_VERSION: u32 = 6;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// Longest line of the input stream, in bytes without the newline.
@@ -33,14 +33,26 @@ pub struct HealthResponse {
     pub version: String,
 }
 
-/// POST /tabs body. No parent means the top level.
+/// POST /tabs body, e.g. `{"at": {"after": "tab:…"}, "starter": "shell"}`.
+/// `at` defaults to the end of the top level.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTab {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub parent: Option<IdOf<Tab>>,
+    #[serde(default = "MoveTab::top")]
+    pub at: MoveTab,
     #[serde(default)]
     pub name: OptionalName,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starter: Option<Starter>,
+}
+
+/// What a new tab starts with.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, ToSchema)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+#[serde(rename_all = "snake_case")]
+pub enum Starter {
+    /// One pane running the configured shell, else the login shell.
+    Shell,
 }
 
 /// POST /panes body.
@@ -86,6 +98,13 @@ pub enum MoveTab {
     Before(IdOf<Tab>),
     /// Insert after the sibling, under its parent.
     After(IdOf<Tab>),
+}
+
+impl MoveTab {
+    /// The end of the top level.
+    pub fn top() -> Self {
+        Self::Parent(None)
+    }
 }
 
 /// POST /attach body. The selection is what a reconnecting client last had;

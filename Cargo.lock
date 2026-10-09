@@ -2798,6 +2798,7 @@ name = "ship-core"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "clap",
  "crossterm",
  "indexmap 2.14.2",
  "kameo",

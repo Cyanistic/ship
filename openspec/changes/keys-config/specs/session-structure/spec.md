@@ -84,7 +84,7 @@ Every CLI argument naming a tab or pane SHALL take its ID. Commands acting on an
 ## ADDED Requirements
 
 ### Requirement: Targets from the current pane
-Run inside a Ship pane, `--pane` SHALL default to that pane and `--tab` to the tab holding it. Run outside a pane without the flag, the command SHALL fail, say to pass the flag or run inside a pane, and change nothing. An explicit flag SHALL win over the default.
+Commands that act on a tab SHALL also accept `--pane ID`, meaning the tab holding that pane, and `--tab` SHALL win when both are given. Run inside a Ship pane, `--pane` SHALL default to that pane and `--tab` to the tab holding it. Run outside a pane without the flag, the command SHALL fail, say to pass the flag or run inside a pane, and change nothing. An explicit flag SHALL win over the default.
 
 #### Scenario: Close the pane a command runs in
 - **WHEN** a program in pane p5 runs `ship pane close`
@@ -97,6 +97,14 @@ Run inside a Ship pane, `--pane` SHALL default to that pane and `--tab` to the t
 #### Scenario: Outside a pane
 - **WHEN** a user outside any Ship pane runs `ship pane close`
 - **THEN** the command fails saying to pass `--pane` or run inside a pane, exits 1 and nothing changes
+
+#### Scenario: A tab by one of its panes
+- **WHEN** a user runs `ship tab close --pane <p>`
+- **THEN** the tab holding `<p>` closes
+
+#### Scenario: An explicit tab inside a pane
+- **WHEN** a program in a pane runs `ship tab rename --tab <other> notes`
+- **THEN** `<other>` is renamed and the tab holding the pane is unchanged
 
 ### Requirement: Tab with a starter shell
 `ship tab create --starter` SHALL create the tab with one pane running the configured shell in the server user's home directory, and print the tab. Without `--starter`, the tab SHALL be empty.

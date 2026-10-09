@@ -1,6 +1,6 @@
 # Keys and config
 
-Status: Locked again on 2026-10-09 with amendment A-2: config warnings are dropped, so FR-016 keeps only its error and `ship config check` reports exactly what loading rejects. Cyan decided it in chat during the program review ("yeah go for it.... at least for now"), noting that any later warnings would need a much simpler, declarative design. Before that, amendment A-1: modes move under `[client]` (`[client.modes.<name>]`), so the file's top level holds only `[server]` and `[client]` (Interface, FR-003, FR-014). Cyan decided it in chat during the architecture draft and asked for a direct edit without another Plannotator pass ("just edit it directly"). First locked on 2026-10-09: Cyan approved the draft in Plannotator with "LGTM" and, in conversation, decided three changes made alongside that review: chords stay case-insensitive instead of rejecting uppercase letters (FR-011), new tabs from keys start with a shell (U-1, now FR-029), and floating panes are deferred to their own change (U-2, now a non-goal). It supersedes [notes.md](../notes.md) wherever the two differ. The locked [pane terminals](../../archive/2026-10-07-pane-terminals/design/product.md) and [drop sessions](../../archive/2026-10-08-drop-sessions/design/product.md) papers stay in force except where this paper amends them.
+Status: Locked again on 2026-10-09 with amendment A-3: commands that take a tab also accept `--pane ID`, meaning the tab holding that pane, and `--tab` wins when both are given (Command line, FR-026, FR-027). Cyan proposed it in chat after slice 1, for consistency, and approved the edits without another review ("sounds good! go for it! i don't need to review your edits"). A probe showed clap counts an env-filled `--pane` as given, so the two flags aren't a strict either-or: `--tab` takes precedence instead. Before that, amendment A-2: config warnings are dropped, so FR-016 keeps only its error and `ship config check` reports exactly what loading rejects. Cyan decided it in chat during the program review ("yeah go for it.... at least for now"), noting that any later warnings would need a much simpler, declarative design. Before that, amendment A-1: modes move under `[client]` (`[client.modes.<name>]`), so the file's top level holds only `[server]` and `[client]` (Interface, FR-003, FR-014). Cyan decided it in chat during the architecture draft and asked for a direct edit without another Plannotator pass ("just edit it directly"). First locked on 2026-10-09: Cyan approved the draft in Plannotator with "LGTM" and, in conversation, decided three changes made alongside that review: chords stay case-insensitive instead of rejecting uppercase letters (FR-011), new tabs from keys start with a shell (U-1, now FR-029), and floating panes are deferred to their own change (U-2, now a non-goal). It supersedes [notes.md](../notes.md) wherever the two differ. The locked [pane terminals](../../archive/2026-10-07-pane-terminals/design/product.md) and [drop sessions](../../archive/2026-10-08-drop-sessions/design/product.md) papers stay in force except where this paper amends them.
 
 ## Summary
 
@@ -137,14 +137,14 @@ Zoom, swap, copy mode and scrollback editing join the list with their own change
 
 ```text
 before                                   after
-ship tab rm <id>                         ship tab close [--tab ID]
-ship tab get <id>                        ship tab get [--tab ID]
-ship tab rename <id> [name]              ship tab rename [--tab ID] [NAME]
-ship tab move <id> [parent|--before|--after]   ship tab move [--tab ID] [PARENT | --before ID | --after ID]
+ship tab rm <id>                         ship tab close [--tab ID | --pane ID]
+ship tab get <id>                        ship tab get [--tab ID | --pane ID]
+ship tab rename <id> [name]              ship tab rename [--tab ID | --pane ID] [NAME]
+ship tab move <id> [parent|--before|--after]   ship tab move [--tab ID | --pane ID] [PARENT | --before ID | --after ID]
 ship pane rm <id>                        ship pane close [--pane ID]
 ship pane get <id>                       ship pane get [--pane ID]
 ship pane rename <id> [name]             ship pane rename [--pane ID] [NAME]
-ship pane create <tab> [-- CMD…]         ship pane create [--tab ID] [--name N] [--cwd DIR] [-- CMD…]
+ship pane create <tab> [-- CMD…]         ship pane create [--tab ID | --pane ID] [--name N] [--cwd DIR] [-- CMD…]
                                          ship config check [FILE]
 ```
 
@@ -156,6 +156,7 @@ How a command finds its target:
 in a pane       ship pane close            → the pane it runs in
 in a pane       ship tab close             → the tab holding that pane
 anywhere        ship pane close --pane p7  → p7
+anywhere        ship tab close --pane p7   → the tab holding p7
 outside panes   ship pane close            → error: pass --pane or run inside a pane
 ```
 
@@ -256,8 +257,8 @@ Independent verification: bind keys and run the matching CLI commands, then comp
 
 - **FR-024:** Every `server.` action MUST be a `ship` command at the same path without `server.`, taking the same arguments as flags.
 - **FR-025:** `ship tab rm` and `ship pane rm` MUST become `ship tab close` and `ship pane close`.
-- **FR-026:** Commands that act on an existing tab or pane MUST take it as `--tab ID` or `--pane ID`. Run inside a pane, `--pane` MUST default to that pane and `--tab` to the tab holding it. Run outside a pane without the flag, the command MUST fail and say to pass the flag or run inside a pane.
-- **FR-027:** `ship pane create` MUST take its tab as `--tab ID`, with the same default as FR-026.
+- **FR-026:** Commands that act on an existing tab or pane MUST take it as `--tab ID` or `--pane ID`. Commands that act on a tab MUST also accept `--pane ID` for the tab holding that pane, and `--tab` MUST win when both are given (A-3). Run inside a pane, `--pane` MUST default to that pane and `--tab` to the tab holding it. Run outside a pane without the flag, the command MUST fail and say to pass the flag or run inside a pane.
+- **FR-027:** `ship pane create` MUST take its tab as `--tab ID` or `--pane ID`, with the same default as FR-026. Once layout lands, `--pane` may also name the pane to split; the new pane still goes in that pane's tab.
 - **FR-028:** Command output MUST stay as today: one JSON result on stdout, or nothing for close.
 - **FR-029:** `server.tab.create` MUST accept an optional `starter`. With `starter = "shell"`, the new tab MUST open with one pane running the shell from FR-008, and a key binding MUST select that pane. Without it, the tab MUST be empty. `ship tab create --starter` MUST do the same.
 

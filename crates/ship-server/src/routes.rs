@@ -31,8 +31,8 @@ pub(crate) async fn list_tabs(State(app): App) -> Result<Response> {
     request_body = CreateTab,
     responses(
         (status = 201, body = Tab),
-        (status = 404, description = "Parent not found", body = AppError),
-        (status = 422, description = "Malformed parent or name"),
+        (status = 404, description = "Parent or sibling not found", body = AppError),
+        (status = 422, description = "Malformed destination, name or starter"),
         (status = 503, body = AppError),
     ),
 )]

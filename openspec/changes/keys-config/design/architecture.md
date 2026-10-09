@@ -1,6 +1,6 @@
 # Keys and config architecture
 
-Status: Locked on 2026-10-09. Cyan approved it in Plannotator with "LGTM". During that review, Cyan decided in chat to move the modes under `[client]` (product amendment A-1), and this paper was edited to match while the review was open. It implements the locked [product paper](product.md), including A-1. Shape B was picked in chat ("B makes the most sense to me"), and it and the decisions below are approved architecture. This paper does not authorize code changes.
+Status: Locked on 2026-10-09. Re-approved in chat the same day with product amendment A-3 (decision 3 and the `command` and `execute` boxes): `TabTarget` gains `--pane`, and `Scope::Cli` no longer carries a pane. Cyan approved it in Plannotator with "LGTM". During that review, Cyan decided in chat to move the modes under `[client]` (product amendment A-1), and this paper was edited to match while the review was open. It implements the locked [product paper](product.md), including A-1. Shape B was picked in chat ("B makes the most sense to me"), and it and the decisions below are approved architecture. This paper does not authorize code changes.
 
 ## Summary
 
@@ -110,9 +110,9 @@ flowchart TB
 What each box owns:
 
 - **`cli.rs`:** the clap root, with a global `--config` and `env = "SHIP_CONFIG"`, plus the default path. `ship tab …` and `ship pane …` are the core `Command` tree with clap flattened in. `server` and `config check` stay binary-only commands.
-- **`command` (ship-core):** one named struct per `server.` action, grouped as `Command { Tab(TabCommand), Pane(PaneCommand) }`, externally tagged in snake_case. Each struct holds its own target as a `PaneTarget` or `TabTarget`, a `serde(transparent)` wrapper around `Option<IdOf<_>>` that clap flattens as `--pane` (with `env = "SHIP_PANE_ID"`) or `--tab`. This is the only list of `server.` actions.
+- **`command` (ship-core):** one named struct per `server.` action, grouped as `Command { Tab(TabCommand), Pane(PaneCommand) }`, externally tagged in snake_case. Each struct holds its own target as a `PaneTarget`, a `serde(transparent)` wrapper around `Option<IdOf<Pane>>` that clap flattens as `--pane` (with `env = "SHIP_PANE_ID"`), or a `TabTarget`, which clap flattens as `--tab` plus the same env-backed `--pane` and the config writes as one `NodeId` (A-3). This is the only list of `server.` actions.
 - **`protocol` (ship-core):** stays the wire contract. Commands turn into existing bodies (`CreateTab`, `PaneInput`, `MoveTab`). `CreateTab` gains `starter` and a destination (decisions 6 and 7).
-- **`execute` (ship-client):** takes a `Command` and a `Scope` and calls `api.rs`. `Scope::Cli` carries the pane the CLI runs in. `Scope::Keys` carries the client's selection and the replica's tabs. It resolves the target, calls the API and returns the resulting resource. "Not available yet" commands return an `Unavailable` error here.
+- **`execute` (ship-client):** takes a `Command` and a `Scope` and calls `api.rs`. `Scope::Cli` carries nothing, because clap has already filled `--pane` from `SHIP_PANE_ID` (A-3). `Scope::Keys` carries the client's selection and the replica's tabs. It resolves the target, calls the API and returns the resulting resource. "Not available yet" commands return an `Unavailable` error here.
 - **`api.rs`:** unchanged HTTP wrappers. The utoipa route annotations remain the single description of each route.
 - **`keymap` (ship-client):** `Keymap` maps mode names to `Mode { kind, keys }`, and `keys` maps a `KeyCombination` to a `Binding { Server(Command), Client(ClientAction), None }`. It holds the embedded `defaults.toml` and the loader.
 - **`watch` (ship-client):** a notify debouncer on the config's directory, sending "changed" into the drive loop.
@@ -128,9 +128,9 @@ What each box owns:
    - `PaneCommand { target, action }` with the target outside the action, which fights the derives and doesn't fit `pane create`, since a new pane has no ID yet.
    - A `Request` trait on commands, which repeats what `#[utoipa::path]` already says.
 
-3. **Targets live in each struct, and `execute` resolves them.** `PaneTarget` and `TabTarget` are `serde(transparent)` around `Option<IdOf<_>>`. On the CLI, clap fills `--pane` from `SHIP_PANE_ID`. `execute` resolves a target in this order:
-   - An explicit ID wins.
-   - Under `Scope::Cli`, a missing `--tab` becomes the tab holding the current pane, found with `GET /api/v0/tabs` and a tree search. With no current pane, it errors (FR-026).
+3. **Targets live in each struct, and `execute` resolves them.** `PaneTarget` is `serde(transparent)` around `Option<IdOf<Pane>>`. `TabTarget` holds `--tab` and `--pane`, and the config writes it as one ID, `"tab:…"` or `"pane:…"` (A-3). On the CLI, clap fills `--pane` from `SHIP_PANE_ID`, so `SHIP_PANE_ID` is read only there. `execute` resolves a target in this order:
+   - An explicit `--tab` or `--pane` wins, `--tab` first. `--pane` on a tab command means the tab holding it, found with `GET /api/v0/tabs` (or the replica under keys) and a tree search. They aren't a clap group, because clap counts an env-filled `--pane` as given and would reject `--tab` inside a pane.
+   - Under `Scope::Cli`, nothing is left to default to, so it errors (FR-026).
    - Under `Scope::Keys`, a missing target becomes the selection, or the selected pane's tab. A pane command with only a tab selected reports that (FR-020).
    - The mouse passes an explicit ID.
 

@@ -61,16 +61,11 @@ impl Client {
             .await
     }
 
-    /// `None` appends to the top level.
-    pub async fn create_tab(&self, parent: Option<IdOf<Tab>>, name: Option<&str>) -> Result<Tab> {
-        let body = CreateTab {
-            parent,
-            name: name.map(str::to_owned).into(),
-        };
+    pub async fn create_tab(&self, body: &CreateTab) -> Result<Tab> {
         self.request(
             Method::POST,
             Tab::COLLECTION,
-            Some(&body),
+            Some(body),
             None,
             StatusCode::CREATED,
         )

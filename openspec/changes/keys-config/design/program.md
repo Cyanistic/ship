@@ -1,13 +1,13 @@
 # Keys and config program
 
-Status: Locked on 2026-10-09. Cyan approved it in chat after two Plannotator rounds ("oh alright. fair enough. alright... i think we're ready for openspec docs??"). The rounds dropped config warnings (product amendment A-2) and confirmed by probe that argument-free client actions are empty struct variants (U-1). Written from the locked [product](product.md) paper (including amendments A-1 and A-2) and the locked [architecture](architecture.md) paper, against the crates at 9a05ab8. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice.
+Status: Locked on 2026-10-09. Cyan approved it in chat after two Plannotator rounds ("oh alright. fair enough. alright... i think we're ready for openspec docs??"). The rounds dropped config warnings (product amendment A-2) and confirmed by probe that argument-free client actions are empty struct variants (U-1). Written from the locked [product](product.md) paper (including amendments A-1 and A-2) and the locked [architecture](architecture.md) paper, against the crates at 9a05ab8. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Re-approved in chat after slice 1 with product amendment A-3 ("sounds good! go for it! i don't need to review your edits"): `TabTarget` gains `--pane`, `Scope::Cli` becomes a unit variant, and `commands::action` no longer reads `SHIP_PANE_ID`.
 
 Needs Cyan's attention:
 
 - **`ship server --starter` goes through `CreateTab`.** The startup-only `state::Starter` message is deleted, because a `CreateTab` with `starter: Some(Shell)` does the same thing. That leaves one way to make a tab with a shell instead of two. The architecture paper said "reuses the `state::Starter` path", and this keeps the behavior while dropping the duplicate.
 - **The configured shell goes in through `SHELL`.** portable-pty's default program reads `SHELL` from the command builder and still starts it as a login shell (`-zsh`), so the server sets `SHELL` on the builder and leaves the rest alone. Configuring the shell doesn't need a code path of its own.
 - **`CreateTab` on the wire changes shape.** `parent` becomes `at`, the same `MoveTab` that move takes, so the body reads `{"at": {"after": "tab:…"}, "starter": "shell"}`. `PROTOCOL_VERSION` goes to 6.
-- **`SHIP_PANE_ID` is read in two places.** clap reads it to fill a missing `--pane`, as the architecture says, and the binary reads it again to build `Scope::Cli`, which the `--tab` default needs. The alternative is a hidden global clap argument, which clashes with `--pane`.
+- **Superseded by A-3:** clap is now the only reader of `SHIP_PANE_ID`, through `--pane` on both targets. The original note follows. **`SHIP_PANE_ID` is read in two places.** clap reads it to fill a missing `--pane`, as the architecture says, and the binary reads it again to build `Scope::Cli`, which the `--tab` default needs. The alternative is a hidden global clap argument, which clashes with `--pane`.
 - **U-1, resolved by probe:** figment rejects `{}` for a unit variant ("invalid type: found map, expected unit"), while the `toml` crate accepts it. Empty struct variants (`Next {}`) and structs with all-default fields both accept `{}` under figment, through the whole value and through one `Value` per binding. So client actions with no arguments are empty struct variants, on purpose (see the comment on `ClientAction`). Figment errors name the key path with a `default.` profile prefix (`default.keys.a.client.tab.next.x`), which `Keymap::load` strips.
 
 ## Rationale
@@ -70,10 +70,10 @@ ship-core = { workspace = true, features = ["clap"] }
 
 #[cfg(feature = "clap")]
 use clap::{Args, Subcommand};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use crate::{id::IdOf, model::{Pane, Tab}, protocol::{MoveTab, Starter}};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "clap", derive(Subcommand))]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
@@ -87,7 +87,7 @@ pub enum Command {
 
 /// `--pane ID`; a missing ID comes from `SHIP_PANE_ID` on the CLI and the
 /// selection on keys. `{}` in the config.
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "clap", derive(Args))]
 #[serde(transparent)]
 pub struct PaneTarget {
@@ -95,18 +95,22 @@ pub struct PaneTarget {
     pub id: Option<IdOf<Pane>>,
 }
 
-/// `--tab ID`; a missing ID is the tab holding the current pane on the CLI,
-/// or the selected tab on keys.
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+/// `--tab ID`, or `--pane ID` for the tab holding it; `--tab` wins (A-3).
+/// A missing target is the tab holding the current pane on the CLI, or the
+/// selected tab on keys. The config writes one ID, `"tab:…"` or `"pane:…"`.
+/// Not a clap group: clap counts an env-filled `--pane` as given.
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "clap", derive(Args))]
-#[serde(transparent)]
+#[serde(from = "Option<NodeId>")]
 pub struct TabTarget {
     #[cfg_attr(feature = "clap", arg(long = "tab", value_name = "ID"))]
     pub id: Option<IdOf<Tab>>,
+    #[cfg_attr(feature = "clap", arg(long = "pane", env = "SHIP_PANE_ID", value_name = "ID"))]
+    pub pane: Option<IdOf<Pane>>,
 }
 
 /// At most one. Moved here from `ship/src/cli.rs`, now with serde.
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "clap", derive(Args), group(multiple = false))]
 #[serde(deny_unknown_fields)]
 pub struct Destination {
@@ -123,13 +127,13 @@ impl Destination {
     pub fn resolve(self) -> Result<Option<MoveTab>>;
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[serde(rename_all = "snake_case")]
 pub enum Direction { Left, Down, Up, Right }
 
 pub mod tab {
-    #[derive(Clone, Debug, Serialize, Deserialize)]
+    #[derive(Clone, Debug, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case", deny_unknown_fields)]
     pub enum TabCommand {
@@ -213,7 +217,7 @@ pub mod pane {
 }
 ```
 
-Every struct derives `Clone, Debug, Serialize, Deserialize` and, behind the feature, `Args`. The `#[serde(default, deny_unknown_fields)]` shown on `Create` applies to every struct, so `{}` works wherever every field is optional.
+Every struct derives `Clone, Debug, Deserialize` (no `Serialize`: nothing serializes a command) and, behind the feature, `Args`. The `#[serde(default, deny_unknown_fields)]` shown on `Create` applies to every struct, so `{}` works wherever every field is optional.
 
 #### `crates/ship-client/src/execute.rs` (slice 1)
 
@@ -224,14 +228,17 @@ use ship_core::{command::{Command, PaneTarget, TabTarget}, model::{NodeId, Pane,
 
 /// Where a missing target comes from.
 pub enum Scope {
-    /// The pane the CLI runs in, from `SHIP_PANE_ID`. CLI-made panes default
-    /// to the process's current directory.
-    Cli { pane: Option<IdOf<Pane>> },
-    /// The client's selection and the tabs it was made in. Key-made tabs go
-    /// after the selected tab (FR-021); key-made panes start in the server's
-    /// home directory (architecture R-3).
-    Keys { selection: Option<NodeId>, tabs: Tabs },
+    /// The CLI; clap already filled `--pane` from `SHIP_PANE_ID` (A-3).
+    /// CLI-made panes default to the process's current directory.
+    Cli,
+    /// A key binding, resolved against the client's view.
+    Keys(KeyScope),
 }
+
+/// The client's selection and the tabs it was made in. Key-made tabs go
+/// after the selected tab (FR-021); key-made panes start in the server's
+/// home directory (architecture R-3).
+pub struct KeyScope { pub selection: Option<NodeId>, pub tabs: Tabs }
 
 /// What a command produced. Serializes as the resource itself; `Closed`
 /// prints nothing (FR-028).
@@ -245,8 +252,8 @@ impl Client {
     /// `pane resize`.
     pub async fn execute(&self, command: Command, scope: &Scope) -> Result<Outcome>;
 
-    /// Under `Scope::Cli`, a missing tab is `tree::pane_owner` of the current
-    /// pane over `GET /tabs`.
+    /// `--tab`, else `tree::pane_owner` of `--pane` (over `GET /tabs` on the
+    /// CLI), else the selected tab under keys.
     async fn tab_target(&self, target: TabTarget, scope: &Scope) -> Result<IdOf<Tab>>;
     fn pane_target(target: PaneTarget, scope: &Scope) -> Result<IdOf<Pane>>;
 }
@@ -454,7 +461,7 @@ The other wrappers don't change.
 
 #### `crates/ship-client/src/lib.rs` (slices 1, 3 and 4)
 
-Adds `mod execute;` and `pub use execute::{Outcome, Scope, current_dir};` in slice 1, `pub mod keymap;` in slice 3, and `mod watch;` in slice 4.
+Adds `mod execute;` and `pub use execute::{KeyScope, Outcome, Scope, current_dir};` in slice 1, `pub mod keymap;` in slice 3, and `mod watch;` in slice 4.
 
 #### `crates/ship-client/src/ui/keys.rs` (slice 3)
 
@@ -499,7 +506,7 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
 Inside `drive`:
 
 - `Keys::new(Keymap::load(config))`. On `Err`, it runs on `Keymap::defaults()` and puts the first error on the status line (FR-007).
-- `queued: VecDeque<Command>` and `running: Pending<Outcome>`. A key's `Action::Server` is pushed onto the queue, and the slot runs the front with `Scope::Keys { selection, tabs }` taken from the observer. A `Tab` or `Pane` outcome becomes `chosen`, so the next view PUT selects it. A tab with a starter pane selects that pane (FR-021, FR-029). An error goes to the status line.
+- `queued: VecDeque<Command>` and `running: Pending<Outcome>`. A key's `Action::Server` is pushed onto the queue, and the slot runs the front with `Scope::Keys(KeyScope { selection, tabs })` taken from the observer. A `Tab` or `Pane` outcome becomes `chosen`, so the next view PUT selects it. A tab with a starter pane selects that pane (FR-021, FR-029). An error goes to the status line.
 - `Action::Client`: `tab.next`/`prev` and `pane.next`/`prev` go through the existing `navigate`. `detach` exits. `config.reload` reloads. `send` becomes a frame. The layout actions (`tab.select`, `tab.expand`, `tab.collapse`, `pane.focus` and `sidebar.toggle`) put "not available yet" on the status line.
 - Slice 4: `watch::changes(config)` becomes one more `select!` arm, the same as `config.reload`. A failed reload keeps the running keymap and shows the error.
 - The doc comment loses its `C-b )` reference.
@@ -555,8 +562,8 @@ impl Cli {
 #### `crates/ship/src/commands.rs` (slices 1 and 2)
 
 ```rust
-/// `ship tab …` and `ship pane …`: execute under `Scope::Cli` with
-/// `SHIP_PANE_ID`, then print the outcome.
+/// `ship tab …` and `ship pane …`: execute under `Scope::Cli`, then print
+/// the outcome.
 pub async fn action(client: &Client, command: Command) -> Result<()>;   // replaces tab() and pane()
 /// `ship config check`: runs `ServerSettings::load` and `Keymap::load`, prints
 /// every error with its location on stderr, exits non-zero on any. No warnings.
@@ -646,4 +653,55 @@ The `C-b` keys become the Alt defaults, `rm` becomes `close`, the README shows `
 
 ## Deviation log
 
-Empty.
+### Slice 1: one command tree (2026-10-09, macOS)
+
+All slice 1 checks passed on macOS. Linux and Windows are unverified. No locked paper reopened. Implementation Rust went from 5,244 to 5,532 lines (+288), with tests at zero; slices 3 and 4 still have to delete the `C-b` keys.
+
+Small departures from the skeleton, none changing behavior the papers specify:
+
+- **`pane resize` takes `--direction` and `--amount` as flags** (FR-024 says "as flags"). The skeleton left their clap attributes out.
+- **`Resize` has no struct-level `#[serde(default)]`**, because `direction` is required. Its optional fields default one by one, so "`{}` works wherever every field is optional" still holds.
+- **The `Command` enums don't carry `deny_unknown_fields`.** An externally tagged enum already rejects unknown variants.
+- **Superseded by A-3:** a malformed `SHIP_PANE_ID` used to fail every `ship tab` and `ship pane` command, `tab list` included, because `commands::action` parsed it up front. See the A-3 entry below.
+
+One surprise, already true before this change: with an explicit `--server-url`, `ship tab …` and `ship pane …` skip the health check, so a protocol-5 `ship tab list` still talks to a protocol-6 server. The protocol check therefore ran through `server status` and the bare client, which do check health.
+
+Evidence, each run against a foreground `ship server --port <p>` with `--server-url`:
+
+- `ship --help` lists `tab` and `pane` with `close`, no `rm`. `ship tab rm` exits 2 with "unrecognized subcommand 'rm'".
+- `curl POST /api/v0/tabs` with `{"at":{"after":"<a>"},"starter":"shell"}` returned 201 with one `/bin/zsh` pane, and `ship tab list` showed it right after `a`. `{}` appended an empty tab at the end. A missing sibling with a starter returned 404, and the tab count stayed at 4.
+- `ship server --starter` listed one tab with one `/bin/zsh` pane.
+- A pane running `"$SHIP_BIN" pane close` disappeared while its sibling `sleep 100` pane stayed. A pane running `"$SHIP_BIN" tab close` took its tab with it.
+- Outside a pane (`env -u SHIP_PANE_ID`), `ship pane close` printed "pass --pane or run inside a pane" and `ship tab close` printed "pass --tab or run inside a pane", each exiting 1.
+- `ship tab create --starter --after <first> --name started` printed a tab with one `/bin/zsh` pane, listed between `first` and `last`.
+- `ship pane create --tab <t> --cwd /var -- sh -c 'sleep 100'` printed `cwd: "/var"`, running.
+- `ship pane resize --pane <p> --direction left` printed "pane resize is not available yet" and exited 1.
+- `ship tab move --tab <id> <parent> --before <sib>` exited 2: "the argument '[PARENT]' cannot be used with '--before <ID>'".
+- The pre-change binary (protocol 5) running `server status` and the bare client both reported "incompatible health response … expected service ship and protocol 5" and exited 1.
+- A disposable consumer in the scratchpad (build output in ignored `target/keys-config-proof`) printed `CreateTab` with `at` (`$ref MoveTab`), `name` and `starter` (`Starter`, enum `["shell"]`), and the create route's 404 as "Parent or sibling not found".
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, Clippy on `-p ship-core` with and without `--features clap`, debug builds of `ship-core` with and without `clap`, and the workspace debug and release builds all passed.
+
+### A-3 follow-up: `--pane` on tab targets (2026-10-09, macOS)
+
+Product amendment A-3 landed on top of slice 1. `TabTarget` gained an env-backed `--pane`, `Scope::Cli` became a unit variant, and `commands::action` stopped reading `SHIP_PANE_ID`, so clap is its only reader. Implementation Rust is now 5,569 lines (+37 over slice 1), with tests at zero. Linux and Windows are unverified.
+
+Two clap probes outside the repo (clap 4.6.7) decided the shape. With `group(multiple = false)`, `PROBE_PANE=p5 probe --tab t3` exited 2: "the argument '--tab <ID>' cannot be used with '--pane <PANE>'". `overrides_with = "pane"` gave the same error for an env-filled value. With plain fields, both parse, so `tab_target` lets `--tab` win. In the config, `TabTarget` writes as one `NodeId` through `serde(from, into)`. Making it a nested table would have broken the `server.tab.close.tab = "…"` spelling, and `flatten` doesn't work with `deny_unknown_fields`.
+
+What's left of the malformed-ID case: `SHIP_PANE_ID=garbage` no longer affects `tab list` or `tab create`. Any command with a `--pane` field still exits 2 on it ("invalid value 'garbage' for '--pane <ID>'"), even when `--tab` is given, because clap parses the env value before the command runs.
+
+Evidence, against a foreground server with `--server-url`:
+
+- Inside a pane, `"$SHIP_BIN" pane close` and `"$SHIP_BIN" tab close` still close that pane and its tab. `"$SHIP_BIN" tab rename --tab <other> renamed` renamed `<other>` and left the pane's own tab alone.
+- Outside a pane, `ship tab close --pane <p>` closed the tab holding `<p>` and exited 0. `ship tab rename --tab <o> --pane <p> both` renamed `<o>`. `ship pane create --pane <p>` added the pane to `<p>`'s tab.
+- Outside a pane without flags, `ship tab close` printed "pass --tab or --pane, or run inside a pane", and `ship pane close` printed "pass --pane or run inside a pane", each exiting 1.
+- A serde probe on `Command` accepted `{"tab":{"close":{}}}`, `"tab": "tab:…"` and `"tab": "pane:…"` (the last becoming `pane: Some(…)`), and `pane.create.tab = "pane:…"`. It rejected `"tab": "nope"` (no `NodeId` variant) and `"pane": "x"` ("unknown field `pane`, expected `tab`").
+- The slice 1 workflow script passed again: `--starter --after`, `--cwd /var`, the resize message, and the exit 2 for parent with `--before`.
+- fmt, workspace Clippy, Clippy and debug builds on `ship-core` with and without `clap`, and the workspace debug and release builds passed.
+
+### Review follow-up: `KeyScope` and no `Serialize` on commands (2026-10-09, macOS)
+
+Cyan's Plannotator review of slice 1 pointed out that `Scope::Keys { selection, tabs }` broke `docs/agents/code.md`'s "name your shapes". It was also the only inline struct variant in the crates, where every other enum carries a named payload (`InputFrame::Key(KeyInput)`, `SseEvent::Attached(Attached)`). It's now `Scope::Keys(KeyScope)`, and `ship_client` exports `KeyScope`. The skeleton above is updated to match.
+
+Checking the rest of the diff against `code.md` found one more fix, which Cyan approved with the first: the command tree derived `Serialize`, and nothing serializes a command. Dropping it also removed `From<TabTarget> for Option<NodeId>`, which existed only for `serde(into)` and silently dropped `pane` when both were set. Two other findings stayed as they are. The "at most one destination" rule lives in both the clap group and `Destination::resolve`, because the config has no clap and the spec needs exit 2 on the CLI. `KeyScope` owns a per-call snapshot of `Arc`s, which isn't stored state.
+
+Implementation Rust is now 5,566 lines, with tests at zero. fmt, workspace Clippy, Clippy and debug builds on `ship-core` with and without `clap`, and the workspace debug and release builds passed. The serde probe accepted and rejected the same inputs as before, and both slice 1 workflow scripts gave the same results as before.
