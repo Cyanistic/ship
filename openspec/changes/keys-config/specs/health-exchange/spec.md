@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Health contract and result
-A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing `service` equal to `ship`, `protocolVersion` equal to 6, and informational string `version`. Health response JSON field names SHALL use camelCase; Rust fields retain snake_case. The client SHALL validate service/protocol compatibility before any other request. `ship server status` SHALL print one health JSON line on stdout only on success, and SHALL never start a server.
+A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing `service` equal to `ship`, `protocolVersion` equal to 7, and informational string `version`. Health response JSON field names SHALL use camelCase; Rust fields retain snake_case. The client SHALL validate service/protocol compatibility before any other request. `ship server status` SHALL print one health JSON line on stdout only on success, and SHALL never start a server.
 
 #### Scenario: Compatible health
 - **WHEN** `ship server status` contacts a compatible server
@@ -18,7 +18,7 @@ A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing
 - **THEN** the client reports contextual failure, emits no success result and exits 1
 
 #### Scenario: Client from an earlier protocol
-- **WHEN** a client built for protocol version 1 to 5 contacts a server reporting protocol version 6
+- **WHEN** a client built for protocol version 1 to 6 contacts a server reporting protocol version 7
 - **THEN** the client reports the incompatible protocol version and exits 1 without attaching
 
 ### Requirement: Server starter

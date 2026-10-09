@@ -29,7 +29,7 @@ Every binding SHALL name one action under `server.` or `client.`, a list of such
 - **THEN** the file loads without error
 
 ### Requirement: Action lists
-A binding written as a list SHALL run its actions in order, each after the one before has finished. It SHALL stop at the first action that fails, keep what the earlier actions did, and show the error on the status line. An empty list, or `"none"` inside a list, SHALL be an error.
+A binding written as a list SHALL run its actions in order, each after the one before has finished and the client shows its result. It SHALL stop at the first action that fails, keep what the earlier actions did, and show the error on the status line. An empty list, or `"none"` inside a list, SHALL be an error.
 
 #### Scenario: Tab with two panes
 - **WHEN** the file binds `"alt-m" = [{ server.tab.create.starter = "shell" }, { server.pane.create = {} }]` and the user presses `alt-m`

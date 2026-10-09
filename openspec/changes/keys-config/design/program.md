@@ -1,12 +1,13 @@
 # Keys and config program
 
-Status: Locked on 2026-10-09. Re-approved in chat during slice 3 with product amendment A-4 (the `keymap.rs`, `keys.rs` and `ui/mod.rs` skeletons): bindings are lists of actions, the defaults go through a list-wrapping provider in place of the `Chords` provider, and the drive loop queues each key's actions. Cyan asked for the code first and the papers once it worked; see the slice 3 entry in the deviation log. Before that, Cyan approved it in chat after two Plannotator rounds ("oh alright. fair enough. alright... i think we're ready for openspec docs??"). The rounds dropped config warnings (product amendment A-2) and confirmed by probe that argument-free client actions are empty struct variants (U-1). Written from the locked [product](product.md) paper (including amendments A-1 and A-2) and the locked [architecture](architecture.md) paper, against the crates at 9a05ab8. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Re-approved in chat after slice 1 with product amendment A-3 ("sounds good! go for it! i don't need to review your edits"): `TabTarget` gains `--pane`, `Scope::Cli` becomes a unit variant, and `commands::action` no longer reads `SHIP_PANE_ID`.
+Status: Locked on 2026-10-09. Re-approved in chat during slice 5 with product amendment A-5 (the `protocol.rs` and `ui/mod.rs` skeletons): every response carries `x-ship-revision`, the drive loop's queue waits for the replica to reach it, and `size` becomes `area` with `PROTOCOL_VERSION` 7. Cyan asked for the code first and the papers once it worked; see the slice 5 entry in the deviation log. Before that, re-approved in chat during slice 3 with product amendment A-4 (the `keymap.rs`, `keys.rs` and `ui/mod.rs` skeletons): bindings are lists of actions, the defaults go through a list-wrapping provider in place of the `Chords` provider, and the drive loop queues each key's actions. Cyan asked for the code first and the papers once it worked; see the slice 3 entry in the deviation log. Before that, Cyan approved it in chat after two Plannotator rounds ("oh alright. fair enough. alright... i think we're ready for openspec docs??"). The rounds dropped config warnings (product amendment A-2) and confirmed by probe that argument-free client actions are empty struct variants (U-1). Written from the locked [product](product.md) paper (including amendments A-1 and A-2) and the locked [architecture](architecture.md) paper, against the crates at 9a05ab8. Nothing here is created source, and no snippet has been compiled. Approval doesn't start implementation; Cyan requests that separately, slice by slice. Re-approved in chat after slice 1 with product amendment A-3 ("sounds good! go for it! i don't need to review your edits"): `TabTarget` gains `--pane`, `Scope::Cli` becomes a unit variant, and `commands::action` no longer reads `SHIP_PANE_ID`.
 
 Needs Cyan's attention:
 
 - **`ship server --starter` goes through `CreateTab`.** The startup-only `state::Starter` message is deleted, because a `CreateTab` with `starter: Some(Shell)` does the same thing. That leaves one way to make a tab with a shell instead of two. The architecture paper said "reuses the `state::Starter` path", and this keeps the behavior while dropping the duplicate.
 - **The configured shell goes in through `SHELL`.** portable-pty's default program reads `SHELL` from the command builder and still starts it as a login shell (`-zsh`), so the server sets `SHELL` on the builder and leaves the rest alone. Configuring the shell doesn't need a code path of its own.
 - **`CreateTab` on the wire changes shape.** `parent` becomes `at`, the same `MoveTab` that move takes, so the body reads `{"at": {"after": "tab:…"}, "starter": "shell"}`. `PROTOCOL_VERSION` goes to 6.
+- **A-5 changes the wire twice more.** Every response gains an `x-ship-revision` header, which is additive. `size` becomes `area` in `AttachRequest`, `ViewInput` and `ViewingRecord`, meaning the client's tab area after its own status line, and since that changes a field's meaning `PROTOCOL_VERSION` goes to 7.
 - **Superseded by A-3:** clap is now the only reader of `SHIP_PANE_ID`, through `--pane` on both targets. The original note follows. **`SHIP_PANE_ID` is read in two places.** clap reads it to fill a missing `--pane`, as the architecture says, and the binary reads it again to build `Scope::Cli`, which the `--tab` default needs. The alternative is a hidden global clap argument, which clashes with `--pane`.
 - **U-1, resolved by probe:** figment rejects `{}` for a unit variant ("invalid type: found map, expected unit"), while the `toml` crate accepts it. Empty struct variants (`Next {}`) and structs with all-default fields both accept `{}` under figment, through the whole value and through one `Value` per binding. So client actions with no arguments are empty struct variants, on purpose (see the comment on `ClientAction`). Figment errors name the key path with a `default.` profile prefix (`default.keys.a.client.tab.next.x`), so `Keymap::load` builds the location from figment's key path instead of its message.
 
@@ -415,7 +416,7 @@ pub fn changes(path: &Path) -> Result<impl Stream<Item = ()>>;
 #### `crates/ship-core/src/protocol.rs` (slice 1)
 
 ```rust
-pub const PROTOCOL_VERSION: u32 = 6;              // was 5: CreateTab's shape
+pub const PROTOCOL_VERSION: u32 = 7;              // 6: CreateTab's shape; 7: area (A-5)
 
 /// POST /tabs body. `at` defaults to the end of the top level.
 pub struct CreateTab {
@@ -534,7 +535,7 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
 Inside `drive`:
 
 - `Keys::new(Keymap::load(config))`. On `Err`, it runs on `Keymap::defaults()` and puts the first error, and how many more, on the status line (FR-007).
-- `queued: VecDeque<VecDeque<Action>>`, one entry per bound key, and `running: Pending<Option<NodeId>>`. After every event the loop runs queued actions in order until it reaches a `server.` action, which goes in the slot with `Scope::Keys(KeyScope { selection, tabs })` taken from the observer; the actions after it wait for it (A-4). A created tab or pane becomes `chosen`, so the next view PUT selects it, and a tab with a starter pane selects that pane (FR-021, FR-029). A failure, from the server or a client action, goes to the status line and drops the rest of that key's actions.
+- `queued: VecDeque<VecDeque<Action>>`, one entry per bound key, and `running: Pending<Option<NodeId>>`. After every event the loop runs queued actions in order until it reaches a `server.` action, which goes in the slot with `Scope::Keys(KeyScope { selection, tabs })` taken from the observer; the actions after it wait for it (A-4). The loop also runs nothing while `observer.caught_up(client.written())` is false, so a step after a `server.` action sees the revision its response carried in `x-ship-revision`; a cut connection calls `client.forget()` (A-5). A created tab or pane becomes `chosen`, so the next view PUT selects it, and a tab with a starter pane selects that pane (FR-021, FR-029). A failure, from the server or a client action, goes to the status line and drops the rest of that key's actions.
 - `Action::Client`: `tab.next`/`prev` and `pane.next`/`prev` go through the existing `navigate`. `mode` calls `Keys::enter`. `detach` exits. `config.reload` reloads. `send` becomes a frame for the selected pane, or "no pane selected". The layout actions (`tab.select`, `tab.expand`, `tab.collapse`, `pane.focus` and `sidebar.toggle`) put "not available yet" on the status line.
 - Slice 4: `watch::changes(config)` becomes one more `select!` arm, the same as `config.reload`. A failed reload keeps the running keymap and shows the error.
 - The doc comment loses its `C-b )` reference.
@@ -828,3 +829,30 @@ Evidence, from a Python harness (pyte in a pty, one foreground server per scenar
 - With `--config` in a folder that doesn't exist, the client started with an empty status line and the default `alt-n` worked.
 - Every test server was stopped afterward, and no `ship` processes remained.
 - `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed. No route or protocol type changed, so the OpenAPI consumer wasn't rerun.
+
+### Slice 5: docs, the list race and the size report (2026-10-09, macOS)
+
+All slice 5 checks passed on macOS. Linux and Windows are unverified, here and for every slice of this change. The papers reopened under amendment A-5, which Cyan approved in chat (product status line).
+
+Surprise:
+
+- **A list's second step ran against a stale tree.** Checking the README's `alt-m` example (a starter tab, then a pane) made a two-pane tab only 6 times in 10; the rest showed "no tab selected". The first step's response arrived before the state event that showed the new tab, and the next step resolved its target from the replica straight away. Slice 3's single run had passed by timing. A-5 fixes it with the revision header (architecture decision 13). The same review found the server subtracting the TUI's status line from the client's terminal, so A-5 also moves that to the client (decision 14).
+
+Small departures from the skeleton, none changing behavior the papers specify:
+
+- **The client reads the header in `Client::request`, not in `open`.** `request` carries every one-shot call, including the view PUT. The attach and input streams also go through `open` and their headers aren't read: an attach's own `Attached` event carries the replica it committed, and input commits nothing. `Client` gains `new`, since its revision field is private.
+- **The status line's height is one constant**, `draw::STATUS_ROWS`, shared by the layout and `draw::tab_area`, so the area the client reports and the area it draws can't drift.
+
+Evidence, from the same Python harness (pyte in a pty, one foreground server per scenario) in the scratchpad:
+
+- `alt-m` from the README's config made a two-pane tab 20 times in 20, against 6 in 10 before the fix.
+- curl on a server without `--starter`: `x-ship-revision: 0` on `/health` and the tab list, `1` after a create, `2` on the delete's 204, and still `2` on a second delete's 404.
+- After 5 `alt-m` presses, the server was killed and restarted on the same port. Once the client reconnected, `alt-m` made a two-pane tab on the new server. With `client.forget()` removed, the same run created nothing, because the queue waited for the old server's revision; the line was restored afterward.
+- `stty size` in a pane read `19 260` under one 260x20 client, `11 100` with a 100x12 client added, and `19 260` once that client left.
+- The new build refused a protocol 6 server: `incompatible health response … expected service ship and protocol 7`, exit 1.
+- 5.1: `rg 'C-b|tab rm|pane rm' README.md crates` found nothing. The Installation commands ran as written against a test server: `tab create --name notes`, `pane create --tab "$TAB" --name scratch`, then `tab close --tab "$TAB"` left only the starter tab. Both README toml blocks are in the tested config, and `ship config check` passed on it. That config's keys checked out in the harness: `alt-t` made an empty tab, `alt-m` a tab with two panes, `ctrl-b c` a tab with a shell, `ctrl-b ctrl-b` sent `^B` to `cat -v`, and `"alt-q" = "none"` sent `^[q` to the pane.
+- The slice 3 key checks and the slice 4 reload checks gave their earlier results.
+- No temporary probes, disposable consumers or scratch configs are in the repo: `git status` lists only these paper edits, and every test server was stopped.
+- `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and the workspace debug and release builds passed.
+
+Size: implementation Rust went from 6,366 to 6,463 lines (+97) in this slice, with tests at zero. Over the change, it went from 5,244 at the first slice to 6,463 (+1,219), counted as every `.rs` file under `crates`. The estimate was +350 to 550 from roughly 5,070. Most of the overrun is slice 3's keymap and mode machine (+578 against about 300), with execute and the command tree in slice 1 (+288 and +37 for A-3), slice 2's settings and placement (+141), watching (+85 against about 50) and A-5 (+97, not estimated). The total stays well inside the 20,000-line budget. Tests are zero.

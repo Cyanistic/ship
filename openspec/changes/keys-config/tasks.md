@@ -75,8 +75,8 @@ Every slice runs workflows against a foreground `ship server --port <p>` with `-
 
 ## 5. Docs and the size report: a README that matches, and recorded evidence
 
-- [ ] 5.1 Update `README.md`: the Alt defaults replace the `C-b` keys, `close` replaces `rm`, `--tab`/`--pane` with the in-pane defaults, and a config file section covering location, `[server] shell`, a rebinding example, user modes and `ship config check`, linking crokey for chord spelling. Verify `rg 'C-b|tab rm|pane rm' README.md crates` finds nothing and the README's commands and config example run as written.
-- [ ] 5.2 Verify the change end to end:
+- [x] 5.1 Update `README.md`: the Alt defaults replace the `C-b` keys, `close` replaces `rm`, `--tab`/`--pane` with the in-pane defaults, and a config file section covering location, `[server] shell`, a rebinding example, user modes and `ship config check`, linking crokey for chord spelling. Verify `rg 'C-b|tab rm|pane rm' README.md crates` finds nothing and the README's commands and config example run as written.
+- [x] 5.2 Verify the change end to end:
   - Report implementation Rust before and after, and test lines (zero), separately against the program paper's estimate.
   - Record which checks ran on Linux and macOS, with Windows unverified.
   - Confirm no temporary probes, disposable consumers or scratch config files remain in the repo.
