@@ -6,16 +6,16 @@ Provide a usable local Ship executable with discoverable commands, documented pr
 
 ## Requirements
 
-### Requirement: Buildable application and discoverable commands
-The project SHALL provide a buildable Ship executable with help and version output that do not require a running server. At the health checkpoint, help SHALL describe bare-command health, explicit server startup, custom target selection and automatic background-server persistence.
+### Requirement: Buildable application and command help
+The project SHALL provide a buildable Ship executable with help and version output that do not require a running server. Help SHALL describe bare `ship` opening the client, `ship server status`, explicit server startup with `--starter`, custom target selection and automatic background-server persistence.
 
 #### Scenario: Foundation help without a server
 - **WHEN** a developer builds the foundation and runs `ship --help` or `ship --version` with no server running
 - **THEN** the requested output is displayed and the command exits successfully without starting a server
 
-#### Scenario: Health command discovery
-- **WHEN** a user requests help after the health checkpoint
-- **THEN** help describes `ship`, `ship --server-url URL`, `ship server [--port PORT]` and that automatic startup leaves the server running
+#### Scenario: Command discovery
+- **WHEN** a user requests help
+- **THEN** help describes `ship`, `ship server status`, `ship --server-url URL`, `ship server [--port PORT] [--starter]` and that automatic startup leaves the server running
 
 ### Requirement: Repeatable local checks and honest evidence
 The project SHALL document repeatable formatting, linting and build commands. Each runnable slice SHALL pass its applicable checks and manual acceptance exercises before progression; unavailable checks SHALL remain explicitly unverified.

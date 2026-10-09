@@ -7,52 +7,48 @@ Let independently running full-screen clients attach to a session, see its live 
 ## Requirements
 
 ### Requirement: Attach a client
-`ship attach <session>` SHALL attach a full-screen client to the named or identified session, as described by the `terminal-client` capability. On attach it SHALL show the session's current state and the selected pane's current screen, including changes made while it was attaching, without waiting for another change. It SHALL update after each later change. The text observer and its stdin `select` and `switch` controls SHALL no longer exist.
+Bare `ship` SHALL attach a full-screen client to the whole server, as described by the `terminal-client` capability. On attach it SHALL show the server's current state and, once something is selected, the selected pane's current screen, including changes made while it was attaching, without waiting for another change. It SHALL update after each later change. `ship attach` SHALL no longer exist.
 
 #### Scenario: Attach during edits
-- **WHEN** a user attaches while another process is creating panes in the session's first tab
-- **THEN** the client's state includes every created pane without any further edit
+- **WHEN** a user opens `ship` while another process is creating top-level tabs
+- **THEN** the client's state includes every created tab without any further edit
 
 #### Scenario: Quiet pane on attach
-- **WHEN** a user attaches to a session whose first pane shows a shell prompt and produces no further output
+- **WHEN** a user opens `ship`, presses `C-b )`, and the first tab's first pane shows a shell prompt and produces no further output
 - **THEN** the client shows that prompt at once
 
 #### Scenario: Two observers converge
-- **WHEN** two clients are attached to one session, view the same pane, and a separate CLI process edits the session
+- **WHEN** two clients view the same pane and a separate CLI process edits the tree
 - **THEN** both clients show the same resulting state and screen
 
-### Requirement: Attach or create by name
-Attaching by session name SHALL attach to the existing session with that name, or, if none exists, create it with one unnamed tab holding one pane running the user's login shell, select that pane and attach. Attaching by session ID SHALL never create a session and SHALL fail if the ID is unknown. Concurrent attaches by the same new name SHALL result in exactly one session with that name. `ship session create` SHALL still create an empty session.
+### Requirement: First tab from server startup
+When bare `ship` starts the local server itself, the server SHALL begin with one top-level tab holding one pane running the user's login shell in the server user's home directory, and the client SHALL open with that tab's pane selected. Opening a server that was already running SHALL NOT create a tab, even when it has none.
 
-#### Scenario: Attach to a missing name
-- **WHEN** a user runs `ship attach scratch` and no session named `scratch` exists
-- **THEN** a session named `scratch` is created with one tab holding one shell pane, and the client attaches with that pane selected
+#### Scenario: Start on a stopped server
+- **WHEN** no server is running and a user runs `ship` from a project directory
+- **THEN** a server starts with one tab, and the client opens on its shell, whose working directory is home
 
-#### Scenario: Concurrent attach-or-create
-- **WHEN** two `ship attach scratch` commands run at the same time with no `scratch` session present
-- **THEN** both attach to the same single `scratch` session
+#### Scenario: Open an empty running server
+- **WHEN** a running server has no tabs and a user runs `ship`
+- **THEN** the client shows `no tabs · ship tab create`, and `ship tab list` reads the same before and after
 
-#### Scenario: Unknown ID
-- **WHEN** a user attaches by a session ID that does not exist
-- **THEN** the command fails with a not-found error and no session is created
+#### Scenario: Two clients start the server together
+- **WHEN** two `ship` commands run at the same time with no server running
+- **THEN** exactly one tab exists and both clients open on it
 
-#### Scenario: Empty session from the CLI
-- **WHEN** a user runs `ship session create x` and then `ship attach x`
-- **THEN** the session has no tabs and the client shows the empty state
+### Requirement: Independent optional selection
+Each attached client SHALL have its own selection: a tab, a pane, or nothing. A newly opened client SHALL select nothing, except as "First tab from server startup" describes. A client SHALL be able to select an empty tab or a pane. Changing one client's selection SHALL NOT change another's. Each client SHALL show its own selection.
 
-### Requirement: Independent selection
-Each attached client SHALL have its own selection of the most specific session, tab or pane. A newly attached client SHALL select the session's first pane in tree order when one exists, and the session otherwise. A client SHALL be able to select an empty session, an empty tab or a pane. Changing one client's selection SHALL NOT change another's. Each client SHALL show its own selection.
-
-#### Scenario: Attach selects the first pane
-- **WHEN** a user attaches to an existing session whose first tab in tree order holds two panes
-- **THEN** the client selects and shows the first of those panes
+#### Scenario: Open with nothing selected
+- **WHEN** a server has three top-level tabs and a user runs `ship`
+- **THEN** the client selects nothing and shows `3 tabs · C-b ) to open one`
 
 #### Scenario: Different selections
-- **WHEN** two clients of one session are on different panes and one presses `C-b n`
+- **WHEN** two clients are on different panes and one presses `C-b n`
 - **THEN** only that client's selection and screen change
 
-### Requirement: Selection fallback
-When a client's selected pane is removed, its selection SHALL move to the next pane in the same tab, or the previous pane if the removed pane was last, and SHALL fall back to the tab only when no panes remain in it. When a selected tab is removed, or an ancestor of the selection is removed, the selection SHALL move to the nearest surviving ancestor within the same session, ultimately the session itself. When a selected tab or pane moves within the same session, the selection SHALL stay on it. When it moves to another session, the client SHALL stay attached to its original session and select the nearest surviving parent there.
+### Requirement: Selection repair
+When a client's selected pane is removed, its selection SHALL move to the next pane in the same tab, or the previous pane if the removed pane was last, and SHALL fall back to the tab only when no panes remain in it. When a selected tab is removed, or an ancestor of the selection is removed, the selection SHALL move to the nearest surviving ancestor, or to nothing when none survives. When a selected tab or pane moves anywhere on the server, the selection SHALL stay on it.
 
 #### Scenario: Selected pane removed
 - **WHEN** a client's selected pane is removed from a tab holding three panes
@@ -60,22 +56,26 @@ When a client's selected pane is removed, its selection SHALL move to the next p
 
 #### Scenario: Last pane in a tab removed
 - **WHEN** a client's selected pane is the only pane in its tab and is removed
-- **THEN** its selection becomes the tab and the client shows the empty state
+- **THEN** its selection becomes the tab and the client shows the no-pane hint
 
 #### Scenario: Selected tab's ancestor removed
 - **WHEN** an ancestor of a client's selected tab is removed
-- **THEN** its selection becomes the nearest surviving ancestor, or the session if none survives
+- **THEN** its selection becomes the nearest surviving ancestor, or nothing if none survives
 
-#### Scenario: Selected pane moved to another session
-- **WHEN** the tab owning a client's selected pane moves to another session
-- **THEN** the client remains on its original session and selects that tab's former parent
+#### Scenario: Selected tab moved
+- **WHEN** a client's selected pane's tab moves to the top level
+- **THEN** the client keeps that pane selected
 
-### Requirement: Session removal kicks observers out
-When a session is removed, every client attached to it SHALL restore the terminal, report that the session was removed and exit with status 0. It SHALL NOT stay running unattached or attach to another session on its own.
+### Requirement: Attachments outlive tabs
+An attachment SHALL end only when its client detaches or the server shuts down. Removing tabs, including every tab, SHALL NOT end it.
 
-#### Scenario: Remove an observed session
-- **WHEN** two clients are attached to a session and a user removes that session
-- **THEN** both clients restore their terminals, report the removal and exit
+#### Scenario: Remove every tab
+- **WHEN** a client is attached and a user removes every top-level tab
+- **THEN** the client stays attached and shows `no tabs · ship tab create`
+
+#### Scenario: Tabs return
+- **WHEN** a client shows no tabs and a user then runs `ship tab create` twice
+- **THEN** the client's hint updates to `2 tabs · C-b ) to open one` without reattaching
 
 ### Requirement: Latest state for slow observers
 A client SHALL never be shown state or a screen older than what it has already shown. A client that stops reading SHALL, once it resumes, receive the latest state and the latest screen of each pane it shows, even if no further change occurs. Intermediate states and screens are not guaranteed to be shown.
@@ -98,13 +98,17 @@ Server shutdown by SIGINT or SIGTERM SHALL end open attach streams so that the s
 - **WHEN** the server receives SIGTERM while two clients are attached
 - **THEN** it exits within five seconds, and both clients restore their terminals, report that the server stopped and exit
 
-### Requirement: Cycle sessions while attached
-A running client SHALL switch sessions without restarting. `C-b )` SHALL select the next session and `C-b (` the previous one, in creation order, wrapping around. Switching SHALL select the new session's first pane in tree order, or the session itself when it has no panes. The server SHALL accept a client's change of selection to any existing session, tab or pane.
+### Requirement: Cycle top-level tabs
+`C-b )` SHALL select the next top-level tab and `C-b (` the previous one, in order, wrapping around. With nothing selected they SHALL select the first and last top-level tab. Selecting a tab this way SHALL select its first pane in tree order, or the tab itself when it has no panes. The server SHALL accept a client's change of selection to any existing tab or pane, or to nothing.
 
-#### Scenario: Cycle sessions
-- **WHEN** two sessions exist and a client attached to the first presses `C-b )`
-- **THEN** the client shows the second session's first pane
+#### Scenario: Cycle tabs
+- **WHEN** three top-level tabs exist and a client on the first presses `C-b )` three times
+- **THEN** the client shows each tab's first pane in turn and returns to the first
 
-#### Scenario: Session without panes
-- **WHEN** a client switches to a session that has no panes
-- **THEN** the session itself is selected and the client shows the empty state
+#### Scenario: From nothing selected
+- **WHEN** a client has nothing selected and presses `C-b (`
+- **THEN** the last top-level tab's first pane is selected
+
+#### Scenario: Tab without panes
+- **WHEN** a client cycles to a top-level tab with no panes
+- **THEN** the tab itself is selected and the client shows the no-pane hint

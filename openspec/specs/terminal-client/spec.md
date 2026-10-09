@@ -7,11 +7,11 @@ Let a user drive server-owned panes from a full-screen client in their own termi
 ## Requirements
 
 ### Requirement: Full-screen client
-`ship attach <session>` SHALL open a full-screen client in the current terminal that shows the selected pane's screen and a one-line status line. No other user interface is required.
+Bare `ship` SHALL open a full-screen client in the current terminal that shows the selected pane's screen, or a hint when no pane is selected, and a one-line status line. No other user interface is required.
 
 #### Scenario: Attach to a shell
-- **WHEN** a user runs `ship attach work` and `work`'s first pane runs a shell
-- **THEN** the client fills the terminal with that shell's screen above a status line, and the user can type into it at once
+- **WHEN** no server is running and a user runs `ship`
+- **THEN** the client fills the terminal with the starting shell's screen above a status line, and the user can type into it at once
 
 ### Requirement: Faithful screens
 The client SHALL show screen changes as programs produce them, including colors, styles, Unicode, wide characters, the cursor and full-screen programs. It SHALL NOT leave a stale screen after output stops.
@@ -54,11 +54,15 @@ In the client, `C-b n` SHALL select the next pane in the tab, `C-b p` the previo
 - **THEN** the pane shows one `^B`
 
 ### Requirement: Empty state
-When the selection is a tab or a session rather than a pane, the client SHALL show an empty state with a hint for creating a pane, such as `no pane: ship pane create <tab-id>`. `C-b n` and `C-b p` SHALL then select the first or last pane of the selected tab.
+When nothing is selected, the client SHALL show the number of top-level tabs and the key that opens one, such as `3 tabs · C-b ) to open one`, or `no tabs · ship tab create` when there are none. When the selection is a tab rather than a pane, the client SHALL show a hint for creating a pane, such as `no pane: ship pane create <tab-id>`, and `C-b n` and `C-b p` SHALL then select the first or last pane of that tab.
 
 #### Scenario: Last pane removed
 - **WHEN** the last pane of the viewed tab is removed
-- **THEN** the client shows the empty state and its hint
+- **THEN** the client shows the no-pane hint for that tab
+
+#### Scenario: Nothing selected
+- **WHEN** a client opens on a server with two top-level tabs
+- **THEN** it shows `2 tabs · C-b ) to open one` and keys other than prefixed ones are dropped
 
 ### Requirement: Pane size
 A tab's panes SHALL be sized to the smallest client currently viewing that tab, minus the status line, and SHALL follow when a viewing client resizes its terminal. A client viewing another tab SHALL NOT constrain it. A tab nobody views SHALL keep its last size. A client larger than the tab SHALL draw the pane in its top-left corner and mark the unused area.
@@ -72,11 +76,15 @@ A tab's panes SHALL be sized to the smallest client currently viewing that tab, 
 - **THEN** both first show identical screens at the smaller size with the larger client's unused area marked, and afterwards the tab grows to the larger client's size
 
 ### Requirement: Status line
-The status line SHALL show the session, tab and pane labels, the pane's exit status once its program has exited, and a disconnected indicator while reconnecting.
+The status line SHALL show the viewed tab and pane labels, the pane's exit status once its program has exited, and a disconnected indicator while reconnecting. It SHALL NOT show a session.
 
 #### Scenario: Exited program
 - **WHEN** the selected pane's program exits with code 3
 - **THEN** the status line shows `exited (3)`
+
+#### Scenario: Labels without a session
+- **WHEN** a client selects the pane `nvim` in a tab named `work`
+- **THEN** the status line begins with `work › nvim`
 
 ### Requirement: Derived labels
 An unnamed pane's label SHALL be its program's current title, else its command. An unnamed tab's label SHALL be its first pane's label, else its 1-based position among its siblings. Labels SHALL update as titles change and SHALL return to the derived form when a name is cleared.
@@ -90,7 +98,7 @@ An unnamed pane's label SHALL be its program's current title, else its command. 
 - **THEN** the tab's label becomes its first pane's label
 
 ### Requirement: Terminal restoration
-The client SHALL restore the user's terminal to its state before attaching on every exit path, including detach, session removal, server shutdown, panics and signals it can handle.
+The client SHALL restore the user's terminal to its state before opening on every exit path, including detach, server shutdown, panics and signals it can handle.
 
 #### Scenario: Client killed
 - **WHEN** the client receives SIGTERM, or panics in a temporary probe build
