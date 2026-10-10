@@ -4,6 +4,8 @@ Status: Locked on 2026-10-09 with amendment A-1, re-approved by Cyan in chat ("y
 
 Amendment A-2: Locked on 2026-10-10, approved by Cyan in chat ("yep! that's approved to me!"). Cyan confirmed client-resolved directional swaps in chat ("let's do it this way!"). On 2026-10-10 Cyan also settled, in chat, the zoomed swap sequence and dropped the CLI's directional swap ("i agree withll of those! go for it!"); A-2 is revised for both. The original locked swap wording below is superseded by A-2 at the end of this paper. The approval doesn't authorize implementation; Cyan requests that separately.
 
+Amendment A-3: Locked on 2026-10-10, approved by Cyan in chat ("lgtm!"). During slice 3 rendered review Cyan asked for Herdr's mode bar in place of the always-on bottom bar ("the way it does it is the way i wanna do it"), then approved the shape in chat ("yep... go for it. overlay should also only cover the renderable area (not the sidebar)."), and picked the sidebar row for the zoom marker. A-3 at the end of this paper supersedes the bottom bar in the Interface section, FR-014 and FR-015. Per the ripple rule, it reopens the architecture and program papers.
+
 ## Summary
 
 The client stops showing one pane at a time. A tab's panes appear together as splits, and a sidebar on the left shows the server's tabs as a tree you can fold, navigate and open. There is no tab bar on top. The look follows Herdr, with one structural difference: Herdr's flat workspace list and per-workspace tab row become a single tree of Ship's recursive tabs.
@@ -201,3 +203,16 @@ This supersedes the swap action table and FR-007, FR-017 and FR-021 above for sw
 The request means "exchange these two IDs", not "re-evaluate which pane is in that direction when the request arrives". If geometry changes after resolution, the server still exchanges the named pair if both remain in the same tab. Missing or cross-tab targets are rejected. Cross-tab swapping is out of scope.
 
 Pane recency stays client-local and is never sent to the server. In a zoomed tab, `client.pane.swap` first unzooms the tab for everyone, waits for the unzoomed geometry, and then resolves the neighbor. With no neighbor, the tab stays unzoomed and no swap is sent. This is the same sequence FR-006 gives pane focus out of a zoomed pane.
+
+## Amendment A-3: status line as an overlay (locked)
+
+The client no longer reserves a bottom row. Like Herdr's mode bar, the status line appears only when it has something to say, drawn over the bottom row of the pane area and hidden again once there is nothing to show. In normal mode with nothing wrong, panes use the full height of the terminal.
+
+This supersedes the Interface section's bottom bar and its sketch's last row, FR-014 and FR-015's exclusion of the bottom bar:
+
+- **FR-014:** The status line MUST be a one-row overlay over the bottom row of the pane area, never over the sidebar. It MUST appear only outside normal mode, while reconnecting, while the selected pane's program has exited, or while an error is pending, and MUST show, as applicable, the mode's name and key hints, the disconnected indicator, `exited (n)` and the latest error. It MUST NOT show tab or pane labels: the sidebar highlights the tab and split borders label the panes.
+- **FR-015:** As before, except that the reported area excludes only the sidebar. The overlay covers a row without resizing anything, so entering a mode never resizes a program.
+- **Zoom marker:** a zoomed tab's sidebar row carries the zoom marker. With the sidebar hidden, no zoom marker is shown.
+
+Rejected: removing the status line entirely, which would lose the disconnected indicator, exit status, errors and mode hints that existing specs require; and an overlay that also spans the sidebar.
+

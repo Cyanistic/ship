@@ -1,22 +1,21 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout, Rect},
-    style::Stylize,
-    text::Line,
-    widgets::{Paragraph, Wrap},
+    layout::Rect,
+    style::{Color, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Clear, Paragraph, Wrap},
 };
 use std::path::Path;
 
 use ship_core::{
-    id::IdOf,
     model::{Pane, PaneStatus, Tab},
     screen::{Cursor, Size},
-    tree::{self, Tabs},
 };
 
 use super::{
     observer::{Observer, Selected},
     panes,
+    sidebar::Sidebar,
 };
 use crate::keymap::ModeName;
 
@@ -26,26 +25,49 @@ pub(super) struct Status<'a> {
     pub mode: Option<&'a ModeName>,
     /// The last error, or "not available yet".
     pub message: Option<&'a str>,
+    /// The mode's `chord label` hints, in the file's order.
+    pub hints: Vec<&'a str>,
 }
 
-/// Rows the status line takes at the bottom.
-const STATUS_ROWS: u16 = 1;
-
 /// The area a terminal of `cols` by `rows` leaves for the tab. The server
-/// sizes panes to it.
-pub(super) fn tab_area(cols: u16, rows: u16) -> Size {
+/// sizes panes to it. The status line overlays the tab, so it takes none.
+pub(super) fn tab_area(cols: u16, rows: u16, sidebar_width: u16) -> Size {
     Size {
-        cols,
-        rows: rows.saturating_sub(STATUS_ROWS),
+        cols: cols.saturating_sub(sidebar_width),
+        rows,
     }
 }
 
-/// The selected tab's panes over the area above the status line, or a hint
-/// when it has none or nothing is selected. The status line on the last row.
-pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) -> Option<Cursor> {
-    let [main, status_area] =
-        Layout::vertical([Constraint::Fill(1), Constraint::Length(STATUS_ROWS)])
-            .areas(frame.area());
+/// The selected tab's panes beside the sidebar, or a hint when it has none
+/// or nothing is selected. The status line, when it has something to say,
+/// over the pane area's last row.
+pub(super) fn draw(
+    frame: &mut Frame,
+    observer: &Observer,
+    sidebar: &Sidebar,
+    status: &Status,
+) -> Option<Cursor> {
+    let main = frame.area();
+    let sidebar_width = sidebar.width().min(main.width);
+    let sidebar_area = Rect {
+        width: sidebar_width,
+        ..main
+    };
+    let main = Rect {
+        x: main.x.saturating_add(sidebar_width),
+        width: main.width.saturating_sub(sidebar_width),
+        ..main
+    };
+    if sidebar.shown
+        && let Some(replica) = &observer.replica
+    {
+        sidebar.draw(
+            frame,
+            sidebar_area,
+            &replica.tabs,
+            observer.record().and_then(|record| record.selection),
+        );
+    }
     let selected = observer.selected();
     let mut cursor = None;
     match selected.as_ref().and_then(|selected| {
@@ -73,11 +95,20 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) -> O
             },
         ),
     }
-    frame.render_widget(
-        Line::from(status_line(observer, selected.as_ref(), status)).reversed(),
-        status_area,
-    );
-    cursor
+    if let Some(line) = status_line(selected.as_ref(), observer.connected, status) {
+        let row = Rect {
+            y: main.bottom().saturating_sub(1),
+            height: main.height.min(1),
+            ..main
+        };
+        frame.render_widget(Clear, row);
+        frame.render_widget(line, row);
+        // A cursor under the overlay would sit on top of it.
+        cursor = cursor.filter(|(at, _)| !row.contains(*at));
+    }
+    let (at, cursor) = cursor?;
+    frame.set_cursor_position(at);
+    Some(cursor)
 }
 
 /// "connecting" while the observer has no record; with nothing selected,
@@ -95,37 +126,40 @@ fn hint(observer: &Observer, selected: Option<&Selected>) -> String {
     }
 }
 
-/// The active mode outside normal, `tab › pane` labels as far as the
-/// selection goes, then the pane's exit status, the connection and the last
-/// message.
-fn status_line(observer: &Observer, selected: Option<&Selected>, status: &Status) -> String {
-    let mut line = String::from(" ");
+/// Herdr's mode bar: the mode's name as a pill, then the selected pane's exit
+/// status, the connection and the last message, then the hints, which are cut
+/// first when the row is full. `None` when there is nothing to say.
+fn status_line<'a>(
+    selected: Option<&Selected>,
+    connected: bool,
+    status: &Status<'a>,
+) -> Option<Line<'a>> {
+    let pill = |text: String, color| Span::styled(text, Style::new().black().bg(color).bold());
+    let mut spans = Vec::new();
     if let Some(mode) = status.mode {
-        line.push_str(&format!("[{}] ", mode.0));
+        spans.push(pill(format!(" {} ", mode.0.to_uppercase()), Color::Cyan));
     }
-    if let (Some(selected), Some(replica)) = (selected, &observer.replica) {
-        let tab = selected.tab;
-        line.push_str(&tab_label(tab, position(&replica.tabs, tab.id)));
-        if let Some(pane) = selected.pane {
-            line.push_str(" › ");
-            line.push_str(pane_label(pane));
-        }
-        if let Some(PaneStatus::Exited(status)) = selected.pane.map(|pane| &pane.status) {
-            match &status.signal {
-                Some(signal) => line.push_str(&format!("  exited ({signal})")),
-                None => line.push_str(&format!("  exited ({})", status.code)),
-            }
-        }
+    if let Some(PaneStatus::Exited(status)) = selected
+        .and_then(|selected| selected.pane)
+        .map(|pane| &pane.status)
+    {
+        let code = status.signal.clone().unwrap_or(status.code.to_string());
+        spans.push(Span::from(format!(" exited ({code})")).yellow());
     }
-    if !observer.connected {
-        line.push_str("  disconnected, reconnecting");
+    if !connected {
+        spans.push(Span::from(" disconnected, reconnecting").red());
     }
     // A config error spans several lines; its first says where it is.
     if let Some(message) = status.message.and_then(|message| message.lines().next()) {
-        line.push_str("  · ");
-        line.push_str(message);
+        spans.push(Span::from(format!(" {message}")).red());
     }
-    line
+    for hint in &status.hints {
+        let (chord, label) = hint.split_once(' ').unwrap_or((hint, ""));
+        spans.push(Span::from(format!("  {chord}")).cyan().bold());
+        spans.push(Span::from(format!(" {label}")).gray());
+    }
+    // Herdr's panel background, a step up from the terminal's.
+    (!spans.is_empty()).then(|| Line::from(spans).bg(Color::Black))
 }
 
 /// The pane's name, else its program's title, else its command's file name.
@@ -147,11 +181,4 @@ pub(super) fn tab_label(tab: &Tab, position: usize) -> String {
         .get()
         .or_else(|| tab.panes().next().map(pane_label))
         .map_or_else(|| (position + 1).to_string(), str::to_owned)
-}
-
-/// The tab's 0-based index among its siblings.
-fn position(tabs: &Tabs, tab: IdOf<Tab>) -> usize {
-    tree::siblings(tabs, tab)
-        .and_then(|siblings| siblings.get_index_of(&tab))
-        .unwrap_or_default()
 }

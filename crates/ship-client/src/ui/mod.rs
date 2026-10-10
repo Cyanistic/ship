@@ -5,6 +5,7 @@ mod keys;
 mod memory;
 mod observer;
 mod panes;
+mod sidebar;
 mod terminal;
 
 use std::{
@@ -39,11 +40,15 @@ use self::{
     keys::{Handled, Keys},
     memory::Memory,
     observer::Observer,
+    sidebar::Sidebar,
     terminal::TerminalGuard,
 };
 use crate::{
     Client, KeyScope, Outcome, Scope,
-    keymap::{Action, ClientAction, ClientPane, ClientTab, ConfigAction, Keymap, Sidebar},
+    keymap::{
+        Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction,
+        Sidebar as SidebarAction,
+    },
     watch,
 };
 
@@ -61,7 +66,7 @@ type Pending<'a, T> = Option<Pin<Box<dyn Future<Output = Result<T>> + 'a>>>;
 /// Where a navigation key moves the selection.
 #[derive(Clone, Copy)]
 enum Step {
-    /// Around the top-level tabs.
+    /// Around the visible sidebar rows.
     Tab { forward: bool },
     /// Around the viewed tab's panes in layout order.
     Pane { forward: bool },
@@ -94,11 +99,16 @@ enum Exit {
 /// and return.
 pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()> {
     let signaled = signaled()?;
-    let area = tab_area()?;
+    let loaded = match ClientSettings::load(config) {
+        Ok(settings) => (settings, None),
+        Err(error) => (ClientSettings::defaults(), Some(error.to_string())),
+    };
+    let area = tab_area(&Sidebar::new(loaded.0.sidebar_width))?;
     let selection = match open_first {
         true => navigate(
             &client.tabs().await?,
             &Memory::default(),
+            &Sidebar::new(loaded.0.sidebar_width),
             None,
             Step::Tab { forward: true },
         ),
@@ -109,7 +119,10 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
     let events = attach_after(client, request.clone(), Duration::ZERO).await?;
     let exit = {
         let mut guard = TerminalGuard::enter()?;
-        drive(client, &mut guard, request, events, signaled, config).await
+        drive(
+            client, &mut guard, request, events, signaled, config, loaded,
+        )
+        .await
     }?;
     match exit {
         Exit::Detached => eprintln!("detached"),
@@ -126,6 +139,7 @@ async fn drive(
     events: Events,
     signaled: impl Future<Output = ()>,
     config: &Path,
+    loaded: (ClientSettings, Option<String>),
 ) -> Result<Exit> {
     tokio::pin!(signaled);
     let mut events = Some(events);
@@ -133,11 +147,9 @@ async fn drive(
     let mut backoff = FIRST_BACKOFF;
     let mut observer = Observer::default();
     let mut memory = Memory::default();
-    let (keymap, mut message) = match Keymap::load(config) {
-        Ok(keymap) => (keymap, None),
-        Err(error) => (Keymap::defaults(), Some(error.to_string())),
-    };
-    let mut keys = Keys::new(keymap);
+    let (settings, mut message) = loaded;
+    let mut sidebar = Sidebar::new(settings.sidebar_width);
+    let mut keys = Keys::new(settings.keymap);
     let mut saves: Option<Saves> = match watch::changes(config) {
         Ok(saves) => Some(Box::pin(saves)),
         Err(error) => {
@@ -161,7 +173,12 @@ async fn drive(
     let mut putting: Pending<Option<NodeId>> = None;
     let mut tick = time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
-    redraw(guard, &observer, &status(&keys, message.as_deref()))?;
+    redraw(
+        guard,
+        &observer,
+        &sidebar,
+        &status(&keys, message.as_deref()),
+    )?;
     loop {
         let mut visible = tokio::select! {
             event = next(&mut events) => match event {
@@ -180,7 +197,8 @@ async fn drive(
                     let screen = matches!(event, SseEvent::Screen(_));
                     let visible = observer.apply(event);
                     if !screen && let Some(replica) = &observer.replica {
-                        memory.observe(&replica.tabs, observer.record().and_then(|record| record.selection));
+                        let selection = observer.record().and_then(|record| record.selection);
+                        memory.observe(&replica.tabs, selection);
                     }
                     visible
                 }
@@ -237,7 +255,11 @@ async fn drive(
             }
             save = next(&mut saves) => {
                 match save {
-                    Some(()) => message = reload(&mut keys, config).err().map(|error| error.to_string()),
+                    Some(()) => {
+                        message = reload(&mut keys, &mut sidebar, config).err().map(|error| error.to_string());
+                        area = tab_area(&sidebar)?;
+                        view_dirty = true;
+                    }
                     None => saves = None,
                 }
                 true
@@ -253,7 +275,7 @@ async fn drive(
             }
             event = terminal_events.next() => match event {
                 Some(Ok(Event::Resize(cols, rows))) => {
-                    area = draw::tab_area(cols, rows);
+                    area = draw::tab_area(cols, rows, sidebar.width());
                     view_dirty = true;
                     true
                 }
@@ -268,7 +290,7 @@ async fn drive(
                         }
                         Handled::Run(binding) => {
                             message = None;
-                            queued.push_back(binding.0.into());
+                            queued.push_back(binding.actions.into());
                         }
                         Handled::None => {}
                     }
@@ -334,6 +356,7 @@ async fn drive(
                         moved(
                             &observer,
                             &memory,
+                            &sidebar,
                             &mut chosen,
                             &mut view_dirty,
                             Step::Tab { forward },
@@ -345,6 +368,7 @@ async fn drive(
                         moved(
                             &observer,
                             &memory,
+                            &sidebar,
                             &mut chosen,
                             &mut view_dirty,
                             Step::Pane { forward },
@@ -355,6 +379,7 @@ async fn drive(
                         moved(
                             &observer,
                             &memory,
+                            &sidebar,
                             &mut chosen,
                             &mut view_dirty,
                             Step::Focus(direction),
@@ -362,9 +387,22 @@ async fn drive(
                         Ok(())
                     }
                     ClientAction::Tab(ClientTab::Select { .. }) => unavailable("tab select"),
-                    ClientAction::Tab(ClientTab::Expand {}) => unavailable("tab expand"),
-                    ClientAction::Tab(ClientTab::Collapse {}) => unavailable("tab collapse"),
-                    ClientAction::Sidebar(Sidebar::Toggle {}) => unavailable("sidebar toggle"),
+                    ClientAction::Tab(action @ (ClientTab::Expand {} | ClientTab::Collapse {})) => {
+                        if let Some(replica) = &observer.replica
+                            && let Some(tab) = chosen
+                                .or(observer.record().and_then(|record| record.selection))
+                                .and_then(|node| tree::viewed_tab(&replica.tabs, node))
+                        {
+                            sidebar.fold(tab, matches!(action, ClientTab::Collapse {}));
+                        }
+                        Ok(())
+                    }
+                    ClientAction::Sidebar(SidebarAction::Toggle {}) => {
+                        sidebar.shown = !sidebar.shown;
+                        area = tab_area(&sidebar)?;
+                        view_dirty = true;
+                        Ok(())
+                    }
                     ClientAction::Mode(mode) => keys.enter(mode),
                     ClientAction::Send(chord) => {
                         match observer.selected().and_then(|selected| selected.pane) {
@@ -383,7 +421,12 @@ async fn drive(
                         }
                     }
                     ClientAction::Detach {} => return Ok(Exit::Detached),
-                    ClientAction::Config(ConfigAction::Reload {}) => reload(&mut keys, config),
+                    ClientAction::Config(ConfigAction::Reload {}) => {
+                        let result = reload(&mut keys, &mut sidebar, config);
+                        area = tab_area(&sidebar)?;
+                        view_dirty = true;
+                        result
+                    }
                 },
             };
             if let Err(error) = done {
@@ -391,17 +434,33 @@ async fn drive(
                 queued.pop_front();
             }
         }
+        if let Some(replica) = &observer.replica {
+            sidebar.reconcile(
+                &replica.tabs,
+                chosen.or(observer.record().and_then(|record| record.selection)),
+            );
+        }
         if visible {
-            redraw(guard, &observer, &status(&keys, message.as_deref()))?;
+            redraw(
+                guard,
+                &observer,
+                &sidebar,
+                &status(&keys, message.as_deref()),
+            )?;
         }
     }
 }
 
-fn redraw(guard: &mut TerminalGuard, observer: &Observer, status: &Status) -> Result<()> {
+fn redraw(
+    guard: &mut TerminalGuard,
+    observer: &Observer,
+    sidebar: &Sidebar,
+    status: &Status,
+) -> Result<()> {
     let mut cursor = None;
     guard
         .terminal
-        .draw(|frame| cursor = draw::draw(frame, observer, status))
+        .draw(|frame| cursor = draw::draw(frame, observer, sidebar, status))
         .map_err(|error| err!(Io, "cannot draw", @external: error))?;
     guard.set_cursor(cursor)
 }
@@ -410,12 +469,19 @@ fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
     Status {
         mode: keys.shown_mode(),
         message,
+        hints: keys
+            .shown_mode()
+            .and_then(|mode| keys.keymap.modes.get(mode))
+            .map(|mode| mode.hints().collect())
+            .unwrap_or_default(),
     }
 }
 
 /// Loads `config` into `keys`. A bad file keeps the running keymap.
-fn reload(keys: &mut Keys, config: &Path) -> Result<()> {
-    keys.replace(Keymap::load(config)?);
+fn reload(keys: &mut Keys, sidebar: &mut Sidebar, config: &Path) -> Result<()> {
+    let settings = ClientSettings::load(config)?;
+    sidebar.width = settings.sidebar_width;
+    keys.replace(settings.keymap);
     Ok(())
 }
 
@@ -428,13 +494,14 @@ fn unavailable(action: &str) -> Result<()> {
 fn moved(
     observer: &Observer,
     memory: &Memory,
+    sidebar: &Sidebar,
     chosen: &mut Option<NodeId>,
     view_dirty: &mut bool,
     step: Step,
 ) {
     if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
         let from = chosen.or(record.selection);
-        if let Some(to) = navigate(&replica.tabs, memory, from, step)
+        if let Some(to) = navigate(&replica.tabs, memory, sidebar, from, step)
             && Some(to) != from
         {
             *chosen = Some(to);
@@ -443,25 +510,30 @@ fn moved(
     }
 }
 
-/// Where `step` moves the selection `from`. Top-level tabs cycle in order and
+/// Where `step` moves the selection `from`. Visible tab rows cycle in order and
 /// land where `memory` says; from nothing selected they go to the first or
 /// last. Panes cycle within their tab; from a tab, to its first or last pane.
 /// Focus goes to the neighbor in the tab's published geometry, ties to the
 /// panes `memory` selected most recently. `None` when there is nowhere to go.
-fn navigate(tabs: &Tabs, memory: &Memory, from: Option<NodeId>, step: Step) -> Option<NodeId> {
+fn navigate(
+    tabs: &Tabs,
+    memory: &Memory,
+    sidebar: &Sidebar,
+    from: Option<NodeId>,
+    step: Step,
+) -> Option<NodeId> {
     match step {
         Step::Tab { forward } => {
+            let rows = sidebar.visible(tabs);
             let index = match from {
                 Some(node) => {
-                    let Some(&NodeId::Tab(top)) = tree::path(tabs, node)?.first() else {
-                        return None;
-                    };
-                    self::step(tabs.get_index_of(&top)?, tabs.len(), forward)
+                    let tab = tree::viewed_tab(tabs, node)?;
+                    self::step(rows.iter().position(|id| *id == tab)?, rows.len(), forward)
                 }
                 None if forward => 0,
-                None => tabs.len().checked_sub(1)?,
+                None => rows.len().checked_sub(1)?,
             };
-            let (_, tab) = tabs.get_index(index)?;
+            let tab = tree::tab(tabs, *rows.get(index)?).ok()?;
             Some(memory.landing(tab))
         }
         Step::Pane { forward } => {
@@ -525,10 +597,10 @@ async fn finish<F: Future + Unpin>(request: &mut Option<F>) -> F::Output {
     }
 }
 
-fn tab_area() -> Result<Size> {
+fn tab_area(sidebar: &Sidebar) -> Result<Size> {
     let (cols, rows) =
         size().map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
-    Ok(draw::tab_area(cols, rows))
+    Ok(draw::tab_area(cols, rows, sidebar.width()))
 }
 
 /// Resolves on SIGTERM, SIGHUP or SIGINT, so the terminal is restored before

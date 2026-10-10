@@ -10,6 +10,8 @@ Amendment A-4: Locked with Cyan's approval in this implementation conversation (
 
 Amendment A-5: Locked with Cyan's approval in the slice-1 review correction conversation. After reviewing `Replica { tabs, geometry map }` against recursive published tabs with layout and optional geometry, Cyan accepted the correction before committing ("perfect. can we fix that please or should we commit what we have here first?", then "sounds right. let's go for it!"). The matching program P-2 is re-approved by that instruction. The original locked text remains below; A-5 supersedes the beside-tabs map and rejection of geometry inside published `Tab` in the summary, structure and decision 1. No product behavior or later slice is added.
 
+Amendment A-6: Locked on 2026-10-10, approved by Cyan in chat ("lgtm!"). Product amendment A-3 replaces the bottom bar with a status-line overlay over the pane area, reopening this paper. A-6 under Key decisions supersedes the bottom bar in decision 12's reported area.
+
 ## Summary
 
 The server owns the layout and its geometry. Each tab's panes move into a split tree, which holds both the panes and where they go, and the tab gains an optional zoomed pane. On every commit, the server turns each viewed tab's tree into rectangles at the tab's size, resizes each pane's terminal to its own rectangle, and publishes the rectangles in the replica beside the tabs. The client draws what it is given: a sidebar tree, bordered frames and the screens inside them. Fold state, the sidebar and per-client pane memory stay in the client.
@@ -194,6 +196,16 @@ The server retains one source tree containing layouts and no geometry. When publ
 Commit publication and attach seeds use the same projection. PTY sizing consumes the committed published tabs recursively, not an independent geometry computation. Existing tab list/get/create/rename/move responses use the same published-tab semantics, including child geometry. Derived geometry is not independently mutable or cached on `ServerState`; source edits never write it. Protocol 8 remains unchanged for this correction to the uncommitted slice. Architecture A-4's internal terminal floor and the approved legacy-7 limitation remain unchanged.
 
 The projection reuses the existing `Tab`, `Tabs` and `Arc` representation. A single recursive walk copies viewed tabs and their ancestors and shares unmodified branches. No second persistent tree, geometry cache, topology synchronization or generic projection framework is introduced. This supersedes decision 1's earlier copying objection: a copy-on-publication cost is accepted, but source layouts remain authoritative. Temporary before/after measurements and live nested-tab proof are recorded in `../evidence-slice-1-correction.md`; measurements must be obtained before accepting consequential copying.
+
+### Amendment A-6: status-line overlay (locked)
+
+Product A-3 makes the status line an overlay. The client draws it last, over the bottom row of the pane area (the frame right of the sidebar), after panes and before placing the cursor. It is client presentation only: nothing about it reaches the server.
+
+- Decision 12's reported area becomes the terminal minus, when shown, the sidebar's `sidebar_width`. The overlay does not reduce it, so showing or hiding the overlay sends no Attach/View area change and resizes no program.
+- If the selected pane's cursor falls on the covered row while the overlay is shown, the client hides the terminal cursor rather than drawing it over the overlay.
+- The zoom marker moves from the bottom bar to the zoomed tab's sidebar row, drawn by `ui/sidebar`.
+
+Rejected: shrinking the pane area while the overlay is visible. Every mode change would resize programs, which is the churn Herdr's overlay avoids.
 
 ## Risks and unknowns
 

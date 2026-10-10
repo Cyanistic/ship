@@ -1,9 +1,13 @@
-//! `[client]` in the config file: modes and their bindings.
+//! `[client]` in the config file: settings, modes and their bindings.
 
 use std::{collections::HashMap, path::Path};
 
 use crokey::KeyCombination;
-use serde::{Deserialize, Deserializer, de::IgnoredAny};
+use indexmap::IndexMap;
+use serde::{
+    Deserialize, Deserializer,
+    de::{Error as _, IgnoredAny},
+};
 use ship_core::{
     command::{Command, Direction},
     config,
@@ -11,6 +15,11 @@ use ship_core::{
 };
 
 const DEFAULTS: &str = include_str!("keymap/defaults.toml");
+
+pub struct ClientSettings {
+    pub keymap: Keymap,
+    pub sidebar_width: u16,
+}
 
 pub struct Keymap {
     pub modes: HashMap<ModeName, Mode>,
@@ -31,7 +40,7 @@ impl ModeName {
 pub struct Mode {
     pub kind: ModeKind,
     /// Only bound chords: `[]` leaves the chord out.
-    pub keys: HashMap<KeyCombination, Binding>,
+    pub keys: IndexMap<KeyCombination, Binding>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
@@ -44,9 +53,51 @@ pub enum ModeKind {
 
 /// Actions run in order, stopping at the first failure. Empty unbinds the
 /// chord, so the key reaches the program.
-#[derive(Clone, Debug, Deserialize)]
-#[serde(transparent)]
-pub struct Binding(pub Vec<Action>);
+#[derive(Clone, Debug)]
+pub struct Binding {
+    pub actions: Vec<Action>,
+    /// Presentation from the source binding, completed with its chord on load.
+    hint: String,
+}
+
+impl<'de> Deserialize<'de> for Binding {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let values = Vec::<toml::Value>::deserialize(deserializer)?;
+        let hint = values.first().map(action_hint).unwrap_or_default();
+        let actions = values
+            .into_iter()
+            .map(|value| value.try_into())
+            .collect::<Result<_, _>>()
+            .map_err(D::Error::custom)?;
+        Ok(Self { actions, hint })
+    }
+}
+
+/// Follow the action path to its scalar value, or the last named table.
+fn action_hint(value: &toml::Value) -> String {
+    let mut value = value;
+    let mut name = "";
+    while let toml::Value::Table(table) = value {
+        if table.len() != 1 {
+            return name.into();
+        }
+        let (key, child) = table.iter().next().expect("one entry");
+        name = key;
+        value = child;
+    }
+    match value {
+        toml::Value::String(text) => text.clone(),
+        toml::Value::Array(_) => name.into(),
+        scalar => scalar.to_string(),
+    }
+}
+
+impl Mode {
+    /// Each chord's `chord label` hint, in the file's order.
+    pub fn hints(&self) -> impl Iterator<Item = &str> {
+        self.keys.values().map(|binding| binding.hint.as_str())
+    }
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
@@ -115,6 +166,7 @@ struct File {
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Client {
+    sidebar_width: Option<u16>,
     #[serde(default)]
     modes: HashMap<ModeName, ModeFile>,
 }
@@ -127,7 +179,7 @@ struct ModeFile {
     #[serde(default)]
     clear_defaults: bool,
     #[serde(default, deserialize_with = "normalized")]
-    keys: HashMap<KeyCombination, Binding>,
+    keys: IndexMap<KeyCombination, Binding>,
 }
 
 /// crokey parses chords without normalizing them, and lookups use the
@@ -135,15 +187,18 @@ struct ModeFile {
 /// replace a default spelled differently.
 fn normalized<'de, D: Deserializer<'de>>(
     deserializer: D,
-) -> Result<HashMap<KeyCombination, Binding>, D::Error> {
-    let keys = HashMap::<KeyCombination, Binding>::deserialize(deserializer)?;
-    Ok(keys
-        .into_iter()
-        .map(|(chord, binding)| (chord.normalized(), binding))
-        .collect())
+) -> Result<IndexMap<KeyCombination, Binding>, D::Error> {
+    let keys = IndexMap::<String, Binding>::deserialize(deserializer)?;
+    keys.into_iter()
+        .map(|(spelling, mut binding)| {
+            let chord: KeyCombination = spelling.parse().map_err(D::Error::custom)?;
+            binding.hint = format!("{spelling} {}", binding.hint);
+            Ok((chord.normalized(), binding))
+        })
+        .collect()
 }
 
-impl Keymap {
+impl ClientSettings {
     /// The file over the defaults; a missing file is the defaults. A file
     /// chord replaces the default on that chord. Used at startup, on reload
     /// and by `ship config check`.
@@ -166,6 +221,10 @@ impl Keymap {
             if over.clear_defaults {
                 mode.keys.clear();
             }
+            // File chords follow untouched defaults in their file order.
+            for chord in over.keys.keys() {
+                mode.keys.shift_remove(chord);
+            }
             mode.keys.extend(over.keys);
             mode.kind = over.kind.or(mode.kind);
         }
@@ -173,13 +232,16 @@ impl Keymap {
             .into_iter()
             .map(|(name, mode)| (name, mode.into()))
             .collect();
-        Self { modes }
+        Self {
+            keymap: Keymap { modes },
+            sidebar_width: file.client.sidebar_width.unwrap_or(26),
+        }
     }
 }
 
 impl From<ModeFile> for Mode {
     fn from(mut file: ModeFile) -> Self {
-        file.keys.retain(|_, binding| !binding.0.is_empty());
+        file.keys.retain(|_, binding| !binding.actions.is_empty());
         Self {
             kind: file.kind.unwrap_or_default(),
             keys: file.keys,
@@ -191,7 +253,7 @@ impl Binding {
     /// Whether running this enters a mode, so a one-shot mode doesn't leave
     /// for normal on its own.
     pub fn enters_mode(&self) -> bool {
-        self.0
+        self.actions
             .iter()
             .any(|action| matches!(action, Action::Client(ClientAction::Mode(_))))
     }

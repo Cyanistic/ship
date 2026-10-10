@@ -1,22 +1,22 @@
 # Spec Delta
 
-Zero-content terminal handling is approved in architecture A-4 and program P-1; the slice 1 probe verifies the policy recorded in `../../design.md`.
+Zero-content terminal handling is approved in architecture A-4 and program P-1; the slice 1 probe verifies the policy recorded in `../../design.md`. The status line as an overlay over the pane area, shown only when it has something to say, follows product A-3, architecture A-6 and program P-3.
 
 ## MODIFIED Requirements
 
 ### Requirement: Full-screen client
-Bare `ship` SHALL open a full-screen client in the current terminal showing the selected tab's own panes together, or the existing empty-state hint, a left tab-tree sidebar when shown, and a one-line bottom status bar. There SHALL be no tab bar. Child tabs SHALL NOT supply panes for their parent's pane area.
+Bare `ship` SHALL open a full-screen client in the current terminal showing the selected tab's own panes together, or the existing empty-state hint, and a left tab-tree sidebar when shown. The status line SHALL appear only as an overlay, as the Status line requirement says. There SHALL be no tab bar. Child tabs SHALL NOT supply panes for their parent's pane area.
 
 #### Scenario: Attach to a shell
 - **WHEN** no server is running and a user runs `ship`
-- **THEN** the client shows the starting shell's screen beside the sidebar and above the status bar, and the user can type into it at once
+- **THEN** the client shows the starting shell's screen beside the sidebar, using the full height of the terminal with no status line, and the user can type into it at once
 
 #### Scenario: Parent with panes and children
 - **WHEN** a user selects a tab with both its own panes and child tabs
 - **THEN** the pane area shows only that tab's own panes, with the child tabs available separately in the sidebar
 
 ### Requirement: Pane size
-A tab's area SHALL follow the smallest reported viewing-client area in each dimension, excluding that client's sidebar and bottom bar. The server SHALL publish actual pane frame/content geometry and size visible programs to their content rectangles, except that both PTY and emulator dimensions SHALL be clamped independently to at least 1 column and 1 row on startup and resize. Published geometry SHALL NOT be clamped. Cells and cursors SHALL be clipped to actual content; when either content dimension is zero, neither SHALL be drawn. A client viewing another tab SHALL NOT constrain it. Unviewed tabs and zoom-hidden panes SHALL retain their last terminal sizes. Larger clients SHALL draw the shared geometry at the pane area's top-left and mark unused space.
+A tab's area SHALL follow the smallest reported viewing-client area in each dimension, excluding that client's sidebar. The status line overlay SHALL NOT reduce the area. The server SHALL publish actual pane frame/content geometry and size visible programs to their content rectangles, except that both PTY and emulator dimensions SHALL be clamped independently to at least 1 column and 1 row on startup and resize. Published geometry SHALL NOT be clamped. Cells and cursors SHALL be clipped to actual content; when either content dimension is zero, neither SHALL be drawn. A client viewing another tab SHALL NOT constrain it. Unviewed tabs and zoom-hidden panes SHALL retain their last terminal sizes. Larger clients SHALL draw the shared geometry at the pane area's top-left and mark unused space.
 
 #### Scenario: Resize the terminal
 - **WHEN** the only client viewing a split tab resizes its terminal
@@ -35,27 +35,33 @@ A tab's area SHALL follow the smallest reported viewing-client area in each dime
 - **THEN** the zoomed pane follows that area while hidden panes continue running at their previous terminal sizes
 
 ### Requirement: Status line
-The status line SHALL show the viewed tab and pane labels, the pane's exit status once its program has exited, and a disconnected indicator while reconnecting. It SHALL NOT show a session. Outside normal mode it SHALL show the active mode's name and key hints for that mode: each bound chord in the config file's order, labeled from its binding's first action by the action's scalar value when it has one, else the action's last path segment. Hints that don't fit SHALL be cut from the end. It SHALL show the latest config error, a key action's failure or "not available yet" until the next key action. A zoomed tab SHALL have a visible zoom marker.
+The status line SHALL be a one-row overlay drawn over the bottom row of the pane area, the area right of the sidebar, never over the sidebar. It SHALL NOT change the reported area or any pane's geometry, and SHALL hide the pane cells beneath it only while it is shown. It SHALL be shown only while it has content: outside normal mode, while reconnecting, while the selected pane's program has exited, and while an error is pending. It SHALL NOT show tab labels, pane labels or a session.
+
+Outside normal mode it SHALL show the active mode's name and key hints for that mode: each bound chord in the config file's order, labeled from its binding's first action by the action's scalar value when it has one, else the action's last path segment. Hints that don't fit SHALL be cut from the end. It SHALL show a disconnected indicator while reconnecting, and the selected pane's exit status once its program has exited. It SHALL show the latest config error, a key action's failure or "not available yet" until the next key action.
+
+#### Scenario: Hidden in normal mode
+- **WHEN** a connected client in normal mode selects a running pane with no pending error
+- **THEN** no status line is drawn and the pane's last row is visible
 
 #### Scenario: Exited program
 - **WHEN** the selected pane's program exits with code 3
-- **THEN** the status line shows `exited (3)`
+- **THEN** the status line appears showing `exited (3)` and stays while that pane is selected
 
 #### Scenario: Labels without a session
-- **WHEN** a client selects the pane `nvim` in a tab named `work`
-- **THEN** the status line begins with `work › nvim`
+- **WHEN** a client enters `resize` mode with the pane `nvim` selected in a tab named `work`
+- **THEN** the status line does not show `work` or `nvim`
 
 #### Scenario: Active mode
 - **WHEN** the user presses `alt-r`
-- **THEN** the status line shows `resize` with `h left  j down  k up  l right  esc normal`, and stops showing them after `esc`
+- **THEN** the status line appears showing `resize` with `h left  j down  k up  l right  esc normal`, and disappears after `esc`
+
+#### Scenario: Overlay leaves sizes alone
+- **WHEN** a pane runs `stty size` in normal mode, and again after the user presses `alt-r`
+- **THEN** both report the same size, and the status line covers only the pane area's bottom row, not the sidebar
 
 #### Scenario: Custom binding hint
 - **WHEN** the file binds `"f" = { server.pane.zoom = {} }` in `resize` mode and the user enters it
 - **THEN** the hints include `f zoom`
-
-#### Scenario: Zoom marker
-- **WHEN** the selected tab is zoomed
-- **THEN** the client visibly identifies the zoomed state without requiring a pane border
 
 ### Requirement: Derived labels
 An unnamed pane's label SHALL be its program's current title, else its command. An unnamed tab's label SHALL be its first own pane's label in layout order, else its 1-based position among its siblings. Labels SHALL update as titles change and SHALL return to the derived form when a name is cleared.
@@ -90,7 +96,7 @@ A tab with two or more panes SHALL draw labeled borders around its visible split
 - **THEN** the visible pane has no border
 
 ### Requirement: Tab sidebar presentation
-The sidebar SHALL show a plain `tabs` title above one row per visible tab in tree order, indented by depth and using derived labels. Tabs with children SHALL have expanded/folded markers. It SHALL highlight the selected tab or the selected pane's tab, and no row when nothing is selected. `client.sidebar.toggle` SHALL hide/show it per client while preserving folds and giving freed width to panes.
+The sidebar SHALL show a plain `tabs` title above one row per visible tab in tree order, indented by depth and using derived labels. Tabs with children SHALL have expanded/folded markers. It SHALL highlight the selected tab or the selected pane's tab, and no row when nothing is selected. A zoomed tab's row SHALL carry a zoom marker; while the sidebar is hidden, no zoom marker is shown. `client.sidebar.toggle` SHALL hide/show it per client while preserving folds and giving freed width to panes.
 
 #### Scenario: Nested rows
 - **WHEN** a client opens a three-level tab tree and folds an intermediate row
@@ -99,6 +105,10 @@ The sidebar SHALL show a plain `tabs` title above one row per visible tab in tre
 #### Scenario: Toggle preserves presentation
 - **WHEN** a client hides its folded sidebar and shows it again
 - **THEN** the same folds return and another client's sidebar visibility is unchanged
+
+#### Scenario: Zoom marker
+- **WHEN** the selected tab is zoomed
+- **THEN** its sidebar row carries a zoom marker, without requiring a pane border
 
 #### Scenario: Empty selection beside sidebar
 - **WHEN** nothing is selected or an empty tab is selected

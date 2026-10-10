@@ -22,6 +22,7 @@ sse-stream.workspace = true
 url.workspace = true
 tokio.workspace = true
 toml.workspace = true
+tui-tree-widget.workspace = true
 tokio-stream.workspace = true
 
 [lints]

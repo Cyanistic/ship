@@ -67,7 +67,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. The sidebar, zoom, swap, resize, agent status and restoring after a restart are still to come.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Zoom, swap, resize, agent status and restoring after a restart are still to come.
 
 ## Installation
 
@@ -94,7 +94,7 @@ To see tabs change live, leave `ship` open in one terminal and add a tab from an
 TAB=$(ship tab create --name notes | jq -r .id)
 ship pane create --tab "$TAB" --name scratch
 ```
-Then press `alt-right` and `alt-left` in the client to move between top-level tabs. `ship tab close --tab "$TAB"` closes it again.
+Then press `alt-right` and `alt-left` in the client to move between visible tab rows. `ship tab close --tab "$TAB"` closes it again.
 
 Inside a Ship pane you can leave out `--tab` and `--pane`: commands default to the pane they run in and the tab holding it. So `ship pane close` run in a pane closes that pane, and `ship pane create` adds a pane next to it.
 
@@ -134,13 +134,15 @@ Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (of
 | `alt-x` | Close the selected tab |
 | `alt-\|` / `alt--` | Split the selected pane right / down, or the largest pane of the selected tab |
 | `alt-shift-x` | Close the selected pane |
-| `alt-left` / `alt-right` | Previous or next top-level tab, back on the pane you last used there |
+| `alt-left` / `alt-right` | Previous or next visible tab row, back on the pane you last used there |
 | `alt-h` / `alt-j` / `alt-k` / `alt-l` | Select the pane to the left, below, above or right |
 | `alt-tab` | Next pane in the tab, in layout order |
-| `alt-g` | Tab mode: `j` and `k` move between tabs, `esc` leaves |
+| `alt-g` | Tabs mode: `j` / `k` move between visible rows, `h` / `l` fold / unfold, `esc` leaves |
+| `alt-b` | Hide or show this client's sidebar, preserving its folds |
+| `alt-r` | Resize mode, with hints; resizing itself is not available yet |
 | `alt-q` | Detach |
 
-Every other key goes to the selected pane. A few defaults are bound already but wait on the sidebar and resizing (`alt-1` to `alt-9`, `alt-b` and the `alt-r` resize mode); for now they say "not available yet".
+In normal mode, every unbound key goes to the selected pane, including `alt-1` to `alt-9`, which have no default bindings. An explicitly bound `client.tab.select` still reports "not available yet". Resize actions are also accepted but not available yet.
 
 ### Working in splits
 
@@ -149,6 +151,27 @@ A tab with two or more panes draws them together, separated by shared borders th
 When several panes border the selected one on the side you move toward, `alt-h`/`j`/`k`/`l` picks the one you selected most recently, else the one whose center is nearest, else the first in layout order. That history belongs to your client and is never sent to the server, so two clients on the same tab move independently.
 
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the space left over.
+
+### Working in the tab tree
+
+The left sidebar has a `tabs` title and one row per visible tab. Rows are indented by depth; `▾` means expanded and `▸` means folded. The highlighted row is the selected tab, or the tab holding your selected pane. There is no separate sidebar cursor or Enter action.
+
+Create a three-level tree from another terminal:
+```sh
+PROJECT=$(ship tab create --name project | jq -r .id)
+REVIEW=$(ship tab create --name review "$PROJECT" | jq -r .id)
+CHECKS=$(ship tab create --name checks "$REVIEW" | jq -r .id)
+ship pane create --tab "$CHECKS" --name check-shell
+```
+
+Press `alt-g`, then `j` or `k` to select rows, `h` to fold the selected row and `l` to unfold it. `esc` returns to normal mode on the same selection. Next and previous wrap around; from nothing selected they open the first or last visible row. An empty parent shows the no-pane hint even if its child has a shell. When you return to a populated tab, you land on the surviving own pane you last used there, else its first pane in layout order. Selecting a descendant expands its ancestors automatically.
+
+Open a second `ship` client on the same server to try different folds and pane selections. Folds, sidebar visibility and pane memory belong to each client. `alt-b` hides the sidebar without changing the navigation rows, and gives its width back to the pane area. Hiding it on the smallest viewer lets the shared panes grow, subject to the other viewers' sizes. Run `stty size` in a pane to see its content dimensions.
+
+To close the example tree and its shell:
+```sh
+ship tab close --tab "$PROJECT"
+```
 
 ## Configuration
 
@@ -161,7 +184,15 @@ shell = "/bin/bash"          # default: your login shell
 ```
 The next pane you open uses it; panes already running keep their shell. A relative path is relative to the config file's folder.
 
-`[client]` holds the keys, grouped into modes. `normal` is where you start. Each key takes a list of actions, run in order. A binding in your file replaces the default on that key and leaves the rest alone:
+`[client]` holds the sidebar width and the keys, grouped into modes. The sidebar defaults to 26 columns; set a fixed width without fitting it to changing labels:
+```toml
+[client]
+sidebar_width = 40
+```
+
+Saving a valid width while attached updates the pane area and program sizes without restarting the client. Hidden sidebars retain the configured width for when they are shown again. A small window clips the sidebar to the available width and can leave zero pane content; it does not delete panes.
+
+`normal` is where you start. Each key takes a list of actions, run in order. A binding in your file replaces the default on that key and leaves the rest alone:
 ```toml
 [client.modes.normal.keys]
 "alt-t"  = [{ server.tab.create = {} }]        # new empty tab
@@ -184,7 +215,9 @@ You can define your own modes the same way. A `oneshot` mode takes one key and r
 
 The `server.` actions are the CLI's commands with the same names and options: `server.tab.create.starter = "shell"` is `ship tab create --starter shell`. Key spellings like `ctrl-alt-x` and `shift-tab` come from [crokey](https://docs.rs/crokey).
 
-A running client reloads its keys when you save the file. If the file has a mistake, the client keeps its current keys and shows the error at the bottom. To check the file without a client:
+There is no permanent status bar. A one-row overlay appears over the bottom of the pane area, never the sidebar, only when there is something to say: outside normal mode, while reconnecting, when the selected pane's program has exited, or after an error until the next key action. It doesn't resize panes. It shows the mode's name, then exit status, connection state and the latest error, then key hints. Default tabs hints read `j next  k prev  h collapse  l expand  esc normal`; resize hints read `h left  j down  k up  l right  esc normal`. Untouched defaults keep their order; chords in your file follow them in file order. Each hint uses its first action's scalar value, else its last path segment. For example, `client.mode = "normal"` shows `normal`, while `client.tab.expand = {}` shows `expand`. Hints are cut from the end when space runs out.
+
+A running client reloads its width and keys when you save the file, including rename-saves. Bind `client.config.reload = {}` to a key for explicit reload. If the file has a mistake, the client keeps its current settings and shows the located error in the overlay. To check the file without a client:
 ```sh
 ship config check
 ```

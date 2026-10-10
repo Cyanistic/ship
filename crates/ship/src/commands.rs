@@ -1,7 +1,7 @@
 use std::{path::Path, time::Duration};
 
 use serde::Serialize;
-use ship_client::{Client, Outcome, Scope, keymap::Keymap};
+use ship_client::{Client, Outcome, Scope, keymap::ClientSettings};
 use ship_core::{command::Command, prelude::*};
 use ship_server::ServerSettings;
 
@@ -23,7 +23,7 @@ pub async fn action(client: &Client, command: Command) -> Result<()> {
 /// does and prints each part's first error on stderr. No warnings.
 pub fn check_config(path: &Path) -> Result<()> {
     let mut errors: Vec<AppError> = ServerSettings::load(path).err().into_iter().collect();
-    errors.extend(Keymap::load(path).err());
+    errors.extend(ClientSettings::load(path).err());
     // A syntax error fails both parts the same way.
     errors.dedup_by_key(|error| error.to_string());
     for error in &errors {

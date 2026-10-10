@@ -15,5 +15,8 @@ pub fn load<T: DeserializeOwned>(path: &Path) -> Result<T> {
         Err(error) if error.kind() == io::ErrorKind::NotFound => String::new(),
         Err(error) => return Err(err!(Configuration, "{}: {error}", path.display())),
     };
-    toml::from_str(&text).map_err(|error| err!(Configuration, "{}: {error}", path.display()))
+    let deserializer = toml::de::Deserializer::parse(&text)
+        .map_err(|error| err!(Configuration, "{}: {error}", path.display()))?;
+    serde_path_to_error::deserialize(deserializer)
+        .map_err(|error| err!(Configuration, "{}: {error}", path.display()))
 }

@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 use ratatui::{
     Frame,
     buffer::Buffer,
-    layout::Rect,
+    layout::{Position, Rect},
     style::{self as tui, Modifier, Style, Stylize},
     symbols::merge::MergeStrategy,
     text::Line,
@@ -28,8 +28,8 @@ const FILLER: &str = "·";
 /// panes get merged shared borders with the pane's label on top, the selected
 /// one thick and colored; a lone pane fills its frame unbordered. Each screen
 /// paints into its content rectangle, clipped to it and to `area`, and the
-/// filler marks the rest of `area`. Returns the selected pane's cursor once
-/// placed on the frame.
+/// filler marks the rest of `area`. Returns the selected pane's cursor and
+/// where it falls on the frame.
 pub(super) fn draw(
     frame: &mut Frame,
     area: Rect,
@@ -37,7 +37,7 @@ pub(super) fn draw(
     geometry: &TabGeometry,
     screens: &HashMap<IdOf<Pane>, Arc<Screen>>,
     selected: Option<IdOf<Pane>>,
-) -> Option<Cursor> {
+) -> Option<(Position, Cursor)> {
     let offset = |rect: Rect| {
         area.intersection(Rect {
             x: area.x.saturating_add(rect.x),
@@ -113,8 +113,7 @@ pub(super) fn draw(
             && at.x < shown.width
             && at.y < shown.height
         {
-            frame.set_cursor_position((shown.x + at.x, shown.y + at.y));
-            cursor = Some(at);
+            cursor = Some((Position::new(shown.x + at.x, shown.y + at.y), at));
         }
     }
     cursor
