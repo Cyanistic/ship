@@ -6,6 +6,7 @@
 - [Terminal feasibility](terminal-feasibility.md): earlier native capture, wrapper compatibility and structdiff feasibility findings. Its patch experiments are historical evidence, not the current full-snapshot pipeline.
 - [Typed relay contract](typed-relay.md): self-contained typed publication, sink-adapter and client-delivery contract; no private-repository dependency or implemented Ship actor integration.
 - [Config and plugin ownership](config-plugin-ownership.md): config/profile and plugin ownership research.
+- [Prompts and plugins](prompts-and-plugins.md): how the UI could ask for input (rename) without diverging from the CLI, Herdr's rename overlay and program-based plugins, Claude Code hooks, embedded scripting, and process spawn timings. Undecided; renaming from the UI was deferred from the layout change.
 - [Agent state detection](agent-state-detection.md): which agents report state through hooks and which need screen rules, Herdr's manifest format and engine size, and a deferred leaning toward reading Herdr's manifests with a small engine. From Herdr's source and docs; nothing built in Ship.
 
 These notes are research evidence, not implicit authorization to adopt a production protocol or change architecture.
