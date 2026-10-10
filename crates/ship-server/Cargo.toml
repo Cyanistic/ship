@@ -12,7 +12,6 @@ ship-macros.workspace = true
 
 axum.workspace = true
 crossterm.workspace = true
-figment.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
 kameo.workspace = true

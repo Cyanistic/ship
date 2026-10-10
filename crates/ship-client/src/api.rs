@@ -12,7 +12,7 @@ use ship_core::{
     model::{Named, Pane, Tab},
     prelude::*,
     protocol::{
-        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, PaneInput, SseEvent, ViewInput,
+        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, SseEvent, ViewInput,
         ViewingRecord,
     },
     tree::Tabs,
@@ -84,7 +84,8 @@ impl Client {
         .await
     }
 
-    /// Top-level tabs with their descendants, in order.
+    /// Top-level tabs with their descendants, in order. Each viewed tab
+    /// carries server-computed geometry; unviewed tabs omit it.
     pub async fn tabs(&self) -> Result<Tabs> {
         self.request(Method::GET, Tab::COLLECTION, NO_BODY, None, StatusCode::OK)
             .await
@@ -101,15 +102,11 @@ impl Client {
         .await
     }
 
-    pub async fn create_pane(&self, parent: IdOf<Tab>, input: &PaneInput) -> Result<Pane> {
-        let body = CreatePane {
-            parent,
-            input: input.clone(),
-        };
+    pub async fn create_pane(&self, body: &CreatePane) -> Result<Pane> {
         self.request(
             Method::POST,
             Pane::COLLECTION,
-            Some(&body),
+            Some(body),
             None,
             StatusCode::CREATED,
         )

@@ -16,11 +16,13 @@ axum = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 crossterm.workspace = true
 indexmap.workspace = true
+ratatui-core.workspace = true
 kameo = { workspace = true, optional = true }
 serde.workspace = true
 ship-macros = { workspace = true, optional = true }
 serde_json.workspace = true
 serde_with.workspace = true
+toml.workspace = true
 tokio = { version = "1", features = ["sync"], optional = true }
 tracing.workspace = true
 utoipa.workspace = true

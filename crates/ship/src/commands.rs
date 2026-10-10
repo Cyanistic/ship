@@ -20,10 +20,12 @@ pub async fn action(client: &Client, command: Command) -> Result<()> {
 }
 
 /// `ship config check`: loads each part of the file the way its process
-/// does and prints every error on stderr. No warnings.
+/// does and prints each part's first error on stderr. No warnings.
 pub fn check_config(path: &Path) -> Result<()> {
     let mut errors: Vec<AppError> = ServerSettings::load(path).err().into_iter().collect();
-    errors.extend(Keymap::load(path).err().into_iter().flatten());
+    errors.extend(Keymap::load(path).err());
+    // A syntax error fails both parts the same way.
+    errors.dedup_by_key(|error| error.to_string());
     for error in &errors {
         eprintln!("{error}");
     }

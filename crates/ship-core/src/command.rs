@@ -210,6 +210,7 @@ pub mod pane {
     use serde::Deserialize;
 
     use super::{Direction, PaneTarget, TabTarget};
+    use crate::protocol::SplitDirection;
 
     /// `get` is CLI-only, so the config rejects it.
     #[derive(Clone, Debug, Deserialize)]
@@ -232,12 +233,19 @@ pub mod pane {
     #[derive(Clone, Debug, Default, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Args))]
     #[serde(default, deny_unknown_fields)]
+    #[cfg_attr(
+        feature = "clap",
+        command(
+            mut_arg("pane", |arg| arg.help("Split anchor pane ID; defaults to the pane this runs in")),
+            mut_arg("id", |arg| arg.help("Tab ID; splits its largest pane or creates its first pane; overrides --pane"))
+        )
+    )]
     pub struct Create {
         #[cfg_attr(feature = "clap", command(flatten))]
         pub tab: TabTarget,
-        /// Where the pane splits off; ignored until layout lands
+        /// Which side of the anchor to split; right by default
         #[cfg_attr(feature = "clap", arg(long))]
-        pub direction: Option<Split>,
+        pub direction: Option<SplitDirection>,
         /// Pane name; omitted or blank means none
         #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,
@@ -247,14 +255,6 @@ pub mod pane {
         /// Command and arguments; defaults to your login shell
         #[cfg_attr(feature = "clap", arg(last = true, value_name = "COMMAND"))]
         pub command: Vec<String>,
-    }
-
-    #[derive(Clone, Copy, Debug, Deserialize)]
-    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-    #[serde(rename_all = "snake_case")]
-    pub enum Split {
-        Right,
-        Down,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]

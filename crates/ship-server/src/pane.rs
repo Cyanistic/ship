@@ -3,12 +3,15 @@
 
 use std::{
     collections::HashMap,
+    env,
     net::SocketAddr,
     path::PathBuf,
     sync::{Arc, Mutex},
+    thread,
     time::Duration,
 };
 
+use crossterm::event::KeyEvent;
 use kameo::actor::ActorRef;
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use ratatui::{
@@ -29,7 +32,7 @@ use ship_core::{
 };
 use tokio::{
     sync::{Notify, mpsc, oneshot, watch},
-    time::Instant,
+    time::{Instant, sleep_until},
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
 
@@ -81,7 +84,7 @@ pub(crate) struct PaneEnv {
 
 impl PaneEnv {
     pub fn new(address: SocketAddr, config: PathBuf) -> Result<Self> {
-        let bin = std::env::current_exe()
+        let bin = env::current_exe()
             .map_err(|error| err!(Io, "cannot resolve the server executable", @external: error))?;
         Ok(Self {
             server_url: format!("http://{address}"),
@@ -151,7 +154,7 @@ pub(crate) struct PaneHandle {
 
 pub(crate) enum PaneCommand {
     /// Encoded by the wrapper against the terminal's live modes.
-    Key(crossterm::event::KeyEvent),
+    Key(KeyEvent),
     /// Bracketed by the wrapper when the program enabled it.
     Paste(String),
     /// Dropped when equal to the pane's current size.
@@ -197,6 +200,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         cwd,
         size,
     } = launch;
+    let size = terminal_size(size);
     let pty = native_pty_system()
         .openpty(PtySize {
             rows: size.rows,
@@ -215,7 +219,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         .map_err(|error| err!(Io, "cannot write the terminal", @external: error))?;
     let master: Master = Arc::new(Mutex::new(pty.master));
     let resizer = {
-        let master = master.clone();
+        let master = Arc::clone(&master);
         Box::new(move |cols, rows| {
             master
                 .lock()
@@ -240,7 +244,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         size.cols,
         size.rows,
         {
-            let dirty = dirty.clone();
+            let dirty = Arc::clone(&dirty);
             move || dirty.notify_one()
         },
     )
@@ -270,7 +274,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     })?;
 
     let (exit_tx, status) = oneshot::channel();
-    std::thread::Builder::new()
+    thread::Builder::new()
         .name("pane-exit".into())
         .spawn(move || {
             if let Some(status) = program::wait(child) {
@@ -359,7 +363,7 @@ impl PaneTask {
                     pending = true;
                     next = next.max(Instant::now() + SETTLE);
                 }
-                () = tokio::time::sleep_until(next), if pending => {
+                () = sleep_until(next), if pending => {
                     pending = false;
                     self.publish().await;
                     next = Instant::now() + FRAME;
@@ -386,11 +390,13 @@ impl PaneTask {
         match command {
             PaneCommand::Key(key) => self.session.send_key(key),
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),
-            PaneCommand::Resize(size) if size != self.size => {
-                self.size = size;
-                self.session.send_resize(size.cols, size.rows);
+            PaneCommand::Resize(size) => {
+                let size = terminal_size(size);
+                if size != self.size {
+                    self.size = size;
+                    self.session.send_resize(size.cols, size.rows);
+                }
             }
-            PaneCommand::Resize(_) => {}
         }
     }
 
@@ -532,6 +538,8 @@ use program::Program;
 /// terminal's foreground group get SIGHUP, up to GRACE to exit, then SIGKILL.
 #[cfg(unix)]
 mod program {
+    use std::iter;
+
     use nix::{
         errno::Errno,
         sys::{
@@ -540,6 +548,7 @@ mod program {
         },
         unistd::Pid,
     };
+    use tokio::time::{sleep, timeout};
 
     use super::*;
 
@@ -573,15 +582,15 @@ mod program {
                 .and_then(|master| master.process_group_leader())
                 .map(Pid::from_raw)
                 .filter(|group| group.as_raw() > 0 && *group != self.group);
-            let groups: Vec<Pid> = std::iter::once(self.group).chain(foreground).collect();
+            let groups: Vec<Pid> = iter::once(self.group).chain(foreground).collect();
             signal(&groups, Signal::SIGHUP);
             let settle = async {
                 exit.wait().await;
                 while groups.iter().any(|group| killpg(*group, None).is_ok()) {
-                    tokio::time::sleep(POLL).await;
+                    sleep(POLL).await;
                 }
             };
-            tokio::time::timeout(GRACE, settle).await.ok();
+            timeout(GRACE, settle).await.ok();
             signal(&groups, Signal::SIGKILL);
             exit.wait().await;
         }
@@ -651,5 +660,13 @@ mod program {
             code: status.exit_code(),
             signal: status.signal().map(str::to_owned),
         })
+    }
+}
+
+/// Both PTY and emulator need a positive grid; published content stays actual.
+fn terminal_size(size: Size) -> Size {
+    Size {
+        cols: size.cols.max(1),
+        rows: size.rows.max(1),
     }
 }

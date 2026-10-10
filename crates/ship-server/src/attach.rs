@@ -12,7 +12,7 @@ use axum::{
 use futures_util::{StreamExt, stream};
 use kameo::actor::ActorRef;
 use ship_core::{AppError, Result, err, id::*, model::Pane, protocol::*, screen::Screen};
-use tokio::sync::watch;
+use tokio::{runtime::Handle, sync::watch};
 use tokio_stream::{StreamMap, wrappers::WatchStream};
 
 use crate::{
@@ -31,7 +31,7 @@ struct AttachmentGuard {
 
 impl Drop for AttachmentGuard {
     fn drop(&mut self) {
-        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+        let Ok(runtime) = Handle::try_current() else {
             return;
         };
         let (attachment, state) = (self.attachment, self.state.clone());
@@ -76,7 +76,7 @@ pub(crate) async fn attach(
         attachment,
         replicas: app.replicas.clone(),
         live: app.live.clone(),
-        replica: attached.replica.clone(),
+        replica: Arc::clone(&attached.replica),
         watching: StreamMap::new(),
     };
     progress.view();
@@ -117,14 +117,14 @@ struct Progress {
 impl Progress {
     /// Waits for a newer replica or a watched screen. Replicas no newer than
     /// the one sent are skipped. A closed channel means shutdown.
-    async fn next(&mut self) -> std::result::Result<SseEvent, EndReason> {
+    async fn next(&mut self) -> Result<SseEvent, EndReason> {
         loop {
             tokio::select! {
                 changed = self.replicas.changed() => {
                     changed.map_err(|_| EndReason::ServerShutdown)?;
                     let replica = self.replicas.borrow_and_update().clone();
                     if replica.revision > self.replica.revision {
-                        self.replica = replica.clone();
+                        self.replica = Arc::clone(&replica);
                         self.view();
                         return Ok(SseEvent::State(replica));
                     }
@@ -146,8 +146,9 @@ impl Progress {
             .get(&self.attachment)
             .and_then(|record| record.selection)
             .and_then(|selection| tree::viewed_tab(tabs, selection))
-            .and_then(|tab| tree::tab(tabs, tab).ok())
-            .map(|tab| tab.panes.keys().copied().collect())
+            .and_then(|id| tree::tab(tabs, id).ok())
+            .and_then(|tab| tab.geometry.as_ref())
+            .map(|geometry| geometry.panes.keys().copied().collect())
             .unwrap_or_default();
         let gone: Vec<IdOf<Pane>> = self
             .watching

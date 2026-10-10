@@ -1,5 +1,7 @@
 //! The input stream: keys and pastes from one attachment, routed to panes.
 
+use std::io;
+
 use axum::{
     Json,
     body::Body,
@@ -45,7 +47,7 @@ pub(crate) async fn input(
 ) -> Result<Response> {
     let revision = app.state.ask(CheckAttachment(attachment)).await?;
     let mut replicas = app.replicas.clone();
-    let body = StreamReader::new(body.into_data_stream().map_err(std::io::Error::other));
+    let body = StreamReader::new(body.into_data_stream().map_err(io::Error::other));
     let mut lines = FramedRead::new(body, LinesCodec::new_with_max_length(INPUT_LINE_MAX));
     loop {
         tokio::select! {

@@ -2,12 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
-use figment::{
-    Figment,
-    providers::{Format, Toml},
-};
 use serde::Deserialize;
-use ship_core::prelude::*;
+use ship_core::{config, prelude::*};
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -25,29 +21,14 @@ struct Root {
 }
 
 impl ServerSettings {
-    /// `server` from the file through figment. A missing file is the
-    /// defaults; a relative `shell` resolves from the file's folder (FR-005).
-    /// Also what `ship config check` runs. `[server]` has one field, so its
-    /// first error is the only one.
+    /// `server` from the file. A missing file is the defaults; a relative
+    /// `shell` resolves from the file's folder (FR-005). Also what
+    /// `ship config check` runs.
     pub fn load(path: &Path) -> Result<Self> {
-        let Root { mut server } = Figment::from(Toml::file(path))
-            .extract()
-            .map_err(|error| located(path, error))?;
+        let Root { mut server } = config::load(path)?;
         if let (Some(shell), Some(folder)) = (&mut server.shell, path.parent()) {
             *shell = folder.join(&*shell);
         }
         Ok(server)
-    }
-}
-
-/// Figment's own message prefixes the key with its `default.` profile, so
-/// build the location from the key path instead. Syntax errors have no key
-/// path, and their message carries the line and column.
-fn located(path: &Path, error: figment::Error) -> AppError {
-    let kind = error.kind.to_string();
-    let kind = kind.trim_end();
-    match error.path.join(".") {
-        key if key.is_empty() => err!(Configuration, "{}: {kind}", path.display()),
-        key => err!(Configuration, "{}: {key}: {kind}", path.display()),
     }
 }

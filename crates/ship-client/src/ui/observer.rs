@@ -51,8 +51,8 @@ impl Observer {
                 self.screens.insert(pane, screen);
                 return self
                     .selected()
-                    .and_then(|selected| selected.pane)
-                    .is_some_and(|selected| selected.id == pane);
+                    .and_then(|selected| selected.tab.geometry.as_ref())
+                    .is_some_and(|geometry| geometry.panes.contains_key(&pane));
             }
             SseEvent::Ended(_) => return false,
         }
@@ -97,7 +97,7 @@ impl Observer {
         let tabs = &self.replica.as_ref()?.tabs;
         let tab = tree::tab(tabs, tree::viewed_tab(tabs, selection)?).ok()?;
         let pane = match selection {
-            NodeId::Pane(id) => tab.panes.get(&id),
+            NodeId::Pane(id) => tab.pane(id),
             NodeId::Tab(_) => None,
         };
         Some(Selected { tab, pane })

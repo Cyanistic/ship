@@ -2,7 +2,9 @@
 
 mod draw;
 mod keys;
+mod memory;
 mod observer;
+mod panes;
 mod terminal;
 
 use std::{
@@ -13,22 +15,29 @@ use std::{
     time::Duration,
 };
 
-use crossterm::event::{Event, EventStream};
+use crossterm::{
+    event::{Event, EventStream},
+    terminal::size,
+};
 use futures_util::{Stream, StreamExt};
 use ship_core::{
-    command::{Command, pane::PaneCommand, tab::TabCommand},
+    command::{Command, Direction, pane::PaneCommand, tab::TabCommand},
     model::NodeId,
     prelude::*,
     protocol::{AttachRequest, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput},
     screen::Size,
     tree::{self, Tabs},
 };
-use tokio::{sync::mpsc, time::MissedTickBehavior};
+use tokio::{
+    sync::mpsc,
+    time::{self, MissedTickBehavior},
+};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use self::{
     draw::Status,
     keys::{Handled, Keys},
+    memory::Memory,
     observer::Observer,
     terminal::TerminalGuard,
 };
@@ -49,11 +58,15 @@ type Saves = Pin<Box<dyn Stream<Item = ()>>>;
 /// A request the loop awaits alongside everything else.
 type Pending<'a, T> = Option<Pin<Box<dyn Future<Output = Result<T>> + 'a>>>;
 
-/// Which ring a navigation key moves through.
+/// Where a navigation key moves the selection.
 #[derive(Clone, Copy)]
 enum Step {
-    Tab,
-    Pane,
+    /// Around the top-level tabs.
+    Tab { forward: bool },
+    /// Around the viewed tab's panes in layout order.
+    Pane { forward: bool },
+    /// To the selected pane's neighbor on that side.
+    Focus(Direction),
 }
 
 /// Why the client stopped.
@@ -83,7 +96,12 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
     let signaled = signaled()?;
     let area = tab_area()?;
     let selection = match open_first {
-        true => navigate(&client.tabs().await?, None, Step::Tab, true),
+        true => navigate(
+            &client.tabs().await?,
+            &Memory::default(),
+            None,
+            Step::Tab { forward: true },
+        ),
         false => None,
     };
     let request = AttachRequest { selection, area };
@@ -114,9 +132,10 @@ async fn drive(
     let mut reconnect: Pending<Events> = None;
     let mut backoff = FIRST_BACKOFF;
     let mut observer = Observer::default();
+    let mut memory = Memory::default();
     let (keymap, mut message) = match Keymap::load(config) {
         Ok(keymap) => (keymap, None),
-        Err(errors) => (Keymap::defaults(), Some(summary(&errors))),
+        Err(error) => (Keymap::defaults(), Some(error.to_string())),
     };
     let mut keys = Keys::new(keymap);
     let mut saves: Option<Saves> = match watch::changes(config) {
@@ -140,7 +159,7 @@ async fn drive(
     // Where navigation moved the selection, until a view PUT carries it.
     let mut chosen: Option<NodeId> = None;
     let mut putting: Pending<Option<NodeId>> = None;
-    let mut tick = tokio::time::interval(FRAME);
+    let mut tick = time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     redraw(guard, &observer, &status(&keys, message.as_deref()))?;
     loop {
@@ -158,7 +177,12 @@ async fn drive(
                         sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));
                         backoff = FIRST_BACKOFF;
                     }
-                    observer.apply(event)
+                    let screen = matches!(event, SseEvent::Screen(_));
+                    let visible = observer.apply(event);
+                    if !screen && let Some(replica) = &observer.replica {
+                        memory.observe(&replica.tabs, observer.record().and_then(|record| record.selection));
+                    }
+                    visible
                 }
                 // Cut or failed: keep the screens, drop keys, reconnect.
                 Some(Err(_)) | None => {
@@ -277,7 +301,6 @@ async fn drive(
             };
             visible = true;
             let done = match action {
-                Action::None => Ok(()),
                 Action::Server(command) => {
                     let creates = matches!(
                         command,
@@ -294,7 +317,10 @@ async fn drive(
                     running = Some(Box::pin(async move {
                         Ok(match client.execute(command, &scope).await? {
                             Outcome::Tab(tab) if creates => Some(
-                                tree::first_pane(&tab).map_or(NodeId::Tab(tab.id), NodeId::Pane),
+                                tab.panes()
+                                    .next()
+                                    .map(|pane| pane.id)
+                                    .map_or(NodeId::Tab(tab.id), NodeId::Pane),
                             ),
                             Outcome::Pane(pane) if creates => Some(NodeId::Pane(pane.id)),
                             _ => None,
@@ -305,23 +331,41 @@ async fn drive(
                 Action::Client(action) => match action {
                     ClientAction::Tab(tab @ (ClientTab::Next {} | ClientTab::Prev {})) => {
                         let forward = matches!(tab, ClientTab::Next {});
-                        moved(&observer, &mut chosen, &mut view_dirty, Step::Tab, forward);
+                        moved(
+                            &observer,
+                            &memory,
+                            &mut chosen,
+                            &mut view_dirty,
+                            Step::Tab { forward },
+                        );
                         Ok(())
                     }
                     ClientAction::Pane(pane @ (ClientPane::Next {} | ClientPane::Prev {})) => {
                         let forward = matches!(pane, ClientPane::Next {});
-                        moved(&observer, &mut chosen, &mut view_dirty, Step::Pane, forward);
+                        moved(
+                            &observer,
+                            &memory,
+                            &mut chosen,
+                            &mut view_dirty,
+                            Step::Pane { forward },
+                        );
+                        Ok(())
+                    }
+                    ClientAction::Pane(ClientPane::Focus { direction }) => {
+                        moved(
+                            &observer,
+                            &memory,
+                            &mut chosen,
+                            &mut view_dirty,
+                            Step::Focus(direction),
+                        );
                         Ok(())
                     }
                     ClientAction::Tab(ClientTab::Select { .. }) => unavailable("tab select"),
                     ClientAction::Tab(ClientTab::Expand {}) => unavailable("tab expand"),
                     ClientAction::Tab(ClientTab::Collapse {}) => unavailable("tab collapse"),
-                    ClientAction::Pane(ClientPane::Focus { .. }) => unavailable("pane focus"),
                     ClientAction::Sidebar(Sidebar::Toggle {}) => unavailable("sidebar toggle"),
-                    ClientAction::Mode(mode) => {
-                        keys.enter(mode);
-                        Ok(())
-                    }
+                    ClientAction::Mode(mode) => keys.enter(mode),
                     ClientAction::Send(chord) => {
                         match observer.selected().and_then(|selected| selected.pane) {
                             Some(pane) => {
@@ -354,15 +398,12 @@ async fn drive(
 }
 
 fn redraw(guard: &mut TerminalGuard, observer: &Observer, status: &Status) -> Result<()> {
+    let mut cursor = None;
     guard
         .terminal
-        .draw(|frame| draw::draw(frame, observer, status))
+        .draw(|frame| cursor = draw::draw(frame, observer, status))
         .map_err(|error| err!(Io, "cannot draw", @external: error))?;
-    let screen = observer
-        .selected()
-        .and_then(|selected| selected.pane)
-        .and_then(|pane| observer.screens.get(&pane.id));
-    guard.set_cursor(screen.and_then(|screen| screen.cursor))
+    guard.set_cursor(cursor)
 }
 
 fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
@@ -374,37 +415,26 @@ fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
 
 /// Loads `config` into `keys`. A bad file keeps the running keymap.
 fn reload(keys: &mut Keys, config: &Path) -> Result<()> {
-    let keymap =
-        Keymap::load(config).map_err(|errors| err!(Configuration, "{}", summary(&errors)))?;
-    keys.replace(keymap);
+    keys.replace(Keymap::load(config)?);
     Ok(())
-}
-
-/// The first error of a keymap that failed to load, and how many more.
-fn summary(errors: &[AppError]) -> String {
-    match errors {
-        [] => String::new(),
-        [only] => only.to_string(),
-        [first, rest @ ..] => format!("{first} (and {} more; ship config check)", rest.len()),
-    }
 }
 
 fn unavailable(action: &str) -> Result<()> {
     Err(err!(Unavailable, "{} is not available yet", action))
 }
 
-/// Moves the pending selection one step around `ring`, marking the view
-/// dirty when it changed.
+/// Moves the pending selection one `step`, marking the view dirty when it
+/// changed.
 fn moved(
     observer: &Observer,
+    memory: &Memory,
     chosen: &mut Option<NodeId>,
     view_dirty: &mut bool,
-    ring: Step,
-    forward: bool,
+    step: Step,
 ) {
     if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
         let from = chosen.or(record.selection);
-        if let Some(to) = navigate(&replica.tabs, from, ring, forward)
+        if let Some(to) = navigate(&replica.tabs, memory, from, step)
             && Some(to) != from
         {
             *chosen = Some(to);
@@ -413,39 +443,53 @@ fn moved(
     }
 }
 
-/// Where one step around `ring` moves the selection `from`. Top-level tabs
-/// cycle in order and land on the tab's first pane, else the tab; from
-/// nothing selected they go to the first or last. Panes cycle within their
-/// tab; from a tab, to its first or last pane. `None` when there is nowhere
-/// to go.
-fn navigate(tabs: &Tabs, from: Option<NodeId>, ring: Step, forward: bool) -> Option<NodeId> {
-    match ring {
-        Step::Tab => {
+/// Where `step` moves the selection `from`. Top-level tabs cycle in order and
+/// land where `memory` says; from nothing selected they go to the first or
+/// last. Panes cycle within their tab; from a tab, to its first or last pane.
+/// Focus goes to the neighbor in the tab's published geometry, ties to the
+/// panes `memory` selected most recently. `None` when there is nowhere to go.
+fn navigate(tabs: &Tabs, memory: &Memory, from: Option<NodeId>, step: Step) -> Option<NodeId> {
+    match step {
+        Step::Tab { forward } => {
             let index = match from {
                 Some(node) => {
                     let Some(&NodeId::Tab(top)) = tree::path(tabs, node)?.first() else {
                         return None;
                     };
-                    step(tabs.get_index_of(&top)?, tabs.len(), forward)
+                    self::step(tabs.get_index_of(&top)?, tabs.len(), forward)
                 }
                 None if forward => 0,
                 None => tabs.len().checked_sub(1)?,
             };
             let (_, tab) = tabs.get_index(index)?;
-            Some(tree::first_pane(tab).map_or(NodeId::Tab(tab.id), NodeId::Pane))
+            Some(memory.landing(tab))
         }
-        Step::Pane => {
+        Step::Pane { forward } => {
             let from = from?;
             let tab = tree::tab(tabs, tree::viewed_tab(tabs, from)?).ok()?;
+            let panes: Vec<_> = tab.panes().map(|pane| pane.id).collect();
             let index = match from {
-                NodeId::Pane(pane) => {
-                    step(tab.panes.get_index_of(&pane)?, tab.panes.len(), forward)
-                }
+                NodeId::Pane(pane) => self::step(
+                    panes.iter().position(|id| *id == pane)?,
+                    panes.len(),
+                    forward,
+                ),
                 NodeId::Tab(_) if forward => 0,
-                NodeId::Tab(_) => tab.panes.len().checked_sub(1)?,
+                NodeId::Tab(_) => panes.len().checked_sub(1)?,
             };
-            let (&pane, _) = tab.panes.get_index(index)?;
+            let pane = *panes.get(index)?;
             Some(NodeId::Pane(pane))
+        }
+        Step::Focus(direction) => {
+            let Some(NodeId::Pane(from)) = from else {
+                return None;
+            };
+            let tab = tree::tab(tabs, tree::pane_owner(tabs, from).ok()?).ok()?;
+            let to = tab
+                .geometry
+                .as_ref()?
+                .neighbor(from, direction, memory.recent())?;
+            Some(NodeId::Pane(to))
         }
     }
 }
@@ -457,7 +501,7 @@ fn step(index: usize, len: usize, forward: bool) -> usize {
 
 /// Attach after `delay`; zero for the first attach.
 async fn attach_after(client: &Client, request: AttachRequest, delay: Duration) -> Result<Events> {
-    tokio::time::sleep(delay).await;
+    time::sleep(delay).await;
     Ok(Box::pin(client.attach(&request).await?))
 }
 
@@ -482,8 +526,8 @@ async fn finish<F: Future + Unpin>(request: &mut Option<F>) -> F::Output {
 }
 
 fn tab_area() -> Result<Size> {
-    let (cols, rows) = crossterm::terminal::size()
-        .map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
+    let (cols, rows) =
+        size().map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
     Ok(draw::tab_area(cols, rows))
 }
 

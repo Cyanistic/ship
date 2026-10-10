@@ -11,28 +11,38 @@ mod state;
 
 use std::{
     future::{Future, IntoFuture},
+    io::ErrorKind,
     net::SocketAddr,
     path::PathBuf,
+    process,
     sync::Arc,
     time::Duration,
 };
 
 pub use app::AppState;
-use axum::{Router, serve::ListenerExt};
+use axum::{
+    Router,
+    body::Body,
+    http::{Request, Response},
+    middleware::from_fn_with_state,
+    serve::ListenerExt,
+};
 use kameo::{
     actor::{ActorRef, Spawn},
     mailbox,
 };
 pub use settings::ServerSettings;
 use ship_core::{
+    geometry::{PaneGeometry, TabGeometry},
     model::OptionalName,
     prelude::*,
-    protocol::{CreateTab, MoveTab, Replica, Starter},
+    protocol::{CreateTab, MoveTab, PaneSpec, Replica, Starter, ViewingRecord},
     relay,
 };
 use tokio::{
     net::TcpListener,
     sync::{mpsc, watch},
+    time::timeout,
 };
 use tokio_util::sync::CancellationToken;
 use tower_http::{
@@ -42,7 +52,7 @@ use tower_http::{
     },
     trace::TraceLayer,
 };
-use utoipa::OpenApi;
+use utoipa::{OpenApi, openapi::OpenApi as OpenApiDoc};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
@@ -58,7 +68,7 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
 /// `Replica::viewers` or the flattened `PaneSpec` in `CreatePane`, are
 /// registered here.
 #[derive(OpenApi)]
-#[openapi(components(schemas(ship_core::protocol::ViewingRecord, ship_core::protocol::PaneSpec)))]
+#[openapi(components(schemas(ViewingRecord, PaneSpec, TabGeometry, PaneGeometry)))]
 struct ApiDoc;
 
 /// One `.routes(routes!(handler))` per handler. Registrations on the same path
@@ -91,7 +101,7 @@ fn api_router() -> OpenApiRouter<AppState> {
 }
 
 /// Construct the route-built API description without starting the server.
-pub fn openapi() -> utoipa::openapi::OpenApi {
+pub fn openapi() -> OpenApiDoc {
     api_router().split_for_parts().1
 }
 
@@ -105,14 +115,14 @@ pub fn router(app: AppState) -> Router {
     );
     api_router().layer(compression).layer(
         TraceLayer::new_for_http()
-            .make_span_with(|request: &axum::http::Request<axum::body::Body>| {
+            .make_span_with(|request: &Request<Body>| {
                 tracing::info_span!("request", method = %request.method(), path = request.uri().path())
             })
-            .on_response(|response: &axum::http::Response<axum::body::Body>, duration: Duration, _span: &tracing::Span| {
+            .on_response(|response: &Response<Body>, duration: Duration, _span: &tracing::Span| {
                 tracing::info!(status = response.status().as_u16(), duration_ms = duration.as_secs_f64() * 1000.0, "request completed");
             }),
     ).split_for_parts().0
-        .layer(axum::middleware::from_fn_with_state(app.clone(), app::stamp))
+        .layer(from_fn_with_state(app.clone(), app::stamp))
         .with_state(app)
 }
 
@@ -132,7 +142,7 @@ pub async fn serve(
         ));
     }
     let listener = TcpListener::bind(address).await.map_err(|error| {
-        let code = if error.kind() == std::io::ErrorKind::AddrInUse {
+        let code = if error.kind() == ErrorKind::AddrInUse {
             ErrorCode::Conflict
         } else {
             ErrorCode::Io
@@ -143,7 +153,7 @@ pub async fn serve(
     let listener = listener.tap_io(|tcp| {
         tcp.set_nodelay(true).ok();
     });
-    tracing::info!(%address, pid = std::process::id(), protocol_version = ship_core::PROTOCOL_VERSION, "server listening");
+    tracing::info!(%address, pid = process::id(), protocol_version = ship_core::PROTOCOL_VERSION, "server listening");
     // Axum awaits shutdown directly. This channel only observes its result so
     // the outer task can propagate errors and bound draining after signal receipt.
     let (result_tx, mut result_rx) = watch::channel(None);
@@ -200,7 +210,7 @@ pub async fn serve(
         result = &mut serving => result.map_err(|error| err!(Io, "server failed", @external: error))?,
         changed = result_rx.changed() => {
             changed.map_err(|error| err!(Internal, "shutdown outcome unavailable", @external: error))?;
-            tokio::time::timeout(Duration::from_secs(5), &mut serving)
+            timeout(Duration::from_secs(5), &mut serving)
                 .await
                 .map_err(|_| err!(Internal, "server shutdown exceeded five seconds"))?
                 .map_err(|error| err!(Io, "server shutdown failed", @external: error))?;

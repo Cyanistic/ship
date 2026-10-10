@@ -30,15 +30,6 @@ pub fn path(tabs: &Tabs, node: NodeId) -> Option<Vec<NodeId>> {
     }
 }
 
-/// `tab`'s first pane in tree order: its own panes before its child tabs'.
-pub fn first_pane(tab: &Tab) -> Option<IdOf<Pane>> {
-    tab.panes
-        .keys()
-        .next()
-        .copied()
-        .or_else(|| tab.tabs.values().find_map(|tab| first_pane(tab)))
-}
-
 /// Pushes the IDs from `tabs` down to `id` onto `path`; false if absent.
 fn tab_path(tabs: &Tabs, id: IdOf<Tab>, path: &mut Vec<IdOf<Tab>>) -> bool {
     for tab in tabs.values() {
@@ -63,7 +54,7 @@ pub fn tab(tabs: &Tabs, id: IdOf<Tab>) -> Result<&Tab> {
 pub fn pane(tabs: &Tabs, id: IdOf<Pane>) -> Result<&Pane> {
     fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<&Pane> {
         tabs.values()
-            .find_map(|tab| tab.panes.get(&id).or_else(|| find(&tab.tabs, id)))
+            .find_map(|tab| tab.pane(id).or_else(|| find(&tab.tabs, id)))
     }
     find(tabs, id).ok_or_else(|| not_found(NodeId::Pane(id)))
 }
@@ -73,7 +64,7 @@ pub fn pane_ids(tabs: &Tabs) -> impl Iterator<Item = IdOf<Pane>> + '_ {
     fn walk(tabs: &Tabs) -> Box<dyn Iterator<Item = IdOf<Pane>> + '_> {
         Box::new(
             tabs.values()
-                .flat_map(|tab| tab.panes.keys().copied().chain(walk(&tab.tabs))),
+                .flat_map(|tab| tab.panes().map(|pane| pane.id).chain(walk(&tab.tabs))),
         )
     }
     walk(tabs)
@@ -83,8 +74,8 @@ pub fn pane_ids(tabs: &Tabs) -> impl Iterator<Item = IdOf<Pane>> + '_ {
 pub fn pane_owner(tabs: &Tabs, id: IdOf<Pane>) -> Result<IdOf<Tab>> {
     fn find(tabs: &Tabs, id: IdOf<Pane>) -> Option<IdOf<Tab>> {
         tabs.values().find_map(|tab| {
-            tab.panes
-                .contains_key(&id)
+            tab.pane(id)
+                .is_some()
                 .then_some(tab.id)
                 .or_else(|| find(&tab.tabs, id))
         })

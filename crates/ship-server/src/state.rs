@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    env,
     path::PathBuf,
     sync::{
         Arc,
@@ -9,14 +10,15 @@ use std::{
 
 use futures_util::future::join_all;
 use indexmap::IndexMap;
-use kameo::prelude::*;
+use kameo::{error::Infallible, prelude::*};
 use ship_core::{
     id::*,
+    layout::{Layout, Ratio},
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneInput, Replica, Starter,
-        ViewInput, ViewingRecord,
+        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, Replica,
+        Starter, ViewInput, ViewingRecord,
     },
     screen::Size,
 };
@@ -30,6 +32,8 @@ use crate::pane::{
     self, Launch, LivePanes, PaneChange, PaneCommand, PaneEnv, PaneEvent, PaneRuntime, Spawned,
 };
 
+mod geometry;
+mod layout;
 pub(crate) mod tree;
 
 use tree::Tabs;
@@ -45,6 +49,7 @@ pub struct ServerState {
     revision: u64,
     /// `revision`, readable outside the actor for `x-ship-revision`.
     written: Arc<AtomicU64>,
+    /// Source layouts only. Geometry is absent until publication.
     tabs: Tabs,
     viewers: Viewers,
     /// Exactly the panes in `tabs` once each `commit` returns.
@@ -78,8 +83,9 @@ impl ServerState {
     /// Clone `tabs` and `viewers`, run `edit` on the clones, repair every
     /// viewing record, swap the clones in, bump `revision` and publish. An
     /// `Err` from `edit` discards the clones, leaving state unchanged. Cloning
-    /// copies only `Arc`s; `Arc::make_mut` copies the tabs an edit touches. A publish failure after the swap
-    /// returns `Unavailable`; the edit stays committed. After publishing, each
+    /// copies only `Arc`s; `Arc::make_mut` copies the tabs an edit touches.
+    /// Publication separately copies viewed tabs and ancestors for geometry.
+    /// A publish failure after the swap returns `Unavailable`; the edit stays committed. After publishing, each
     /// viewed tab's panes are sent its size.
     ///
     /// On both paths, runtimes whose pane is not in the resulting tree are
@@ -108,18 +114,17 @@ impl ServerState {
         self.revision += 1;
         self.written.store(self.revision, Ordering::Release);
         tracing::debug!(revision = self.revision, "publishing replica");
+        let replica = self.replica();
         self.bus
-            .tell(Publish(self.replica()))
+            .tell(Publish(Arc::clone(&replica)))
             .await
             .map_err(|error| err!(Unavailable, "cannot publish state", @external: error))?;
-        self.apply_sizes();
+        self.apply_sizes(&replica.tabs);
         Ok(result)
     }
 
-    /// Keep `record.selection` if it is still in `new`. A removed pane goes
-    /// to the next pane of its tab, else the previous one, while the tab
-    /// stays (FR-017). Otherwise walk its ancestors in `old`, nearest first,
-    /// and pick the first one still in `new`, else nothing.
+    /// A closed pane lands in the sibling subtree taking its space, using
+    /// the old layout. Removed tabs retain the nearest-ancestor fallback.
     fn repair(old: &Tabs, new: &Tabs, record: ViewingRecord) -> ViewingRecord {
         let Some(selection) = record.selection else {
             return record;
@@ -127,13 +132,14 @@ impl ServerState {
         if tree::path(new, selection).is_some() {
             return record;
         }
-        // A removed pane whose tab stayed: the pane that took its place, else
-        // the new last one, which was its predecessor.
         if let NodeId::Pane(pane) = selection
             && let Ok(owner) = tree::pane_owner(old, pane)
             && let (Ok(before), Ok(after)) = (tree::tab(old, owner), tree::tab(new, owner))
-            && let Some(index) = before.panes.get_index_of(&pane)
-            && let Some((&next, _)) = after.panes.get_index(index).or_else(|| after.panes.last())
+            && let Some(next) = before
+                .layout
+                .as_ref()
+                .and_then(|tree| layout::successor(tree, pane))
+            && after.pane(next).is_some()
         {
             return ViewingRecord {
                 selection: Some(NodeId::Pane(next)),
@@ -177,8 +183,8 @@ impl ServerState {
                 continue;
             };
             let size = Size {
-                cols: record.area.cols.max(1),
-                rows: record.area.rows.max(1),
+                cols: record.area.cols,
+                rows: record.area.rows,
             };
             sizes
                 .entry(tab)
@@ -191,28 +197,35 @@ impl ServerState {
         sizes
     }
 
-    /// Send each viewed tab's size to its own panes; pane tasks drop resizes
-    /// that change nothing. A tab nobody views gets nothing and keeps its size.
-    fn apply_sizes(&self) {
-        for (tab, size) in self.tab_sizes() {
-            let Ok(tab) = tree::tab(&self.tabs, tab) else {
-                continue;
-            };
-            for pane in tab.panes.keys() {
-                if let Some(runtime) = self.runtimes.get(pane) {
-                    runtime.handle.commands.send(PaneCommand::Resize(size)).ok();
+    /// Publish actual geometry on each viewed tab, including nested tabs.
+    fn published_tabs(&self) -> Tabs {
+        geometry::publish(&self.tabs, &self.tab_sizes())
+    }
+
+    /// Use this commit's published content sizes, not another computation.
+    /// Unviewed and zoom-hidden panes keep their last terminal sizes.
+    fn apply_sizes(&self, tabs: &Tabs) {
+        for tab in tabs.values() {
+            if let Some(geometry) = &tab.geometry {
+                for (pane, geometry) in &geometry.panes {
+                    if let Some(runtime) = self.runtimes.get(pane) {
+                        let size = Size {
+                            cols: geometry.content.width,
+                            rows: geometry.content.height,
+                        };
+                        runtime.handle.commands.send(PaneCommand::Resize(size)).ok();
+                    }
                 }
             }
+            self.apply_sizes(&tab.tabs);
         }
     }
 
-    /// Start a pane's program before the commit that inserts it into `tab`,
-    /// and keep its runtime. It starts at the tab's size, else 80x24. Returns
-    /// the pane, running, for the edit to insert.
-    fn start_pane(&mut self, tab: IdOf<Tab>, input: PaneInput) -> Result<Pane> {
+    /// Start before insertion; commit cleanup owns failed-edit teardown.
+    fn start_pane(&mut self, size: Size, input: PaneInput) -> Result<Pane> {
         let cwd = match input.spec.cwd {
             Some(cwd) => PathBuf::from(cwd),
-            None => std::env::home_dir()
+            None => env::home_dir()
                 .ok_or_else(|| err!(Configuration, "the server has no home directory"))?,
         };
         if !cwd.is_absolute() || !cwd.is_dir() {
@@ -228,11 +241,7 @@ impl ServerState {
                 pane: id,
                 command: input.spec.command,
                 cwd: cwd.clone(),
-                size: self
-                    .tab_sizes()
-                    .get(&tab)
-                    .copied()
-                    .unwrap_or(Size::FALLBACK),
+                size,
             },
             &self.pane_env,
             self.bus.clone(),
@@ -254,21 +263,21 @@ impl ServerState {
         &mut self,
         _: WeakActorRef<Self>,
         _: ActorStopReason,
-    ) -> std::result::Result<(), kameo::error::Infallible> {
+    ) -> Result<(), Infallible> {
         join_all(self.runtimes.drain().map(|(_, runtime)| runtime.stop())).await;
         Ok(())
     }
 
     /// The revision as each commit sets it, shared with the HTTP layer.
     pub(crate) fn written(&self) -> Arc<AtomicU64> {
-        self.written.clone()
+        Arc::clone(&self.written)
     }
 
     pub fn replica(&self) -> Arc<Replica> {
         Arc::new(Replica {
             incarnation: self.incarnation,
             revision: self.revision,
-            tabs: self.tabs.clone(),
+            tabs: self.published_tabs(),
             viewers: self.viewers.clone(),
         })
     }
@@ -303,7 +312,7 @@ impl Message<ListTabs> for ServerState {
     type Reply = Result<Tabs>;
 
     async fn handle(&mut self, _: ListTabs, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
-        Ok(self.tabs.clone())
+        Ok(self.published_tabs())
     }
 }
 
@@ -319,16 +328,20 @@ impl Message<CreateTab> for ServerState {
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
         let id = Id::new();
-        let mut panes = IndexMap::new();
-        if let Some(Starter::Shell) = create.starter {
-            let pane = self.start_pane(id, PaneInput::default())?;
-            panes.insert(pane.id, pane);
-        }
+        let layout = if let Some(Starter::Shell) = create.starter {
+            Some(Layout::Pane(
+                self.start_pane(Size::FALLBACK, PaneInput::default())?,
+            ))
+        } else {
+            None
+        };
         let tab = Tab {
             id,
             name: create.name,
             tabs: IndexMap::new(),
-            panes,
+            layout,
+            geometry: None,
+            zoomed: None,
         };
         self.commit(|tabs, _| {
             tree::place(tabs, Arc::new(tab.clone()), create.at)?;
@@ -346,7 +359,7 @@ impl Message<Get<Tab>> for ServerState {
         Get(id): Get<Tab>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        tree::tab(&self.tabs, id).cloned()
+        tree::tab(&self.published_tabs(), id).cloned()
     }
 }
 
@@ -361,9 +374,10 @@ impl Message<Rename<Tab>> for ServerState {
         self.commit(|tabs, _| {
             let tab = tree::tab_mut(tabs, rename.id)?;
             tab.name = rename.name;
-            Ok(tab.clone())
+            Ok(())
         })
-        .await
+        .await?;
+        tree::tab(&self.published_tabs(), rename.id).cloned()
     }
 }
 
@@ -411,11 +425,10 @@ impl Message<Move> for ServerState {
                 ));
             }
             let tab = tree::take_tab(tabs, id)?;
-            let moved = Tab::clone(&tab);
-            tree::place(tabs, tab, to)?;
-            Ok(moved)
+            tree::place(tabs, tab, to)
         })
-        .await
+        .await?;
+        tree::tab(&self.published_tabs(), id).cloned()
     }
 }
 
@@ -427,12 +440,48 @@ impl Message<CreatePane> for ServerState {
         create: CreatePane,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        tree::tab(&self.tabs, create.parent)?;
-        let pane = self.start_pane(create.parent, create.input)?;
+        let (owner, explicit) = match create.at {
+            PaneAt::Tab(tab) => (tab, None),
+            PaneAt::Pane(pane) => (tree::pane_owner(&self.tabs, pane)?, Some(pane)),
+        };
+        let tab = tree::tab(&self.tabs, owner)?;
+        let size = self
+            .tab_sizes()
+            .get(&owner)
+            .copied()
+            .unwrap_or(Size::FALLBACK);
+        // Validate the unzoomed edit without changing shared state or starting a program.
+        let mut full = tab.clone();
+        full.zoomed = None;
+        let geometry = geometry::tab(&full, size);
+        let anchor = explicit.or_else(|| geometry.largest());
+        let mut start = size;
+        if let Some(anchor) = anchor {
+            let frame = geometry.panes[&anchor].frame;
+            let [first, second] =
+                geometry::halves(frame, layout::axis(create.direction), Ratio::HALF);
+            let block = ratatui::widgets::Block::bordered();
+            let first = block.inner(first);
+            let second = block.inner(second);
+            if [first, second].iter().any(|content| {
+                content.width < geometry::MIN_CONTENT.cols
+                    || content.height < geometry::MIN_CONTENT.rows
+            }) {
+                return Err(err!(InvalidStructure, "no space for new pane"));
+            }
+            start = Size {
+                cols: second.width,
+                rows: second.height,
+            };
+        }
+        let pane = self.start_pane(start, create.input)?;
         self.commit(|tabs, _| {
-            tree::tab_mut(tabs, create.parent)?
-                .panes
-                .insert(pane.id, pane.clone());
+            layout::split(
+                tree::tab_mut(tabs, owner)?,
+                anchor,
+                create.direction,
+                pane.clone(),
+            )?;
             Ok(pane)
         })
         .await
@@ -461,7 +510,9 @@ impl Message<Rename<Pane>> for ServerState {
     ) -> Self::Reply {
         self.commit(|tabs, _| {
             let owner = tree::pane_owner(tabs, rename.id)?;
-            let pane = &mut tree::tab_mut(tabs, owner)?.panes[&rename.id];
+            let pane = tree::tab_mut(tabs, owner)?
+                .pane_mut(rename.id)
+                .ok_or_else(|| tree::not_found(NodeId::Pane(rename.id)))?;
             pane.name = rename.name;
             Ok(pane.clone())
         })
@@ -479,7 +530,7 @@ impl Message<Remove<Pane>> for ServerState {
     ) -> Self::Reply {
         self.commit(|tabs, _| {
             let owner = tree::pane_owner(tabs, id)?;
-            tree::tab_mut(tabs, owner)?.panes.shift_remove(&id);
+            layout::close(tree::tab_mut(tabs, owner)?, id)?;
             Ok(())
         })
         .await
@@ -606,7 +657,9 @@ impl Message<PaneEvent> for ServerState {
         }
         self.commit(|tabs, _| {
             let owner = tree::pane_owner(tabs, id)?;
-            let pane = &mut tree::tab_mut(tabs, owner)?.panes[&id];
+            let pane = tree::tab_mut(tabs, owner)?
+                .pane_mut(id)
+                .ok_or_else(|| tree::not_found(NodeId::Pane(id)))?;
             match change {
                 PaneChange::Title(title) => pane.title = title,
                 PaneChange::Exited(status) => pane.status = PaneStatus::Exited(status),

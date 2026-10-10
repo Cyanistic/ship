@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crossterm::event::KeyEvent;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
@@ -18,7 +19,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 7;
+pub const PROTOCOL_VERSION: u32 = 8;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -63,9 +64,28 @@ pub enum Starter {
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePane {
-    pub parent: IdOf<Tab>,
+    pub at: PaneAt,
+    #[serde(default)]
+    pub direction: SplitDirection,
     #[serde(flatten)]
     pub input: PaneInput,
+}
+
+/// Split an explicit pane, or the largest pane of a tab (first pane if empty).
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum PaneAt {
+    Tab(IdOf<Tab>),
+    Pane(IdOf<Pane>),
+}
+
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+#[serde(rename_all = "snake_case")]
+pub enum SplitDirection {
+    #[default]
+    Right,
+    Down,
 }
 
 /// What a pane runs. Pane creation input; also the `--starter` pane.
@@ -80,7 +100,7 @@ pub struct PaneSpec {
     pub cwd: Option<String>,
 }
 
-/// POST /panes input, flattened next to `parent`.
+/// POST /panes input, flattened next to `at` and `direction`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PaneInput {
@@ -144,7 +164,7 @@ pub struct ViewingRecord {
     pub area: Size,
 }
 
-/// Complete replicated state. Tab `Arc`s are shared with the state actor.
+/// Complete published state, including each viewed tab's derived geometry.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Replica {
@@ -236,7 +256,7 @@ pub struct KeyInput {
     /// crossterm's own serialization, e.g. `{"code": "Enter", "modifiers": "",
     /// "kind": "Press", "state": ""}`; modifiers read `"SHIFT | CONTROL"`.
     #[schema(value_type = Object)]
-    pub key: crossterm::event::KeyEvent,
+    pub key: KeyEvent,
 }
 
 /// Text sent as one paste; bracketed when the program asked for it.
