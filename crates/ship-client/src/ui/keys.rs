@@ -5,6 +5,7 @@ use crossterm::event::{Event, KeyEventKind};
 use ship_core::{
     id::IdOf,
     model::Pane,
+    prelude::*,
     protocol::{InputFrame, KeyInput, PasteInput},
 };
 
@@ -64,9 +65,12 @@ impl Keys {
         }
     }
 
-    /// Enter `mode`; the keymap checked at load that it exists.
-    pub fn enter(&mut self, mode: ModeName) {
+    pub fn enter(&mut self, mode: ModeName) -> Result<()> {
+        if !self.keymap.modes.contains_key(&mode) {
+            return Err(err!(Configuration, "no mode named \"{}\"", mode.0));
+        }
         self.active = mode;
+        Ok(())
     }
 
     /// Swap in a reloaded keymap; an active mode it no longer defines falls

@@ -120,7 +120,8 @@ fn status_line(observer: &Observer, selected: Option<&Selected>, status: &Status
     if !observer.connected {
         line.push_str("  disconnected, reconnecting");
     }
-    if let Some(message) = status.message {
+    // A config error spans several lines; its first says where it is.
+    if let Some(message) = status.message.and_then(|message| message.lines().next()) {
         line.push_str("  · ");
         line.push_str(message);
     }

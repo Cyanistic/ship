@@ -135,7 +135,7 @@ async fn drive(
     let mut memory = Memory::default();
     let (keymap, mut message) = match Keymap::load(config) {
         Ok(keymap) => (keymap, None),
-        Err(errors) => (Keymap::defaults(), Some(summary(&errors))),
+        Err(error) => (Keymap::defaults(), Some(error.to_string())),
     };
     let mut keys = Keys::new(keymap);
     let mut saves: Option<Saves> = match watch::changes(config) {
@@ -301,7 +301,6 @@ async fn drive(
             };
             visible = true;
             let done = match action {
-                Action::None => Ok(()),
                 Action::Server(command) => {
                     let creates = matches!(
                         command,
@@ -366,10 +365,7 @@ async fn drive(
                     ClientAction::Tab(ClientTab::Expand {}) => unavailable("tab expand"),
                     ClientAction::Tab(ClientTab::Collapse {}) => unavailable("tab collapse"),
                     ClientAction::Sidebar(Sidebar::Toggle {}) => unavailable("sidebar toggle"),
-                    ClientAction::Mode(mode) => {
-                        keys.enter(mode);
-                        Ok(())
-                    }
+                    ClientAction::Mode(mode) => keys.enter(mode),
                     ClientAction::Send(chord) => {
                         match observer.selected().and_then(|selected| selected.pane) {
                             Some(pane) => {
@@ -419,19 +415,8 @@ fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
 
 /// Loads `config` into `keys`. A bad file keeps the running keymap.
 fn reload(keys: &mut Keys, config: &Path) -> Result<()> {
-    let keymap =
-        Keymap::load(config).map_err(|errors| err!(Configuration, "{}", summary(&errors)))?;
-    keys.replace(keymap);
+    keys.replace(Keymap::load(config)?);
     Ok(())
-}
-
-/// The first error of a keymap that failed to load, and how many more.
-fn summary(errors: &[AppError]) -> String {
-    match errors {
-        [] => String::new(),
-        [only] => only.to_string(),
-        [first, rest @ ..] => format!("{first} (and {} more; ship config check)", rest.len()),
-    }
 }
 
 fn unavailable(action: &str) -> Result<()> {

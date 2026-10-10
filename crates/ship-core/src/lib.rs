@@ -1,6 +1,7 @@
 //! Shared contextual diagnostics. No HTTP or process ownership.
 
 pub mod command;
+pub mod config;
 pub mod error;
 pub mod geometry;
 pub mod id;

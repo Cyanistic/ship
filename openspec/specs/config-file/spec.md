@@ -43,7 +43,7 @@ The file's top level SHALL hold only `[server]` and `[client]`. The server SHALL
 A client SHALL reload `[client]` when the config file is saved, including when an editor replaces the file by rename and when the path is a symlink. The `client.config.reload` action SHALL also reload it.
 
 #### Scenario: Save while attached
-- **WHEN** a user adds `"alt-y" = { server.tab.create = {} }` under `[client.modes.normal.keys]` and saves while a client is attached
+- **WHEN** a user adds `"alt-y" = [{ server.tab.create = {} }]` under `[client.modes.normal.keys]` and saves while a client is attached
 - **THEN** `alt-y` creates a tab without a restart, and `alt-n` still works
 
 #### Scenario: Rename-save through a symlink
@@ -62,11 +62,11 @@ A client that starts with a bad `[client]` SHALL run on the default keys and sho
 - **THEN** the client opens with the default keys and shows the error
 
 ### Requirement: Config check
-`ship config check [FILE]` SHALL check FILE, or the file chosen as in Config file location, the same way the client and server load it. It SHALL report every error with the file and its location and exit non-zero when there is one, and exit 0 otherwise. It SHALL report no warnings.
+`ship config check [FILE]` SHALL check FILE, or the file chosen as in Config file location, the same way the client and server load it. It SHALL report the first error in each part, server and client, with the file, line and column, and exit non-zero when there is one, and exit 0 otherwise. It SHALL report no warnings.
 
-#### Scenario: Several mistakes
-- **WHEN** a file has a misspelled action, an unknown field and a binding to an undefined mode
-- **THEN** `ship config check` names all three with their key paths and exits 1
+#### Scenario: A mistake in each part
+- **WHEN** a file has an unknown field under `[server]` and a misspelled action under `[client]`
+- **THEN** `ship config check` prints both with their lines and columns and exits 1
 
 #### Scenario: Valid file
 - **WHEN** a file defines a mode that no binding enters and has no errors

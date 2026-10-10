@@ -161,31 +161,31 @@ shell = "/bin/bash"          # default: your login shell
 ```
 The next pane you open uses it; panes already running keep their shell. A relative path is relative to the config file's folder.
 
-`[client]` holds the keys, grouped into modes. `normal` is where you start. A binding in your file replaces the default on that key and leaves the rest alone:
+`[client]` holds the keys, grouped into modes. `normal` is where you start. Each key takes a list of actions, run in order. A binding in your file replaces the default on that key and leaves the rest alone:
 ```toml
 [client.modes.normal.keys]
-"alt-t"  = { server.tab.create = {} }          # new empty tab
-"alt-q"  = "none"                              # unbind: alt-q reaches the program
-"alt-m"  = [                                   # a list runs in order
+"alt-t"  = [{ server.tab.create = {} }]        # new empty tab
+"alt-q"  = []                                  # unbind: alt-q reaches the program
+"alt-m"  = [                                   # a tab, then a second pane
   { server.tab.create.starter = "shell" },
   { server.pane.create = {} },
 ]
-"ctrl-b" = { client.mode = "prefix" }          # tmux habits
+"ctrl-b" = [{ client.mode = "prefix" }]        # tmux habits
 
 [client.modes.prefix]
 kind = "oneshot"                               # back to normal after one key
 
 [client.modes.prefix.keys]
-"c"      = { server.tab.create.starter = "shell" }
-"ctrl-b" = { client.send = "ctrl-b" }          # a literal ctrl-b for the pane
+"c"      = [{ server.tab.create.starter = "shell" }]
+"ctrl-b" = [{ client.send = "ctrl-b" }]        # a literal ctrl-b for the pane
 ```
 
 You can define your own modes the same way. A `oneshot` mode takes one key and returns to normal; a `sticky` mode stays until a binding leaves it, and swallows keys it doesn't bind. Set `clear_defaults = true` on a mode to start it with none of Ship's bindings.
 
 The `server.` actions are the CLI's commands with the same names and options: `server.tab.create.starter = "shell"` is `ship tab create --starter shell`. Key spellings like `ctrl-alt-x` and `shift-tab` come from [crokey](https://docs.rs/crokey).
 
-A running client reloads its keys when you save the file. If the file has a mistake, the client keeps its current keys and shows the error at the bottom. To see every mistake at once:
+A running client reloads its keys when you save the file. If the file has a mistake, the client keeps its current keys and shows the error at the bottom. To check the file without a client:
 ```sh
 ship config check
 ```
-It prints each error with where it is in the file and exits non-zero if there are any.
+It prints the first mistake with its line and column and exits non-zero if there is one.

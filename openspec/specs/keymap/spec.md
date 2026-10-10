@@ -18,10 +18,10 @@ With no bindings in the file, normal mode SHALL bind `alt-n` (new tab with a she
 - **THEN** the pane shows `^B`
 
 ### Requirement: Server and client actions
-Every binding SHALL name one action under `server.` or `client.`, a list of such actions, or be `"none"`. A `server.` action SHALL change shared state and SHALL be the `ship` command at the same path without `server.`, taking the same arguments. A `client.` action SHALL change only that client's view and SHALL be reachable only from keys and the mouse. Any action SHALL be bindable in any mode.
+Every binding SHALL be a list of actions under `server.` or `client.`. A `server.` action SHALL change shared state and SHALL be the `ship` command at the same path without `server.`, taking the same arguments. A `client.` action SHALL change only that client's view and SHALL be reachable only from keys and the mouse. Any action SHALL be bindable in any mode.
 
 #### Scenario: Same action from a key and the CLI
-- **WHEN** a user binds `"alt-y" = { server.tab.close = {} }`, presses it with a tab selected, and on another tab runs `ship tab close --tab <id>`
+- **WHEN** a user binds `"alt-y" = [{ server.tab.close = {} }]`, presses it with a tab selected, and on another tab runs `ship tab close --tab <id>`
 - **THEN** both tabs are closed the same way
 
 #### Scenario: Resize action in normal mode
@@ -29,7 +29,7 @@ Every binding SHALL name one action under `server.` or `client.`, a list of such
 - **THEN** the file loads without error
 
 ### Requirement: Action lists
-A binding written as a list SHALL run its actions in order, each after the one before has finished and the client shows its result. It SHALL stop at the first action that fails, keep what the earlier actions did, and show the error on the status line. An empty list, or `"none"` inside a list, SHALL be an error.
+A binding SHALL run its actions in order, each after the one before has finished and the client shows its result. It SHALL stop at the first action that fails, keep what the earlier actions did, and show the error on the status line. An empty list SHALL unbind the chord.
 
 #### Scenario: Tab with two panes
 - **WHEN** the file binds `"alt-m" = [{ server.tab.create.starter = "shell" }, { server.pane.create = {} }]` and the user presses `alt-m`
@@ -40,29 +40,25 @@ A binding written as a list SHALL run its actions in order, each after the one b
 - **THEN** the status line shows "not available yet" and no tab is created
 
 ### Requirement: Chord spelling
-Chords SHALL be case-insensitive and written as crokey parses them: `"alt-X"` means `alt-x`, Shift is written as `shift-`, and modifier order does not matter. Two spellings of one chord in the same mode SHALL be an error naming both.
+Chords SHALL be case-insensitive and written as crokey parses them: `"alt-X"` means `alt-x`, Shift is written as `shift-`, and modifier order does not matter. When two spellings of one chord appear in the same mode, one of them SHALL win; which one is unspecified.
 
 #### Scenario: Two spellings of one chord
 - **WHEN** a mode binds both `"alt-n"` and `"Alt-N"`
-- **THEN** loading fails with an error naming both as one chord bound twice
-
-#### Scenario: Modifier order
-- **WHEN** a mode binds both `"ctrl-alt-x"` and `"alt-ctrl-x"`
-- **THEN** loading fails with the same duplicate-chord error
+- **THEN** the file loads and `alt-n` runs one of the two bindings
 
 ### Requirement: Overriding defaults
-A chord in the file SHALL replace the default action on that chord in that mode, and other default chords SHALL stay bound. `"none"` SHALL unbind a chord. `clear_defaults = true` SHALL drop all of a mode's default bindings before the file's apply.
+A chord in the file SHALL replace the default action on that chord in that mode, and other default chords SHALL stay bound. `[]` SHALL unbind a chord. `clear_defaults = true` SHALL drop all of a mode's default bindings before the file's apply.
 
 #### Scenario: Unbind a default
-- **WHEN** the file binds `"alt-q" = "none"` in normal mode and the user presses `alt-q`
+- **WHEN** the file binds `"alt-q" = []` in normal mode and the user presses `alt-q`
 - **THEN** the client stays attached and the program receives `alt-q`
 
 #### Scenario: Rebind a default
-- **WHEN** the file binds `"alt-n" = { server.tab.create = {} }` and the user presses `alt-n`
+- **WHEN** the file binds `"alt-n" = [{ server.tab.create = {} }]` and the user presses `alt-n`
 - **THEN** an empty tab is created: the default's `starter` doesn't carry over
 
 #### Scenario: Override under another spelling
-- **WHEN** the file binds `"Alt-N" = { server.tab.close = {} }` in normal mode
+- **WHEN** the file binds `"Alt-N" = [{ server.tab.close = {} }]` in normal mode
 - **THEN** the file loads without error and `alt-n` closes the selected tab
 
 #### Scenario: Clear a mode
@@ -70,14 +66,14 @@ A chord in the file SHALL replace the default action on that chord in that mode,
 - **THEN** in resize mode `h` does nothing and `esc` returns to normal
 
 ### Requirement: Modes
-`normal` SHALL always exist and SHALL be the mode a client starts in. Setting `kind` on `normal` SHALL be an error. Users SHALL be able to define modes under `[client.modes.<name>]` with `kind` set to `sticky` or `oneshot`. `client.mode` SHALL enter the named mode, and naming an undefined mode SHALL be an error. The defaults SHALL define sticky `tabs` and `resize` and an empty one-shot `prefix` that no key enters.
+`normal` SHALL always exist and SHALL be the mode a client starts in. Setting `kind` on `normal` SHALL change nothing. Users SHALL be able to define modes under `[client.modes.<name>]` with `kind` set to `sticky` or `oneshot`. `client.mode` SHALL enter the named mode. Naming an undefined mode SHALL load, and pressing the key SHALL show the error on the status line and change nothing. The defaults SHALL define sticky `tabs` and `resize` and an empty one-shot `prefix` that no key enters.
 
 #### Scenario: Undefined mode
-- **WHEN** a binding is `{ client.mode = "pnaes" }` and no `pnaes` mode is defined
-- **THEN** loading fails naming the binding and the undefined mode
+- **WHEN** a binding is `[{ client.mode = "pnaes" }]`, no `pnaes` mode is defined, and the user presses it
+- **THEN** the status line says there is no mode named `pnaes` and the client stays in its mode
 
 #### Scenario: tmux-style prefix
-- **WHEN** the file binds `"ctrl-b" = { client.mode = "prefix" }` in normal and `"c" = { server.tab.create = {} }` in `prefix`, and the user presses `ctrl-b` then `c`
+- **WHEN** the file binds `"ctrl-b" = [{ client.mode = "prefix" }]` in normal and `"c" = [{ server.tab.create = {} }]` in `prefix`, and the user presses `ctrl-b` then `c`
 - **THEN** a tab is created and the client is back in normal mode
 
 ### Requirement: Unbound keys by mode
@@ -131,5 +127,5 @@ Every action SHALL be accepted in the config even when its feature isn't built. 
 `client.send` SHALL send its chord to the selected pane as if typed.
 
 #### Scenario: Pass the prefix through
-- **WHEN** `prefix` binds `"ctrl-b" = { client.send = "ctrl-b" }`, a pane runs `cat -v`, and the user enters `prefix` and presses `ctrl-b`
+- **WHEN** `prefix` binds `"ctrl-b" = [{ client.send = "ctrl-b" }]`, a pane runs `cat -v`, and the user enters `prefix` and presses `ctrl-b`
 - **THEN** the pane shows one `^B`

@@ -1,6 +1,6 @@
 # Keys and config
 
-Status: Locked again on 2026-10-09 with amendment A-5: an action in a list starts only once the client shows what the action before it did (FR-030). Verifying slice 5 showed `alt-m`, a starter tab then a pane, failing 4 times in 10 with "no tab selected": the pane create ran before the client had seen the new tab. Cyan chose a revision number on every server response, which the client waits for, over server-side batches and over moving keys to the server, because each client owns its own keys ("it feels to me like the smart thing is probably to have each client own it"), and asked for it to be tried first ("let's go for it and see if that fixes things!"). The same amendment moves the status line's row out of the server's sizing: clients report the area they draw a tab in, which leaves this paper's behavior unchanged ("let's just add it to this branch since it's small"). Cyan approved writing it into the papers in chat ("go for it!"). Before that, amendment A-4: a binding can be a list of actions, run in order and stopped at the first failure (Summary, Interface, FR-030). Implementing slice 3 showed that figment's merge blends a file binding into the default it replaces, and a list is replaced whole instead. Cyan decided it in chat because action lists are established practice (Zellij binds a list of actions, tmux chains commands with `\;`) and mean something on their own ("if sequences are actually an established pattern, and have real meaning, i don't see why not? kill two birds with one stone?"), then asked for the papers to follow once the code worked. Before that, amendment A-3: commands that take a tab also accept `--pane ID`, meaning the tab holding that pane, and `--tab` wins when both are given (Command line, FR-026, FR-027). Cyan proposed it in chat after slice 1, for consistency, and approved the edits without another review ("sounds good! go for it! i don't need to review your edits"). A probe showed clap counts an env-filled `--pane` as given, so the two flags aren't a strict either-or: `--tab` takes precedence instead. Before that, amendment A-2: config warnings are dropped, so FR-016 keeps only its error and `ship config check` reports exactly what loading rejects. Cyan decided it in chat during the program review ("yeah go for it.... at least for now"), noting that any later warnings would need a much simpler, declarative design. Before that, amendment A-1: modes move under `[client]` (`[client.modes.<name>]`), so the file's top level holds only `[server]` and `[client]` (Interface, FR-003, FR-014). Cyan decided it in chat during the architecture draft and asked for a direct edit without another Plannotator pass ("just edit it directly"). First locked on 2026-10-09: Cyan approved the draft in Plannotator with "LGTM" and, in conversation, decided three changes made alongside that review: chords stay case-insensitive instead of rejecting uppercase letters (FR-011), new tabs from keys start with a shell (U-1, now FR-029), and floating panes are deferred to their own change (U-2, now a non-goal). It supersedes [notes.md](../notes.md) wherever the two differ. The locked [pane terminals](../../archive/2026-10-07-pane-terminals/design/product.md) and [drop sessions](../../archive/2026-10-08-drop-sessions/design/product.md) papers stay in force except where this paper amends them.
+Status: Locked again on 2026-10-10 with amendment A-6: every binding is a list of actions and `[]` unbinds a chord, replacing the single-action table and `"none"` (Interface, FR-012, FR-030). Config errors are only the ones TOML and serde find, the first in each part of the file with its line and column (FR-009). Two spellings of one chord (FR-010) and `kind` on `normal` (FR-013) are no longer errors, and `client.mode` naming an undefined mode reports it when pressed instead of at load (FR-016). Simplifying the loader showed figment's deep merge needed the defaults wrapped in lists and per-value source tags to undo it, plus hand-written checks to collect every error. Cyan dropped figment and the hand-written checks ("the entire chords function is a function to yell at the user. i don't care", "if we can't rent yelling at the user, like eserde, then i don't care"), after a probe showed eserde reports wrong key paths for these shapes. Cyan chose lists everywhere after seeing that Zellij binds a list of actions to every key ("i think that's cleaner... let's just force it to be a list") and approved the change and this amendment in chat ("go for it!"). Before that, amendment A-5: an action in a list starts only once the client shows what the action before it did (FR-030). Verifying slice 5 showed `alt-m`, a starter tab then a pane, failing 4 times in 10 with "no tab selected": the pane create ran before the client had seen the new tab. Cyan chose a revision number on every server response, which the client waits for, over server-side batches and over moving keys to the server, because each client owns its own keys ("it feels to me like the smart thing is probably to have each client own it"), and asked for it to be tried first ("let's go for it and see if that fixes things!"). The same amendment moves the status line's row out of the server's sizing: clients report the area they draw a tab in, which leaves this paper's behavior unchanged ("let's just add it to this branch since it's small"). Cyan approved writing it into the papers in chat ("go for it!"). Before that, amendment A-4: a binding can be a list of actions, run in order and stopped at the first failure (Summary, Interface, FR-030). Implementing slice 3 showed that figment's merge blends a file binding into the default it replaces, and a list is replaced whole instead. Cyan decided it in chat because action lists are established practice (Zellij binds a list of actions, tmux chains commands with `\;`) and mean something on their own ("if sequences are actually an established pattern, and have real meaning, i don't see why not? kill two birds with one stone?"), then asked for the papers to follow once the code worked. Before that, amendment A-3: commands that take a tab also accept `--pane ID`, meaning the tab holding that pane, and `--tab` wins when both are given (Command line, FR-026, FR-027). Cyan proposed it in chat after slice 1, for consistency, and approved the edits without another review ("sounds good! go for it! i don't need to review your edits"). A probe showed clap counts an env-filled `--pane` as given, so the two flags aren't a strict either-or: `--tab` takes precedence instead. Before that, amendment A-2: config warnings are dropped, so FR-016 keeps only its error and `ship config check` reports exactly what loading rejects. Cyan decided it in chat during the program review ("yeah go for it.... at least for now"), noting that any later warnings would need a much simpler, declarative design. Before that, amendment A-1: modes move under `[client]` (`[client.modes.<name>]`), so the file's top level holds only `[server]` and `[client]` (Interface, FR-003, FR-014). Cyan decided it in chat during the architecture draft and asked for a direct edit without another Plannotator pass ("just edit it directly"). First locked on 2026-10-09: Cyan approved the draft in Plannotator with "LGTM" and, in conversation, decided three changes made alongside that review: chords stay case-insensitive instead of rejecting uppercase letters (FR-011), new tabs from keys start with a shell (U-1, now FR-029), and floating panes are deferred to their own change (U-2, now a non-goal). It supersedes [notes.md](../notes.md) wherever the two differ. The locked [pane terminals](../../archive/2026-10-07-pane-terminals/design/product.md) and [drop sessions](../../archive/2026-10-08-drop-sessions/design/product.md) papers stay in force except where this paper amends them.
 
 ## Summary
 
@@ -38,43 +38,43 @@ The default config:
 shell = "/bin/zsh"                 # default: the login shell, as today
 
 [client.modes.normal.keys]
-"alt-n"       = { server.tab.create.starter = "shell" }
-"alt-x"       = { server.tab.close = {} }
-"alt--"       = { server.pane.create.direction = "down" }
-"alt-|"       = { server.pane.create.direction = "right" }
-"alt-shift-x" = { server.pane.close = {} }
-"alt-left"    = { client.tab.prev = {} }
-"alt-right"   = { client.tab.next = {} }
-"alt-1"       = { client.tab.select.row = 1 }    # through alt-9
-"alt-h"       = { client.pane.focus.direction = "left" }
-"alt-j"       = { client.pane.focus.direction = "down" }
-"alt-k"       = { client.pane.focus.direction = "up" }
-"alt-l"       = { client.pane.focus.direction = "right" }
-"alt-tab"     = { client.pane.next = {} }
-"alt-b"       = { client.sidebar.toggle = {} }
-"alt-g"       = { client.mode = "tabs" }
-"alt-r"       = { client.mode = "resize" }
-"alt-q"       = { client.detach = {} }
+"alt-n"       = [{ server.tab.create.starter = "shell" }]
+"alt-x"       = [{ server.tab.close = {} }]
+"alt--"       = [{ server.pane.create.direction = "down" }]
+"alt-|"       = [{ server.pane.create.direction = "right" }]
+"alt-shift-x" = [{ server.pane.close = {} }]
+"alt-left"    = [{ client.tab.prev = {} }]
+"alt-right"   = [{ client.tab.next = {} }]
+"alt-1"       = [{ client.tab.select.row = 1 }]    # through alt-9
+"alt-h"       = [{ client.pane.focus.direction = "left" }]
+"alt-j"       = [{ client.pane.focus.direction = "down" }]
+"alt-k"       = [{ client.pane.focus.direction = "up" }]
+"alt-l"       = [{ client.pane.focus.direction = "right" }]
+"alt-tab"     = [{ client.pane.next = {} }]
+"alt-b"       = [{ client.sidebar.toggle = {} }]
+"alt-g"       = [{ client.mode = "tabs" }]
+"alt-r"       = [{ client.mode = "resize" }]
+"alt-q"       = [{ client.detach = {} }]
 
 [client.modes.tabs]
 kind = "sticky"
 
 [client.modes.tabs.keys]
-"j"   = { client.tab.next = {} }
-"k"   = { client.tab.prev = {} }
-"h"   = { client.tab.collapse = {} }
-"l"   = { client.tab.expand = {} }
-"esc" = { client.mode = "normal" }
+"j"   = [{ client.tab.next = {} }]
+"k"   = [{ client.tab.prev = {} }]
+"h"   = [{ client.tab.collapse = {} }]
+"l"   = [{ client.tab.expand = {} }]
+"esc" = [{ client.mode = "normal" }]
 
 [client.modes.resize]
 kind = "sticky"
 
 [client.modes.resize.keys]
-"h"   = { server.pane.resize.direction = "left" }
-"j"   = { server.pane.resize.direction = "down" }
-"k"   = { server.pane.resize.direction = "up" }
-"l"   = { server.pane.resize.direction = "right" }
-"esc" = { client.mode = "normal" }
+"h"   = [{ server.pane.resize.direction = "left" }]
+"j"   = [{ server.pane.resize.direction = "down" }]
+"k"   = [{ server.pane.resize.direction = "up" }]
+"l"   = [{ server.pane.resize.direction = "right" }]
+"esc" = [{ client.mode = "normal" }]
 
 [client.modes.prefix]              # defined, empty, and entered by no key
 kind = "oneshot"
@@ -84,26 +84,26 @@ How a user changes it:
 
 ```toml
 [client.modes.normal.keys]
-"alt-q"  = "none"                              # unbind: alt-q reaches the program
-"ctrl-b" = { client.mode = "prefix" }          # opt into tmux habits
+"alt-q"  = []                                  # unbind: alt-q reaches the program
+"ctrl-b" = [{ client.mode = "prefix" }]          # opt into tmux habits
 
 [client.modes.prefix.keys]
-"ctrl-b" = { client.send = "ctrl-b" }          # send a literal ctrl-b to the pane
-"c"      = { server.tab.create = {} }
+"ctrl-b" = [{ client.send = "ctrl-b" }]          # send a literal ctrl-b to the pane
+"c"      = [{ server.tab.create = {} }]
 
 [client.modes.resize]
 clear_defaults = true                          # start this mode empty
 
 [client.modes.resize.keys]
-"left" = { server.pane.resize = { direction = "left", amount = 5 } }
-"esc"  = { client.mode = "normal" }
+"left" = [{ server.pane.resize = { direction = "left", amount = 5 } }]
+"esc"  = [{ client.mode = "normal" }]
 
 [client.modes.panes]                           # a user-defined mode
 kind = "sticky"
 
 [client.modes.panes.keys]
-"h" = { client.pane.focus.direction = "left" }
-"esc" = { client.mode = "normal" }
+"h" = [{ client.pane.focus.direction = "left" }]
+"esc" = [{ client.mode = "normal" }]
 
 [client.modes.normal.keys]
 "alt-m" = [                                    # a list runs in order
@@ -112,7 +112,7 @@ kind = "sticky"
 ]
 ```
 
-A binding is one action, a list of actions, or `"none"`. A list stops at the first action that fails.
+A binding is a list of actions, run in order, and `[]` unbinds the chord. A list stops at the first action that fails.
 
 Chord spelling comes from [crokey](https://docs.rs/crokey). Ship's docs point there and don't repeat it.
 
@@ -137,7 +137,6 @@ The available-from-day-one column refers to the moment this change lands. "Not y
 | `client.send` | chord | yes | |
 | `client.detach` | | yes | |
 | `client.config.reload` | | yes | |
-| `"none"` | | yes | |
 
 Zoom, swap, copy mode and scrollback editing join the list with their own changes.
 
@@ -180,11 +179,11 @@ Independent verification: start with no config, perform each chord, and check th
 
 ### P1: Change a key and see it apply
 
-**Given** a running client, **when** I bind `"alt-y" = { server.tab.create = {} }` in the config and save, **then** `alt-y` makes a tab without restarting anything, and `alt-n` still does too.
+**Given** a running client, **when** I bind `"alt-y" = [{ server.tab.create = {} }]` in the config and save, **then** `alt-y` makes a tab without restarting anything, and `alt-n` still does too.
 
 **Given** a running client, **when** I save a config with a mistake, **then** the client keeps the keys it had and shows what's wrong and where.
 
-**Given** a config that binds `"alt-q" = "none"`, **when** I press `alt-q`, **then** the client stays attached and the program receives `alt-q`.
+**Given** a config that binds `"alt-q" = []`, **when** I press `alt-q`, **then** the client stays attached and the program receives `alt-q`.
 
 Independent verification: edit the file while a client is attached and press the changed keys.
 
@@ -239,17 +238,17 @@ Independent verification: bind keys and run the matching CLI commands, then comp
 - **FR-006:** A client MUST reload its modes when the config file is saved, including when the file is replaced by rename or reached through a symlink. `client.config.reload` MUST also reload it.
 - **FR-007:** A client that starts with a bad config MUST run on the defaults and show the error. A client whose config becomes bad on reload MUST keep its running config and show the error.
 - **FR-008:** The server MUST read `shell` each time it starts a pane without an explicit command, so a saved change applies to the next pane. If the file is bad, the server MUST use the login shell and log the error.
-- **FR-009:** `ship config check [FILE]` MUST report every error with its location and exit non-zero when there is one. It MUST report the duplicate chords and mode problems below.
+- **FR-009:** `ship config check [FILE]` MUST report the first error in each part of the file, server and client, with its line and column, and exit non-zero when there is one (A-6).
 
 ### Keys and modes
 
-- **FR-010:** Each mode MUST map each chord to exactly one action. Two spellings of one chord in the same mode, such as `"alt-n"` and `"Alt-N"` or `"ctrl-alt-x"` and `"alt-ctrl-x"`, MUST be an error.
+- **FR-010:** Each mode MUST map each chord to one binding. When two spellings of one chord appear in the same mode, such as `"alt-n"` and `"Alt-N"`, one of them wins and which one is unspecified (A-6).
 - **FR-011:** Chords MUST be case-insensitive, as crokey parses them: `"alt-X"` means `alt-x`, and Shift is written as `shift-`.
-- **FR-012:** A chord in the file MUST replace the default action on that chord in that mode. Other default chords MUST stay bound. `"none"` MUST unbind a chord, so the key reaches the program. `clear_defaults = true` MUST drop all of a mode's default bindings before the file's apply.
-- **FR-013:** `normal` MUST always exist and MUST be where the client starts. Setting `kind` on `normal` MUST be an error.
+- **FR-012:** A chord in the file MUST replace the default action on that chord in that mode. Other default chords MUST stay bound. `[]` MUST unbind a chord, so the key reaches the program. `clear_defaults = true` MUST drop all of a mode's default bindings before the file's apply.
+- **FR-013:** `normal` MUST always exist and MUST be where the client starts. `kind` set on `normal` changes nothing (A-6).
 - **FR-014:** Users MUST be able to define modes under `[client.modes.<name>]` with `kind` set to `sticky` or `oneshot`. A sticky mode MUST stay active until another mode is entered. A one-shot mode MUST return to normal after one key, bound or not.
 - **FR-015:** In normal mode, an unbound key MUST reach the program. In a sticky mode other than normal, an unbound key MUST do nothing.
-- **FR-016:** `client.mode` naming an undefined mode MUST be an error. Ship MUST NOT produce config warnings: `ship config check` reports exactly what loading would reject (A-2).
+- **FR-016:** `client.mode` naming an undefined mode MUST report it when the key is pressed and change nothing (A-6). Ship MUST NOT produce config warnings: `ship config check` reports exactly what loading would reject (A-2).
 - **FR-017:** While a mode other than normal is active, the client MUST show the mode's name.
 - **FR-018:** Any action MUST be bindable in any mode.
 
@@ -260,7 +259,7 @@ Independent verification: bind keys and run the matching CLI commands, then comp
 - **FR-021:** `server.tab.create` from a key MUST create the tab after the selected tab under the same parent, or at the top level when nothing is selected, and select it.
 - **FR-022:** `client.send` MUST send its chord to the selected pane as if typed.
 - **FR-023:** `client.tab.next` and `client.tab.prev` MUST keep today's order and wrapping until the layout change redefines them as moving between visible rows.
-- **FR-030:** A binding MUST be one action, a list of actions, or `"none"` (A-4). A list MUST run its actions in order, each after the one before has finished and the client shows its result (A-5). It MUST stop at the first action that fails, keep what the earlier actions did, and show the error. An empty list, or `"none"` inside a list, MUST be an error.
+- **FR-030:** A binding MUST be a list of actions (A-4, A-6). A list MUST run its actions in order, each after the one before has finished and the client shows its result (A-5). It MUST stop at the first action that fails, keep what the earlier actions did, and show the error. An empty list MUST unbind the chord (FR-012).
 
 ### Command line
 

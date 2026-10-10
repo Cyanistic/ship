@@ -2,51 +2,51 @@
 # replaces the default on that chord in that mode (FR-012).
 
 [client.modes.normal.keys]
-"alt-n"       = { server.tab.create.starter = "shell" }
-"alt-x"       = { server.tab.close = {} }
-"alt--"       = { server.pane.create.direction = "down" }
-"alt-|"       = { server.pane.create.direction = "right" }
-"alt-shift-x" = { server.pane.close = {} }
-"alt-left"    = { client.tab.prev = {} }
-"alt-right"   = { client.tab.next = {} }
-"alt-1"       = { client.tab.select.row = 1 }
-"alt-2"       = { client.tab.select.row = 2 }
-"alt-3"       = { client.tab.select.row = 3 }
-"alt-4"       = { client.tab.select.row = 4 }
-"alt-5"       = { client.tab.select.row = 5 }
-"alt-6"       = { client.tab.select.row = 6 }
-"alt-7"       = { client.tab.select.row = 7 }
-"alt-8"       = { client.tab.select.row = 8 }
-"alt-9"       = { client.tab.select.row = 9 }
-"alt-h"       = { client.pane.focus.direction = "left" }
-"alt-j"       = { client.pane.focus.direction = "down" }
-"alt-k"       = { client.pane.focus.direction = "up" }
-"alt-l"       = { client.pane.focus.direction = "right" }
-"alt-tab"     = { client.pane.next = {} }
-"alt-b"       = { client.sidebar.toggle = {} }
-"alt-g"       = { client.mode = "tabs" }
-"alt-r"       = { client.mode = "resize" }
-"alt-q"       = { client.detach = {} }
+"alt-n"       = [{ server.tab.create.starter = "shell" }]
+"alt-x"       = [{ server.tab.close = {} }]
+"alt--"       = [{ server.pane.create.direction = "down" }]
+"alt-|"       = [{ server.pane.create.direction = "right" }]
+"alt-shift-x" = [{ server.pane.close = {} }]
+"alt-left"    = [{ client.tab.prev = {} }]
+"alt-right"   = [{ client.tab.next = {} }]
+"alt-1"       = [{ client.tab.select.row = 1 }]
+"alt-2"       = [{ client.tab.select.row = 2 }]
+"alt-3"       = [{ client.tab.select.row = 3 }]
+"alt-4"       = [{ client.tab.select.row = 4 }]
+"alt-5"       = [{ client.tab.select.row = 5 }]
+"alt-6"       = [{ client.tab.select.row = 6 }]
+"alt-7"       = [{ client.tab.select.row = 7 }]
+"alt-8"       = [{ client.tab.select.row = 8 }]
+"alt-9"       = [{ client.tab.select.row = 9 }]
+"alt-h"       = [{ client.pane.focus.direction = "left" }]
+"alt-j"       = [{ client.pane.focus.direction = "down" }]
+"alt-k"       = [{ client.pane.focus.direction = "up" }]
+"alt-l"       = [{ client.pane.focus.direction = "right" }]
+"alt-tab"     = [{ client.pane.next = {} }]
+"alt-b"       = [{ client.sidebar.toggle = {} }]
+"alt-g"       = [{ client.mode = "tabs" }]
+"alt-r"       = [{ client.mode = "resize" }]
+"alt-q"       = [{ client.detach = {} }]
 
 [client.modes.tabs]
 kind = "sticky"
 
 [client.modes.tabs.keys]
-"j"   = { client.tab.next = {} }
-"k"   = { client.tab.prev = {} }
-"h"   = { client.tab.collapse = {} }
-"l"   = { client.tab.expand = {} }
-"esc" = { client.mode = "normal" }
+"j"   = [{ client.tab.next = {} }]
+"k"   = [{ client.tab.prev = {} }]
+"h"   = [{ client.tab.collapse = {} }]
+"l"   = [{ client.tab.expand = {} }]
+"esc" = [{ client.mode = "normal" }]
 
 [client.modes.resize]
 kind = "sticky"
 
 [client.modes.resize.keys]
-"h"   = { server.pane.resize.direction = "left" }
-"j"   = { server.pane.resize.direction = "down" }
-"k"   = { server.pane.resize.direction = "up" }
-"l"   = { server.pane.resize.direction = "right" }
-"esc" = { client.mode = "normal" }
+"h"   = [{ server.pane.resize.direction = "left" }]
+"j"   = [{ server.pane.resize.direction = "down" }]
+"k"   = [{ server.pane.resize.direction = "up" }]
+"l"   = [{ server.pane.resize.direction = "right" }]
+"esc" = [{ client.mode = "normal" }]
 
 [client.modes.prefix]              # defined, empty, and entered by no key
 kind = "oneshot"
