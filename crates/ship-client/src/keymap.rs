@@ -136,7 +136,13 @@ pub enum ClientTab {
 pub enum ClientPane {
     Next {},
     Prev {},
-    Focus { direction: Direction },
+    Focus {
+        direction: Direction,
+    },
+    /// Exchange with the neighbor `focus` would pick, through `server.pane.swap`.
+    Swap {
+        direction: Direction,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize)]

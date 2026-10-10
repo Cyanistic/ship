@@ -22,9 +22,13 @@ use crossterm::{
 };
 use futures_util::{Stream, StreamExt};
 use ship_core::{
-    command::{Command, Direction, pane::PaneCommand, tab::TabCommand},
+    command::{
+        Command, Direction, PaneTarget,
+        pane::{self, PaneCommand},
+        tab::TabCommand,
+    },
     id::{Attachment, IdOf},
-    model::NodeId,
+    model::{NodeId, Pane},
     prelude::*,
     protocol::{AttachRequest, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput},
     screen::Size,
@@ -321,6 +325,21 @@ async fn drive(
                 continue;
             };
             visible = true;
+            let selection = chosen.or(observer.record().and_then(|record| record.selection));
+            // Leave zoom for everyone first. The queue waits for the unzoom's
+            // revision, then runs the action again on the unzoomed geometry.
+            if matches!(action, Action::Client(ClientAction::Pane(_)))
+                && let Some(zoomed) = zoomed_pane(&observer, selection)
+            {
+                actions.push_front(action);
+                actions.push_front(Action::Server(Command::Pane(PaneCommand::Zoom(
+                    pane::Zoom {
+                        pane: PaneTarget { id: Some(zoomed) },
+                        zoomed: Some(false),
+                    },
+                ))));
+                continue;
+            }
             let done = match action {
                 Action::Server(command) => {
                     let creates = matches!(
@@ -380,6 +399,31 @@ async fn drive(
                             &mut chosen,
                             Step::Focus(direction),
                         );
+                        Ok(())
+                    }
+                    ClientAction::Pane(ClientPane::Swap { direction }) => {
+                        // Only the resolved pair goes to the server.
+                        if let Some(replica) = &observer.replica
+                            && let Some(NodeId::Pane(from)) = selection
+                            && let Some(other) = navigate(
+                                &replica.tabs,
+                                &memory,
+                                &sidebar,
+                                selection,
+                                Step::Focus(direction),
+                            )
+                            .and_then(|to| match to {
+                                NodeId::Pane(other) => Some(other),
+                                NodeId::Tab(_) => None,
+                            })
+                        {
+                            actions.push_front(Action::Server(Command::Pane(PaneCommand::Swap(
+                                pane::Swap {
+                                    pane: PaneTarget { id: Some(from) },
+                                    other,
+                                },
+                            ))));
+                        }
                         Ok(())
                     }
                     ClientAction::Tab(ClientTab::Select { .. }) => unavailable("tab select"),
@@ -478,6 +522,16 @@ fn reload(keys: &mut Keys, sidebar: &mut Sidebar, config: &Path) -> Result<()> {
 
 fn unavailable(action: &str) -> Result<()> {
     Err(err!(Unavailable, "{} is not available yet", action))
+}
+
+/// The selected pane, when its tab is zoomed onto it.
+fn zoomed_pane(observer: &Observer, selection: Option<NodeId>) -> Option<IdOf<Pane>> {
+    let Some(NodeId::Pane(pane)) = selection else {
+        return None;
+    };
+    let tabs = &observer.replica.as_ref()?.tabs;
+    let tab = tree::tab(tabs, tree::pane_owner(tabs, pane).ok()?).ok()?;
+    (tab.zoomed == Some(pane)).then_some(pane)
 }
 
 /// Moves the pending selection one `step`.

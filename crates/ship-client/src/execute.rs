@@ -15,7 +15,9 @@ use ship_core::{
     id::IdOf,
     model::{NodeId, Pane, Tab},
     prelude::*,
-    protocol::{CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec},
+    protocol::{
+        CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ResizePane, SwapPane, ZoomPane,
+    },
     tree::{self, Tabs},
 };
 
@@ -138,8 +140,21 @@ impl Client {
                     self.remove::<Pane>(Self::pane_target(pane, scope)?).await?;
                     Outcome::Closed
                 }
-                PaneCommand::Resize(_) => {
-                    return Err(err!(Unavailable, "pane resize is not available yet"));
+                PaneCommand::Resize(pane::Resize {
+                    pane,
+                    direction,
+                    amount,
+                }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Tab(self.resize(id, &ResizePane { direction, amount }).await?)
+                }
+                PaneCommand::Zoom(pane::Zoom { pane, zoomed }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Tab(self.zoom(id, &ZoomPane { zoomed }).await?)
+                }
+                PaneCommand::Swap(pane::Swap { pane, other }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Tab(self.swap(id, &SwapPane { other }).await?)
                 }
             },
         })

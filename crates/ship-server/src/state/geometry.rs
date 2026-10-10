@@ -44,10 +44,12 @@ pub(crate) fn publish(tabs: &Tabs, sizes: &HashMap<IdOf<Tab>, Size>) -> Tabs {
     decorate(tabs, sizes).unwrap_or_else(|| tabs.clone())
 }
 
+/// The weight `halves` gives the two Fill constraints between them.
+const TOTAL: u16 = 1 << 15;
+
 /// Fill weights cover the whole area with overlap; Ratio constraints leave
 /// a trailing cell unused. Quantize only for ratatui, never the stored share.
 pub(crate) fn halves(area: Rect, axis: Axis, ratio: Ratio) -> [Rect; 2] {
-    const TOTAL: u16 = 1 << 15;
     let first = (f32::from(ratio) * f32::from(TOTAL)).round() as u16;
     let first = first.clamp(1, TOTAL - 1);
     TuiLayout::default()
@@ -58,6 +60,38 @@ pub(crate) fn halves(area: Rect, axis: Axis, ratio: Ratio) -> [Rect; 2] {
         .constraints([Constraint::Fill(first), Constraint::Fill(TOTAL - first)])
         .spacing(Spacing::Overlap(1))
         .areas(area)
+}
+
+/// A ratio whose first half of `area` is `length` cells along `axis`, from
+/// the middle of the weights that give it, so the edge stays put when the
+/// ratio is read back and keeps its proportion as the area changes. A power
+/// of two total makes each weight's ratio exact. `None` when no weight does.
+pub(crate) fn ratio_for(area: Rect, axis: Axis, length: u16) -> Option<Ratio> {
+    let first = |weight: u16| {
+        let ratio = Ratio::try_from(f32::from(weight) / f32::from(TOTAL)).ok()?;
+        let [first, _] = halves(area, axis, ratio);
+        Some(match axis {
+            Axis::Horizontal => first.width,
+            Axis::Vertical => first.height,
+        })
+    };
+    // The least weight whose first half is at least `length`.
+    let least = |length: u16| {
+        let (mut low, mut high) = (1, TOTAL);
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if first(middle).is_some_and(|first| first >= length) {
+                high = middle;
+            } else {
+                low = middle + 1;
+            }
+        }
+        low
+    };
+    let (start, end) = (least(length), least(length.checked_add(1)?));
+    let weight = start + (end - start).saturating_sub(1) / 2;
+    (first(weight)? == length)
+        .then(|| Ratio::try_from(f32::from(weight) / f32::from(TOTAL)).ok())?
 }
 
 pub(crate) fn tab(tab: &Tab, size: Size) -> TabGeometry {

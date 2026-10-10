@@ -10,6 +10,7 @@ use utoipa::{
 use uuid::Uuid;
 
 use crate::{
+    command::Direction,
     id::{Attachment, IdOf},
     model::{NodeId, OptionalName, Pane, Tab, tabs_schema},
     screen::{Screen, Size},
@@ -108,6 +109,35 @@ pub struct PaneInput {
     pub name: OptionalName,
     #[serde(flatten)]
     pub spec: PaneSpec,
+}
+
+/// POST /panes/{id}/zoom body. `{}` toggles; `false` unzooms the pane's tab
+/// and `true` zooms the pane.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ZoomPane {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zoomed: Option<bool>,
+}
+
+/// POST /panes/{id}/swap body: the pane to exchange places with, in the same
+/// tab. Adjacency is not required.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SwapPane {
+    pub other: IdOf<Pane>,
+}
+
+/// POST /panes/{id}/resize body.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ResizePane {
+    /// Which way the edge moves: the pane's edge on that side, or the
+    /// opposite edge when that side is the tab's.
+    pub direction: Direction,
+    /// Cells; absent is one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<u16>,
 }
 
 /// POST /tabs/{id}/move body: exactly one destination. `{"parent": "tab:…"}`,

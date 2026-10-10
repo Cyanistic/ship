@@ -67,7 +67,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Zoom, swap, resize, agent status and restoring after a restart are still to come.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. Panes can be zoomed, swapped and resized. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Agent status and restoring after a restart are still to come.
 
 ## Installation
 
@@ -137,12 +137,14 @@ Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (of
 | `alt-left` / `alt-right` | Previous or next visible tab row, back on the pane you last used there |
 | `alt-h` / `alt-j` / `alt-k` / `alt-l` | Select the pane to the left, below, above or right |
 | `alt-tab` | Next pane in the tab, in layout order |
+| `alt-f` | Zoom the selected pane to fill its tab, or unzoom |
+| `alt-shift-h` / `j` / `k` / `l` | Swap the selected pane with its neighbor to the left, below, above or right |
 | `alt-g` | Tabs mode: `j` / `k` move between visible rows, `h` / `l` fold / unfold, `esc` leaves |
 | `alt-b` | Hide or show this client's sidebar, preserving its folds |
-| `alt-r` | Resize mode, with hints; resizing itself is not available yet |
+| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the selected pane's edge one cell, `esc` leaves |
 | `alt-q` | Detach |
 
-In normal mode, every unbound key goes to the selected pane, including `alt-1` to `alt-9`, which have no default bindings. An explicitly bound `client.tab.select` still reports "not available yet". Resize actions are also accepted but not available yet.
+In normal mode, every unbound key goes to the selected pane, including `alt-1` to `alt-9`, which have no default bindings. An explicitly bound `client.tab.select` still reports "not available yet".
 
 ### Working in splits
 
@@ -151,6 +153,26 @@ A tab with two or more panes draws them together, separated by shared borders th
 When several panes border the selected one on the side you move toward, `alt-h`/`j`/`k`/`l` picks the one you selected most recently, else the one whose center is nearest, else the first in layout order. That history belongs to your client and is never sent to the server, so two clients on the same tab move independently.
 
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the space left over.
+
+### Zoom, swap and resize
+
+Zoom belongs to the tab, so every client viewing it sees the zoomed pane fill the area, and the tab's sidebar row is marked `Z`. The other panes keep running at their last sizes. Moving focus with `alt-h`/`j`/`k`/`l`, `alt-tab`, or `alt-shift-h`/`j`/`k`/`l` first unzooms the tab, then moves on the full layout. Creating, closing, swapping or resizing a pane unzooms too. Selecting another tab leaves the zoom in place.
+
+`alt-shift-h`/`j`/`k`/`l` picks a neighbor the same way focus does and exchanges the two panes' places; the programs and their screens move with them. With no neighbor that way, nothing is swapped.
+
+Resizing moves the edge of the selected pane on the side you press. When that side is the edge of the tab, it moves the opposite edge in that direction instead, so `l` on a rightmost pane narrows it. An edge stops when a pane would go below one row or column of content; a resize that can't move does nothing.
+
+The same edits work from the CLI, inside a pane or with `--pane`, and each prints the tab:
+```sh
+TAB=$(ship tab create --name work | jq -r .id)
+LEFT=$(ship pane create --tab "$TAB" --name left | jq -r .id)
+RIGHT=$(ship pane create --pane "$LEFT" --direction right --name right | jq -r .id)
+ship pane zoom --pane "$LEFT"                    # toggles
+ship pane swap --pane "$LEFT" --other "$RIGHT"   # any two panes in one tab
+ship pane resize --pane "$LEFT" --direction left --amount 5
+ship tab close --tab "$TAB"
+```
+`--amount` defaults to one cell. `ship pane swap` needs `--other`; it has no direction form. A key can carry an amount, for example `"alt-y" = [{ server.pane.resize = { direction = "right", amount = 5 } }]`.
 
 ### Working in the tab tree
 

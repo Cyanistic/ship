@@ -18,7 +18,7 @@ use ship_core::{
     prelude::*,
     protocol::{
         AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, Replica,
-        Starter, ViewInput, ViewingRecord,
+        ResizePane, Starter, SwapPane, ViewInput, ViewingRecord, ZoomPane,
     },
     screen::Size,
 };
@@ -39,6 +39,9 @@ pub(crate) mod tree;
 use tree::Tabs;
 
 pub(crate) type Viewers = IndexMap<IdOf<Attachment>, ViewingRecord>;
+
+/// Cells a resize moves without an amount.
+const RESIZE_STEP: u16 = 1;
 
 /// Sole owner of the tree, of every active attachment's viewing record and of
 /// every pane's running program.
@@ -124,8 +127,24 @@ impl ServerState {
     }
 
     /// A closed pane lands in the sibling subtree taking its space, using
-    /// the old layout. Removed tabs retain the nearest-ancestor fallback.
+    /// the old layout. Removed tabs retain the nearest-ancestor fallback. A
+    /// pane hidden by its tab's zoom then moves to the zoomed pane.
     fn repair(old: &Tabs, new: &Tabs, record: ViewingRecord) -> ViewingRecord {
+        let record = Self::repair_removed(old, new, record);
+        if let Some(NodeId::Pane(pane)) = record.selection
+            && let Ok(owner) = tree::pane_owner(new, pane)
+            && let Ok(tab) = tree::tab(new, owner)
+            && let Some(zoomed) = tab.zoomed.filter(|zoomed| *zoomed != pane)
+        {
+            return ViewingRecord {
+                selection: Some(NodeId::Pane(zoomed)),
+                ..record
+            };
+        }
+        record
+    }
+
+    fn repair_removed(old: &Tabs, new: &Tabs, record: ViewingRecord) -> ViewingRecord {
         let Some(selection) = record.selection else {
             return record;
         };
@@ -200,6 +219,11 @@ impl ServerState {
     /// Publish actual geometry on each viewed tab, including nested tabs.
     fn published_tabs(&self) -> Tabs {
         geometry::publish(&self.tabs, &self.tab_sizes())
+    }
+
+    /// The published copy of tab `id`.
+    fn published_tab(&self, id: IdOf<Tab>) -> Result<Tab> {
+        tree::tab(&self.published_tabs(), id).cloned()
     }
 
     /// Use this commit's published content sizes, not another computation.
@@ -300,6 +324,18 @@ pub struct Attach {
     pub request: AttachRequest,
 }
 pub struct Detach(pub IdOf<Attachment>);
+pub struct Zoom {
+    pub id: IdOf<Pane>,
+    pub zoom: ZoomPane,
+}
+pub struct Swap {
+    pub id: IdOf<Pane>,
+    pub swap: SwapPane,
+}
+pub struct Resize {
+    pub id: IdOf<Pane>,
+    pub resize: ResizePane,
+}
 /// Whether an attachment is active, before the input route reads its body.
 pub struct CheckAttachment(pub IdOf<Attachment>);
 /// Replace an attachment's view.
@@ -534,6 +570,81 @@ impl Message<Remove<Pane>> for ServerState {
             Ok(())
         })
         .await
+    }
+}
+
+impl Message<Zoom> for ServerState {
+    type Reply = Result<Tab>;
+
+    /// Absent toggles the pane; `false` unzooms its tab and `true` zooms it.
+    /// A request that changes nothing commits nothing. Answers with the tab.
+    async fn handle(
+        &mut self,
+        Zoom { id, zoom }: Zoom,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        let owner = tree::pane_owner(&self.tabs, id)?;
+        let current = tree::tab(&self.tabs, owner)?.zoomed;
+        let zoomed = match zoom.zoomed.unwrap_or(current != Some(id)) {
+            true => Some(id),
+            false => None,
+        };
+        if zoomed != current {
+            self.commit(|tabs, _| {
+                tree::tab_mut(tabs, owner)?.zoomed = zoomed;
+                Ok(())
+            })
+            .await?;
+        }
+        self.published_tab(owner)
+    }
+}
+
+impl Message<Swap> for ServerState {
+    type Reply = Result<Tab>;
+
+    /// Exchanges the named pair, whatever their positions, if both are in
+    /// one tab; otherwise nothing changes. Answers with the tab.
+    async fn handle(
+        &mut self,
+        Swap { id, swap }: Swap,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        let owner = tree::pane_owner(&self.tabs, id)?;
+        tree::pane(&self.tabs, swap.other)?;
+        self.commit(|tabs, _| layout::swap(tree::tab_mut(tabs, owner)?, id, swap.other))
+            .await?;
+        self.published_tab(owner)
+    }
+}
+
+impl Message<Resize> for ServerState {
+    type Reply = Result<Tab>;
+
+    /// Moves the pane's edge at the tab's size, the 80x24 fallback when
+    /// nobody views it. An edge that can't move commits nothing. Answers with
+    /// the tab.
+    async fn handle(
+        &mut self,
+        Resize { id, resize }: Resize,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        let owner = tree::pane_owner(&self.tabs, id)?;
+        let size = self
+            .tab_sizes()
+            .get(&owner)
+            .copied()
+            .unwrap_or(Size::FALLBACK);
+        let mut tab = tree::tab(&self.tabs, owner)?.clone();
+        let cells = resize.amount.unwrap_or(RESIZE_STEP);
+        if layout::resize(&mut tab, size, id, resize.direction, cells)? {
+            self.commit(|tabs, _| {
+                *tree::tab_mut(tabs, owner)? = tab;
+                Ok(())
+            })
+            .await?;
+        }
+        self.published_tab(owner)
     }
 }
 

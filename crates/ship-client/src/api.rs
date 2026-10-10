@@ -12,8 +12,8 @@ use ship_core::{
     model::{Named, Pane, Tab},
     prelude::*,
     protocol::{
-        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, SseEvent, ViewInput,
-        ViewingRecord,
+        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, ResizePane, SseEvent, SwapPane,
+        ViewInput, ViewingRecord, ZoomPane,
     },
     tree::Tabs,
 };
@@ -136,6 +136,32 @@ impl Client {
     pub async fn move_tab(&self, id: IdOf<Tab>, to: &MoveTab) -> Result<Tab> {
         let path = format!("{}/{id}/move", Tab::COLLECTION);
         self.request(Method::POST, &path, Some(to), None, StatusCode::OK)
+            .await
+    }
+
+    /// Zoom or unzoom the pane; returns its tab.
+    pub async fn zoom(&self, pane: IdOf<Pane>, body: &ZoomPane) -> Result<Tab> {
+        self.pane_edit(pane, "zoom", body).await
+    }
+
+    /// Exchange the pane with `body.other`; returns their tab.
+    pub async fn swap(&self, pane: IdOf<Pane>, body: &SwapPane) -> Result<Tab> {
+        self.pane_edit(pane, "swap", body).await
+    }
+
+    /// Move the pane's edge; returns its tab.
+    pub async fn resize(&self, pane: IdOf<Pane>, body: &ResizePane) -> Result<Tab> {
+        self.pane_edit(pane, "resize", body).await
+    }
+
+    async fn pane_edit(
+        &self,
+        pane: IdOf<Pane>,
+        edit: &str,
+        body: &impl serde::Serialize,
+    ) -> Result<Tab> {
+        let path = format!("{}/{pane}/{edit}", Pane::COLLECTION);
+        self.request(Method::POST, &path, Some(body), None, StatusCode::OK)
             .await
     }
 

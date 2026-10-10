@@ -6,6 +6,7 @@ use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Style, Stylize},
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
 };
 use ship_core::{
@@ -141,7 +142,12 @@ impl Sidebar {
                 }
                 let children = self.items(&tab.tabs, path, state);
                 path.pop();
-                TreeItem::new(tab.id, tab_label(tab, position), children).expect("unique tab IDs")
+                // tmux's zoom flag, since a zoomed pane has no border to carry one.
+                let mut row = Line::from(tab_label(tab, position));
+                if tab.zoomed.is_some() {
+                    row.push_span(Span::from(" Z").cyan().bold());
+                }
+                TreeItem::new(tab.id, row, children).expect("unique tab IDs")
             })
             .collect()
     }

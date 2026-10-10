@@ -4,7 +4,7 @@
 
 #[cfg(feature = "clap")]
 use clap::{Args, Subcommand};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     id::IdOf,
@@ -20,7 +20,7 @@ pub enum Command {
     /// List, create, inspect, rename, close or move tabs
     #[cfg_attr(feature = "clap", command(subcommand))]
     Tab(tab::TabCommand),
-    /// Create, inspect, rename, close or resize panes
+    /// Create, inspect, rename, close, resize, zoom or swap panes
     #[cfg_attr(feature = "clap", command(subcommand))]
     Pane(pane::PaneCommand),
 }
@@ -109,7 +109,7 @@ impl Destination {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, utoipa::ToSchema)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[serde(rename_all = "snake_case")]
 pub enum Direction {
@@ -210,7 +210,7 @@ pub mod pane {
     use serde::Deserialize;
 
     use super::{Direction, PaneTarget, TabTarget};
-    use crate::protocol::SplitDirection;
+    use crate::{id::IdOf, model::Pane, protocol::SplitDirection};
 
     /// `get` is CLI-only, so the config rejects it.
     #[derive(Clone, Debug, Deserialize)]
@@ -226,8 +226,12 @@ pub mod pane {
         Rename(Rename),
         /// Close a pane
         Close(Close),
-        /// Resize a pane (not available yet)
+        /// Move a pane's edge and print its tab as JSON
         Resize(Resize),
+        /// Zoom a pane to fill its tab, or unzoom it, and print its tab as JSON
+        Zoom(Zoom),
+        /// Exchange a pane with another pane in its tab and print the tab as JSON
+        Swap(Swap),
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]
@@ -290,12 +294,39 @@ pub mod pane {
         #[cfg_attr(feature = "clap", command(flatten))]
         #[serde(default)]
         pub pane: PaneTarget,
-        /// Which edge moves
+        /// Which way the edge moves: the pane's edge on that side, or the
+        /// opposite edge when that side is the tab's
         #[cfg_attr(feature = "clap", arg(long))]
         pub direction: Direction,
-        /// Cells; omitted means one step
+        /// Cells; omitted means one
         #[cfg_attr(feature = "clap", arg(long))]
         #[serde(default)]
         pub amount: Option<u16>,
+    }
+
+    #[derive(Clone, Debug, Default, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    #[serde(default, deny_unknown_fields)]
+    pub struct Zoom {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
+        /// Absent toggles. Set only by the client's unzoom before it moves
+        /// out of a zoomed pane, so two clients can't zoom the tab back in.
+        #[cfg_attr(feature = "clap", arg(skip))]
+        #[serde(skip)]
+        pub zoomed: Option<bool>,
+    }
+
+    /// Directional swap is `client.pane.swap`, a key action with no CLI form.
+    #[derive(Clone, Debug, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    #[serde(deny_unknown_fields)]
+    pub struct Swap {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        #[serde(default)]
+        pub pane: PaneTarget,
+        /// The pane to exchange places with, in the same tab; need not be adjacent
+        #[cfg_attr(feature = "clap", arg(long, value_name = "ID"))]
+        pub other: IdOf<Pane>,
     }
 }
