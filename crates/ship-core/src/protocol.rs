@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crossterm::event::KeyEvent;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
@@ -255,7 +256,7 @@ pub struct KeyInput {
     /// crossterm's own serialization, e.g. `{"code": "Enter", "modifiers": "",
     /// "kind": "Press", "state": ""}`; modifiers read `"SHIFT | CONTROL"`.
     #[schema(value_type = Object)]
-    pub key: crossterm::event::KeyEvent,
+    pub key: KeyEvent,
 }
 
 /// Text sent as one paste; bracketed when the program asked for it.

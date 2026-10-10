@@ -5,7 +5,7 @@ use ratatui_core::layout::Rect;
 use serde::{Deserialize, Serialize};
 use utoipa::{
     PartialSchema, ToSchema,
-    openapi::{Object, ObjectBuilder, Ref},
+    openapi::{Object, ObjectBuilder, Ref, Type},
 };
 
 use crate::{command::Direction, id::IdOf, model::Pane, screen::Size};
@@ -107,7 +107,7 @@ fn distance(a: Rect, b: Rect) -> u32 {
 fn rect_schema() -> Object {
     let integer = || {
         ObjectBuilder::new()
-            .schema_type(utoipa::openapi::schema::Type::Integer)
+            .schema_type(Type::Integer)
             .minimum(Some(0.0))
             .maximum(Some(f64::from(u16::MAX)))
             .build()

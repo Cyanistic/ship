@@ -1,10 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize};
-use utoipa::{
-    PartialSchema, ToSchema,
-    openapi::{Object, ObjectBuilder, Ref},
-};
+use utoipa::openapi::{Object, ObjectBuilder, Ref};
 
 use crate::{
     AppError, err,
@@ -14,7 +11,7 @@ use crate::{
     tree::Tabs,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Tab {
     pub id: IdOf<Tab>,
@@ -32,7 +29,7 @@ pub struct Tab {
 }
 
 /// A leaf running one program in its own terminal. Owns no layout or children.
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Pane {
     pub id: IdOf<Pane>,
@@ -48,14 +45,14 @@ pub struct Pane {
     pub status: PaneStatus,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum PaneStatus {
     Running,
     Exited(ExitStatus),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ExitStatus {
     pub code: u32,
@@ -68,6 +65,8 @@ pub struct ExitStatus {
 /// `Tab`'s schema for the `IdOf<Tab>` key, recursing without end. Also used by
 /// `Replica::tabs`.
 pub(crate) fn tabs_schema() -> Object {
+    use utoipa::PartialSchema;
+
     ObjectBuilder::new()
         .property_names(Some(IdOf::<Tab>::schema()))
         .additional_properties(Some(Ref::from_schema_name("Tab")))
@@ -109,7 +108,7 @@ impl Identified for Pane {
 }
 
 /// Rename input; tabs and panes use `OptionalName`.
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct Named<N> {
     pub name: N,
 }
@@ -117,7 +116,7 @@ pub struct Named<N> {
 /// Optional tab or pane name. Blank or whitespace-only input means none, so
 /// missing, `null`, `""` and `"  "` all deserialize to `None`. The only place
 /// the rule lives.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, utoipa::ToSchema)]
 #[schema(value_type = Option<String>)]
 pub struct OptionalName(Option<String>);
 
@@ -140,7 +139,7 @@ impl<'de> Deserialize<'de> for OptionalName {
 }
 
 /// Any selectable entity. Untagged; the prefix decides the variant.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(untagged)]
 pub enum NodeId {
     Tab(IdOf<Tab>),

@@ -2,6 +2,7 @@
 
 use std::{
     collections::{BTreeMap, HashMap, hash_map::Entry},
+    fmt,
     path::Path,
 };
 
@@ -84,7 +85,7 @@ pub enum ClientAction {
 pub enum ClientTab {
     Next {},
     Prev {},
-    Select { row: Row },
+    Select { row: u16 },
     Expand {},
     Collapse {},
 }
@@ -107,22 +108,6 @@ pub enum Sidebar {
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum ConfigAction {
     Reload {},
-}
-
-/// 1 to 9.
-#[derive(Clone, Copy, Debug, Deserialize)]
-#[serde(try_from = "u8")]
-pub struct Row(pub u8);
-
-impl TryFrom<u8> for Row {
-    type Error = String;
-
-    fn try_from(row: u8) -> std::result::Result<Self, String> {
-        match row {
-            1..=9 => Ok(Self(row)),
-            _ => Err(format!("row {row} is not between 1 and 9")),
-        }
-    }
 }
 
 /// The file's shape down to each mode, which deserializes on its own so one
@@ -170,7 +155,7 @@ impl Provider for Defaults {
         Metadata::named(DEFAULTS_NAME)
     }
 
-    fn data(&self) -> std::result::Result<Map<Profile, Dict>, figment::Error> {
+    fn data(&self) -> Result<Map<Profile, Dict>, figment::Error> {
         let mut data = Toml::string(DEFAULTS).data()?;
         for root in data.values_mut() {
             let Some(Value::Dict(_, client)) = root.get_mut("client") else {
@@ -207,7 +192,7 @@ impl Keymap {
     /// error is collected, each naming the file and its key path. Used at
     /// startup, on reload and by `ship config check`, so check reports
     /// exactly what loading rejects.
-    pub fn load(path: &Path) -> std::result::Result<Self, Vec<AppError>> {
+    pub fn load(path: &Path) -> Result<Self, Vec<AppError>> {
         Self::build(&Figment::from(Defaults).merge(Toml::file(path)), path)
     }
 
@@ -218,7 +203,7 @@ impl Keymap {
         }
     }
 
-    fn build(figment: &Figment, path: &Path) -> std::result::Result<Self, Vec<AppError>> {
+    fn build(figment: &Figment, path: &Path) -> Result<Self, Vec<AppError>> {
         figment
             .extract::<Root>()
             .map_err(|error| vec![located(path, &[], error)])?;
@@ -332,7 +317,7 @@ impl Binding {
 
     /// What deserializing can't see: an empty list, `"none"` beside other
     /// actions, and modes the file doesn't define.
-    fn check(&self, modes: &Dict) -> std::result::Result<(), String> {
+    fn check(&self, modes: &Dict) -> Result<(), String> {
         match self.0.as_slice() {
             [] => return Err("an empty list binds nothing; write \"none\" to unbind".into()),
             [_] => {}
@@ -385,7 +370,7 @@ fn located(path: &Path, at: &[&str], error: figment::Error) -> AppError {
     invalid(path, &at, kind.trim_end())
 }
 
-fn invalid(path: &Path, at: &[&str], message: impl std::fmt::Display) -> AppError {
+fn invalid(path: &Path, at: &[&str], message: impl fmt::Display) -> AppError {
     match at.join(".") {
         key if key.is_empty() => err!(Configuration, "{}: {message}", path.display()),
         key => err!(Configuration, "{}: {key}: {message}", path.display()),

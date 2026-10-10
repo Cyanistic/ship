@@ -1,6 +1,9 @@
 //! One path from a command to the API, for the CLI and for keys.
 
-use std::path::PathBuf;
+use std::{
+    env, fs,
+    path::{self, PathBuf},
+};
 
 use serde::Serialize;
 use ship_core::{
@@ -103,7 +106,7 @@ impl Client {
                     };
                     let cwd = cwd
                         .map(|cwd| {
-                            std::path::absolute(&cwd).map_err(
+                            path::absolute(&cwd).map_err(
                                 |error| err!(Io, "cannot resolve '{}'", cwd.display(), @external: error),
                             )
                         })
@@ -212,13 +215,11 @@ impl Client {
 /// `$PWD` when it names the current directory, so a symlinked path such as
 /// macOS's `/tmp` is kept as the user typed it, as shells do.
 pub fn current_dir() -> Result<PathBuf> {
-    let current = std::env::current_dir()
+    let current = env::current_dir()
         .map_err(|error| err!(Io, "cannot read the current directory", @external: error))?;
-    let real = std::fs::canonicalize(&current).ok();
-    Ok(std::env::var_os("PWD")
+    let real = fs::canonicalize(&current).ok();
+    Ok(env::var_os("PWD")
         .map(PathBuf::from)
-        .filter(|pwd| {
-            pwd.is_absolute() && real.is_some() && std::fs::canonicalize(pwd).ok() == real
-        })
+        .filter(|pwd| pwd.is_absolute() && real.is_some() && fs::canonicalize(pwd).ok() == real)
         .unwrap_or(current))
 }

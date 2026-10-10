@@ -210,6 +210,7 @@ pub mod pane {
     use serde::Deserialize;
 
     use super::{Direction, PaneTarget, TabTarget};
+    use crate::protocol::SplitDirection;
 
     /// `get` is CLI-only, so the config rejects it.
     #[derive(Clone, Debug, Deserialize)]
@@ -244,7 +245,7 @@ pub mod pane {
         pub tab: TabTarget,
         /// Which side of the anchor to split; right by default
         #[cfg_attr(feature = "clap", arg(long))]
-        pub direction: Option<crate::protocol::SplitDirection>,
+        pub direction: Option<SplitDirection>,
         /// Pane name; omitted or blank means none
         #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,

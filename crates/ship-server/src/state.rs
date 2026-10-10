@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    env,
     path::PathBuf,
     sync::{
         Arc,
@@ -9,7 +10,7 @@ use std::{
 
 use futures_util::future::join_all;
 use indexmap::IndexMap;
-use kameo::prelude::*;
+use kameo::{error::Infallible, prelude::*};
 use ship_core::{
     id::*,
     layout::{Layout, Ratio},
@@ -115,7 +116,7 @@ impl ServerState {
         tracing::debug!(revision = self.revision, "publishing replica");
         let replica = self.replica();
         self.bus
-            .tell(Publish(replica.clone()))
+            .tell(Publish(Arc::clone(&replica)))
             .await
             .map_err(|error| err!(Unavailable, "cannot publish state", @external: error))?;
         self.apply_sizes(&replica.tabs);
@@ -224,7 +225,7 @@ impl ServerState {
     fn start_pane(&mut self, size: Size, input: PaneInput) -> Result<Pane> {
         let cwd = match input.spec.cwd {
             Some(cwd) => PathBuf::from(cwd),
-            None => std::env::home_dir()
+            None => env::home_dir()
                 .ok_or_else(|| err!(Configuration, "the server has no home directory"))?,
         };
         if !cwd.is_absolute() || !cwd.is_dir() {
@@ -262,14 +263,14 @@ impl ServerState {
         &mut self,
         _: WeakActorRef<Self>,
         _: ActorStopReason,
-    ) -> std::result::Result<(), kameo::error::Infallible> {
+    ) -> Result<(), Infallible> {
         join_all(self.runtimes.drain().map(|(_, runtime)| runtime.stop())).await;
         Ok(())
     }
 
     /// The revision as each commit sets it, shared with the HTTP layer.
     pub(crate) fn written(&self) -> Arc<AtomicU64> {
-        self.written.clone()
+        Arc::clone(&self.written)
     }
 
     pub fn replica(&self) -> Arc<Replica> {

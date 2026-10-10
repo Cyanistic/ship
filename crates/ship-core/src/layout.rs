@@ -1,5 +1,7 @@
 //! Pane membership and order, stored once as leaves of a binary split tree.
 
+use std::iter;
+
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -66,7 +68,7 @@ impl Layout {
     /// Leaves in layout order: first child before second.
     pub fn panes(&self) -> Box<dyn Iterator<Item = &Pane> + '_> {
         match self {
-            Self::Pane(pane) => Box::new(std::iter::once(pane)),
+            Self::Pane(pane) => Box::new(iter::once(pane)),
             Self::Split(split) => Box::new(split.first.panes().chain(split.second.panes())),
         }
     }

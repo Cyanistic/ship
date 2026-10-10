@@ -15,7 +15,10 @@ use std::{
     time::Duration,
 };
 
-use crossterm::event::{Event, EventStream};
+use crossterm::{
+    event::{Event, EventStream},
+    terminal::size,
+};
 use futures_util::{Stream, StreamExt};
 use ship_core::{
     command::{Command, Direction, pane::PaneCommand, tab::TabCommand},
@@ -25,7 +28,10 @@ use ship_core::{
     screen::Size,
     tree::{self, Tabs},
 };
-use tokio::{sync::mpsc, time::MissedTickBehavior};
+use tokio::{
+    sync::mpsc,
+    time::{self, MissedTickBehavior},
+};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use self::{
@@ -153,7 +159,7 @@ async fn drive(
     // Where navigation moved the selection, until a view PUT carries it.
     let mut chosen: Option<NodeId> = None;
     let mut putting: Pending<Option<NodeId>> = None;
-    let mut tick = tokio::time::interval(FRAME);
+    let mut tick = time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     redraw(guard, &observer, &status(&keys, message.as_deref()))?;
     loop {
@@ -510,7 +516,7 @@ fn step(index: usize, len: usize, forward: bool) -> usize {
 
 /// Attach after `delay`; zero for the first attach.
 async fn attach_after(client: &Client, request: AttachRequest, delay: Duration) -> Result<Events> {
-    tokio::time::sleep(delay).await;
+    time::sleep(delay).await;
     Ok(Box::pin(client.attach(&request).await?))
 }
 
@@ -535,8 +541,8 @@ async fn finish<F: Future + Unpin>(request: &mut Option<F>) -> F::Output {
 }
 
 fn tab_area() -> Result<Size> {
-    let (cols, rows) = crossterm::terminal::size()
-        .map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
+    let (cols, rows) =
+        size().map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
     Ok(draw::tab_area(cols, rows))
 }
 
