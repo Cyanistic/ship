@@ -16,6 +16,7 @@ axum = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 crossterm.workspace = true
 indexmap.workspace = true
+ratatui-core.workspace = true
 kameo = { workspace = true, optional = true }
 serde.workspace = true
 ship-macros = { workspace = true, optional = true }

@@ -294,7 +294,10 @@ async fn drive(
                     running = Some(Box::pin(async move {
                         Ok(match client.execute(command, &scope).await? {
                             Outcome::Tab(tab) if creates => Some(
-                                tree::first_pane(&tab).map_or(NodeId::Tab(tab.id), NodeId::Pane),
+                                tab.panes()
+                                    .next()
+                                    .map(|pane| pane.id)
+                                    .map_or(NodeId::Tab(tab.id), NodeId::Pane),
                             ),
                             Outcome::Pane(pane) if creates => Some(NodeId::Pane(pane.id)),
                             _ => None,
@@ -354,15 +357,12 @@ async fn drive(
 }
 
 fn redraw(guard: &mut TerminalGuard, observer: &Observer, status: &Status) -> Result<()> {
+    let mut cursor = None;
     guard
         .terminal
-        .draw(|frame| draw::draw(frame, observer, status))
+        .draw(|frame| cursor = draw::draw(frame, observer, status))
         .map_err(|error| err!(Io, "cannot draw", @external: error))?;
-    let screen = observer
-        .selected()
-        .and_then(|selected| selected.pane)
-        .and_then(|pane| observer.screens.get(&pane.id));
-    guard.set_cursor(screen.and_then(|screen| screen.cursor))
+    guard.set_cursor(cursor)
 }
 
 fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
@@ -432,19 +432,27 @@ fn navigate(tabs: &Tabs, from: Option<NodeId>, ring: Step, forward: bool) -> Opt
                 None => tabs.len().checked_sub(1)?,
             };
             let (_, tab) = tabs.get_index(index)?;
-            Some(tree::first_pane(tab).map_or(NodeId::Tab(tab.id), NodeId::Pane))
+            Some(
+                tab.panes()
+                    .next()
+                    .map(|pane| pane.id)
+                    .map_or(NodeId::Tab(tab.id), NodeId::Pane),
+            )
         }
         Step::Pane => {
             let from = from?;
             let tab = tree::tab(tabs, tree::viewed_tab(tabs, from)?).ok()?;
+            let panes: Vec<_> = tab.panes().map(|pane| pane.id).collect();
             let index = match from {
-                NodeId::Pane(pane) => {
-                    step(tab.panes.get_index_of(&pane)?, tab.panes.len(), forward)
-                }
+                NodeId::Pane(pane) => step(
+                    panes.iter().position(|id| *id == pane)?,
+                    panes.len(),
+                    forward,
+                ),
                 NodeId::Tab(_) if forward => 0,
-                NodeId::Tab(_) => tab.panes.len().checked_sub(1)?,
+                NodeId::Tab(_) => panes.len().checked_sub(1)?,
             };
-            let (&pane, _) = tab.panes.get_index(index)?;
+            let pane = *panes.get(index)?;
             Some(NodeId::Pane(pane))
         }
     }

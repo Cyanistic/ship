@@ -11,7 +11,7 @@ use std::path::Path;
 use ship_core::{
     id::IdOf,
     model::{Pane, PaneStatus, Tab},
-    screen::{Attr, Cell, Color, Screen, Size},
+    screen::{Attr, Cell, Color, Cursor, Screen, Size},
     tree::{self, Tabs},
 };
 
@@ -45,20 +45,26 @@ const FILLER: &str = "·";
 /// The selected pane's screen at its own size in the top-left corner, the
 /// filler pattern over the rest, and the status line on the last row. With
 /// no pane selected, a hint instead of the screen.
-pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
+pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) -> Option<Cursor> {
     let [main, status_area] =
         Layout::vertical([Constraint::Fill(1), Constraint::Length(STATUS_ROWS)])
             .areas(frame.area());
     let selected = observer.selected();
+    let mut shown_cursor = None;
     match selected.as_ref().and_then(|selected| selected.pane) {
         Some(pane) => {
+            let content = selected
+                .as_ref()
+                .and_then(|selected| selected.tab.geometry.as_ref())
+                .and_then(|geometry| geometry.panes.get(&pane.id))
+                .map_or(Rect::default(), |geometry| geometry.content);
             let screen = observer.screens.get(&pane.id);
             let shown = screen.map_or(Rect::default(), |screen| {
                 main.intersection(Rect::new(
                     main.x,
                     main.y,
-                    screen.size.cols,
-                    screen.size.rows,
+                    content.width.min(screen.size.cols),
+                    content.height.min(screen.size.rows),
                 ))
             });
             fill(frame.buffer_mut(), main, shown);
@@ -69,6 +75,7 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
                     && cursor.y < shown.height
                 {
                     frame.set_cursor_position((shown.x + cursor.x, shown.y + cursor.y));
+                    shown_cursor = Some(cursor);
                 }
             }
         }
@@ -87,17 +94,18 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
         Line::from(status_line(observer, selected.as_ref(), status)).reversed(),
         status_area,
     );
+    shown_cursor
 }
 
 /// "connecting" while the observer has no record; with nothing selected,
 /// `3 tabs · alt-right to open one` or `no tabs · ship tab create`; with a tab
-/// and no pane, `no pane: ship pane create <tab-id>`.
+/// and no pane, `no pane: ship pane create --tab <tab-id>`.
 fn hint(observer: &Observer, selected: Option<&Selected>) -> String {
     let (Some(replica), Some(_)) = (&observer.replica, observer.record()) else {
         return "connecting".into();
     };
     match (selected, replica.tabs.len()) {
-        (Some(selected), _) => format!("no pane: ship pane create {}", selected.tab.id),
+        (Some(selected), _) => format!("no pane: ship pane create --tab {}", selected.tab.id),
         (None, 0) => "no tabs · ship tab create".into(),
         (None, 1) => "1 tab · alt-right to open one".into(),
         (None, count) => format!("{count} tabs · alt-right to open one"),
@@ -153,7 +161,7 @@ pub(super) fn pane_label(pane: &Pane) -> &str {
 pub(super) fn tab_label(tab: &Tab, position: usize) -> String {
     tab.name
         .get()
-        .or_else(|| tab.panes.values().next().map(pane_label))
+        .or_else(|| tab.panes().next().map(pane_label))
         .map_or_else(|| (position + 1).to_string(), str::to_owned)
 }
 
@@ -177,6 +185,9 @@ fn fill(buf: &mut Buffer, area: Rect, shown: Rect) {
 
 /// The screen's cells into `area`, which is no larger than the screen.
 fn paint(screen: &Screen, area: Rect, buf: &mut Buffer) {
+    if area.is_empty() || screen.size.cols == 0 {
+        return;
+    }
     let cols = usize::from(screen.size.cols);
     for (index, cell) in screen.cells.iter().enumerate() {
         let (x, y) = (index % cols, index / cols);

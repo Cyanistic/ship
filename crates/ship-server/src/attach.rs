@@ -146,8 +146,9 @@ impl Progress {
             .get(&self.attachment)
             .and_then(|record| record.selection)
             .and_then(|selection| tree::viewed_tab(tabs, selection))
-            .and_then(|tab| tree::tab(tabs, tab).ok())
-            .map(|tab| tab.panes.keys().copied().collect())
+            .and_then(|id| tree::tab(tabs, id).ok())
+            .and_then(|tab| tab.geometry.as_ref())
+            .map(|geometry| geometry.panes.keys().copied().collect())
             .unwrap_or_default();
         let gone: Vec<IdOf<Pane>> = self
             .watching

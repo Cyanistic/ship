@@ -139,8 +139,8 @@ pub(crate) async fn move_tab(
     request_body = CreatePane,
     responses(
         (status = 201, body = Pane),
-        (status = 404, description = "Parent tab not found", body = AppError),
-        (status = 422, description = "Malformed parent or name, including a parent that is not a tab"),
+        (status = 400, description = "Malformed JSON, or invalid program or starting directory"),
+        (status = 404, description = "Tab or anchor pane not found", body = AppError),
         (status = 503, body = AppError),
     ),
 )]

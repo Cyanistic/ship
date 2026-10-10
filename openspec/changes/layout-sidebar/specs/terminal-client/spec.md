@@ -1,6 +1,6 @@
 # Spec Delta
 
-Planning draft. Zero-content terminal handling remains an evidence-dependent question for the slice 1 probe in `../../design.md`.
+Zero-content terminal handling is approved in architecture A-4 and program P-1; the slice 1 probe verifies the policy recorded in `../../design.md`.
 
 ## MODIFIED Requirements
 
@@ -16,7 +16,7 @@ Bare `ship` SHALL open a full-screen client in the current terminal showing the 
 - **THEN** the pane area shows only that tab's own panes, with the child tabs available separately in the sidebar
 
 ### Requirement: Pane size
-A tab's area SHALL follow the smallest reported viewing-client area in each dimension, excluding that client's sidebar and bottom bar. The server SHALL publish pane frame/content geometry and size visible programs to their content rectangles. A client viewing another tab SHALL NOT constrain it. Unviewed tabs and zoom-hidden panes SHALL retain their last terminal sizes. Larger clients SHALL draw the shared geometry at the pane area's top-left and mark unused space.
+A tab's area SHALL follow the smallest reported viewing-client area in each dimension, excluding that client's sidebar and bottom bar. The server SHALL publish actual pane frame/content geometry and size visible programs to their content rectangles, except that both PTY and emulator dimensions SHALL be clamped independently to at least 1 column and 1 row on startup and resize. Published geometry SHALL NOT be clamped. Cells and cursors SHALL be clipped to actual content; when either content dimension is zero, neither SHALL be drawn. A client viewing another tab SHALL NOT constrain it. Unviewed tabs and zoom-hidden panes SHALL retain their last terminal sizes. Larger clients SHALL draw the shared geometry at the pane area's top-left and mark unused space.
 
 #### Scenario: Resize the terminal
 - **WHEN** the only client viewing a split tab resizes its terminal

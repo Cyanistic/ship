@@ -427,6 +427,7 @@ dependencies = [
  "itoa",
  "rustversion",
  "ryu",
+ "serde",
  "static_assertions",
 ]
 
@@ -2952,6 +2953,7 @@ dependencies = [
  "crossterm",
  "indexmap 2.14.2",
  "kameo",
+ "ratatui-core",
  "serde",
  "serde_json",
  "serde_with",

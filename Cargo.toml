@@ -29,6 +29,7 @@ nix = { version = "0.31", features = ["process", "signal"] }
 notify-debouncer-mini = "0.7"
 portable-pty = "=0.9.0"
 ratatui = "0.30"
+ratatui-core = { version = "0.1", features = ["serde"] }
 proc-macro2 = "1"
 quote = "1"
 reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls", "stream", "zstd", "gzip"] }

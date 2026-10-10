@@ -67,7 +67,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Split layouts, agent status and restoring after a restart are still to come.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client still draws only the selected pane at this checkpoint. Simultaneous split rendering, directional focus, the sidebar, agent status and restoring after a restart are still to come.
 
 ## Installation
 
@@ -98,7 +98,31 @@ Then press `alt-right` and `alt-left` in the client to move between top-level ta
 
 Inside a Ship pane you can leave out `--tab` and `--pane`: commands default to the pane they run in and the tab holding it. So `ship pane close` run in a pane closes that pane, and `ship pane create` adds a pane next to it.
 
-Run `ship --help` to see everything else.
+### Split and close from the CLI
+
+Create a shell, split it right, then split the right pane down:
+```sh
+TAB=$(ship tab create --name work | jq -r .id)
+LEFT=$(ship pane create --tab "$TAB" --name left | jq -r .id)
+RIGHT=$(ship pane create --pane "$LEFT" --direction right --name right | jq -r .id)
+BOTTOM=$(ship pane create --pane "$RIGHT" --direction down --name bottom | jq -r .id)
+ship tab get --tab "$TAB"
+ship pane close --pane "$LEFT"
+ship tab get --tab "$TAB"
+ship tab close --tab "$TAB"
+```
+
+Inspection reports `layout`, whose `kind` is `pane` or `split`. A split has `axis`, first-child `ratio`, `first` and `second`; pane records live at the leaves in layout order. An empty tab omits `layout`. Closing `left` above lets `right` and `bottom` fill the tab. Viewers selected on the closed pane land in that sibling subtree; closing the last pane leaves an empty tab. Closing a pane ends its program, while the others keep running.
+
+`--direction` defaults to `right`. With just `--tab`, creation splits the largest content rectangle, breaking ties in layout order, or creates the first pane in an empty tab. `--pane` anchors the split directly, including the default from `SHIP_PANE_ID` inside a pane; an explicit `--tab` takes precedence. Each half needs at least 1x1 content, otherwise creation fails with `no space for new pane` before starting a program. Existing layouts squeeze on terminal shrink without losing panes or proportions. Each published tab carries its own optional `geometry`, derived by the server from its layout and current viewers. This applies to nested tabs too: a viewed child has geometry even when its parent is unviewed. Tab inspection includes geometry only while that tab is viewed; there is no separate replica geometry map. Published geometry can have zero content; PTYs and terminal emulators use at least 1x1 internally until content grows again.
+
+### Protocol 8 compatibility
+
+The layout wire change requires matching client and server builds. `ship server status` reports `protocolVersion: 8`. Current clients check health, service identity and protocol before ordinary commands, attach or shutdown. `--server-url URL` and `SHIP_SERVER_URL` select an existing server and never start one; status and stop never start one either.
+
+Already-built protocol-7 clients reject protocol 8 when they check health, including status and attach, but their explicit-URL ordinary commands skip that check and can reach incompatible endpoints. Those commands have no compatibility guarantee and can mutate the server even if decoding the response fails. Update client and server together. A server restart discards its in-memory tabs and programs, so plan the upgrade rather than stopping live work unexpectedly.
+
+Run `ship --help` and `ship pane create --help` to see the command options.
 
 ## Keys
 
@@ -108,14 +132,14 @@ Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (of
 | --- | --- |
 | `alt-n` | New tab with a shell, after the selected one |
 | `alt-x` | Close the selected tab |
-| `alt-\|` / `alt--` | New pane in the selected tab |
+| `alt-\|` / `alt--` | Split the selected pane right / down, or the largest pane of the selected tab |
 | `alt-shift-x` | Close the selected pane |
 | `alt-left` / `alt-right` | Previous or next tab |
 | `alt-tab` | Next pane in the tab |
 | `alt-g` | Tab mode: `j` and `k` move between tabs, `esc` leaves |
 | `alt-q` | Detach |
 
-Every other key goes to the selected pane. A few defaults are bound already but wait on split layouts and the sidebar (`alt-1` to `alt-9`, `alt-h`/`j`/`k`/`l`, `alt-b` and the `alt-r` resize mode); for now they say "not available yet".
+Every other key goes to the selected pane. A few defaults are bound already but wait on simultaneous pane rendering, focus and the sidebar (`alt-1` to `alt-9`, `alt-h`/`j`/`k`/`l`, `alt-b` and the `alt-r` resize mode); for now they say "not available yet".
 
 ## Configuration
 

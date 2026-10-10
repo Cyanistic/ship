@@ -58,7 +58,12 @@ pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
 /// `Replica::viewers` or the flattened `PaneSpec` in `CreatePane`, are
 /// registered here.
 #[derive(OpenApi)]
-#[openapi(components(schemas(ship_core::protocol::ViewingRecord, ship_core::protocol::PaneSpec)))]
+#[openapi(components(schemas(
+    ship_core::protocol::ViewingRecord,
+    ship_core::protocol::PaneSpec,
+    ship_core::geometry::TabGeometry,
+    ship_core::geometry::PaneGeometry
+)))]
 struct ApiDoc;
 
 /// One `.routes(routes!(handler))` per handler. Registrations on the same path

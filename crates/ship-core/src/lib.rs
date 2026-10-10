@@ -2,7 +2,9 @@
 
 pub mod command;
 pub mod error;
+pub mod geometry;
 pub mod id;
+pub mod layout;
 pub mod model;
 #[cfg(feature = "kameo")]
 pub mod relay;

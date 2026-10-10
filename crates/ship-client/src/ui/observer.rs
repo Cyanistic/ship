@@ -97,7 +97,7 @@ impl Observer {
         let tabs = &self.replica.as_ref()?.tabs;
         let tab = tree::tab(tabs, tree::viewed_tab(tabs, selection)?).ok()?;
         let pane = match selection {
-            NodeId::Pane(id) => tab.panes.get(&id),
+            NodeId::Pane(id) => tab.pane(id),
             NodeId::Tab(_) => None,
         };
         Some(Selected { tab, pane })

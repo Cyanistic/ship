@@ -12,7 +12,7 @@ use ship_core::{
     id::IdOf,
     model::{NodeId, Pane, Tab},
     prelude::*,
-    protocol::{CreateTab, MoveTab, PaneInput, PaneSpec},
+    protocol::{CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec},
     tree::{self, Tabs},
 };
 
@@ -90,12 +90,12 @@ impl Client {
             Command::Pane(command) => match command {
                 PaneCommand::Create(pane::Create {
                     tab,
-                    direction: _,
+                    direction,
                     name,
                     cwd,
                     command,
                 }) => {
-                    let tab = self.tab_target(tab, scope).await?;
+                    let at = Self::pane_at(tab, scope)?;
                     let cwd = match (cwd, scope) {
                         (Some(cwd), _) => Some(cwd),
                         (None, Scope::Cli) => Some(current_dir()?),
@@ -115,7 +115,14 @@ impl Client {
                             cwd: cwd.map(|cwd| cwd.display().to_string()),
                         },
                     };
-                    Outcome::Pane(self.create_pane(tab, &input).await?)
+                    Outcome::Pane(
+                        self.create_pane(&CreatePane {
+                            at,
+                            direction: direction.unwrap_or_default(),
+                            input,
+                        })
+                        .await?,
+                    )
                 }
                 PaneCommand::Get(pane::Get { pane }) => {
                     Outcome::Pane(self.get::<Pane>(Self::pane_target(pane, scope)?).await?)
@@ -156,6 +163,31 @@ impl Client {
                 .and_then(|selection| tree::viewed_tab(tabs, selection))
                 .ok_or_else(|| err!(Validation, "no tab selected")),
             (_, Scope::Cli) => Err(err!(
+                Validation,
+                "pass --tab or --pane, or run inside a pane"
+            )),
+        }
+    }
+
+    /// Preserve the split anchor. Explicit --tab wins over --pane.
+    fn pane_at(target: TabTarget, scope: &Scope) -> Result<PaneAt> {
+        if let Some(tab) = target.id {
+            return Ok(PaneAt::Tab(tab));
+        }
+        if let Some(pane) = target.pane {
+            return Ok(PaneAt::Pane(pane));
+        }
+        match scope {
+            Scope::Keys(KeyScope {
+                selection: Some(NodeId::Pane(pane)),
+                ..
+            }) => Ok(PaneAt::Pane(*pane)),
+            Scope::Keys(KeyScope {
+                selection: Some(NodeId::Tab(tab)),
+                ..
+            }) => Ok(PaneAt::Tab(*tab)),
+            Scope::Keys(_) => Err(err!(Validation, "no tab selected")),
+            Scope::Cli => Err(err!(
                 Validation,
                 "pass --tab or --pane, or run inside a pane"
             )),

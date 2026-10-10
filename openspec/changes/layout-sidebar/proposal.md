@@ -8,7 +8,7 @@ Ship currently draws one selected pane at a time and cycles top-level tabs, so a
 
 ## What Changes
 
-- Store panes once, as leaves of each tab's nested binary split layout. Publish server-computed frame and content geometry and size each terminal from that geometry.
+- Store panes once, as leaves of each tab's nested binary split layout. Publish server-computed frame and content geometry as optional geometry on each recursive tab, present exactly when viewed, and size each terminal from that same published geometry. Keep source layouts geometry-free; remove the parallel replica geometry map (architecture A-5/program P-2, approved by Cyan in the slice-1 correction conversation).
 - Honor right/down pane creation, collapse splits on close, repair selection into the space reclaimed by the sibling subtree, and use first-child-before-second tree order throughout.
 - Draw simultaneous pane screens with labeled shared borders, directional focus and client-local pane memory. Preserve single-pane borderless rendering and existing input, status and empty-state behavior.
 - Show a foldable left sidebar titled `tabs`, without a tab bar. Navigate visible rows even when the sidebar is hidden; configure fixed width through `[client] sidebar_width`, default 26.
@@ -37,7 +37,7 @@ None. The existing specs already own tab/pane structure, observation, rendering,
 - `health-exchange`: protocol version 8 for the incompatible layout wire change.
 - `observer-recovery`: existing selection retention subject to the shared zoom repair rule on reconnect.
 
-The deltas specify settled behavior, including the gate answers. Zero-content PTY and rendering handling remains an evidence-dependent question for the slice 1 probe.
+The deltas specify settled behavior, including the gate answers. Architecture A-4 and program P-1 record Cyan's approved zero-content handling: a 1x1 internal PTY/emulator floor, actual published geometry, and cells/cursors clipped to actual content. The slice 1 probe verifies that policy.
 
 ## Impact
 

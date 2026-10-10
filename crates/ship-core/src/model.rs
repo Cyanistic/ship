@@ -1,6 +1,5 @@
 use std::{fmt, str::FromStr};
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use utoipa::{
     PartialSchema, ToSchema,
@@ -9,7 +8,9 @@ use utoipa::{
 
 use crate::{
     AppError, err,
+    geometry::TabGeometry,
     id::{Id, IdOf, Identified, Prefixed},
+    layout::Layout,
     tree::Tabs,
 };
 
@@ -21,8 +22,13 @@ pub struct Tab {
     pub name: OptionalName,
     #[schema(schema_with = tabs_schema)]
     pub tabs: Tabs,
-    #[schema(schema_with = panes_schema)]
-    pub panes: IndexMap<IdOf<Pane>, Pane>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layout: Option<Layout>,
+    /// Derived from layout and viewers when published; absent when unviewed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub geometry: Option<Box<TabGeometry>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zoomed: Option<IdOf<Pane>>,
 }
 
 /// A leaf running one program in its own terminal. Owns no layout or children.
@@ -68,13 +74,18 @@ pub(crate) fn tabs_schema() -> Object {
         .build()
 }
 
-/// Ordered panes keyed by ID, written like `tabs_schema` so the map key is
-/// described as a pane ID rather than an inlined `Pane`.
-fn panes_schema() -> Object {
-    ObjectBuilder::new()
-        .property_names(Some(IdOf::<Pane>::schema()))
-        .additional_properties(Some(Ref::from_schema_name("Pane")))
-        .build()
+impl Tab {
+    pub fn panes(&self) -> impl Iterator<Item = &Pane> {
+        self.layout.iter().flat_map(Layout::panes)
+    }
+
+    pub fn pane(&self, id: IdOf<Pane>) -> Option<&Pane> {
+        self.layout.as_ref()?.pane(id)
+    }
+
+    pub fn pane_mut(&mut self, id: IdOf<Pane>) -> Option<&mut Pane> {
+        self.layout.as_mut()?.pane_mut(id)
+    }
 }
 
 impl Prefixed for Tab {

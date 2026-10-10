@@ -6,6 +6,10 @@ Amendment A-2: Locked on 2026-10-10, approved by Cyan in chat ("yep! that's appr
 
 Amendment A-3: Locked on 2026-10-10, approved by Cyan in chat ("yep! that's approved to me!"). Product amendment A-2 replaces directional server swaps with ID-only swaps and client-side neighbor resolution. This reopens the architecture alongside amendment A-2 below. The original locked swap wording is preserved but superseded by A-3. Revised on 2026-10-10 after Cyan's answers in chat: the CLI directional adapter is dropped and the zoomed swap sequence is settled. A-2 also records the 1x1 user-edit minimum for R-2.
 
+Amendment A-4: Locked with Cyan's approval in this implementation conversation ("yeah i think i agree with herdr too. let's do that."). Cyan explicitly authorized recording the amendment and then continuing slice 1 ("YES PLEASE YOU ADD IT FIRST THEN DISPATCH THE WORKER."). The matching program amendment is approved by the same instruction. Existing locked text is preserved; A-4 supersedes the open zero-content policy in A-2 and R-2, and qualifies decision 4 at the terminal boundary.
+
+Amendment A-5: Locked with Cyan's approval in the slice-1 review correction conversation. After reviewing `Replica { tabs, geometry map }` against recursive published tabs with layout and optional geometry, Cyan accepted the correction before committing ("perfect. can we fix that please or should we commit what we have here first?", then "sounds right. let's go for it!"). The matching program P-2 is re-approved by that instruction. The original locked text remains below; A-5 supersedes the beside-tabs map and rejection of geometry inside published `Tab` in the summary, structure and decision 1. No product behavior or later slice is added.
+
 ## Summary
 
 The server owns the layout and its geometry. Each tab's panes move into a split tree, which holds both the panes and where they go, and the tab gains an optional zoomed pane. On every commit, the server turns each viewed tab's tree into rectangles at the tab's size, resizes each pane's terminal to its own rectangle, and publishes the rectangles in the replica beside the tabs. The client draws what it is given: a sidebar tree, bordered frames and the screens inside them. Fold state, the sidebar and per-client pane memory stay in the client.
@@ -170,6 +174,26 @@ Cyan confirmed this boundary in chat. This supersedes the swap portions of the c
 - Once resolved, the request exchanges the named IDs even if geometry changes before execution, provided both remain in the same tab. Cross-tab swaps are rejected.
 
 Directional resolution while zoomed needs unzoomed geometry. The client queues an explicit unzoom (decision 7's `zoomed: false`), waits for its revision, then resolves on the published unzoomed geometry. With no neighbor the tab stays unzoomed and no swap is sent. The server does not regain directional resolution.
+
+### Amendment A-4: positive internal terminal floor (locked)
+
+Visible layout geometry still squeezes into the actual tab area, preserving panes and stored fractions. Frame and content rectangles stay contained and may have zero width or height. No larger layout is retained offscreen and no hidden-pane subsystem is introduced.
+
+At the terminal boundary, both the program's PTY and Ghostty emulator use `cols.max(1)` and `rows.max(1)`, on startup and resize. This follows Herdr's clamping approach with a 1x1 floor rather than Herdr's 4x2 floor. Published content geometry is not clamped. Terminal sizes match content rectangles whenever both dimensions are positive; at zero content, the internal positive floor is the explicit exception.
+
+Clients clip screen cells and cursors to the actual content rectangle. If either content dimension is zero, they draw no cells or cursor. Enlarging the window resumes sizing from the content geometry, with the same internal floor. Programs remain running; this does not guarantee lossless application-screen recovery after a tiny resize.
+
+The existing 1x1 actual-content minimum for new splits and manual resizes is unchanged. Unviewed tabs and zoom-hidden panes still retain their last terminal sizes. The slice 1 probe must verify startup, shrink/enlarge and safe cell/cursor clipping for this approved policy. It must stop only if another unapproved fallback is required.
+
+### Amendment A-5: geometry on each published tab (locked)
+
+The server retains one source tree containing layouts and no geometry. When publishing, it derives each viewed tab's `TabGeometry` from that layout, zoom and current viewer areas, and puts the result on that tab as `geometry: Option<TabGeometry>`. This applies recursively: a viewed child has geometry even when its parent is unviewed; ancestors do not acquire geometry just because they contain a viewed descendant. Unviewed tabs omit the field, including tabs that used to be viewed. An empty viewed tab has geometry with its size and an empty pane map.
+
+`Replica` contains `tabs` and `viewers`, without a parallel `Replica.geometry` or separate tab-keyed geometry lookup. Clients consume `tab.geometry`; they do not compute layout. `TabGeometry.panes` still describes the visible panes in layout order, with frame/content rectangles relative to that tab's origin.
+
+Commit publication and attach seeds use the same projection. PTY sizing consumes the committed published tabs recursively, not an independent geometry computation. Existing tab list/get/create/rename/move responses use the same published-tab semantics, including child geometry. Derived geometry is not independently mutable or cached on `ServerState`; source edits never write it. Protocol 8 remains unchanged for this correction to the uncommitted slice. Architecture A-4's internal terminal floor and the approved legacy-7 limitation remain unchanged.
+
+The projection reuses the existing `Tab`, `Tabs` and `Arc` representation. A single recursive walk copies viewed tabs and their ancestors and shares unmodified branches. No second persistent tree, geometry cache, topology synchronization or generic projection framework is introduced. This supersedes decision 1's earlier copying objection: a copy-on-publication cost is accepted, but source layouts remain authoritative. Temporary before/after measurements and live nested-tab proof are recorded in `../evidence-slice-1-correction.md`; measurements must be obtained before accepting consequential copying.
 
 ## Risks and unknowns
 

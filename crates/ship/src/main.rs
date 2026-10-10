@@ -77,7 +77,11 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
         Some(Command::Server(cli::ServerArgs {
             command: Some(cli::ServerCommand::Stop),
             ..
-        })) => commands::stop_server(&client(&cli.server_url)?).await,
+        })) => {
+            let client = client(&cli.server_url)?;
+            health(&client).await?;
+            commands::stop_server(&client).await
+        }
         Some(Command::Server(cli::ServerArgs {
             command: Some(cli::ServerCommand::Status),
             ..
@@ -120,11 +124,13 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
     }
 }
 
-/// An explicit `--server-url` is used as is; otherwise the default local
-/// server is reused or started.
+/// Validate an explicit target without starting it; otherwise reuse or start
+/// the default local server.
 async fn connect(cli: &Cli, explicit_target: bool) -> Result<Client> {
     let client = client(&cli.server_url)?;
-    if !explicit_target {
+    if explicit_target {
+        health(&client).await?;
+    } else {
         local::default_health(&client, &cli.config_path()?).await?;
     }
     Ok(client)

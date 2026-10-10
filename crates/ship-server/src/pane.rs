@@ -197,6 +197,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         cwd,
         size,
     } = launch;
+    let size = terminal_size(size);
     let pty = native_pty_system()
         .openpty(PtySize {
             rows: size.rows,
@@ -386,11 +387,13 @@ impl PaneTask {
         match command {
             PaneCommand::Key(key) => self.session.send_key(key),
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),
-            PaneCommand::Resize(size) if size != self.size => {
-                self.size = size;
-                self.session.send_resize(size.cols, size.rows);
+            PaneCommand::Resize(size) => {
+                let size = terminal_size(size);
+                if size != self.size {
+                    self.size = size;
+                    self.session.send_resize(size.cols, size.rows);
+                }
             }
-            PaneCommand::Resize(_) => {}
         }
     }
 
@@ -651,5 +654,13 @@ mod program {
             code: status.exit_code(),
             signal: status.signal().map(str::to_owned),
         })
+    }
+}
+
+/// Both PTY and emulator need a positive grid; published content stays actual.
+fn terminal_size(size: Size) -> Size {
+    Size {
+        cols: size.cols.max(1),
+        rows: size.rows.max(1),
     }
 }
