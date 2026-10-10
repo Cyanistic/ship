@@ -23,6 +23,7 @@ use crossterm::{
 use futures_util::{Stream, StreamExt};
 use ship_core::{
     command::{Command, Direction, pane::PaneCommand, tab::TabCommand},
+    id::{Attachment, IdOf},
     model::NodeId,
     prelude::*,
     protocol::{AttachRequest, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput},
@@ -103,7 +104,8 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
         Ok(settings) => (settings, None),
         Err(error) => (ClientSettings::defaults(), Some(error.to_string())),
     };
-    let area = tab_area(&Sidebar::new(loaded.0.sidebar_width))?;
+    let (cols, rows) = terminal_size()?;
+    let area = draw::tab_area(cols, rows, loaded.0.sidebar_width);
     let selection = match open_first {
         true => navigate(
             &client.tabs().await?,
@@ -166,8 +168,7 @@ async fn drive(
     // Frames for the current input POST; `None` while disconnected.
     let mut input: Option<mpsc::UnboundedSender<InputFrame>> = None;
     let mut sending: Pending<()> = None;
-    let mut area = request.area;
-    let mut view_dirty = false;
+    let mut terminal = terminal_size()?;
     // Where navigation moved the selection, until a view PUT carries it.
     let mut chosen: Option<NodeId> = None;
     let mut putting: Pending<Option<NodeId>> = None;
@@ -211,7 +212,7 @@ async fn drive(
                     chosen = None;
                     client.forget();
                     observer.connected = false;
-                    if let Some(remembered) = observer.remembered(area) {
+                    if let Some(remembered) = observer.remembered(view_area(terminal, &sidebar)) {
                         request = remembered;
                     }
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
@@ -226,7 +227,7 @@ async fn drive(
                 }
                 Err(_) => {
                     backoff = (backoff * 2).min(MAX_BACKOFF);
-                    request.area = area;
+                    request.area = view_area(terminal, &sidebar);
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
                     false
                 }
@@ -241,10 +242,7 @@ async fn drive(
             result = finish(&mut running) => {
                 running = None;
                 match result {
-                    Ok(Some(created)) => {
-                        chosen = Some(created);
-                        view_dirty = true;
-                    }
+                    Ok(Some(created)) => chosen = Some(created),
                     Ok(None) => {}
                     Err(error) => {
                         message = Some(error.to_string());
@@ -257,8 +255,6 @@ async fn drive(
                 match save {
                     Some(()) => {
                         message = reload(&mut keys, &mut sidebar, config).err().map(|error| error.to_string());
-                        area = tab_area(&sidebar)?;
-                        view_dirty = true;
                     }
                     None => saves = None,
                 }
@@ -275,8 +271,7 @@ async fn drive(
             }
             event = terminal_events.next() => match event {
                 Some(Ok(Event::Resize(cols, rows))) => {
-                    area = draw::tab_area(cols, rows, sidebar.width());
-                    view_dirty = true;
+                    terminal = (cols, rows);
                     true
                 }
                 Some(Ok(event)) => {
@@ -299,10 +294,14 @@ async fn drive(
                 Some(Err(error)) => return Err(err!(Io, "cannot read the terminal", @external: error)),
                 None => return Err(err!(Io, "terminal input closed")),
             },
-            _ = tick.tick(), if view_dirty && putting.is_none() && observer.connected => {
-                view_dirty = false;
-                if let (Some(attachment), Some(record)) = (observer.attachment, observer.record()) {
-                    let view = ViewInput { selection: chosen.or(record.selection), area };
+            // At most one view PUT per frame, and only once the replica shows
+            // the last one, so a record that hasn't caught up isn't resent.
+            _ = tick.tick(), if putting.is_none()
+                && observer.connected
+                && observer.caught_up(client.written())
+                && unsent(&observer, chosen, view_area(terminal, &sidebar)).is_some() =>
+            {
+                if let Some((attachment, view)) = unsent(&observer, chosen, view_area(terminal, &sidebar)) {
                     putting = Some(Box::pin(async move {
                         client.set_view(attachment, &view).await.map(|_| view.selection)
                     }));
@@ -358,7 +357,6 @@ async fn drive(
                             &memory,
                             &sidebar,
                             &mut chosen,
-                            &mut view_dirty,
                             Step::Tab { forward },
                         );
                         Ok(())
@@ -370,7 +368,6 @@ async fn drive(
                             &memory,
                             &sidebar,
                             &mut chosen,
-                            &mut view_dirty,
                             Step::Pane { forward },
                         );
                         Ok(())
@@ -381,7 +378,6 @@ async fn drive(
                             &memory,
                             &sidebar,
                             &mut chosen,
-                            &mut view_dirty,
                             Step::Focus(direction),
                         );
                         Ok(())
@@ -399,8 +395,6 @@ async fn drive(
                     }
                     ClientAction::Sidebar(SidebarAction::Toggle {}) => {
                         sidebar.shown = !sidebar.shown;
-                        area = tab_area(&sidebar)?;
-                        view_dirty = true;
                         Ok(())
                     }
                     ClientAction::Mode(mode) => keys.enter(mode),
@@ -422,10 +416,7 @@ async fn drive(
                     }
                     ClientAction::Detach {} => return Ok(Exit::Detached),
                     ClientAction::Config(ConfigAction::Reload {}) => {
-                        let result = reload(&mut keys, &mut sidebar, config);
-                        area = tab_area(&sidebar)?;
-                        view_dirty = true;
-                        result
+                        reload(&mut keys, &mut sidebar, config)
                     }
                 },
             };
@@ -489,14 +480,12 @@ fn unavailable(action: &str) -> Result<()> {
     Err(err!(Unavailable, "{} is not available yet", action))
 }
 
-/// Moves the pending selection one `step`, marking the view dirty when it
-/// changed.
+/// Moves the pending selection one `step`.
 fn moved(
     observer: &Observer,
     memory: &Memory,
     sidebar: &Sidebar,
     chosen: &mut Option<NodeId>,
-    view_dirty: &mut bool,
     step: Step,
 ) {
     if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
@@ -505,7 +494,6 @@ fn moved(
             && Some(to) != from
         {
             *chosen = Some(to);
-            *view_dirty = true;
         }
     }
 }
@@ -597,10 +585,30 @@ async fn finish<F: Future + Unpin>(request: &mut Option<F>) -> F::Output {
     }
 }
 
-fn tab_area(sidebar: &Sidebar) -> Result<Size> {
-    let (cols, rows) =
-        size().map_err(|error| err!(Io, "cannot read the terminal size", @external: error))?;
-    Ok(draw::tab_area(cols, rows, sidebar.width()))
+fn terminal_size() -> Result<(u16, u16)> {
+    size().map_err(|error| err!(Io, "cannot read the terminal size", @external: error))
+}
+
+/// The tab area a `terminal` of (cols, rows) leaves beside `sidebar`.
+fn view_area((cols, rows): (u16, u16), sidebar: &Sidebar) -> Size {
+    draw::tab_area(cols, rows, sidebar.width())
+}
+
+/// The view this client wants the server to hold, with its attachment, when
+/// the server's record of it differs: the pending selection, else the
+/// recorded one, at `area`. `None` before the first `Attached` event.
+fn unsent(
+    observer: &Observer,
+    chosen: Option<NodeId>,
+    area: Size,
+) -> Option<(IdOf<Attachment>, ViewInput)> {
+    let record = observer.record()?;
+    let view = ViewInput {
+        selection: chosen.or(record.selection),
+        area,
+    };
+    (view.selection != record.selection || view.area != record.area)
+        .then_some((observer.attachment?, view))
 }
 
 /// Resolves on SIGTERM, SIGHUP or SIGINT, so the terminal is restored before
