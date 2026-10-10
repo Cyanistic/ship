@@ -21,10 +21,10 @@ Uses `CreatePane.at` beside `direction` (G1) and the 1x1 user-edit content minim
 
 Depends on verified slice 1. Requires no new pane minimum or client-side layout computation.
 
-- [ ] 2.1 Draw visible published frames/content in the new pane renderer and change observer invalidation to all visible panes; verify two and three splits update without a selected-pane keypress, a single pane is borderless, shared labeled borders line up, and smaller shared geometry leaves marked unused space on larger clients.
-- [ ] 2.2 Wire selected-pane cursor translation/clipping through pane drawing and terminal cursor state; verify colored/Unicode/wide-character output and a Neovim cursor appear in the correct split, and alternate-screen entry/exit affects no neighbor.
-- [ ] 2.3 Add geometry neighbor search and client-local recent/last-per-tab pane memory, then connect `client.pane.focus` and layout-order cycling; verify `alt-h/j/k/l` resolve recency, nearest-center and equal-distance order ties, `alt-tab` cycles own leaves, typed input follows the new selection, and removed IDs are pruned without sending recency on the wire.
-- [ ] 2.4 Document the now-working split/focus behavior and run the documented editor, Pi and shell workflow through repeated split/close and sustained output in a neighbor; finish with actual rendered-terminal observations, responsiveness comparison, terminal restoration and applicable build/fmt/Clippy results. Record missing tools or unavailable platforms as unverified, not passed.
+- [x] 2.1 Draw visible published frames/content in the new pane renderer and change observer invalidation to all visible panes; verify two and three splits update without a selected-pane keypress, a single pane is borderless, shared labeled borders line up, and smaller shared geometry leaves marked unused space on larger clients.
+- [x] 2.2 Wire selected-pane cursor translation/clipping through pane drawing and terminal cursor state; verify colored/Unicode/wide-character output and a Neovim cursor appear in the correct split, and alternate-screen entry/exit affects no neighbor.
+- [x] 2.3 Add geometry neighbor search and client-local recent/last-per-tab pane memory, then connect `client.pane.focus` and layout-order cycling; verify `alt-h/j/k/l` resolve recency, nearest-center and equal-distance order ties, `alt-tab` cycles own leaves, typed input follows the new selection, and removed IDs are pruned without sending recency on the wire.
+- [x] 2.4 Document the now-working split/focus behavior and run the documented editor, Pi and shell workflow through repeated split/close and sustained output in a neighbor; finish with actual rendered-terminal observations, responsiveness comparison, terminal restoration and applicable build/fmt/Clippy results. Record missing tools or unavailable platforms as unverified, not passed.
 
 ## 3. Sidebar keys and config saves to visible-row navigation and changed pane sizes
 

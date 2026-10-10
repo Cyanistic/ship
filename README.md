@@ -67,7 +67,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client still draws only the selected pane at this checkpoint. Simultaneous split rendering, directional focus, the sidebar, agent status and restoring after a restart are still to come.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. The sidebar, zoom, swap, resize, agent status and restoring after a restart are still to come.
 
 ## Installation
 
@@ -134,12 +134,21 @@ Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (of
 | `alt-x` | Close the selected tab |
 | `alt-\|` / `alt--` | Split the selected pane right / down, or the largest pane of the selected tab |
 | `alt-shift-x` | Close the selected pane |
-| `alt-left` / `alt-right` | Previous or next tab |
-| `alt-tab` | Next pane in the tab |
+| `alt-left` / `alt-right` | Previous or next top-level tab, back on the pane you last used there |
+| `alt-h` / `alt-j` / `alt-k` / `alt-l` | Select the pane to the left, below, above or right |
+| `alt-tab` | Next pane in the tab, in layout order |
 | `alt-g` | Tab mode: `j` and `k` move between tabs, `esc` leaves |
 | `alt-q` | Detach |
 
-Every other key goes to the selected pane. A few defaults are bound already but wait on simultaneous pane rendering, focus and the sidebar (`alt-1` to `alt-9`, `alt-h`/`j`/`k`/`l`, `alt-b` and the `alt-r` resize mode); for now they say "not available yet".
+Every other key goes to the selected pane. A few defaults are bound already but wait on the sidebar and resizing (`alt-1` to `alt-9`, `alt-b` and the `alt-r` resize mode); for now they say "not available yet".
+
+### Working in splits
+
+A tab with two or more panes draws them together, separated by shared borders that carry each pane's label. The selected pane has a heavier, colored border and the cursor, and typing goes to it. A lone pane fills the area without a border. Every pane keeps updating while you work in another.
+
+When several panes border the selected one on the side you move toward, `alt-h`/`j`/`k`/`l` picks the one you selected most recently, else the one whose center is nearest, else the first in layout order. That history belongs to your client and is never sent to the server, so two clients on the same tab move independently.
+
+Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the space left over.
 
 ## Configuration
 

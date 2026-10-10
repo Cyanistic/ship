@@ -51,8 +51,8 @@ impl Observer {
                 self.screens.insert(pane, screen);
                 return self
                     .selected()
-                    .and_then(|selected| selected.pane)
-                    .is_some_and(|selected| selected.id == pane);
+                    .and_then(|selected| selected.tab.geometry.as_ref())
+                    .is_some_and(|geometry| geometry.panes.contains_key(&pane));
             }
             SseEvent::Ended(_) => return false,
         }

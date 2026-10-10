@@ -2,7 +2,9 @@
 
 mod draw;
 mod keys;
+mod memory;
 mod observer;
+mod panes;
 mod terminal;
 
 use std::{
@@ -16,7 +18,7 @@ use std::{
 use crossterm::event::{Event, EventStream};
 use futures_util::{Stream, StreamExt};
 use ship_core::{
-    command::{Command, pane::PaneCommand, tab::TabCommand},
+    command::{Command, Direction, pane::PaneCommand, tab::TabCommand},
     model::NodeId,
     prelude::*,
     protocol::{AttachRequest, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput},
@@ -29,6 +31,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use self::{
     draw::Status,
     keys::{Handled, Keys},
+    memory::Memory,
     observer::Observer,
     terminal::TerminalGuard,
 };
@@ -49,11 +52,15 @@ type Saves = Pin<Box<dyn Stream<Item = ()>>>;
 /// A request the loop awaits alongside everything else.
 type Pending<'a, T> = Option<Pin<Box<dyn Future<Output = Result<T>> + 'a>>>;
 
-/// Which ring a navigation key moves through.
+/// Where a navigation key moves the selection.
 #[derive(Clone, Copy)]
 enum Step {
-    Tab,
-    Pane,
+    /// Around the top-level tabs.
+    Tab { forward: bool },
+    /// Around the viewed tab's panes in layout order.
+    Pane { forward: bool },
+    /// To the selected pane's neighbor on that side.
+    Focus(Direction),
 }
 
 /// Why the client stopped.
@@ -83,7 +90,12 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
     let signaled = signaled()?;
     let area = tab_area()?;
     let selection = match open_first {
-        true => navigate(&client.tabs().await?, None, Step::Tab, true),
+        true => navigate(
+            &client.tabs().await?,
+            &Memory::default(),
+            None,
+            Step::Tab { forward: true },
+        ),
         false => None,
     };
     let request = AttachRequest { selection, area };
@@ -114,6 +126,7 @@ async fn drive(
     let mut reconnect: Pending<Events> = None;
     let mut backoff = FIRST_BACKOFF;
     let mut observer = Observer::default();
+    let mut memory = Memory::default();
     let (keymap, mut message) = match Keymap::load(config) {
         Ok(keymap) => (keymap, None),
         Err(errors) => (Keymap::defaults(), Some(summary(&errors))),
@@ -158,7 +171,12 @@ async fn drive(
                         sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));
                         backoff = FIRST_BACKOFF;
                     }
-                    observer.apply(event)
+                    let screen = matches!(event, SseEvent::Screen(_));
+                    let visible = observer.apply(event);
+                    if !screen && let Some(replica) = &observer.replica {
+                        memory.observe(&replica.tabs, observer.record().and_then(|record| record.selection));
+                    }
+                    visible
                 }
                 // Cut or failed: keep the screens, drop keys, reconnect.
                 Some(Err(_)) | None => {
@@ -308,18 +326,39 @@ async fn drive(
                 Action::Client(action) => match action {
                     ClientAction::Tab(tab @ (ClientTab::Next {} | ClientTab::Prev {})) => {
                         let forward = matches!(tab, ClientTab::Next {});
-                        moved(&observer, &mut chosen, &mut view_dirty, Step::Tab, forward);
+                        moved(
+                            &observer,
+                            &memory,
+                            &mut chosen,
+                            &mut view_dirty,
+                            Step::Tab { forward },
+                        );
                         Ok(())
                     }
                     ClientAction::Pane(pane @ (ClientPane::Next {} | ClientPane::Prev {})) => {
                         let forward = matches!(pane, ClientPane::Next {});
-                        moved(&observer, &mut chosen, &mut view_dirty, Step::Pane, forward);
+                        moved(
+                            &observer,
+                            &memory,
+                            &mut chosen,
+                            &mut view_dirty,
+                            Step::Pane { forward },
+                        );
+                        Ok(())
+                    }
+                    ClientAction::Pane(ClientPane::Focus { direction }) => {
+                        moved(
+                            &observer,
+                            &memory,
+                            &mut chosen,
+                            &mut view_dirty,
+                            Step::Focus(direction),
+                        );
                         Ok(())
                     }
                     ClientAction::Tab(ClientTab::Select { .. }) => unavailable("tab select"),
                     ClientAction::Tab(ClientTab::Expand {}) => unavailable("tab expand"),
                     ClientAction::Tab(ClientTab::Collapse {}) => unavailable("tab collapse"),
-                    ClientAction::Pane(ClientPane::Focus { .. }) => unavailable("pane focus"),
                     ClientAction::Sidebar(Sidebar::Toggle {}) => unavailable("sidebar toggle"),
                     ClientAction::Mode(mode) => {
                         keys.enter(mode);
@@ -393,18 +432,18 @@ fn unavailable(action: &str) -> Result<()> {
     Err(err!(Unavailable, "{} is not available yet", action))
 }
 
-/// Moves the pending selection one step around `ring`, marking the view
-/// dirty when it changed.
+/// Moves the pending selection one `step`, marking the view dirty when it
+/// changed.
 fn moved(
     observer: &Observer,
+    memory: &Memory,
     chosen: &mut Option<NodeId>,
     view_dirty: &mut bool,
-    ring: Step,
-    forward: bool,
+    step: Step,
 ) {
     if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
         let from = chosen.or(record.selection);
-        if let Some(to) = navigate(&replica.tabs, from, ring, forward)
+        if let Some(to) = navigate(&replica.tabs, memory, from, step)
             && Some(to) != from
         {
             *chosen = Some(to);
@@ -413,38 +452,33 @@ fn moved(
     }
 }
 
-/// Where one step around `ring` moves the selection `from`. Top-level tabs
-/// cycle in order and land on the tab's first pane, else the tab; from
-/// nothing selected they go to the first or last. Panes cycle within their
-/// tab; from a tab, to its first or last pane. `None` when there is nowhere
-/// to go.
-fn navigate(tabs: &Tabs, from: Option<NodeId>, ring: Step, forward: bool) -> Option<NodeId> {
-    match ring {
-        Step::Tab => {
+/// Where `step` moves the selection `from`. Top-level tabs cycle in order and
+/// land where `memory` says; from nothing selected they go to the first or
+/// last. Panes cycle within their tab; from a tab, to its first or last pane.
+/// Focus goes to the neighbor in the tab's published geometry, ties to the
+/// panes `memory` selected most recently. `None` when there is nowhere to go.
+fn navigate(tabs: &Tabs, memory: &Memory, from: Option<NodeId>, step: Step) -> Option<NodeId> {
+    match step {
+        Step::Tab { forward } => {
             let index = match from {
                 Some(node) => {
                     let Some(&NodeId::Tab(top)) = tree::path(tabs, node)?.first() else {
                         return None;
                     };
-                    step(tabs.get_index_of(&top)?, tabs.len(), forward)
+                    self::step(tabs.get_index_of(&top)?, tabs.len(), forward)
                 }
                 None if forward => 0,
                 None => tabs.len().checked_sub(1)?,
             };
             let (_, tab) = tabs.get_index(index)?;
-            Some(
-                tab.panes()
-                    .next()
-                    .map(|pane| pane.id)
-                    .map_or(NodeId::Tab(tab.id), NodeId::Pane),
-            )
+            Some(memory.landing(tab))
         }
-        Step::Pane => {
+        Step::Pane { forward } => {
             let from = from?;
             let tab = tree::tab(tabs, tree::viewed_tab(tabs, from)?).ok()?;
             let panes: Vec<_> = tab.panes().map(|pane| pane.id).collect();
             let index = match from {
-                NodeId::Pane(pane) => step(
+                NodeId::Pane(pane) => self::step(
                     panes.iter().position(|id| *id == pane)?,
                     panes.len(),
                     forward,
@@ -454,6 +488,17 @@ fn navigate(tabs: &Tabs, from: Option<NodeId>, ring: Step, forward: bool) -> Opt
             };
             let pane = *panes.get(index)?;
             Some(NodeId::Pane(pane))
+        }
+        Step::Focus(direction) => {
+            let Some(NodeId::Pane(from)) = from else {
+                return None;
+            };
+            let tab = tree::tab(tabs, tree::pane_owner(tabs, from).ok()?).ok()?;
+            let to = tab
+                .geometry
+                .as_ref()?
+                .neighbor(from, direction, memory.recent())?;
+            Some(NodeId::Pane(to))
         }
     }
 }
