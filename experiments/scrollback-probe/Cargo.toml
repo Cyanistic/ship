@@ -1,0 +1,13 @@
+[package]
+name = "scrollback-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Standalone throwaway probe, not a member of Ship's workspace.
+[workspace]
+
+[dependencies]
+# Same pinned rev as vendor/ratatui-ghostty.
+libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "8953a740bc378cec3e07e1f6ca949f0595eab19b" }
+unicode-width = "0.2"
