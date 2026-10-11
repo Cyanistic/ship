@@ -372,7 +372,7 @@ Each slice runs on Cyan's request and stops for review before the next. Checks r
    - Delivers: FR-001 to FR-008 by keys and CLI, and P1 apart from the wheel.
    - Checks:
      - Build, fmt and Clippy. The wrapper's own tests pass, run in a copy outside the repo as before.
-     - `seq 50000` in a 200-column pane, then `ship pane scroll --direction top`, shows line 1 (Ghostty's byte cap is lifted).
+     - `seq 5000` in a 200-column pane, then `ship pane scroll --direction top`, shows line 1. `seq 50000` prunes older rows within the 10 MB cap (approved retention-check adjustment below).
      - `alt-pageup` scrolls one page and the indicator appears. A second client shows the same lines. While scrolled, `yes | head -1000` doesn't move the view. Typing returns to the bottom, and the key reaches the shell.
      - `scrollback_bytes = 20000` limits a new pane's history; existing panes keep theirs.
      - `ship pane scroll --direction up` on `nvim` does nothing.
@@ -430,4 +430,28 @@ Each slice runs on Cyan's request and stops for review before the next. Checks r
 
 ## Deviation log
 
-Empty.
+### Slice 1: retention check adjusted with Cyan's approval
+
+A macOS live probe used an owned debug server, a 200-column by 24-row attachment, the default `scrollback_bytes = 10000000`, and `seq 50000`. Scrolling to the top showed line `44507`; `Screen.scrolled` reported `offset = 5472`, `history = 5472`. A second run reproduced this. Both temporary servers and their panes were stopped.
+
+The original requirement that this cap retain line 1 of 50,000 rows was incorrect. The product probe's about 38,600 rows at 200 columns fitting in 64 MB also does not support it. Cyan approved keeping 10 MB and revising the retention check through the slice-1 questionnaire: "Keep 10 MB (Recommended)". The check now uses `seq 5000` for line-1 retention and checks pruning separately with `seq 50000`. No increase to the default cap is authorized. The byte cap bounds storage, not a fixed row count. The pinned libghostty-vt's `Terminal::set_scrollback_max_bytes` documentation calls it an estimate, with pruning at page granularity of about 400 KB. Thus a 20,000-byte setting can retain more than 20 KB, but still reduces new panes' history substantially; the live check retained 235 history rows instead of about 5,500. Ship uses this native cap rather than adding its own pruning mechanism.
+
+The spawn implementation reads settings once inside `pane::spawn`, rather than adding a redundant cap field to `Launch`: the configured shell and cap come from that same read, including for explicit programs.
+
+### Slice 1: U-2 RSS evidence
+
+On macOS, an owned debug server held one 200-column by 24-row pane, with one attach stream and no TUI. Its shell waited on a FIFO before each fill. Server RSS from `ps -o rss=`:
+
+| State | RSS, KiB | Increase from baseline, bytes |
+| --- | ---: | ---: |
+| Pane waiting before output | 31,648 | 0 |
+| After `seq 50000`, history full | 41,552 | 10,141,696 |
+| After another `seq 100000` | 41,648 | 10,240,000 |
+
+At the first fill, the oldest retained line was `44506`, with 5,473 history rows. At the second fill it was `94465`, with 5,514 history rows. RSS is close to the 10,000,000-byte cap and levels off with further output. This is process RSS, including incidental runtime/render/transport allocations, not an isolated Ghostty allocator measurement. Probe: `/tmp/ship-scrollback-rss.py`; server log: `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-scroll-slice1-rv_xvhe9/server.log`. The owned server and pane were stopped. Linux is unverified.
+
+### Slice 1: verification
+
+Debug and release workspace builds, workspace Clippy with warnings denied, formatting, and ship-core checks with and without `clap` passed on macOS. The wrapper's existing tests passed in an outside copy: 80 passed, one pre-existing crash test ignored.
+
+Temporary probe `/tmp/ship-scrollback-slice1.py` exercised real HTTP/CLI requests, two independent attach streams, and a real client under a PTY. It verified retained line 1 for 5,000 rows at 200 columns; all four scroll directions, explicit amounts and page defaults; shared screens; a stable scrolled viewport during `yes | head -1000`; key input returning to the bottom and reaching the program; scrolling after exit; the saved 20,000-byte setting affecting only newly spawned panes; Neovim ignoring history scroll; real Alt-PageUp/PageDown input and the borderless indicator; the bordered indicator on two real clients; typing and bracketed paste snapping to the bottom and reaching the shell; malformed config falling back to defaults with a logged error; detaching; and rejection of a binding's misspelled `direciton`. The probe's PTY output is drained continuously so a full pipe cannot stall the client. Servers, clients and panes created by the checks were cleaned up. Final successful live-run log: `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-scroll-slice1-xf6e7mdm/server.log`. The indicator uses the program paper's provisional `[offset/history]` form; U-4 rendering review remains open, and actual Ghostty/Kitty/macOS outer-terminal delivery of the Alt chords remains unverified under U-3. The PTY check verifies Ship receiving and handling their escape sequences, not those terminals' own key handling.

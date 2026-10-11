@@ -96,6 +96,7 @@ fn api_router() -> OpenApiRouter<AppState> {
         routes::zoom_pane,
         routes::swap_pane,
         routes::resize_pane,
+        routes::scroll_pane,
         attach::attach,
         input::input,
         attach::view,

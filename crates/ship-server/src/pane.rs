@@ -20,15 +20,16 @@ use ratatui::{
     style::{self as tui, Modifier},
 };
 use ratatui_ghostty::{
-    session::{SessionEvent, SessionHandle, SessionIo},
+    session::{Scroll, SessionConfig, SessionEvent, SessionHandle, SessionIo},
     widget::CursorStyle,
 };
 use ship_core::{
     id::IdOf,
     model::{ExitStatus, Pane},
     prelude::*,
+    protocol::{ScrollDirection, ScrollPane},
     relay::{Publish, RelayBus},
-    screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Size},
+    screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Scrolled, Size},
 };
 use tokio::{
     sync::{Notify, mpsc, oneshot, watch},
@@ -79,7 +80,7 @@ pub(crate) struct Launch {
 pub(crate) struct PaneEnv {
     server_url: String,
     bin: PathBuf,
-    /// Re-read for `[server] shell` on every shell spawn.
+    /// Re-read for shell and history settings on every pane spawn.
     config: PathBuf,
 }
 
@@ -94,15 +95,12 @@ impl PaneEnv {
         })
     }
 
-    /// portable-pty starts `SHELL` from the builder as a login shell, so the
-    /// configured shell only needs to be put there. A bad file leaves the
-    /// login shell (FR-008).
-    fn shell(&self, builder: &mut CommandBuilder) {
-        match ServerSettings::load(&self.config) {
-            Ok(ServerSettings { shell: Some(shell) }) => builder.env("SHELL", shell),
-            Ok(ServerSettings { shell: None }) => {}
-            Err(error) => tracing::warn!(%error, "using the login shell"),
-        }
+    /// A bad file leaves both the login shell and default history cap.
+    fn settings(&self) -> ServerSettings {
+        ServerSettings::load(&self.config).unwrap_or_else(|error| {
+            tracing::warn!(%error, "using default server settings");
+            ServerSettings::default()
+        })
     }
 
     /// Advertises Ship as the terminal, since Ship's emulator is what the
@@ -160,6 +158,7 @@ pub(crate) enum PaneCommand {
     Paste(String),
     /// Dropped when equal to the pane's current size.
     Resize(Size),
+    Scroll(ScrollPane),
 }
 
 /// Every running pane, published by the state actor.
@@ -204,6 +203,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         size,
     } = launch;
     let size = terminal_size(size);
+    let settings = env.settings();
     let pty = native_pty_system()
         .openpty(PtySize {
             rows: size.rows,
@@ -238,7 +238,10 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     };
     let dirty = Arc::new(Notify::new());
     let session = SessionHandle::spawn(
-        Default::default(),
+        SessionConfig {
+            scrollback_bytes: Some(settings.scrollback_bytes),
+            ..Default::default()
+        },
         SessionIo {
             reader,
             writer,
@@ -256,7 +259,9 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     let mut builder = match &command {
         None => {
             let mut builder = CommandBuilder::new_default_prog();
-            env.shell(&mut builder);
+            if let Some(shell) = settings.shell {
+                builder.env("SHELL", shell);
+            }
             builder
         }
         Some(argv) => CommandBuilder::from_argv(argv.iter().map(Into::into).collect()),
@@ -394,13 +399,32 @@ impl PaneTask {
         done.send(()).ok();
     }
 
-    /// Hand input and resizes to the wrapper. An exited program's pane keeps
-    /// its last screen, so everything is ignored then.
+    /// Exited programs ignore input and resizes, but their history still scrolls.
     fn command(&mut self, command: PaneCommand) {
-        if self.exit.reaped {
+        if self.exit.reaped && !matches!(command, PaneCommand::Scroll(_)) {
             return;
         }
         match command {
+            PaneCommand::Scroll(ScrollPane { direction, amount }) => {
+                let scroll = match direction {
+                    ScrollDirection::Top => Scroll::Top,
+                    ScrollDirection::Bottom => Scroll::Bottom,
+                    ScrollDirection::Up | ScrollDirection::Down => {
+                        let sign = if matches!(direction, ScrollDirection::Up) {
+                            -1
+                        } else {
+                            1
+                        };
+                        match amount {
+                            Some(lines) => {
+                                Scroll::Lines(sign * isize::try_from(lines).unwrap_or(isize::MAX))
+                            }
+                            None => Scroll::Pages(sign),
+                        }
+                    }
+                };
+                self.session.send_scroll_to(scroll);
+            }
             PaneCommand::Key(key) => self.session.send_key(key),
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),
             PaneCommand::Resize(size) => {
@@ -531,8 +555,13 @@ fn capture(session: &SessionHandle, buffer: &mut Buffer) -> Option<Screen> {
     if buffer.area != area {
         *buffer = Buffer::empty(area);
     }
-    let cursor = session.take_if_dirty(buffer, area)?;
+    let rendered = session.take_if_dirty(buffer, area)?;
+    let cursor = rendered.cursor;
     Some(Screen {
+        scrolled: rendered.scrolled.map(|value| Scrolled {
+            offset: value.offset,
+            history: value.history,
+        }),
         size: Size { cols, rows },
         cells: buffer.content.iter().map(cell).collect(),
         cursor: cursor.position.map(|position| Cursor {

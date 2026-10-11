@@ -24,6 +24,8 @@
 "alt-g"       = [{ client.mode = "tabs" }]
 "alt-r"       = [{ client.mode = "resize" }]
 "alt-q"       = [{ client.detach = {} }]
+"alt-pageup"  = [{ server.pane.scroll = { direction = "up" } }]
+"alt-pagedown" = [{ server.pane.scroll = { direction = "down" } }]
 
 [client.modes.tabs]
 kind = "sticky"

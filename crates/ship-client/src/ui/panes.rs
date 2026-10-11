@@ -108,6 +108,25 @@ pub(super) fn draw(
             continue;
         };
         paint(screen, shown, frame.buffer_mut());
+        if let Some(scrolled) = screen.scrolled {
+            let top = if geometry.panes.len() > 1 {
+                let frame = offset(pane.frame);
+                Rect::new(
+                    frame.x.saturating_add(1),
+                    frame.y,
+                    frame.width.saturating_sub(2),
+                    frame.height.min(1),
+                )
+            } else {
+                Rect::new(content.x, content.y, content.width, content.height.min(1))
+            };
+            frame.render_widget(
+                Line::from(format!("[{}/{}]", scrolled.offset, scrolled.history))
+                    .right_aligned()
+                    .style(Style::new().bg(tui::Color::Reset).fg(tui::Color::Cyan)),
+                top,
+            );
+        }
         if Some(*id) == selected
             && let Some(at) = screen.cursor
             && at.x < shown.width

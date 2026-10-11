@@ -225,7 +225,11 @@ pub mod pane {
     use serde::Deserialize;
 
     use super::{Direction, PaneTarget, TabTarget};
-    use crate::{id::IdOf, model::Pane, protocol::SplitDirection};
+    use crate::{
+        id::IdOf,
+        model::Pane,
+        protocol::{ScrollDirection, SplitDirection},
+    };
 
     /// `get` is CLI-only, so the config rejects it.
     #[derive(Clone, Debug, Deserialize)]
@@ -243,6 +247,8 @@ pub mod pane {
         Close(Close),
         /// Move a pane's edge and print its tab as JSON
         Resize(Resize),
+        /// Scroll history by lines, by a page, or to the top or bottom
+        Scroll(Scroll),
         /// Zoom a pane to fill its tab, or unzoom it, and print its tab as JSON
         Zoom(Zoom),
         /// Exchange a pane with another pane in its tab and print the tab as JSON
@@ -330,6 +336,22 @@ pub mod pane {
         #[cfg_attr(feature = "clap", arg(skip))]
         #[serde(skip)]
         pub zoomed: Option<bool>,
+    }
+
+    #[derive(Clone, Debug, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    #[serde(deny_unknown_fields)]
+    pub struct Scroll {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        #[serde(default)]
+        pub pane: PaneTarget,
+        /// Up/down scroll; top/bottom ignore amount
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub direction: ScrollDirection,
+        /// Lines; omitted means one page
+        #[cfg_attr(feature = "clap", arg(long))]
+        #[serde(default)]
+        pub amount: Option<u32>,
     }
 
     /// Directional swap is `client.pane.swap`, a key action with no CLI form.

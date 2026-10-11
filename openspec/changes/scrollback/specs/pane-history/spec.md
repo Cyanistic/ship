@@ -46,8 +46,12 @@ Input reaching a scrolled pane, from keys, a paste or `client.send` on any clien
 Each pane's history SHALL be limited to `[server] scrollback_bytes` bytes as read when the pane starts, with no line limit.
 
 #### Scenario: Default history keeps a long log
-- **WHEN** a 200-column pane on the default setting prints `seq 50000` and is scrolled to the top
+- **WHEN** a 200-column pane on the default setting prints `seq 5000` and is scrolled to the top
 - **THEN** it shows line 1
+
+#### Scenario: Longer output exceeds the cap
+- **WHEN** a 200-column pane on the default setting prints `seq 50000` and is scrolled to the top
+- **THEN** older rows have been pruned to respect the 10,000,000-byte cap; retaining line 1 is not required
 
 ### Requirement: Alternate screen has no history
 A pane on the alternate screen SHALL have no history to scroll, and scroll actions on it SHALL do nothing.

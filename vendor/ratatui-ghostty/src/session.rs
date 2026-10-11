@@ -47,8 +47,8 @@ pub struct SessionIo {
 pub struct SessionConfig {
     /// Host terminal colors forwarded into the child process. `None` skips color initialization.
     pub colors: Option<HostColors>,
-    /// Maximum number of scrollback lines.
-    pub scrollback: usize,
+    /// History cap in bytes; `None` keeps Ghostty's default. No line cap.
+    pub scrollback_bytes: Option<usize>,
     /// Number of lines scrolled per mouse wheel tick.
     pub scroll_delta: isize,
     /// Whether the session starts with keyboard focus. Defaults to `true`.
@@ -61,7 +61,7 @@ impl Default for SessionConfig {
     fn default() -> Self {
         Self {
             colors: None,
-            scrollback: 1000,
+            scrollback_bytes: None,
             scroll_delta: 3,
             focused: true,
             read_buffer_size: 4096,
@@ -154,9 +154,9 @@ impl<W: Fn() + Send + 'static> SessionBuilder<W> {
         self
     }
 
-    /// Set the maximum number of scrollback lines.
-    pub fn scrollback(mut self, lines: usize) -> Self {
-        self.config.scrollback = lines;
+    /// Set the history cap in bytes, with no line cap.
+    pub fn scrollback_bytes(mut self, bytes: usize) -> Self {
+        self.config.scrollback_bytes = Some(bytes);
         self
     }
 
@@ -238,6 +238,7 @@ impl SessionHandle {
             render: Mutex::new(RenderSnapshot {
                 buffer: Buffer::empty(Rect::new(0, 0, cols, rows)),
                 cursor: CursorState::default(),
+                scrolled: None,
             }),
             dirty: AtomicBool::new(true),
             cols: AtomicU16::new(cols),
@@ -250,7 +251,7 @@ impl SessionHandle {
 
         let SessionConfig {
             colors,
-            scrollback,
+            scrollback_bytes,
             scroll_delta,
             focused,
             read_buffer_size,
@@ -272,7 +273,7 @@ impl SessionHandle {
                         ThreadConfig {
                             cols,
                             rows,
-                            scrollback,
+                            scrollback_bytes,
                             colors,
                             scroll_delta,
                             focused,
@@ -347,7 +348,12 @@ impl SessionHandle {
 
     /// Scroll the viewport by `delta` lines (negative scrolls up).
     pub fn send_scroll(&self, delta: isize) {
-        let _ = self.cmd_tx.send(SessionCommand::Scroll(delta));
+        self.send_scroll_to(Scroll::Lines(delta));
+    }
+
+    /// Move the viewport. Alternate-screen sessions ignore this command.
+    pub fn send_scroll_to(&self, scroll: Scroll) {
+        self.cmd_tx.send(SessionCommand::Scroll(scroll)).ok();
     }
 
     /// Paste data into the terminal, wrapping in bracketed paste sequences when enabled.
@@ -408,13 +414,16 @@ impl SessionHandle {
     ///
     /// Renders set the flag under the same lock, so a render the copy missed
     /// leaves it set, and a render it saw can't leave it set.
-    pub fn take_if_dirty(&self, dest: &mut Buffer, dest_area: Rect) -> Option<CursorState> {
+    pub fn take_if_dirty(&self, dest: &mut Buffer, dest_area: Rect) -> Option<Rendered> {
         let snap = self.shared.render.lock().unwrap_or_else(|e| e.into_inner());
         if !self.shared.dirty.swap(false, Ordering::Relaxed) {
             return None;
         }
         snap.blit_to(dest, dest_area);
-        Some(snap.cursor.clone())
+        Some(Rendered {
+            cursor: snap.cursor.clone(),
+            scrolled: snap.scrolled.clone(),
+        })
     }
 
     /// Returns the current cursor state (position relative to the session, style, blinking).
@@ -453,12 +462,33 @@ impl Drop for SessionHandle {
     }
 }
 
+/// Where to move the viewport; negative deltas scroll up.
+pub enum Scroll {
+    Lines(isize),
+    Pages(isize),
+    Top,
+    Bottom,
+}
+
+/// Distance above the bottom, absent when viewing the active screen.
+#[derive(Clone, Debug)]
+pub struct Scrolled {
+    pub offset: u32,
+    pub history: u32,
+}
+
+/// Metadata captured with the rendered cells under the same lock.
+pub struct Rendered {
+    pub cursor: CursorState,
+    pub scrolled: Option<Scrolled>,
+}
+
 enum SessionCommand {
     Key(KeyInput),
     Mouse(MouseInput),
     Focus(bool),
     Resize { cols: u16, rows: u16 },
-    Scroll(isize),
+    Scroll(Scroll),
     Paste(Vec<u8>),
     Raw(Vec<u8>),
     Shutdown,
@@ -467,6 +497,7 @@ enum SessionCommand {
 struct RenderSnapshot {
     buffer: Buffer,
     cursor: CursorState,
+    scrolled: Option<Scrolled>,
 }
 
 impl RenderSnapshot {
@@ -506,9 +537,16 @@ struct SessionState<'a> {
 }
 
 impl<'a> SessionState<'a> {
+    fn input_bottom(&mut self, needs_render: &mut bool) {
+        self.terminal.scroll_viewport(ScrollViewport::Bottom);
+        self.terminal.set_selection(None).ok();
+        *needs_render = true;
+    }
+
     fn handle_command(&mut self, cmd: SessionCommand, needs_render: &mut bool) -> bool {
         match cmd {
             SessionCommand::Key(input) => {
+                self.input_bottom(needs_render);
                 if let Ok(data) = input::encode_key(&mut self.key_encoder, &input, &self.terminal)
                     && !data.is_empty()
                 {
@@ -563,11 +601,24 @@ impl<'a> SessionState<'a> {
                 self.shared.rows.store(rows, Ordering::Relaxed);
                 *needs_render = true;
             }
-            SessionCommand::Scroll(delta) => {
-                self.terminal.scroll_viewport(ScrollViewport::Delta(delta));
-                *needs_render = true;
+            SessionCommand::Scroll(scroll) => {
+                if self.terminal.active_screen().ok()
+                    == Some(libghostty_vt::screen::Screen::Primary)
+                {
+                    let to = match scroll {
+                        Scroll::Lines(delta) => ScrollViewport::Delta(delta),
+                        Scroll::Pages(delta) => {
+                            ScrollViewport::Delta(delta.saturating_mul(self.rows as isize))
+                        }
+                        Scroll::Top => ScrollViewport::Top,
+                        Scroll::Bottom => ScrollViewport::Bottom,
+                    };
+                    self.terminal.scroll_viewport(to);
+                    *needs_render = true;
+                }
             }
             SessionCommand::Paste(data) => {
+                self.input_bottom(needs_render);
                 let encoded = input::encode_paste(&data, &self.terminal);
                 if !encoded.is_empty() {
                     let mut w = self.writer.borrow_mut();
@@ -595,7 +646,7 @@ struct SessionContext<'a> {
 struct ThreadConfig {
     cols: u16,
     rows: u16,
-    scrollback: usize,
+    scrollback_bytes: Option<usize>,
     colors: Option<HostColors>,
     scroll_delta: isize,
     focused: bool,
@@ -613,7 +664,7 @@ fn session_thread(
     let ThreadConfig {
         cols,
         rows,
-        scrollback,
+        scrollback_bytes,
         colors,
         scroll_delta,
         focused,
@@ -629,8 +680,10 @@ fn session_thread(
     } = ctx;
 
     let mut terminal = Box::new(Terminal::new(cols, rows)?);
-    // Preserve the wrapper's documented line-count setting in this probe.
-    terminal.set_scrollback_max_lines(Some(scrollback))?;
+    terminal.set_scrollback_max_lines(None)?;
+    if let Some(bytes) = scrollback_bytes {
+        terminal.set_scrollback_max_bytes(Some(bytes))?;
+    }
     // Ghostty resolves the default cursor (DECSCUSR 0, and the initial state)
     // to a concrete shape and doesn't expose that it's the default. No escape
     // sequence selects a hollow block, so it marks the default here, and the
@@ -695,7 +748,7 @@ fn session_thread(
         init_colors(&mut terminal, colors);
     }
 
-    let (pty_tx, pty_rx) = crossbeam_channel::bounded::<Vec<u8>>(64);
+    let (pty_tx, mut pty_rx) = crossbeam_channel::bounded::<Vec<u8>>(64);
 
     thread::Builder::new()
         .name("session-reader".into())
@@ -793,7 +846,11 @@ fn session_thread(
                         render_to_shared(&mut state, &mut render_state);
                         wake();
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        pty_rx = crossbeam_channel::never();
+                        event_tx.send(SessionEvent::Exited).ok();
+                        wake();
+                    }
                 }
             },
         }
@@ -823,6 +880,14 @@ fn render_to_shared(state: &mut SessionState<'_>, render_state: &mut RenderState
         .incremental(!resized);
     (&mut widget).render(area, &mut snap.buffer);
     snap.cursor = widget.cursor().clone();
+    snap.scrolled = state.terminal.scrollbar().ok().and_then(|bar| {
+        let history = bar.total.saturating_sub(bar.len);
+        let offset = history.saturating_sub(bar.offset);
+        (offset > 0).then_some(Scrolled {
+            offset: offset.min(u64::from(u32::MAX)) as u32,
+            history: history.min(u64::from(u32::MAX)) as u32,
+        })
+    });
     state.shared.dirty.store(true, Ordering::Relaxed);
 }
 

@@ -6,7 +6,7 @@ use axum::{
 };
 use ship_core::{AppError, Result, err, id::*, model::*, protocol::*};
 
-use crate::{AppState, state::*};
+use crate::{AppState, pane::PaneCommand, state::*};
 
 type App = State<AppState>;
 
@@ -279,6 +279,35 @@ pub(crate) async fn resize_pane(
 ) -> Result<Response> {
     let value = app.state.ask(Resize { id, resize }).await?;
     Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/panes/{id}/scroll",
+    operation_id = "scroll_pane",
+    params(("id" = String, Path, description = "Pane ID")),
+    request_body = ScrollPane,
+    responses(
+        (status = 204, description = "Scroll queued, including for exited panes"),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, body = AppError),
+        (status = 422, description = "Malformed body"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn scroll_pane(
+    State(app): App,
+    Path(id): Path<IdOf<Pane>>,
+    Json(body): Json<ScrollPane>,
+) -> Result<StatusCode> {
+    let live = app.live.borrow();
+    let pane = live
+        .get(&id)
+        .ok_or_else(|| err!(NotFound, "pane {} not found", id))?;
+    pane.commands
+        .send(PaneCommand::Scroll(body))
+        .map_err(|_| err!(Internal, "pane {} task ended", id))?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

@@ -50,6 +50,14 @@ Made for Ship's layout-sidebar slice 5 on 2026-10-10:
 
 11. Directory changes come from libghostty's `on_pwd_changed` callback, pushed with the other callback events, as titles are. The session loop read `pwd()` only after draining queued output, but output that arrives while the loop waits is written in the blocking `select!` without that check, so an idle shell's prompt report, typically its only OSC 7, never produced `CwdChanged`. The `last_pwd` polling is gone; Ship's pane task already skips a repeated directory. All 80 wrapper tests pass after it, run in a copy outside the repo.
 
+Made for Ship's scrollback slice 1:
+
+12. Replace the session's `scrollback` line setting and builder method with `scrollback_bytes: Option<usize>` and `scrollback_bytes(bytes)`. Initialization clears the line cap and applies the requested byte cap; `None` preserves Ghostty's byte default.
+13. Add typed `Scroll::{Lines, Pages, Top, Bottom}` and `send_scroll_to`, preserving `send_scroll(delta)` as the lines shorthand. Pages use the terminal's rows; alternate-screen scroll commands do nothing. Keys and pastes return to the bottom and clear Ghostty's selection before writing. `take_if_dirty` returns `Rendered`, containing the cursor and an optional `Scrolled { offset, history }` captured under the cells' render lock from Ghostty's scrollbar.
+15. Outlive-EOF part only: PTY EOF replaces the disconnected receiver with a never-ready channel, emits `Exited`, and leaves the terminal thread serving commands until shutdown. Pointer routing and gesture/autoscroll changes belong to later slices. Change 14 (reading) and change 16 (selection/clipboard) are not implemented yet.
+
+All 80 existing wrapper tests pass after these slice-1 changes in an outside copy; the pre-existing crash-reproduction test remains ignored.
+
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 
 ## License

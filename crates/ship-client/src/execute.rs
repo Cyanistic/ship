@@ -16,7 +16,8 @@ use ship_core::{
     model::{NodeId, Pane, Tab},
     prelude::*,
     protocol::{
-        CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ResizePane, SwapPane, ZoomPane,
+        CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ResizePane, ScrollPane,
+        SwapPane, ZoomPane,
     },
     tree::{self, Tabs},
 };
@@ -160,6 +161,15 @@ impl Client {
                 }) => {
                     let id = Self::pane_target(pane, scope)?;
                     Outcome::Tab(self.resize(id, &ResizePane { direction, amount }).await?)
+                }
+                PaneCommand::Scroll(pane::Scroll {
+                    pane,
+                    direction,
+                    amount,
+                }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    self.scroll(id, &ScrollPane { direction, amount }).await?;
+                    Outcome::Closed
                 }
                 PaneCommand::Zoom(pane::Zoom { pane, zoomed }) => {
                     let id = Self::pane_target(pane, scope)?;

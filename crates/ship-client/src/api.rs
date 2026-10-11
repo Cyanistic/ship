@@ -12,8 +12,8 @@ use ship_core::{
     model::{Named, Pane, Tab},
     prelude::*,
     protocol::{
-        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, ResizePane, SseEvent, SwapPane,
-        ViewInput, ViewingRecord, ZoomPane,
+        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, ResizePane, ScrollPane,
+        SseEvent, SwapPane, ViewInput, ViewingRecord, ZoomPane,
     },
     tree::Tabs,
 };
@@ -152,6 +152,19 @@ impl Client {
     /// Move the pane's edge; returns its tab.
     pub async fn resize(&self, pane: IdOf<Pane>, body: &ResizePane) -> Result<Tab> {
         self.pane_edit(pane, "resize", body).await
+    }
+
+    /// Scroll the shared viewport, including after program exit.
+    pub async fn scroll(&self, pane: IdOf<Pane>, body: &ScrollPane) -> Result<()> {
+        let path = format!("{}/{pane}/scroll", Pane::COLLECTION);
+        self.request(
+            Method::POST,
+            &path,
+            Some(body),
+            None,
+            StatusCode::NO_CONTENT,
+        )
+        .await
     }
 
     async fn pane_edit(
