@@ -12,6 +12,8 @@ Amendment A-5: Locked with Cyan's approval in the slice-1 review correction conv
 
 Amendment A-6: Locked on 2026-10-10, approved by Cyan in chat ("lgtm!"). Product amendment A-3 replaces the bottom bar with a status-line overlay over the pane area, reopening this paper. A-6 under Key decisions supersedes the bottom bar in decision 12's reported area.
 
+Amendment A-7: Locked on 2026-10-10, approved by Cyan in chat ("so yeah, just linux and macos for now. let's give it a go!"). Slice 5 found that Cyan's zsh sends no OSC 7 when the server inherits SSH variables. A-7 under Key decisions adds a working-directory lookup on Linux and macOS and supersedes R-5's starting-directory-only fallback.
+
 ## Summary
 
 The server owns the layout and its geometry. Each tab's panes move into a split tree, which holds both the panes and where they go, and the tab gains an optional zoomed pane. On every commit, the server turns each viewed tab's tree into rectangles at the tab's size, resizes each pane's terminal to its own rectangle, and publishes the rectangles in the replica beside the tabs. The client draws what it is given: a sidebar tree, bordered frames and the screens inside them. Fold state, the sidebar and per-client pane memory stay in the client.
@@ -77,7 +79,7 @@ flowchart TB
     edits["state/layout<br/>tree edits: split, close, swap, resize, zoom"]
     geometry["state/geometry<br/>tree + size to rects (ratatui Layout)"]
     state["state actor<br/>commit, repair, apply_sizes"]
-    pane["pane task<br/>PaneChange::Dir from OSC 7"]
+    pane["pane task<br/>PaneChange::Dir from OSC 7 or the program cwd"]
   end
   subgraph client["ship-client"]
     execute["execute<br/>targets, --child, zoom state"]
@@ -207,11 +209,17 @@ Product A-3 makes the status line an overlay. The client draws it last, over the
 
 Rejected: shrinking the pane area while the overlay is visible. Every mode change would resize programs, which is the churn Herdr's overlay avoids.
 
+### Amendment A-7: working-directory fallback (locked)
+
+`dir` is the directory the shell last reported through OSC 7. Until a pane's shell reports one, each publish with output also reads its program's working directory: `readlink /proc/PID/cwd` on Linux and `proc_pidinfo(PROC_PIDVNODEPATHINFO)` on macOS. A `cd` redraws the prompt, so the label follows within the frame, and an idle pane costs nothing. The first OSC 7 report ends the lookups for that pane, keeping the shell's own path (`/tmp` rather than `/private/tmp`). Other platforms rely on OSC 7 alone. OSC 7 accepts any host again; the local-host check added during slice 5 is dropped.
+
+Rejected: a one-second timer through `sysinfo`, which scans the whole process table on macOS and lags a `cd` by up to a second; Windows' process-memory read, which PowerShell's `Set-Location` doesn't update anyway.
+
 ## Risks and unknowns
 
 - **R-1, ratatui rounding and overlap:** decision 5 relies on `Layout`'s one-cell overlap and `Block::merge_borders` in ratatui 0.30 producing frames whose shared edges line up at every size. The first slice should check odd widths and three-way splits before anything builds on it.
 - **R-2, tiny tabs (original framing, superseded by A-2):** a small smallest-client area can leave a pane with zero content rows. Geometry needs a minimum content size, and the behavior below it (clip, or refuse the split) isn't decided. A-2 settles terminal shrink as squeeze-to-fit. Cyan settled the user-edit minimum in chat on 2026-10-10 as a mechanical 1x1 of content: a split that would go below it is refused, and a resize is clamped. Zero-content rendering and PTY handling, which only terminal shrink can reach, stay open for the slice 1 probe.
 - **R-3, commit volume:** `dir` adds a commit per directory change in every pane. Titles already do this, so it should be fine, but an agent changing directory in a loop would republish the replica each time.
 - **R-4, replica size:** geometry is per viewed tab, so it grows with the number of distinct tabs being viewed, not the number of tabs. If remote clients make the replica's size matter, geometry could move to the attach stream per client.
-- **R-5, OSC 7 in practice:** `dir` depends on the shell reporting it. Cyan's oh-my-zsh setup should, since Ship sets `TERM=xterm-256color`, but it hasn't been checked in a live pane. Without it, key-made panes start in the anchor's starting directory.
+- **R-5, OSC 7 in practice:** `dir` depends on the shell reporting it. Cyan's oh-my-zsh setup should, since Ship sets `TERM=xterm-256color`, but it hasn't been checked in a live pane. Without it, key-made panes start in the anchor's starting directory. Superseded by A-7: Linux and macOS fall back to the program's working directory.
 - **R-6, unviewed tabs:** `ship pane create --tab` on a tab nobody views picks the largest pane at 80x24. If its panes were last sized for a larger client, the choice can differ from what a viewer would see.

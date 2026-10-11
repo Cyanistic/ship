@@ -24,6 +24,7 @@ etcetera = "0.11"
 futures-util = "0.3"
 indexmap = { version = "2", features = ["serde"] }
 kameo = "0.22"
+libc = "0.2"
 nix = { version = "0.31", features = ["process", "signal"] }
 notify-debouncer-mini = "0.7"
 portable-pty = "=0.9.0"

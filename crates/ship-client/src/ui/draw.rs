@@ -5,7 +5,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Clear, Paragraph, Wrap},
 };
-use std::path::Path;
+use std::{env, path::Path};
 
 use ship_core::{
     model::{Pane, PaneStatus, Tab},
@@ -174,11 +174,30 @@ pub(super) fn pane_label(pane: &Pane) -> &str {
         .unwrap_or_default()
 }
 
-/// The tab's name, else its first pane's label, else its 1-based `position`
-/// among its siblings.
+/// The tab's name, else its first pane's directory's last component, else
+/// that pane's label, else its 1-based `position` among its siblings.
 pub(super) fn tab_label(tab: &Tab, position: usize) -> String {
     tab.name
         .get()
-        .or_else(|| tab.panes().next().map(pane_label))
-        .map_or_else(|| (position + 1).to_string(), str::to_owned)
+        .map(str::to_owned)
+        .or_else(|| {
+            tab.panes().next().map(|pane| {
+                pane.dir
+                    .as_deref()
+                    .map_or_else(|| pane_label(pane).to_owned(), last_component)
+            })
+        })
+        .unwrap_or_else(|| (position + 1).to_string())
+}
+
+/// `~` for the home directory, else the path's last component, else the path
+/// itself, as for `/`.
+fn last_component(dir: &str) -> String {
+    let path = Path::new(dir);
+    if env::home_dir().is_some_and(|home| home == path) {
+        return "~".to_owned();
+    }
+    path.file_name()
+        .map_or(dir, |name| name.to_str().unwrap_or(dir))
+        .to_owned()
 }

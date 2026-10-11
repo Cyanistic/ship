@@ -39,6 +39,10 @@ pub struct Pane {
     pub command: Vec<String>,
     /// Starting directory.
     pub cwd: String,
+    /// The directory the shell last reported through OSC 7, else, on Linux
+    /// and macOS, its program's working directory; absent until known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dir: Option<String>,
     /// The title the program last set; absent when none or cleared.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,

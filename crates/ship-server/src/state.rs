@@ -276,6 +276,7 @@ impl ServerState {
             name: input.name,
             command,
             cwd: cwd.display().to_string(),
+            dir: None,
             title: None,
             status: PaneStatus::Running,
         })
@@ -510,7 +511,14 @@ impl Message<CreatePane> for ServerState {
                 rows: second.height,
             };
         }
-        let pane = self.start_pane(start, create.input)?;
+        // Keys send no directory: the anchor's current one, else its starting one.
+        let mut input = create.input;
+        if input.spec.cwd.is_none() {
+            input.spec.cwd = anchor
+                .and_then(|anchor| tab.pane(anchor))
+                .map(|anchor| anchor.dir.clone().unwrap_or_else(|| anchor.cwd.clone()));
+        }
+        let pane = self.start_pane(start, input)?;
         self.commit(|tabs, _| {
             layout::split(
                 tree::tab_mut(tabs, owner)?,
@@ -757,7 +765,7 @@ impl Message<SetView> for ServerState {
 impl Message<PaneEvent> for ServerState {
     type Reply = Result<()>;
 
-    /// Title or exit. Ignored for panes no longer in the tree.
+    /// Title, directory or exit. Ignored for panes no longer in the tree.
     async fn handle(
         &mut self,
         PaneEvent { pane: id, change }: PaneEvent,
@@ -773,6 +781,7 @@ impl Message<PaneEvent> for ServerState {
                 .ok_or_else(|| tree::not_found(NodeId::Pane(id)))?;
             match change {
                 PaneChange::Title(title) => pane.title = title,
+                PaneChange::Dir(dir) => pane.dir = Some(dir),
                 PaneChange::Exited(status) => pane.status = PaneStatus::Exited(status),
             }
             Ok(())

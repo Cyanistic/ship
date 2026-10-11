@@ -34,8 +34,8 @@ pub enum Scope {
 }
 
 /// The client's selection and the tabs it was made in. Key-made tabs go
-/// after the selected tab; key-made panes start in the server's home
-/// directory.
+/// after the selected tab, or under it as its child; key-made panes send no
+/// directory, so the server starts them in the anchor's.
 pub struct KeyScope {
     pub selection: Option<NodeId>,
     pub tabs: Tabs,
@@ -59,13 +59,26 @@ impl Client {
         Ok(match command {
             Command::Tab(command) => match command {
                 TabCommand::List => Outcome::Tabs(self.tabs().await?),
-                TabCommand::Create(tab::Create { to, name, starter }) => {
-                    let at = match (to.resolve()?, scope) {
-                        (Some(at), _) => at,
-                        (None, Scope::Keys(KeyScope { selection, tabs })) => selection
-                            .and_then(|selection| tree::viewed_tab(tabs, selection))
+                TabCommand::Create(tab::Create {
+                    to,
+                    name,
+                    starter,
+                    child,
+                    pane,
+                }) => {
+                    let at = match (to.resolve()?, child) {
+                        (Some(_), true) => {
+                            return Err(err!(Validation, "child takes no parent, before or after"));
+                        }
+                        (Some(at), false) => at,
+                        (None, true) => self
+                            .current_tab(pane, scope)
+                            .await?
+                            .map_or_else(MoveTab::top, |tab| MoveTab::Parent(Some(tab))),
+                        (None, false) => self
+                            .current_tab(PaneTarget::default(), scope)
+                            .await?
                             .map_or_else(MoveTab::top, MoveTab::After),
-                        (None, Scope::Cli) => MoveTab::top(),
                     };
                     let body = CreateTab {
                         at,
@@ -185,6 +198,19 @@ impl Client {
                 "pass --tab or --pane, or run inside a pane"
             )),
         }
+    }
+
+    /// The tab holding `pane`, else the selected tab or the selected pane's
+    /// tab on keys, else none.
+    async fn current_tab(&self, pane: PaneTarget, scope: &Scope) -> Result<Option<IdOf<Tab>>> {
+        Ok(match (pane.id, scope) {
+            (Some(pane), Scope::Keys(KeyScope { tabs, .. })) => Some(tree::pane_owner(tabs, pane)?),
+            (Some(pane), Scope::Cli) => Some(tree::pane_owner(&self.tabs().await?, pane)?),
+            (None, Scope::Keys(KeyScope { selection, tabs })) => {
+                selection.and_then(|selection| tree::viewed_tab(tabs, selection))
+            }
+            (None, Scope::Cli) => None,
+        })
     }
 
     /// Preserve the split anchor. Explicit --tab wins over --pane.

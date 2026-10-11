@@ -64,7 +64,7 @@ Outside normal mode it SHALL show the active mode's name and key hints for that 
 - **THEN** the hints include `f zoom`
 
 ### Requirement: Derived labels
-An unnamed pane's label SHALL be its program's current title, else its command. An unnamed tab's label SHALL be its first own pane's label in layout order, else its 1-based position among its siblings. Labels SHALL update as titles change and SHALL return to the derived form when a name is cleared.
+An unnamed pane's label SHALL be its program's current title, else its command. An unnamed tab's label SHALL be the last component of its first own pane's current directory in layout order, `~` for the home directory, else that pane's label, else its 1-based position among its siblings. Labels SHALL update as titles and current directories change and SHALL return to the derived form when a name is cleared.
 
 #### Scenario: Label follows the title
 - **WHEN** an unnamed pane runs a shell and the user starts Neovim in it
@@ -72,7 +72,11 @@ An unnamed pane's label SHALL be its program's current title, else its command. 
 
 #### Scenario: Clear a tab name
 - **WHEN** a user renames a named tab with no name
-- **THEN** the tab's label becomes its first own pane's label in layout order
+- **THEN** the tab's label becomes its first own pane's current directory's last component, else that pane's label
+
+#### Scenario: Tab label follows the directory
+- **WHEN** an unnamed tab's first pane runs a shell that reports its directory and the user runs `cd ~/Documents/projects/ship`
+- **THEN** the tab's sidebar row reads `ship`, reads `~` after `cd ~`, and shows the pane's title while the pane has no current directory
 
 #### Scenario: Swap changes first pane
 - **WHEN** a swap places a different pane first in an unnamed tab's layout

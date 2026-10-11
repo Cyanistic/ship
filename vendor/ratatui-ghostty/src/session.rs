@@ -657,6 +657,17 @@ fn session_thread(
         }
     })?;
 
+    terminal.on_pwd_changed({
+        let events = events_local.clone();
+        move |term: &Terminal| {
+            if let Ok(pwd) = term.pwd() {
+                events
+                    .borrow_mut()
+                    .push(SessionEvent::CwdChanged(pwd.to_string()));
+            }
+        }
+    })?;
+
     let mut render_state = RenderState::new()?;
     let key_encoder = key::Encoder::new()?;
     let mouse_encoder = mouse::Encoder::new()?;
@@ -717,8 +728,6 @@ fn session_thread(
         scroll_delta,
     };
 
-    let mut last_pwd = String::new();
-
     loop {
         let mut needs_render = false;
         let mut shutdown = false;
@@ -753,13 +762,6 @@ fn session_thread(
         }
         if had_pty {
             needs_render = true;
-
-            if let Ok(pwd) = state.terminal.pwd()
-                && pwd != last_pwd
-            {
-                last_pwd = pwd.to_string();
-                let _ = event_tx.send(SessionEvent::CwdChanged(last_pwd.clone()));
-            }
         }
 
         let mut should_wake = false;

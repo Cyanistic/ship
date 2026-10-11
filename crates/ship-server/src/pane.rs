@@ -35,6 +35,7 @@ use tokio::{
     time::{Instant, sleep_until},
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
+use url::Url;
 
 use crate::settings::ServerSettings;
 
@@ -174,6 +175,8 @@ pub(crate) struct PaneEvent {
 #[derive(Clone)]
 pub(crate) enum PaneChange {
     Title(Option<String>),
+    /// From OSC 7, else the program's working directory.
+    Dir(String),
     Exited(ExitStatus),
 }
 
@@ -268,6 +271,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         .spawn_command(builder)
         .map_err(|error| err!(Validation, "cannot start {}", argv[0], @external: error))?;
     drop(pty.slave);
+    let pid = child.process_id();
     let mut program = Program::new(&*child).ok_or_else(|| {
         child.kill().ok();
         err!(Internal, "cannot read the pid of {}", argv[0])
@@ -305,6 +309,9 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         },
         dirty,
         title: None,
+        dir: None,
+        reported: false,
+        pid,
         buffer,
         screen,
         bus,
@@ -337,6 +344,12 @@ struct PaneTask {
     dirty: Arc<Notify>,
     /// Latest title seen this frame; the tree keeps the lasting copy.
     title: Option<String>,
+    /// Last directory published, so a repeated report sends nothing.
+    dir: Option<String>,
+    /// Whether the shell reported a directory through OSC 7, which then ends
+    /// the lookups of `pid`'s working directory.
+    reported: bool,
+    pid: Option<u32>,
     /// Kept between captures so each one doesn't allocate a grid.
     buffer: Buffer,
     screen: watch::Sender<Arc<Screen>>,
@@ -400,15 +413,28 @@ impl PaneTask {
         }
     }
 
-    /// Drain the wrapper's events, publish the screen, then the title if one
-    /// arrived.
+    /// Drain the wrapper's events, publish the screen, then the title and
+    /// directory if they changed. A shell that hasn't reported OSC 7, such as
+    /// zsh under oh-my-zsh with SSH variables set, has its working directory
+    /// read instead; its prompt after a `cd` is output, so it lands here.
     async fn publish(&mut self) {
         let mut changed = false;
+        let mut dir = None;
         while let Some(event) = self.session.poll_event() {
-            if let SessionEvent::TitleChanged(title) = event {
-                self.title = Some(title).filter(|title| !title.is_empty());
-                changed = true;
+            match event {
+                SessionEvent::TitleChanged(title) => {
+                    self.title = Some(title).filter(|title| !title.is_empty());
+                    changed = true;
+                }
+                SessionEvent::CwdChanged(uri) => {
+                    dir = local_path(&uri).or(dir);
+                    self.reported |= dir.is_some();
+                }
+                _ => {}
             }
+        }
+        if !self.reported && !self.exit.reaped {
+            dir = self.pid.and_then(process_cwd);
         }
         if let Some(screen) = capture(&self.session, &mut self.buffer) {
             tracing::trace!(pane = %self.pane, "screen published");
@@ -416,6 +442,14 @@ impl PaneTask {
         }
         if changed {
             self.event(PaneChange::Title(self.title.clone())).await;
+        }
+        self.set_dir(dir).await;
+    }
+
+    async fn set_dir(&mut self, dir: Option<String>) {
+        if let Some(dir) = dir.filter(|dir| self.dir.as_ref() != Some(dir)) {
+            self.dir = Some(dir.clone());
+            self.event(PaneChange::Dir(dir)).await;
         }
     }
 
@@ -434,6 +468,58 @@ impl PaneTask {
         drop(self.session);
         tracing::debug!(pane = %self.pane, "pane torn down");
     }
+}
+
+/// OSC 7's `file://HOST/PATH` as a path. Shells put their hostname in
+/// HOST, which `to_file_path` refuses, so it becomes `localhost` first.
+/// Anything else is ignored.
+fn local_path(uri: &str) -> Option<String> {
+    let mut url = Url::parse(uri).ok().filter(|url| url.scheme() == "file")?;
+    url.set_host(Some("localhost")).ok()?;
+    Some(url.to_file_path().ok()?.display().to_string())
+}
+
+/// The working directory of the process `pid`, with symlinks resolved, so
+/// `/tmp` reads as `/private/tmp` on macOS.
+#[cfg(target_os = "linux")]
+fn process_cwd(pid: u32) -> Option<String> {
+    let dir = std::fs::read_link(format!("/proc/{pid}/cwd")).ok()?;
+    Some(dir.display().to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn process_cwd(pid: u32) -> Option<String> {
+    use std::mem::MaybeUninit;
+
+    let mut info = MaybeUninit::<libc::proc_vnodepathinfo>::zeroed();
+    let size = i32::try_from(size_of::<libc::proc_vnodepathinfo>()).ok()?;
+    // SAFETY: `info` is writable for `size` bytes, the most
+    // PROC_PIDVNODEPATHINFO writes.
+    let written = unsafe {
+        libc::proc_pidinfo(
+            i32::try_from(pid).ok()?,
+            libc::PROC_PIDVNODEPATHINFO,
+            0,
+            info.as_mut_ptr().cast(),
+            size,
+        )
+    };
+    if written != size {
+        return None;
+    }
+    // SAFETY: all zeroes is a valid `proc_vnodepathinfo`, and the call wrote
+    // the rest.
+    let info = unsafe { info.assume_init() };
+    // `libc` splits the MAXPATHLEN path into rows for old compilers.
+    let path = info.pvi_cdir.vip_path.as_flattened();
+    let path = &path[..path.iter().position(|&byte| byte == 0)?];
+    String::from_utf8(path.iter().map(|&byte| byte as u8).collect()).ok()
+}
+
+/// Elsewhere only OSC 7 reports a directory.
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn process_cwd(_pid: u32) -> Option<String> {
+    None
 }
 
 /// The wrapper's rendered buffer and cursor as an owned `Screen`, or `None`

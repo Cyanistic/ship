@@ -8,6 +8,8 @@ Amendment P-2: Locked and re-approved with architecture A-5 by Cyan in the slice
 
 Amendment P-3: Locked on 2026-10-10, approved by Cyan in chat ("lgtm!"). Implements product A-3 and architecture A-6, the status-line overlay. Recorded in the deviation log; it supersedes the bottom bar in the `panes.rs`, `keymap.rs` and `draw.rs` skeleton notes and slice 3's hint check.
 
+Amendment P-4: Locked on 2026-10-10, approved by Cyan in chat ("so yeah, just linux and macos for now. let's give it a go!"). Implements architecture A-7, the working-directory fallback. Recorded in the deviation log; it supersedes the `dir` and `PaneChange::Dir` skeleton notes and slice 5's no-report check.
+
 Needs Cyan's attention:
 
 - **Pane creation names its place on the wire, not in `PaneInput`, accepted by Cyan (G1).** Architecture decision 8 says `PaneInput` gains the anchor. But `PaneInput` is also the starter pane of a new tab, where an anchor means nothing. So `CreatePane`'s `parent` becomes `at`, either a tab or a pane, beside a `direction`, and `PaneInput` stays as it is. This mirrors `CreateTab`'s `at`. An anchor and a parent tab can't disagree, because only one is sent.
@@ -361,8 +363,8 @@ impl Tab {
 
 pub struct Pane {
     // …as today, plus (slice 5):
-    /// The directory the shell last reported through OSC 7; absent until it
-    /// reports one.
+    /// The directory the shell last reported through OSC 7, else its
+    /// program's working directory (P-4); absent until known.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dir: Option<String>,
 }
@@ -508,7 +510,8 @@ Re-exports stay. No edit needs the map any more, so nothing else changes.
 ```rust
 pub(crate) enum PaneChange {
     Title(Option<String>),
-    /// From `SessionEvent::CwdChanged`, OSC 7's path.
+    /// From `SessionEvent::CwdChanged`, OSC 7's path, else the program's
+    /// working directory (P-4).
     Dir(String),
     Exited(ExitStatus),
 }
@@ -585,7 +588,7 @@ impl Mode {
 
 - `tab_area(cols, rows, sidebar: Option<u16>)`: the terminal minus the bottom bar and, when shown, the sidebar (FR-015).
 - `draw`: splits the frame into sidebar, pane area and bottom bar; the pane area goes to `panes::draw`, or the hints as today.
-- `tab_label`: the first of `tab.panes()` (FR-018).
+- `tab_label`: the first of `tab.panes()` (FR-018): its `dir`'s last component, `~` for home, else its `pane_label` (slice 5).
 - `status_line`: the mode's `hints()` after its name, and a zoom marker on a zoomed tab.
 
 #### `crates/ship-client/src/ui/observer.rs` (slice 1)
@@ -608,7 +611,8 @@ impl Mode {
 - `ship-server` `input.rs`, `health.rs`, `app.rs` and `settings.rs`.
 - `ship-client` `ui/keys.rs`, `ui/terminal.rs` and `watch.rs`.
 - `ship` binary: `cli.rs` and `commands.rs` take the new subcommands through the shared command tree with no edits of their own.
-- `ship-macros`, `vendor/ratatui-ghostty`. `CwdChanged` already exists.
+- `ship-macros`.
+- `vendor/ratatui-ghostty`, except slice 5's change 11: `CwdChanged` existed but was polled only after draining queued output, so an idle shell's prompt report was missed; it now comes from libghostty's `on_pwd_changed` callback, like titles. Recorded in its `PROVENANCE.md`.
 - `openspec/specs/*`. The change's spec deltas are written when it's archived, not in a slice.
 
 ## Build order
@@ -657,13 +661,14 @@ impl Mode {
      - SC-001 again with zoom, swap and resize in the mix.
 
 5. **New panes where you are, and child tabs.**
-   - Files: `ship-core` `model.rs` (`dir`) and `command.rs` (`--child`); `ship-server` `pane.rs` and `state.rs`; `ship-client` `execute.rs` and `keymap/defaults.toml`.
+   - Files: `ship-core` `model.rs` (`dir`) and `command.rs` (`--child`); `ship-server` `pane.rs` and `state.rs`; `ship-client` `execute.rs`, `ui/draw.rs` (`tab_label`) and `keymap/defaults.toml`; `vendor/ratatui-ghostty` `session.rs` and `PROVENANCE.md` (change 11).
    - Delivers: FR-003 and FR-022.
    - Checks:
-     - After `cd /tmp` in a pane, `alt--` opens a shell in `/tmp`, and `ship pane get` shows `dir`; with OSC 7 off, it opens in the pane's starting directory (architecture R-5, checked in Cyan's zsh).
+     - After `cd /tmp` in a pane, `alt--` opens a shell in `/tmp`, and `ship pane get` shows `dir`; with OSC 7 off, on Linux and macOS it opens in the program's working directory (architecture A-7, checked in Cyan's zsh with and without SSH variables).
      - `ship pane create` from the CLI still starts in the caller's directory.
      - `alt-shift-n` makes a child tab with a shell as the selected tab's last child and selects its pane; with nothing selected, a top-level tab.
      - `ship tab create --child` inside a pane makes a child of that pane's tab; `--child --parent X` is rejected.
+     - An unnamed tab whose first pane is in `~/Documents/projects/ship` reads `ship` in the sidebar, `~` at home, and the pane's title while it has no `dir`.
 
 6. **Docs and size.**
    - Files: `README.md`, `GLOSSARY.md` (layout, zoom).
@@ -682,6 +687,8 @@ Settled choices, formerly ⚠, answered by Cyan in chat on 2026-10-10:
 | `sidebar_width`'s home (G4) | `ClientSettings`, which owns the `Keymap` and the width | 3 |
 
 ## Deviation log
+
+- **P-4, working-directory fallback, locked on 2026-10-10 with architecture A-7, approved by Cyan in chat ("so yeah, just linux and macos for now. let's give it a go!"):** `PaneTask` keeps the child's pid and a `reported` flag. `publish` reads `process_cwd(pid)` after draining events while no OSC 7 has arrived and the program hasn't been reaped, and sends `PaneChange::Dir` only on change. `process_cwd` is `std::fs::read_link` on Linux, `libc::proc_pidinfo` on macOS (`libc` becomes a macOS-only `ship-server` dependency, with Ship's first `unsafe` block) and `None` elsewhere. `local_path` accepts any OSC 7 host. No timer, no `sysinfo`, no nix `hostname` feature.
 
 - **P-3, status-line overlay, locked on 2026-10-10 with product A-3 and architecture A-6, approved by Cyan in chat ("lgtm!"):** remove `STATUS_ROWS` from the layout. `tab_area` becomes the terminal minus the shown sidebar only, so `draw` splits the frame into sidebar and pane area. `status_line` returns `Option<String>`: `None` in normal mode with a connected client, a running selected pane and no pending error; otherwise the mode's name and `hints()`, the disconnected indicator, `exited (n)` and the latest error, without tab or pane labels. `draw` renders it last over the bottom row of the pane area, never the sidebar, and returns no cursor when the selected pane's cursor falls on that row. The zoom marker moves from `status_line` to the zoomed tab's row in `ui/sidebar.rs` (slice 4). Styling follows Herdr's mode bar: a mode-name pill, then key and label pairs; exact colors stay a rendered-review detail. Checks: `stty size` is identical in normal mode and in `resize` mode; the overlay appears for `alt-r`, `alt-g`, a disconnect, an exited pane and "not available yet", and disappears after `esc`, reconnect, selecting a running pane and the next key action respectively; with the sidebar shown it starts right of the divider; with no overlay the pane's last row is visible.
 

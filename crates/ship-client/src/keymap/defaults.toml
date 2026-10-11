@@ -3,6 +3,7 @@
 
 [client.modes.normal.keys]
 "alt-n"       = [{ server.tab.create.starter = "shell" }]
+"alt-shift-n" = [{ server.tab.create = { starter = "shell", child = true } }]
 "alt-x"       = [{ server.tab.close = {} }]
 "alt--"       = [{ server.pane.create.direction = "down" }]
 "alt-|"       = [{ server.pane.create.direction = "right" }]

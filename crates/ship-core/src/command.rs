@@ -124,7 +124,7 @@ pub mod tab {
     use clap::{Args, Subcommand};
     use serde::Deserialize;
 
-    use super::{Destination, TabTarget};
+    use super::{Destination, PaneTarget, TabTarget};
     use crate::protocol::Starter;
 
     /// `get` and `list` are CLI-only, so the config rejects them.
@@ -148,9 +148,15 @@ pub mod tab {
         Move(Move),
     }
 
+    /// `--pane` is read only with `--child`. It can't be an error without
+    /// it: inside a pane `SHIP_PANE_ID` fills it on every `ship tab create`.
     #[derive(Clone, Debug, Default, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Args))]
     #[serde(default, deny_unknown_fields)]
+    #[cfg_attr(
+        feature = "clap",
+        command(mut_arg("id", |arg| arg.help("With --child, the pane whose tab gets the child; defaults to the pane this runs in")))
+    )]
     pub struct Create {
         #[cfg_attr(feature = "clap", command(flatten))]
         pub to: Destination,
@@ -163,6 +169,15 @@ pub mod tab {
             arg(long, num_args = 0..=1, default_missing_value = "shell")
         )]
         pub starter: Option<Starter>,
+        /// Make the tab the last child of the current tab: the selected one on
+        /// keys, the one holding --pane on the CLI; the top level without one
+        #[cfg_attr(
+            feature = "clap",
+            arg(long, conflicts_with_all = ["parent", "before", "after"])
+        )]
+        pub child: bool,
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]

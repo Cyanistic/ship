@@ -67,7 +67,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. Panes can be zoomed, swapped and resized. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Agent status and restoring after a restart are still to come.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. Panes can be zoomed, swapped and resized. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Splitting from keys starts the new shell in the selected pane's current directory, `alt-shift-n` adds a child tab, and an unnamed tab is labeled by its first pane's directory. Agent status and restoring after a restart are still to come.
 
 ## Installation
 
@@ -131,8 +131,9 @@ Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (of
 | Key | Does |
 | --- | --- |
 | `alt-n` | New tab with a shell, after the selected one |
+| `alt-shift-n` | New tab with a shell as the last child of the selected tab, or of the selected pane's tab |
 | `alt-x` | Close the selected tab |
-| `alt-\|` / `alt--` | Split the selected pane right / down, or the largest pane of the selected tab |
+| `alt-\|` / `alt--` | Split the selected pane right / down in its current directory, or the largest pane of the selected tab |
 | `alt-shift-x` | Close the selected pane |
 | `alt-left` / `alt-right` | Previous or next visible tab row, back on the pane you last used there |
 | `alt-h` / `alt-j` / `alt-k` / `alt-l` | Select the pane to the left, below, above or right |
@@ -153,6 +154,20 @@ A tab with two or more panes draws them together, separated by shared borders th
 When several panes border the selected one on the side you move toward, `alt-h`/`j`/`k`/`l` picks the one you selected most recently, else the one whose center is nearest, else the first in layout order. That history belongs to your client and is never sent to the server, so two clients on the same tab move independently.
 
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the space left over.
+
+### Where new panes start
+
+A pane split from keys starts in the selected pane's current directory, so after `cd ~/Documents/projects/ship`, `alt--` opens a shell there. The current directory is the one the shell last reported through OSC 7, which zsh and fish setups usually send. On Linux and macOS, a shell that never reports one, such as oh-my-zsh when the server inherited SSH variables, has its working directory read instead each time its screen updates, so a `cd` still shows up by the next prompt. That directory has symlinks resolved, so `/tmp` reads `/private/tmp` on macOS. On other platforms, or before anything is known, the split starts in the selected pane's starting directory.
+
+The CLI keeps starting panes in the directory you run it from, or in `--cwd`. `ship pane get` shows both the starting `cwd` and the current `dir`:
+```sh
+TAB=$(ship tab create --name dirs | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" --cwd /usr/share | jq -r .id)
+sleep 1
+ship pane get --pane "$PANE" | jq '{cwd, dir}'
+ship tab close --tab "$TAB"
+```
+New tabs' shells, from `alt-n`, `alt-shift-n` or `--starter`, still start in your home directory.
 
 ### Zoom, swap and resize
 
@@ -178,12 +193,20 @@ ship tab close --tab "$TAB"
 
 The left sidebar has a `tabs` title and one row per visible tab. Rows are indented by depth; `▾` means expanded and `▸` means folded. The highlighted row is the selected tab, or the tab holding your selected pane. There is no separate sidebar cursor or Enter action.
 
+An unnamed tab's row shows the last component of its first pane's current directory, `~` at home, else that pane's label. A name always wins.
+
 Create a three-level tree from another terminal:
 ```sh
 PROJECT=$(ship tab create --name project | jq -r .id)
 REVIEW=$(ship tab create --name review "$PROJECT" | jq -r .id)
 CHECKS=$(ship tab create --name checks "$REVIEW" | jq -r .id)
 ship pane create --tab "$CHECKS" --name check-shell
+```
+
+`alt-shift-n` builds the same kind of tree from keys: it adds a tab with a shell as the last child of the selected tab, or of the selected pane's tab, and selects the shell. With nothing selected it adds a top-level tab, like `alt-n`. From the CLI, `ship tab create --child` does the same for the tab holding the pane it runs in, or the pane given with `--pane`. Plain `ship tab create` stays top-level, and `--child` can't be combined with a parent, `--before` or `--after`:
+```sh
+CHECK=$(ship tab get --tab "$CHECKS" | jq -r .layout.id)
+ship tab create --child --pane "$CHECK" --name logs --starter | jq '{name, shell: .layout.command}'
 ```
 
 Press `alt-g`, then `j` or `k` to select rows, `h` to fold the selected row and `l` to unfold it. `esc` returns to normal mode on the same selection. Next and previous wrap around; from nothing selected they open the first or last visible row. An empty parent shows the no-pane hint even if its child has a shell. When you return to a populated tab, you land on the surviving own pane you last used there, else its first pane in layout order. Selecting a descendant expands its ancestors automatically.

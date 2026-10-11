@@ -25,12 +25,16 @@ tokio-stream.workspace = true
 tokio-util.workspace = true
 tower-http.workspace = true
 tracing.workspace = true
+url.workspace = true
 utoipa.workspace = true
 utoipa-axum.workspace = true
 uuid.workspace = true
 
 [target.'cfg(unix)'.dependencies]
 nix.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc.workspace = true
 
 [lints]
 workspace = true
