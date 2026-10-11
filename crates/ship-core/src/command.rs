@@ -231,7 +231,7 @@ pub mod pane {
         protocol::{ScrollDirection, SplitDirection},
     };
 
-    /// `get` is CLI-only, so the config rejects it.
+    /// `get` and `read` are CLI-only, so the config rejects them.
     #[derive(Clone, Debug, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
@@ -249,6 +249,9 @@ pub mod pane {
         Resize(Resize),
         /// Scroll history by lines, by a page, or to the top or bottom
         Scroll(Scroll),
+        /// Print the active screen, or its last lines including history
+        #[serde(skip)]
+        Read(Read),
         /// Zoom a pane to fill its tab, or unzoom it, and print its tab as JSON
         Zoom(Zoom),
         /// Exchange a pane with another pane in its tab and print the tab as JSON
@@ -352,6 +355,22 @@ pub mod pane {
         #[cfg_attr(feature = "clap", arg(long))]
         #[serde(default)]
         pub amount: Option<u32>,
+    }
+
+    #[derive(Clone, Debug, Default, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    pub struct Read {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
+        /// Last N rows including history; active screen when omitted
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub lines: Option<u32>,
+        /// Join soft-wrapped lines
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub unwrap: bool,
+        /// Keep colors and styles as escape sequences
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub ansi: bool,
     }
 
     /// Directional swap is `client.pane.swap`, a key action with no CLI form.

@@ -1,10 +1,12 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use ship_core::{AppError, Result, err, id::*, model::*, protocol::*};
+
+use tokio::sync::oneshot;
 
 use crate::{AppState, pane::PaneCommand, state::*};
 
@@ -308,6 +310,42 @@ pub(crate) async fn scroll_pane(
         .send(PaneCommand::Scroll(body))
         .map_err(|_| err!(Internal, "pane {} task ended", id))?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v0/panes/{id}/text",
+    operation_id = "read_pane",
+    params(
+        ("id" = String, Path, description = "Pane ID"),
+        ("lines" = Option<u32>, Query, description = "Last N rows including history"),
+        ("unwrap" = Option<bool>, Query, description = "Join soft-wrapped lines"),
+        ("ansi" = Option<bool>, Query, description = "Keep colors and styles"),
+    ),
+    responses(
+        (status = 200, body = String, content_type = "text/plain"),
+        (status = 400, description = "Malformed pane ID or query"),
+        (status = 404, body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn read_pane(
+    State(app): App,
+    Path(id): Path<IdOf<Pane>>,
+    Query(read): Query<ReadPane>,
+) -> Result<String> {
+    let (reply, text) = oneshot::channel();
+    {
+        let live = app.live.borrow();
+        let pane = live
+            .get(&id)
+            .ok_or_else(|| err!(NotFound, "pane {} not found", id))?;
+        pane.commands
+            .send(PaneCommand::Read(read, reply))
+            .map_err(|_| err!(Internal, "pane {} task ended", id))?;
+    }
+    text.await
+        .map_err(|_| err!(Internal, "pane {} read failed", id))
 }
 
 #[utoipa::path(

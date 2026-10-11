@@ -15,7 +15,7 @@ futures-util.workspace = true
 indexmap.workspace = true
 notify-debouncer-mini.workspace = true
 ratatui.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["query"] }
 serde.workspace = true
 serde_json.workspace = true
 sse-stream.workspace = true

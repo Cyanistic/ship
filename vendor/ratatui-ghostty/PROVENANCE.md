@@ -54,7 +54,8 @@ Made for Ship's scrollback slice 1:
 
 12. Replace the session's `scrollback` line setting and builder method with `scrollback_bytes: Option<usize>` and `scrollback_bytes(bytes)`. Initialization clears the line cap and applies the requested byte cap; `None` preserves Ghostty's byte default.
 13. Add typed `Scroll::{Lines, Pages, Top, Bottom}` and `send_scroll_to`, preserving `send_scroll(delta)` as the lines shorthand. Pages use the terminal's rows; alternate-screen scroll commands do nothing. Keys and pastes return to the bottom and clear Ghostty's selection before writing. `take_if_dirty` returns `Rendered`, containing the cursor and an optional `Scrolled { offset, history }` captured under the cells' render lock from Ghostty's scrollbar.
-15. Outlive-EOF part only: PTY EOF replaces the disconnected receiver with a never-ready channel, emits `Exited`, and leaves the terminal thread serving commands until shutdown. Pointer routing and gesture/autoscroll changes belong to later slices. Change 14 (reading) and change 16 (selection/clipboard) are not implemented yet.
+14. Add `Read { lines, unwrap, ansi }` and `SessionHandle::read` with a reply callback. The session thread formats a row selection from the active screen with Ghostty\'s `Formatter`, plain or VT and wrapped or unwrapped. The default is the active grid; an explicit row count includes history. Reads leave the viewport and selection unchanged and remain available after PTY EOF. A failed read drops the reply so callers can detect failure.
+15. Outlive-EOF part only: PTY EOF replaces the disconnected receiver with a never-ready channel, emits `Exited`, and leaves the terminal thread serving commands until shutdown. Pointer routing and gesture/autoscroll changes belong to later slices. Change 16 (selection/clipboard) is not implemented yet.
 
 All 80 existing wrapper tests pass after these slice-1 changes in an outside copy; the pre-existing crash-reproduction test remains ignored.
 

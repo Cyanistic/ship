@@ -20,14 +20,14 @@ use ratatui::{
     style::{self as tui, Modifier},
 };
 use ratatui_ghostty::{
-    session::{Scroll, SessionConfig, SessionEvent, SessionHandle, SessionIo},
+    session::{Read, Scroll, SessionConfig, SessionEvent, SessionHandle, SessionIo},
     widget::CursorStyle,
 };
 use ship_core::{
     id::IdOf,
     model::{ExitStatus, Pane},
     prelude::*,
-    protocol::{ScrollDirection, ScrollPane},
+    protocol::{ReadPane, ScrollDirection, ScrollPane},
     relay::{Publish, RelayBus},
     screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Scrolled, Size},
 };
@@ -159,6 +159,7 @@ pub(crate) enum PaneCommand {
     /// Dropped when equal to the pane's current size.
     Resize(Size),
     Scroll(ScrollPane),
+    Read(ReadPane, oneshot::Sender<String>),
 }
 
 /// Every running pane, published by the state actor.
@@ -399,9 +400,9 @@ impl PaneTask {
         done.send(()).ok();
     }
 
-    /// Exited programs ignore input and resizes, but their history still scrolls.
+    /// Exited programs ignore input and resizes, but still scroll and read.
     fn command(&mut self, command: PaneCommand) {
-        if self.exit.reaped && !matches!(command, PaneCommand::Scroll(_)) {
+        if self.exit.reaped && !matches!(command, PaneCommand::Scroll(_) | PaneCommand::Read(..)) {
             return;
         }
         match command {
@@ -424,6 +425,25 @@ impl PaneTask {
                     }
                 };
                 self.session.send_scroll_to(scroll);
+            }
+            PaneCommand::Read(
+                ReadPane {
+                    lines,
+                    unwrap,
+                    ansi,
+                },
+                reply,
+            ) => {
+                self.session.read(
+                    Read {
+                        lines,
+                        unwrap,
+                        ansi,
+                    },
+                    Box::new(move |text| {
+                        reply.send(text).ok();
+                    }),
+                );
             }
             PaneCommand::Key(key) => self.session.send_key(key),
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),

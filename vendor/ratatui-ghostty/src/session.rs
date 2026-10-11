@@ -8,7 +8,7 @@
 //! - Notifies the a rerender is possible with the wake callback.
 //! - As ghostty types dont implement Sync we keep a ratatui Buffer behind a mutex, and thus storing the current viewport twice.
 
-use std::io::{Read, Write};
+use std::io::{Read as IoRead, Write};
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
@@ -18,8 +18,11 @@ use crate::colors::HostColors;
 use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
 use crate::widget::{CursorState, TerminalWidget};
 use crossbeam_channel::{Receiver, Sender};
+use libghostty_vt::fmt::{Format, Formatter, FormatterOptions};
 use libghostty_vt::render::RenderState;
+use libghostty_vt::selection::Selection;
 use libghostty_vt::terminal::{ColorScheme, CursorStyle, ScrollViewport, Terminal};
+use libghostty_vt::terminal::{Point, PointCoordinate};
 use libghostty_vt::{key, mouse};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -38,7 +41,7 @@ pub type Resizer =
 /// The session thread reads PTY output from `reader`, writes encoded input to
 /// `writer`, and calls `resizer` when the terminal dimensions change.
 pub struct SessionIo {
-    pub reader: Box<dyn Read + Send>,
+    pub reader: Box<dyn IoRead + Send>,
     pub writer: Box<dyn Write + Send>,
     pub resizer: Resizer,
 }
@@ -356,6 +359,12 @@ impl SessionHandle {
         self.cmd_tx.send(SessionCommand::Scroll(scroll)).ok();
     }
 
+    /// Read from the active screen's bottom without moving the viewport.
+    /// A failed read or stopped session drops `reply` without calling it.
+    pub fn read(&self, read: Read, reply: Box<dyn FnOnce(String) + Send>) {
+        self.cmd_tx.send(SessionCommand::Read(read, reply)).ok();
+    }
+
     /// Paste data into the terminal, wrapping in bracketed paste sequences when enabled.
     pub fn send_paste(&self, data: Vec<u8>) {
         let _ = self.cmd_tx.send(SessionCommand::Paste(data));
@@ -470,6 +479,14 @@ pub enum Scroll {
     Bottom,
 }
 
+/// What to read from the active screen, independently of the viewport.
+pub struct Read {
+    /// Last N rows including history; `None` reads the active grid.
+    pub lines: Option<u32>,
+    pub unwrap: bool,
+    pub ansi: bool,
+}
+
 /// Distance above the bottom, absent when viewing the active screen.
 #[derive(Clone, Debug)]
 pub struct Scrolled {
@@ -489,6 +506,7 @@ enum SessionCommand {
     Focus(bool),
     Resize { cols: u16, rows: u16 },
     Scroll(Scroll),
+    Read(Read, Box<dyn FnOnce(String) + Send>),
     Paste(Vec<u8>),
     Raw(Vec<u8>),
     Shutdown,
@@ -541,6 +559,34 @@ impl<'a> SessionState<'a> {
         self.terminal.scroll_viewport(ScrollViewport::Bottom);
         self.terminal.set_selection(None).ok();
         *needs_render = true;
+    }
+
+    fn read(&self, read: Read) -> Result<String, libghostty_vt::Error> {
+        let total = u32::try_from(self.terminal.total_rows()?)
+            .map_err(|_| libghostty_vt::Error::InvalidValue)?;
+        let count = read.lines.unwrap_or(u32::from(self.rows)).min(total);
+        if count == 0 {
+            return Ok(String::new());
+        }
+        let start = self.terminal.grid_ref(Point::Screen(PointCoordinate {
+            x: 0,
+            y: total - count,
+        }))?;
+        let end = self.terminal.grid_ref(Point::Screen(PointCoordinate {
+            x: self.cols - 1,
+            y: total - 1,
+        }))?;
+        let selection = Selection::new(start, end, false);
+        let options = FormatterOptions::new()
+            .with_format(if read.ansi { Format::Vt } else { Format::Plain })
+            .with_unwrap(read.unwrap)
+            .with_trim(true)
+            .with_selection(&selection);
+        let mut formatter = Formatter::new(&self.terminal, options)?;
+        // Plain and VT output is UTF-8 in Ghostty's formatter (encodeCodepoint),
+        // though the API doesn't promise it. Only the extras, which stay off,
+        // echo raw program bytes such as OSC 8 URIs.
+        Ok(String::from_utf8_lossy(&formatter.format_alloc(None)?).into_owned())
     }
 
     fn handle_command(&mut self, cmd: SessionCommand, needs_render: &mut bool) -> bool {
@@ -617,6 +663,11 @@ impl<'a> SessionState<'a> {
                     *needs_render = true;
                 }
             }
+            SessionCommand::Read(read, reply) => {
+                if let Ok(text) = self.read(read) {
+                    reply(text);
+                }
+            }
             SessionCommand::Paste(data) => {
                 self.input_bottom(needs_render);
                 let encoded = input::encode_paste(&data, &self.terminal);
@@ -657,7 +708,7 @@ fn session_thread(
     cfg: ThreadConfig,
     writer: Box<dyn Write + Send>,
     resizer: &mut Resizer,
-    reader: Box<dyn Read + Send>,
+    reader: Box<dyn IoRead + Send>,
     cmd_rx: Receiver<SessionCommand>,
     ctx: SessionContext<'_>,
 ) -> Result<(), SessionError> {

@@ -14,9 +14,9 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 2. `ship pane read` to text an agent can use
 
-- [ ] 2.1 Wrapper change 14: `read` with a reply, formatting the active screen or the last N rows, plain or with styles, wrapped or unwrapped. Verify with the wrapper's tests in an outside copy.
-- [ ] 2.2 Add `ReadPane`, the CLI-only `Read` command, `GET /api/v0/panes/{id}/text`, the pane task's read forwarding after exit, and `Outcome::Text` printed raw. Verify P5: 200 numbered lines, scrolled up, `ship pane read --lines 50` prints lines 151 to 200. Also verify that `--ansi` keeps a red `ls --color` entry red through `cat`, that `--unwrap` joins a 300-character line in an 80-column pane, that `nvim` reads as its screen only, and that an exited pane still reads.
-- [ ] 2.3 Verify SC-005: an agent pane runs `cargo test` in a sibling pane and reads its result with `ship pane read`, unaided.
+- [x] 2.1 Wrapper change 14: `read` with a reply, formatting the active screen or the last N rows, plain or with styles, wrapped or unwrapped. Verify with the wrapper's tests in an outside copy.
+- [x] 2.2 Add `ReadPane`, the CLI-only `Read` command, `GET /api/v0/panes/{id}/text`, the pane task's read forwarding after exit, and `Outcome::Text` printed raw. Verify P5: 200 numbered lines, scrolled up, `ship pane read --lines 50` prints lines 151 to 200. Also verify that `--ansi` keeps a red `ls --color` entry red through `cat`, that `--unwrap` joins a 300-character line in an 80-column pane, that `nvim` reads as its screen only, and that an exited pane still reads.
+- [x] 2.3 Verify SC-005: an agent pane runs `cargo test` in a sibling pane and reads its result with `ship pane read`, unaided.
 
 ## 3. Clicks and the wheel to selected panes, sidebar rows and program input
 

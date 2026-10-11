@@ -159,6 +159,16 @@ pub enum ScrollDirection {
     Bottom,
 }
 
+/// GET /panes/{id}/text query.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ReadPane {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lines: Option<u32>,
+    pub unwrap: bool,
+    pub ansi: bool,
+}
+
 /// POST /tabs/{id}/move body: exactly one destination. `{"parent": "tab:…"}`,
 /// `{"parent": null}` for the top level, `{"before": "tab:…"}` or
 /// `{"after": "tab:…"}`.
