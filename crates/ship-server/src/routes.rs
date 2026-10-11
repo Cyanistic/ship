@@ -139,8 +139,8 @@ pub(crate) async fn move_tab(
     request_body = CreatePane,
     responses(
         (status = 201, body = Pane),
-        (status = 404, description = "Parent tab not found", body = AppError),
-        (status = 422, description = "Malformed parent or name, including a parent that is not a tab"),
+        (status = 400, description = "Malformed JSON, or invalid program or starting directory"),
+        (status = 404, description = "Tab or anchor pane not found", body = AppError),
         (status = 503, body = AppError),
     ),
 )]
@@ -210,6 +210,75 @@ pub(crate) async fn rename_pane(
 pub(crate) async fn remove_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Result<Response> {
     app.state.ask(Remove::<Pane>(id)).await?;
     Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/panes/{id}/zoom",
+    operation_id = "zoom_pane",
+    params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
+    request_body = ZoomPane,
+    responses(
+        (status = 200, description = "The pane's tab", body = Tab),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, body = AppError),
+        (status = 422, description = "Malformed body"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn zoom_pane(
+    State(app): App,
+    Path(id): Path<IdOf<Pane>>,
+    Json(zoom): Json<ZoomPane>,
+) -> Result<Response> {
+    let value = app.state.ask(Zoom { id, zoom }).await?;
+    Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/panes/{id}/swap",
+    operation_id = "swap_pane",
+    params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
+    request_body = SwapPane,
+    responses(
+        (status = 200, description = "The panes' tab", body = Tab),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, description = "Either pane not found", body = AppError),
+        (status = 422, description = "Panes in different tabs, the same pane twice, or a malformed body", body = AppError),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn swap_pane(
+    State(app): App,
+    Path(id): Path<IdOf<Pane>>,
+    Json(swap): Json<SwapPane>,
+) -> Result<Response> {
+    let value = app.state.ask(Swap { id, swap }).await?;
+    Ok(Json(value).into_response())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v0/panes/{id}/resize",
+    operation_id = "resize_pane",
+    params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
+    request_body = ResizePane,
+    responses(
+        (status = 200, description = "The pane's tab, unchanged when the edge can't move", body = Tab),
+        (status = 400, description = "Malformed pane ID"),
+        (status = 404, body = AppError),
+        (status = 422, description = "Malformed body"),
+        (status = 503, body = AppError),
+    ),
+)]
+pub(crate) async fn resize_pane(
+    State(app): App,
+    Path(id): Path<IdOf<Pane>>,
+    Json(resize): Json<ResizePane>,
+) -> Result<Response> {
+    let value = app.state.ask(Resize { id, resize }).await?;
+    Ok(Json(value).into_response())
 }
 
 #[utoipa::path(

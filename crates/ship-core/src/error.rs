@@ -2,12 +2,22 @@ use std::borrow::Cow;
 use std::error::Error;
 use std::fmt;
 use std::panic::Location;
+use std::result;
+
+#[cfg(feature = "axum")]
+use axum::{
+    Json,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+#[cfg(feature = "kameo")]
+use kameo::error::SendError;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 
-pub type Result<T> = std::result::Result<T, AppError>;
+pub type Result<T, E = AppError> = result::Result<T, E>;
 
 /// Diagnostic categories. HTTP response policy remains server-owned.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -150,21 +160,21 @@ impl Error for AppError {
 /// Status from `ErrorCode::http_status`; body is the serialized `AppError`
 /// so the client can show the original message.
 #[cfg(feature = "axum")]
-impl axum::response::IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        let status = axum::http::StatusCode::from_u16(self.code().http_status())
-            .unwrap_or(axum::http::StatusCode::INTERNAL_SERVER_ERROR);
-        (status, axum::Json(self)).into_response()
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let status = StatusCode::from_u16(self.code().http_status())
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+        (status, Json(self)).into_response()
     }
 }
 
 /// A handler's own error passes through; any failure to reach the actor is
 /// `Unavailable`, so the server answers 503.
 #[cfg(feature = "kameo")]
-impl<M> From<kameo::error::SendError<M, AppError>> for AppError {
-    fn from(error: kameo::error::SendError<M, AppError>) -> Self {
+impl<M> From<SendError<M, AppError>> for AppError {
+    fn from(error: SendError<M, AppError>) -> Self {
         match error {
-            kameo::error::SendError::HandlerError(error) => error,
+            SendError::HandlerError(error) => error,
             error => crate::err!(Unavailable, "server state is unavailable", @external: error),
         }
     }

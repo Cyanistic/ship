@@ -1,8 +1,8 @@
-use std::path::PathBuf;
+use std::path::{self, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
 use etcetera::BaseStrategy;
-use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, prelude::*};
+use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, command::Command as ServerAction, prelude::*};
 
 #[derive(Parser)]
 #[command(
@@ -38,7 +38,7 @@ impl Cli {
                 .config_dir()
                 .join("ship/config.toml"),
         };
-        std::path::absolute(&path).map_err(
+        path::absolute(&path).map_err(
             |error| err!(Io, "cannot resolve config path {}", path.display(), @external: error),
         )
     }
@@ -49,7 +49,7 @@ pub enum Command {
     /// Run a foreground server on 127.0.0.1, or stop or check one
     Server(ServerArgs),
     #[command(flatten)]
-    Action(ship_core::command::Command),
+    Action(ServerAction),
     /// Check the config file
     #[command(subcommand)]
     Config(ConfigCommand),

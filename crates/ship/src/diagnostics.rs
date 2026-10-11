@@ -1,19 +1,23 @@
-use std::{future::Future, io::IsTerminal};
+use std::{
+    env,
+    future::Future,
+    io::{self, IsTerminal},
+};
 
 use ship_core::prelude::*;
 use tracing_subscriber::EnvFilter;
 
 pub fn init() -> Result<()> {
-    let filter = match std::env::var("RUST_LOG") {
+    let filter = match env::var("RUST_LOG") {
         Ok(value) => EnvFilter::try_new(value)
             .map_err(|error| err!(Configuration, "invalid RUST_LOG filter", @external: error))?,
-        Err(std::env::VarError::NotPresent) => EnvFilter::new("info"),
+        Err(env::VarError::NotPresent) => EnvFilter::new("info"),
         Err(_) => return Err(err!(Configuration, "RUST_LOG must be valid Unicode")),
     };
     tracing_subscriber::fmt()
         .with_env_filter(filter)
-        .with_writer(std::io::stderr)
-        .with_ansi(std::io::stderr().is_terminal())
+        .with_writer(io::stderr)
+        .with_ansi(io::stderr().is_terminal())
         .try_init()
         .map_err(|error| err!(Internal, "cannot initialize diagnostics", @external: error))
 }

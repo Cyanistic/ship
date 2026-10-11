@@ -1,21 +1,22 @@
 use ratatui::{
     Frame,
-    buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    style::{self as tui, Modifier, Style, Stylize},
-    text::Line,
-    widgets::{Paragraph, Wrap},
+    layout::Rect,
+    style::{Color, Style, Stylize},
+    text::{Line, Span},
+    widgets::{Clear, Paragraph, Wrap},
 };
-use std::path::Path;
+use std::{env, path::Path};
 
 use ship_core::{
-    id::IdOf,
     model::{Pane, PaneStatus, Tab},
-    screen::{Attr, Cell, Color, Screen, Size},
-    tree::{self, Tabs},
+    screen::{Cursor, Size},
 };
 
-use super::observer::{Observer, Selected};
+use super::{
+    observer::{Observer, Selected},
+    panes,
+    sidebar::Sidebar,
+};
 use crate::keymap::ModeName;
 
 /// What the status line shows besides the selection.
@@ -24,53 +25,64 @@ pub(super) struct Status<'a> {
     pub mode: Option<&'a ModeName>,
     /// The last error, or "not available yet".
     pub message: Option<&'a str>,
+    /// The mode's `chord label` hints, in the file's order.
+    pub hints: Vec<&'a str>,
 }
 
-/// Rows the status line takes at the bottom.
-const STATUS_ROWS: u16 = 1;
-
 /// The area a terminal of `cols` by `rows` leaves for the tab. The server
-/// sizes panes to it.
-pub(super) fn tab_area(cols: u16, rows: u16) -> Size {
+/// sizes panes to it. The status line overlays the tab, so it takes none.
+pub(super) fn tab_area(cols: u16, rows: u16, sidebar_width: u16) -> Size {
     Size {
-        cols,
-        rows: rows.saturating_sub(STATUS_ROWS),
+        cols: cols.saturating_sub(sidebar_width),
+        rows,
     }
 }
 
-/// Marks the client's area outside the pane, when the tab is sized to a
-/// smaller client.
-const FILLER: &str = "·";
-
-/// The selected pane's screen at its own size in the top-left corner, the
-/// filler pattern over the rest, and the status line on the last row. With
-/// no pane selected, a hint instead of the screen.
-pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
-    let [main, status_area] =
-        Layout::vertical([Constraint::Fill(1), Constraint::Length(STATUS_ROWS)])
-            .areas(frame.area());
+/// The selected tab's panes beside the sidebar, or a hint when it has none
+/// or nothing is selected. The status line, when it has something to say,
+/// over the pane area's last row.
+pub(super) fn draw(
+    frame: &mut Frame,
+    observer: &Observer,
+    sidebar: &Sidebar,
+    status: &Status,
+) -> Option<Cursor> {
+    let main = frame.area();
+    let sidebar_width = sidebar.width().min(main.width);
+    let sidebar_area = Rect {
+        width: sidebar_width,
+        ..main
+    };
+    let main = Rect {
+        x: main.x.saturating_add(sidebar_width),
+        width: main.width.saturating_sub(sidebar_width),
+        ..main
+    };
+    if sidebar.shown
+        && let Some(replica) = &observer.replica
+    {
+        sidebar.draw(
+            frame,
+            sidebar_area,
+            &replica.tabs,
+            observer.record().and_then(|record| record.selection),
+        );
+    }
     let selected = observer.selected();
-    match selected.as_ref().and_then(|selected| selected.pane) {
-        Some(pane) => {
-            let screen = observer.screens.get(&pane.id);
-            let shown = screen.map_or(Rect::default(), |screen| {
-                main.intersection(Rect::new(
-                    main.x,
-                    main.y,
-                    screen.size.cols,
-                    screen.size.rows,
-                ))
-            });
-            fill(frame.buffer_mut(), main, shown);
-            if let Some(screen) = screen {
-                paint(screen, shown, frame.buffer_mut());
-                if let Some(cursor) = screen.cursor
-                    && cursor.x < shown.width
-                    && cursor.y < shown.height
-                {
-                    frame.set_cursor_position((shown.x + cursor.x, shown.y + cursor.y));
-                }
-            }
+    let mut cursor = None;
+    match selected.as_ref().and_then(|selected| {
+        let geometry = selected.tab.geometry.as_ref()?;
+        (!geometry.panes.is_empty()).then_some((selected, geometry))
+    }) {
+        Some((selected, geometry)) => {
+            cursor = panes::draw(
+                frame,
+                main,
+                selected.tab,
+                geometry,
+                &observer.screens,
+                selected.pane.map(|pane| pane.id),
+            );
         }
         None => frame.render_widget(
             Paragraph::new(hint(observer, selected.as_ref()))
@@ -83,57 +95,71 @@ pub(super) fn draw(frame: &mut Frame, observer: &Observer, status: &Status) {
             },
         ),
     }
-    frame.render_widget(
-        Line::from(status_line(observer, selected.as_ref(), status)).reversed(),
-        status_area,
-    );
+    if let Some(line) = status_line(selected.as_ref(), observer.connected, status) {
+        let row = Rect {
+            y: main.bottom().saturating_sub(1),
+            height: main.height.min(1),
+            ..main
+        };
+        frame.render_widget(Clear, row);
+        frame.render_widget(line, row);
+        // A cursor under the overlay would sit on top of it.
+        cursor = cursor.filter(|(at, _)| !row.contains(*at));
+    }
+    let (at, cursor) = cursor?;
+    frame.set_cursor_position(at);
+    Some(cursor)
 }
 
 /// "connecting" while the observer has no record; with nothing selected,
 /// `3 tabs · alt-right to open one` or `no tabs · ship tab create`; with a tab
-/// and no pane, `no pane: ship pane create <tab-id>`.
+/// and no pane, `no pane: ship pane create --tab <tab-id>`.
 fn hint(observer: &Observer, selected: Option<&Selected>) -> String {
     let (Some(replica), Some(_)) = (&observer.replica, observer.record()) else {
         return "connecting".into();
     };
     match (selected, replica.tabs.len()) {
-        (Some(selected), _) => format!("no pane: ship pane create {}", selected.tab.id),
+        (Some(selected), _) => format!("no pane: ship pane create --tab {}", selected.tab.id),
         (None, 0) => "no tabs · ship tab create".into(),
         (None, 1) => "1 tab · alt-right to open one".into(),
         (None, count) => format!("{count} tabs · alt-right to open one"),
     }
 }
 
-/// The active mode outside normal, `tab › pane` labels as far as the
-/// selection goes, then the pane's exit status, the connection and the last
-/// message.
-fn status_line(observer: &Observer, selected: Option<&Selected>, status: &Status) -> String {
-    let mut line = String::from(" ");
+/// Herdr's mode bar: the mode's name as a pill, then the selected pane's exit
+/// status, the connection and the last message, then the hints, which are cut
+/// first when the row is full. `None` when there is nothing to say.
+fn status_line<'a>(
+    selected: Option<&Selected>,
+    connected: bool,
+    status: &Status<'a>,
+) -> Option<Line<'a>> {
+    let pill = |text: String, color| Span::styled(text, Style::new().black().bg(color).bold());
+    let mut spans = Vec::new();
     if let Some(mode) = status.mode {
-        line.push_str(&format!("[{}] ", mode.0));
+        spans.push(pill(format!(" {} ", mode.0.to_uppercase()), Color::Cyan));
     }
-    if let (Some(selected), Some(replica)) = (selected, &observer.replica) {
-        let tab = selected.tab;
-        line.push_str(&tab_label(tab, position(&replica.tabs, tab.id)));
-        if let Some(pane) = selected.pane {
-            line.push_str(" › ");
-            line.push_str(pane_label(pane));
-        }
-        if let Some(PaneStatus::Exited(status)) = selected.pane.map(|pane| &pane.status) {
-            match &status.signal {
-                Some(signal) => line.push_str(&format!("  exited ({signal})")),
-                None => line.push_str(&format!("  exited ({})", status.code)),
-            }
-        }
+    if let Some(PaneStatus::Exited(status)) = selected
+        .and_then(|selected| selected.pane)
+        .map(|pane| &pane.status)
+    {
+        let code = status.signal.clone().unwrap_or(status.code.to_string());
+        spans.push(Span::from(format!(" exited ({code})")).yellow());
     }
-    if !observer.connected {
-        line.push_str("  disconnected, reconnecting");
+    if !connected {
+        spans.push(Span::from(" disconnected, reconnecting").red());
     }
-    if let Some(message) = status.message {
-        line.push_str("  · ");
-        line.push_str(message);
+    // A config error spans several lines; its first says where it is.
+    if let Some(message) = status.message.and_then(|message| message.lines().next()) {
+        spans.push(Span::from(format!(" {message}")).red());
     }
-    line
+    for hint in &status.hints {
+        let (chord, label) = hint.split_once(' ').unwrap_or((hint, ""));
+        spans.push(Span::from(format!("  {chord}")).cyan().bold());
+        spans.push(Span::from(format!(" {label}")).gray());
+    }
+    // Herdr's panel background, a step up from the terminal's.
+    (!spans.is_empty()).then(|| Line::from(spans).bg(Color::Black))
 }
 
 /// The pane's name, else its program's title, else its command's file name.
@@ -148,76 +174,30 @@ pub(super) fn pane_label(pane: &Pane) -> &str {
         .unwrap_or_default()
 }
 
-/// The tab's name, else its first pane's label, else its 1-based `position`
-/// among its siblings.
+/// The tab's name, else its first pane's directory's last component, else
+/// that pane's label, else its 1-based `position` among its siblings.
 pub(super) fn tab_label(tab: &Tab, position: usize) -> String {
     tab.name
         .get()
-        .or_else(|| tab.panes.values().next().map(pane_label))
-        .map_or_else(|| (position + 1).to_string(), str::to_owned)
+        .map(str::to_owned)
+        .or_else(|| {
+            tab.panes().next().map(|pane| {
+                pane.dir
+                    .as_deref()
+                    .map_or_else(|| pane_label(pane).to_owned(), last_component)
+            })
+        })
+        .unwrap_or_else(|| (position + 1).to_string())
 }
 
-/// The tab's 0-based index among its siblings.
-fn position(tabs: &Tabs, tab: IdOf<Tab>) -> usize {
-    tree::siblings(tabs, tab)
-        .and_then(|siblings| siblings.get_index_of(&tab))
-        .unwrap_or_default()
-}
-
-/// The dim filler over `area` outside `shown`.
-fn fill(buf: &mut Buffer, area: Rect, shown: Rect) {
-    for position in area.positions() {
-        if !shown.contains(position) {
-            buf[position]
-                .set_symbol(FILLER)
-                .set_style(Style::new().dim());
-        }
+/// `~` for the home directory, else the path's last component, else the path
+/// itself, as for `/`.
+fn last_component(dir: &str) -> String {
+    let path = Path::new(dir);
+    if env::home_dir().is_some_and(|home| home == path) {
+        return "~".to_owned();
     }
-}
-
-/// The screen's cells into `area`, which is no larger than the screen.
-fn paint(screen: &Screen, area: Rect, buf: &mut Buffer) {
-    let cols = usize::from(screen.size.cols);
-    for (index, cell) in screen.cells.iter().enumerate() {
-        let (x, y) = (index % cols, index / cols);
-        let (Ok(x), Ok(y)) = (u16::try_from(x), u16::try_from(y)) else {
-            break;
-        };
-        if x < area.width && y < area.height {
-            buf[(area.x + x, area.y + y)]
-                .set_symbol(&cell.symbol)
-                .set_style(style(cell));
-        }
-    }
-}
-
-const MODIFIERS: [(Attr, Modifier); 9] = [
-    (Attr::Bold, Modifier::BOLD),
-    (Attr::Dim, Modifier::DIM),
-    (Attr::Italic, Modifier::ITALIC),
-    (Attr::Underlined, Modifier::UNDERLINED),
-    (Attr::SlowBlink, Modifier::SLOW_BLINK),
-    (Attr::RapidBlink, Modifier::RAPID_BLINK),
-    (Attr::Reversed, Modifier::REVERSED),
-    (Attr::Hidden, Modifier::HIDDEN),
-    (Attr::CrossedOut, Modifier::CROSSED_OUT),
-];
-
-fn style(cell: &Cell) -> Style {
-    let modifier = MODIFIERS
-        .iter()
-        .filter(|(attr, _)| cell.attrs.contains(attr))
-        .fold(Modifier::empty(), |modifier, (_, add)| modifier | *add);
-    Style::new()
-        .fg(color(cell.fg))
-        .bg(color(cell.bg))
-        .add_modifier(modifier)
-}
-
-fn color(color: Color) -> tui::Color {
-    match color {
-        Color::Default => tui::Color::Reset,
-        Color::Indexed(index) => tui::Color::Indexed(index),
-        Color::Rgb(r, g, b) => tui::Color::Rgb(r, g, b),
-    }
+    path.file_name()
+        .map_or(dir, |name| name.to_str().unwrap_or(dir))
+        .to_owned()
 }

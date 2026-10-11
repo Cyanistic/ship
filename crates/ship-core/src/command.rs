@@ -4,7 +4,7 @@
 
 #[cfg(feature = "clap")]
 use clap::{Args, Subcommand};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     id::IdOf,
@@ -20,7 +20,7 @@ pub enum Command {
     /// List, create, inspect, rename, close or move tabs
     #[cfg_attr(feature = "clap", command(subcommand))]
     Tab(tab::TabCommand),
-    /// Create, inspect, rename, close or resize panes
+    /// Create, inspect, rename, close, resize, zoom or swap panes
     #[cfg_attr(feature = "clap", command(subcommand))]
     Pane(pane::PaneCommand),
 }
@@ -109,7 +109,7 @@ impl Destination {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, utoipa::ToSchema)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[serde(rename_all = "snake_case")]
 pub enum Direction {
@@ -124,7 +124,7 @@ pub mod tab {
     use clap::{Args, Subcommand};
     use serde::Deserialize;
 
-    use super::{Destination, TabTarget};
+    use super::{Destination, PaneTarget, TabTarget};
     use crate::protocol::Starter;
 
     /// `get` and `list` are CLI-only, so the config rejects them.
@@ -148,9 +148,15 @@ pub mod tab {
         Move(Move),
     }
 
+    /// `--pane` is read only with `--child`. It can't be an error without
+    /// it: inside a pane `SHIP_PANE_ID` fills it on every `ship tab create`.
     #[derive(Clone, Debug, Default, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Args))]
     #[serde(default, deny_unknown_fields)]
+    #[cfg_attr(
+        feature = "clap",
+        command(mut_arg("id", |arg| arg.help("With --child, the pane whose tab gets the child; defaults to the pane this runs in")))
+    )]
     pub struct Create {
         #[cfg_attr(feature = "clap", command(flatten))]
         pub to: Destination,
@@ -163,6 +169,15 @@ pub mod tab {
             arg(long, num_args = 0..=1, default_missing_value = "shell")
         )]
         pub starter: Option<Starter>,
+        /// Make the tab the last child of the current tab: the selected one on
+        /// keys, the one holding --pane on the CLI; the top level without one
+        #[cfg_attr(
+            feature = "clap",
+            arg(long, conflicts_with_all = ["parent", "before", "after"])
+        )]
+        pub child: bool,
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]
@@ -210,6 +225,7 @@ pub mod pane {
     use serde::Deserialize;
 
     use super::{Direction, PaneTarget, TabTarget};
+    use crate::{id::IdOf, model::Pane, protocol::SplitDirection};
 
     /// `get` is CLI-only, so the config rejects it.
     #[derive(Clone, Debug, Deserialize)]
@@ -225,19 +241,30 @@ pub mod pane {
         Rename(Rename),
         /// Close a pane
         Close(Close),
-        /// Resize a pane (not available yet)
+        /// Move a pane's edge and print its tab as JSON
         Resize(Resize),
+        /// Zoom a pane to fill its tab, or unzoom it, and print its tab as JSON
+        Zoom(Zoom),
+        /// Exchange a pane with another pane in its tab and print the tab as JSON
+        Swap(Swap),
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Args))]
     #[serde(default, deny_unknown_fields)]
+    #[cfg_attr(
+        feature = "clap",
+        command(
+            mut_arg("pane", |arg| arg.help("Split anchor pane ID; defaults to the pane this runs in")),
+            mut_arg("id", |arg| arg.help("Tab ID; splits its largest pane or creates its first pane; overrides --pane"))
+        )
+    )]
     pub struct Create {
         #[cfg_attr(feature = "clap", command(flatten))]
         pub tab: TabTarget,
-        /// Where the pane splits off; ignored until layout lands
+        /// Which side of the anchor to split; right by default
         #[cfg_attr(feature = "clap", arg(long))]
-        pub direction: Option<Split>,
+        pub direction: Option<SplitDirection>,
         /// Pane name; omitted or blank means none
         #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,
@@ -247,14 +274,6 @@ pub mod pane {
         /// Command and arguments; defaults to your login shell
         #[cfg_attr(feature = "clap", arg(last = true, value_name = "COMMAND"))]
         pub command: Vec<String>,
-    }
-
-    #[derive(Clone, Copy, Debug, Deserialize)]
-    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
-    #[serde(rename_all = "snake_case")]
-    pub enum Split {
-        Right,
-        Down,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]
@@ -290,12 +309,39 @@ pub mod pane {
         #[cfg_attr(feature = "clap", command(flatten))]
         #[serde(default)]
         pub pane: PaneTarget,
-        /// Which edge moves
+        /// Which way the edge moves: the pane's edge on that side, or the
+        /// opposite edge when that side is the tab's
         #[cfg_attr(feature = "clap", arg(long))]
         pub direction: Direction,
-        /// Cells; omitted means one step
+        /// Cells; omitted means one
         #[cfg_attr(feature = "clap", arg(long))]
         #[serde(default)]
         pub amount: Option<u16>,
+    }
+
+    #[derive(Clone, Debug, Default, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    #[serde(default, deny_unknown_fields)]
+    pub struct Zoom {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
+        /// Absent toggles. Set only by the client's unzoom before it moves
+        /// out of a zoomed pane, so two clients can't zoom the tab back in.
+        #[cfg_attr(feature = "clap", arg(skip))]
+        #[serde(skip)]
+        pub zoomed: Option<bool>,
+    }
+
+    /// Directional swap is `client.pane.swap`, a key action with no CLI form.
+    #[derive(Clone, Debug, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    #[serde(deny_unknown_fields)]
+    pub struct Swap {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        #[serde(default)]
+        pub pane: PaneTarget,
+        /// The pane to exchange places with, in the same tab; need not be adjacent
+        #[cfg_attr(feature = "clap", arg(long, value_name = "ID"))]
+        pub other: IdOf<Pane>,
     }
 }

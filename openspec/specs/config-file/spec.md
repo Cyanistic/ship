@@ -43,7 +43,7 @@ The file's top level SHALL hold only `[server]` and `[client]`. The server SHALL
 A client SHALL reload `[client]` when the config file is saved, including when an editor replaces the file by rename and when the path is a symlink. The `client.config.reload` action SHALL also reload it.
 
 #### Scenario: Save while attached
-- **WHEN** a user adds `"alt-y" = { server.tab.create = {} }` under `[client.modes.normal.keys]` and saves while a client is attached
+- **WHEN** a user adds `"alt-y" = [{ server.tab.create = {} }]` under `[client.modes.normal.keys]` and saves while a client is attached
 - **THEN** `alt-y` creates a tab without a restart, and `alt-n` still works
 
 #### Scenario: Rename-save through a symlink
@@ -62,12 +62,35 @@ A client that starts with a bad `[client]` SHALL run on the default keys and sho
 - **THEN** the client opens with the default keys and shows the error
 
 ### Requirement: Config check
-`ship config check [FILE]` SHALL check FILE, or the file chosen as in Config file location, the same way the client and server load it. It SHALL report every error with the file and its location and exit non-zero when there is one, and exit 0 otherwise. It SHALL report no warnings.
+`ship config check [FILE]` SHALL check FILE, or the file chosen as in Config file location, the same way the client and server load it. It SHALL report the first error in each part, server and client, with the file, line and column, and exit non-zero when there is one, and exit 0 otherwise. It SHALL report no warnings.
 
-#### Scenario: Several mistakes
-- **WHEN** a file has a misspelled action, an unknown field and a binding to an undefined mode
-- **THEN** `ship config check` names all three with their key paths and exits 1
+#### Scenario: A mistake in each part
+- **WHEN** a file has an unknown field under `[server]` and a misspelled action under `[client]`
+- **THEN** `ship config check` prints both with their lines and columns and exits 1
 
 #### Scenario: Valid file
 - **WHEN** a file defines a mode that no binding enters and has no errors
 - **THEN** `ship config check` prints nothing and exits 0
+
+### Requirement: Sidebar width setting
+`[client] sidebar_width` SHALL set the sidebar's fixed width in columns, defaulting to 26. Labels SHALL NOT resize the sidebar. The setting SHALL use the existing config selection, client reload and error-reporting contract; the server SHALL NOT read it as server configuration.
+
+#### Scenario: Default width
+- **WHEN** a client starts without a sidebar-width setting
+- **THEN** its shown sidebar uses 26 columns when space permits
+
+#### Scenario: Explicit width
+- **WHEN** the config sets `[client] sidebar_width = 40` and is loaded by a client
+- **THEN** the sidebar uses the configured 40 columns when space permits and the client reports the remaining pane area
+
+#### Scenario: Label changes do not resize
+- **WHEN** a pane title changes the derived label of a sidebar row
+- **THEN** the sidebar width remains configured rather than fitting the new label
+
+#### Scenario: Invalid type
+- **WHEN** a file sets `[client] sidebar_width = "wide"` and the user runs `ship config check` on it
+- **THEN** the command rejects it with the file and `client.sidebar_width` location
+
+#### Scenario: Width reload
+- **WHEN** a user changes the width from 26 to 40 and saves a valid config while attached
+- **THEN** the client applies the new width without restart and reports its changed pane area

@@ -7,7 +7,7 @@ pub mod keymap;
 pub mod ui;
 mod watch;
 
-use std::{error::Error, io, time::Duration};
+use std::{error::Error, io, iter, time::Duration};
 
 pub use api::{Client, Resource};
 pub use execute::{KeyScope, Outcome, Scope, current_dir};
@@ -19,6 +19,7 @@ use ship_core::{
     prelude::*,
     protocol::{ATTACHMENT_HEADER, REVISION_HEADER},
 };
+use tokio::time::timeout;
 use url::Url;
 
 /// `request` body argument for bodiless requests.
@@ -53,7 +54,7 @@ impl Client {
             serde_json::from_slice(bytes)
                 .map_err(|error| err!(Serialization, "cannot decode response", @external: error))
         };
-        tokio::time::timeout(TIMEOUT, exchange)
+        timeout(TIMEOUT, exchange)
             .await
             .unwrap_or_else(|_| Err(err!(Network, "HTTP request timed out")))
             .context(format!("request to {safe} failed"))
@@ -68,7 +69,7 @@ impl Client {
         body: Option<&B>,
     ) -> Result<Response> {
         let (request, safe) = self.build(method, path, body, None);
-        tokio::time::timeout(TIMEOUT, open(request, StatusCode::OK))
+        timeout(TIMEOUT, open(request, StatusCode::OK))
             .await
             .unwrap_or_else(|_| Err(err!(Network, "HTTP request timed out")))
             .context(format!("request to {safe} failed"))
@@ -156,7 +157,7 @@ fn http_error(error: HttpError) -> AppError {
     // Classify retained foreign causes before AppError snapshots them as text.
     // Body/decode failures cannot establish an absent listener.
     let connection_refused = error.is_connect()
-        && std::iter::successors(error.source(), |source| (*source).source()).any(|source| {
+        && iter::successors(error.source(), |source| (*source).source()).any(|source| {
             source
                 .downcast_ref::<io::Error>()
                 .is_some_and(|error| error.kind() == io::ErrorKind::ConnectionRefused)

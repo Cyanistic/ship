@@ -46,6 +46,10 @@ Made for Ship on 2026-10-07:
 
 10. The cursor reports when it follows the default. Ghostty resolves DECSCUSR 0 and the initial cursor to its configured default shape and doesn't expose that the cursor is following it, so a caller passing the cursor on to another terminal had to send Ghostty's block in place of that terminal's own default. `session.rs` sets the default cursor style to `BlockHollow`, which no escape sequence selects, and `widget.rs` reports it as the new `CursorStyle::Default`. The two examples map `Default` to crossterm's `DefaultUserShape`. Terminals built outside a session, as in the tests, keep Ghostty's block default. Ghostty tracks this internally as `cursor.is_default`; when its C API exposes that, read it instead of the marker. The marker depends on no escape sequence selecting a hollow block; Ghostty discussion #5876 proposes adding one to DECSCUSR, so check it whenever libghostty is bumped.
 
+Made for Ship's layout-sidebar slice 5 on 2026-10-10:
+
+11. Directory changes come from libghostty's `on_pwd_changed` callback, pushed with the other callback events, as titles are. The session loop read `pwd()` only after draining queued output, but output that arrives while the loop waits is written in the blocking `select!` without that check, so an idle shell's prompt report, typically its only OSC 7, never produced `CwdChanged`. The `last_pwd` polling is gone; Ship's pane task already skips a repeated directory. All 80 wrapper tests pass after it, run in a copy outside the repo.
+
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 
 ## License

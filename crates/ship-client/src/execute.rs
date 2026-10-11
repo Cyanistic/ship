@@ -1,6 +1,9 @@
 //! One path from a command to the API, for the CLI and for keys.
 
-use std::path::PathBuf;
+use std::{
+    env, fs,
+    path::{self, PathBuf},
+};
 
 use serde::Serialize;
 use ship_core::{
@@ -12,7 +15,9 @@ use ship_core::{
     id::IdOf,
     model::{NodeId, Pane, Tab},
     prelude::*,
-    protocol::{CreateTab, MoveTab, PaneInput, PaneSpec},
+    protocol::{
+        CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ResizePane, SwapPane, ZoomPane,
+    },
     tree::{self, Tabs},
 };
 
@@ -29,8 +34,8 @@ pub enum Scope {
 }
 
 /// The client's selection and the tabs it was made in. Key-made tabs go
-/// after the selected tab; key-made panes start in the server's home
-/// directory.
+/// after the selected tab, or under it as its child; key-made panes send no
+/// directory, so the server starts them in the anchor's.
 pub struct KeyScope {
     pub selection: Option<NodeId>,
     pub tabs: Tabs,
@@ -54,13 +59,26 @@ impl Client {
         Ok(match command {
             Command::Tab(command) => match command {
                 TabCommand::List => Outcome::Tabs(self.tabs().await?),
-                TabCommand::Create(tab::Create { to, name, starter }) => {
-                    let at = match (to.resolve()?, scope) {
-                        (Some(at), _) => at,
-                        (None, Scope::Keys(KeyScope { selection, tabs })) => selection
-                            .and_then(|selection| tree::viewed_tab(tabs, selection))
+                TabCommand::Create(tab::Create {
+                    to,
+                    name,
+                    starter,
+                    child,
+                    pane,
+                }) => {
+                    let at = match (to.resolve()?, child) {
+                        (Some(_), true) => {
+                            return Err(err!(Validation, "child takes no parent, before or after"));
+                        }
+                        (Some(at), false) => at,
+                        (None, true) => self
+                            .current_tab(pane, scope)
+                            .await?
+                            .map_or_else(MoveTab::top, |tab| MoveTab::Parent(Some(tab))),
+                        (None, false) => self
+                            .current_tab(PaneTarget::default(), scope)
+                            .await?
                             .map_or_else(MoveTab::top, MoveTab::After),
-                        (None, Scope::Cli) => MoveTab::top(),
                     };
                     let body = CreateTab {
                         at,
@@ -90,12 +108,12 @@ impl Client {
             Command::Pane(command) => match command {
                 PaneCommand::Create(pane::Create {
                     tab,
-                    direction: _,
+                    direction,
                     name,
                     cwd,
                     command,
                 }) => {
-                    let tab = self.tab_target(tab, scope).await?;
+                    let at = Self::pane_at(tab, scope)?;
                     let cwd = match (cwd, scope) {
                         (Some(cwd), _) => Some(cwd),
                         (None, Scope::Cli) => Some(current_dir()?),
@@ -103,7 +121,7 @@ impl Client {
                     };
                     let cwd = cwd
                         .map(|cwd| {
-                            std::path::absolute(&cwd).map_err(
+                            path::absolute(&cwd).map_err(
                                 |error| err!(Io, "cannot resolve '{}'", cwd.display(), @external: error),
                             )
                         })
@@ -115,7 +133,14 @@ impl Client {
                             cwd: cwd.map(|cwd| cwd.display().to_string()),
                         },
                     };
-                    Outcome::Pane(self.create_pane(tab, &input).await?)
+                    Outcome::Pane(
+                        self.create_pane(&CreatePane {
+                            at,
+                            direction: direction.unwrap_or_default(),
+                            input,
+                        })
+                        .await?,
+                    )
                 }
                 PaneCommand::Get(pane::Get { pane }) => {
                     Outcome::Pane(self.get::<Pane>(Self::pane_target(pane, scope)?).await?)
@@ -128,8 +153,21 @@ impl Client {
                     self.remove::<Pane>(Self::pane_target(pane, scope)?).await?;
                     Outcome::Closed
                 }
-                PaneCommand::Resize(_) => {
-                    return Err(err!(Unavailable, "pane resize is not available yet"));
+                PaneCommand::Resize(pane::Resize {
+                    pane,
+                    direction,
+                    amount,
+                }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Tab(self.resize(id, &ResizePane { direction, amount }).await?)
+                }
+                PaneCommand::Zoom(pane::Zoom { pane, zoomed }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Tab(self.zoom(id, &ZoomPane { zoomed }).await?)
+                }
+                PaneCommand::Swap(pane::Swap { pane, other }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Tab(self.swap(id, &SwapPane { other }).await?)
                 }
             },
         })
@@ -162,6 +200,44 @@ impl Client {
         }
     }
 
+    /// The tab holding `pane`, else the selected tab or the selected pane's
+    /// tab on keys, else none.
+    async fn current_tab(&self, pane: PaneTarget, scope: &Scope) -> Result<Option<IdOf<Tab>>> {
+        Ok(match (pane.id, scope) {
+            (Some(pane), Scope::Keys(KeyScope { tabs, .. })) => Some(tree::pane_owner(tabs, pane)?),
+            (Some(pane), Scope::Cli) => Some(tree::pane_owner(&self.tabs().await?, pane)?),
+            (None, Scope::Keys(KeyScope { selection, tabs })) => {
+                selection.and_then(|selection| tree::viewed_tab(tabs, selection))
+            }
+            (None, Scope::Cli) => None,
+        })
+    }
+
+    /// Preserve the split anchor. Explicit --tab wins over --pane.
+    fn pane_at(target: TabTarget, scope: &Scope) -> Result<PaneAt> {
+        if let Some(tab) = target.id {
+            return Ok(PaneAt::Tab(tab));
+        }
+        if let Some(pane) = target.pane {
+            return Ok(PaneAt::Pane(pane));
+        }
+        match scope {
+            Scope::Keys(KeyScope {
+                selection: Some(NodeId::Pane(pane)),
+                ..
+            }) => Ok(PaneAt::Pane(*pane)),
+            Scope::Keys(KeyScope {
+                selection: Some(NodeId::Tab(tab)),
+                ..
+            }) => Ok(PaneAt::Tab(*tab)),
+            Scope::Keys(_) => Err(err!(Validation, "no tab selected")),
+            Scope::Cli => Err(err!(
+                Validation,
+                "pass --tab or --pane, or run inside a pane"
+            )),
+        }
+    }
+
     fn pane_target(target: PaneTarget, scope: &Scope) -> Result<IdOf<Pane>> {
         if let Some(id) = target.id {
             return Ok(id);
@@ -180,13 +256,11 @@ impl Client {
 /// `$PWD` when it names the current directory, so a symlinked path such as
 /// macOS's `/tmp` is kept as the user typed it, as shells do.
 pub fn current_dir() -> Result<PathBuf> {
-    let current = std::env::current_dir()
+    let current = env::current_dir()
         .map_err(|error| err!(Io, "cannot read the current directory", @external: error))?;
-    let real = std::fs::canonicalize(&current).ok();
-    Ok(std::env::var_os("PWD")
+    let real = fs::canonicalize(&current).ok();
+    Ok(env::var_os("PWD")
         .map(PathBuf::from)
-        .filter(|pwd| {
-            pwd.is_absolute() && real.is_some() && std::fs::canonicalize(pwd).ok() == real
-        })
+        .filter(|pwd| pwd.is_absolute() && real.is_some() && fs::canonicalize(pwd).ok() == real)
         .unwrap_or(current))
 }

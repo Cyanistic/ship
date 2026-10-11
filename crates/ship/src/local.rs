@@ -1,4 +1,5 @@
 use std::{
+    env,
     path::Path,
     process::{Command, Stdio},
     time::Duration,
@@ -6,7 +7,7 @@ use std::{
 
 use ship_client::Client;
 use ship_core::{DEFAULT_PORT, prelude::*};
-use tokio::time::{Instant, sleep};
+use tokio::time::{Instant, sleep, timeout_at};
 
 /// Reuse the default server, or launch one with the starter tab. True when
 /// this call launched it, even if a concurrent launcher's server won the bind.
@@ -18,9 +19,9 @@ pub async fn default_health(client: &Client, config: &Path) -> Result<bool> {
         Err(error) => return Err(error),
     }
 
-    let executable = std::env::current_exe()
+    let executable = env::current_exe()
         .map_err(|error| err!(Io, "cannot resolve current executable", @external: error))?;
-    let directory = std::env::temp_dir();
+    let directory = env::temp_dir();
     let temporary = tempfile::Builder::new().prefix("ship-server-").suffix(".log")
         .tempfile_in(&directory)
         .map_err(|error| err!(Io, "cannot create private server log in {}; no file was created", directory.display(), @external: error))?;
@@ -62,7 +63,7 @@ pub async fn default_health(client: &Client, config: &Path) -> Result<bool> {
                 .try_wait()
                 .map_err(|error| err!(Io, "cannot inspect launched child", @external: error))?;
             // Even after child exit, this bounded final probe can accept a concurrent winner.
-            match tokio::time::timeout_at(deadline, crate::health(client))
+            match timeout_at(deadline, crate::health(client))
                 .await
                 .map_err(|_| err!(Network, "local server readiness exceeded five seconds"))?
             {

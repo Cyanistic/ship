@@ -7,8 +7,10 @@ use std::{process::ExitCode, time::Duration};
 
 use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
-use ship_client::Client;
+use reqwest::redirect::Policy;
+use ship_client::{Client, ui};
 use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*};
+use tokio::runtime::Builder;
 use url::Url;
 
 fn main() -> ExitCode {
@@ -35,7 +37,7 @@ fn run(cli: Cli, source: Option<ValueSource>) -> Result<()> {
         detach()?;
     }
     diagnostics::init()?;
-    let runtime = tokio::runtime::Builder::new_multi_thread()
+    let runtime = Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| err!(Internal, "cannot create runtime", @external: error))?;
@@ -45,7 +47,9 @@ fn run(cli: Cli, source: Option<ValueSource>) -> Result<()> {
 /// Leave the launching terminal's session so the background server outlives it.
 #[cfg(unix)]
 fn detach() -> Result<()> {
-    nix::unistd::setsid()
+    use nix::unistd::setsid;
+
+    setsid()
         .map(drop)
         .map_err(|error| err!(Io, "cannot establish background server session", @external: error))
 }
@@ -77,7 +81,11 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
         Some(Command::Server(cli::ServerArgs {
             command: Some(cli::ServerCommand::Stop),
             ..
-        })) => commands::stop_server(&client(&cli.server_url)?).await,
+        })) => {
+            let client = client(&cli.server_url)?;
+            health(&client).await?;
+            commands::stop_server(&client).await
+        }
         Some(Command::Server(cli::ServerArgs {
             command: Some(cli::ServerCommand::Status),
             ..
@@ -115,16 +123,18 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
             } else {
                 local::default_health(&client, &cli.config_path()?).await?
             };
-            ship_client::ui::run(&client, open_first, &cli.config_path()?).await
+            ui::run(&client, open_first, &cli.config_path()?).await
         }
     }
 }
 
-/// An explicit `--server-url` is used as is; otherwise the default local
-/// server is reused or started.
+/// Validate an explicit target without starting it; otherwise reuse or start
+/// the default local server.
 async fn connect(cli: &Cli, explicit_target: bool) -> Result<Client> {
     let client = client(&cli.server_url)?;
-    if !explicit_target {
+    if explicit_target {
+        health(&client).await?;
+    } else {
         local::default_health(&client, &cli.config_path()?).await?;
     }
     Ok(client)
@@ -141,7 +151,7 @@ fn client(server_url: &str) -> Result<Client> {
         ));
     }
     let http = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
+        .redirect(Policy::none())
         .connect_timeout(Duration::from_secs(1))
         .build()
         .map_err(|error| err!(Configuration, "cannot initialize HTTP client", @external: error.without_url()))?;

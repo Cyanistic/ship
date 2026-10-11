@@ -1,10 +1,18 @@
-use std::{fmt, hash::Hash, marker::PhantomData, str::FromStr};
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    str::FromStr,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
-use utoipa::openapi::{
-    RefOr, Type,
-    schema::{ObjectBuilder, Schema},
+use utoipa::{
+    __dev::ComposeSchema,
+    openapi::{
+        RefOr, Type,
+        schema::{ObjectBuilder, Schema},
+    },
 };
 use uuid::Uuid;
 
@@ -86,7 +94,7 @@ impl<T> PartialEq for Id<T> {
 }
 impl<T> Eq for Id<T> {}
 impl<T> Hash for Id<T> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.uuid.hash(state);
     }
 }
@@ -99,7 +107,7 @@ impl<T: Prefixed> fmt::Debug for Id<T> {
 /// A string matching `^{prefix}:[0-9a-f]{32}$`. Utoipa 6 derives
 /// `PartialSchema` from this for generic types. The schema derive passes the
 /// entity's schema for `IdOf<T>`; an ID's schema does not depend on it.
-impl<T: Prefixed> utoipa::__dev::ComposeSchema for Id<T> {
+impl<T: Prefixed> ComposeSchema for Id<T> {
     fn compose(_: Vec<RefOr<Schema>>) -> RefOr<Schema> {
         let prefix = T::prefix();
         ObjectBuilder::new()

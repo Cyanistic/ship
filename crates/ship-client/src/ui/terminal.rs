@@ -1,7 +1,10 @@
 //! The user's terminal while the client runs: raw mode, the alternate screen
 //! and bracketed paste, restored on every exit path the process survives.
 
-use std::io::{self, BufWriter, Stdout};
+use std::{
+    io::{self, BufWriter, Stdout},
+    panic,
+};
 
 use crossterm::{
     cursor::{SetCursorStyle, Show},
@@ -30,8 +33,8 @@ pub(super) struct TerminalGuard {
 
 impl TerminalGuard {
     pub fn enter() -> Result<Self> {
-        let previous = std::panic::take_hook();
-        std::panic::set_hook(Box::new(move |info| {
+        let previous = panic::take_hook();
+        panic::set_hook(Box::new(move |info| {
             restore();
             previous(info);
         }));

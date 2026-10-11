@@ -1,26 +1,25 @@
-//! `[client]` in the config file: modes and their bindings.
+//! `[client]` in the config file: settings, modes and their bindings.
 
-use std::{
-    collections::{BTreeMap, HashMap, hash_map::Entry},
-    path::Path,
-};
+use std::{collections::HashMap, path::Path};
 
 use crokey::KeyCombination;
-use figment::{
-    Figment, Metadata, Profile, Provider,
-    providers::{Format, Toml},
-    value::{Dict, Map, Tag, Value},
+use indexmap::IndexMap;
+use serde::{
+    Deserialize, Deserializer,
+    de::{Error as _, IgnoredAny},
 };
-use serde::{Deserialize, de::IgnoredAny};
 use ship_core::{
     command::{Command, Direction},
+    config,
     prelude::*,
 };
 
 const DEFAULTS: &str = include_str!("keymap/defaults.toml");
-/// The defaults' figment source name, which tells their bindings apart from
-/// the file's after the merge.
-const DEFAULTS_NAME: &str = "Ship's default keys";
+
+pub struct ClientSettings {
+    pub keymap: Keymap,
+    pub sidebar_width: u16,
+}
 
 pub struct Keymap {
     pub modes: HashMap<ModeName, Mode>,
@@ -40,8 +39,8 @@ impl ModeName {
 
 pub struct Mode {
     pub kind: ModeKind,
-    /// Only bound chords: `"none"` leaves the chord out.
-    pub keys: HashMap<KeyCombination, Binding>,
+    /// Only bound chords: `[]` leaves the chord out.
+    pub keys: IndexMap<KeyCombination, Binding>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
@@ -52,16 +51,59 @@ pub enum ModeKind {
     Oneshot,
 }
 
-/// One action, or a list run in order that stops at the first failure.
+/// Actions run in order, stopping at the first failure. Empty unbinds the
+/// chord, so the key reaches the program.
 #[derive(Clone, Debug)]
-pub struct Binding(pub Vec<Action>);
+pub struct Binding {
+    pub actions: Vec<Action>,
+    /// Presentation from the source binding, completed with its chord on load.
+    hint: String,
+}
+
+impl<'de> Deserialize<'de> for Binding {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let values = Vec::<toml::Value>::deserialize(deserializer)?;
+        let hint = values.first().map(action_hint).unwrap_or_default();
+        let actions = values
+            .into_iter()
+            .map(|value| value.try_into())
+            .collect::<Result<_, _>>()
+            .map_err(D::Error::custom)?;
+        Ok(Self { actions, hint })
+    }
+}
+
+/// Follow the action path to its scalar value, or the last named table.
+fn action_hint(value: &toml::Value) -> String {
+    let mut value = value;
+    let mut name = "";
+    while let toml::Value::Table(table) = value {
+        if table.len() != 1 {
+            return name.into();
+        }
+        let (key, child) = table.iter().next().expect("one entry");
+        name = key;
+        value = child;
+    }
+    match value {
+        toml::Value::String(text) => text.clone(),
+        toml::Value::Array(_) => name.into(),
+        scalar => scalar.to_string(),
+    }
+}
+
+impl Mode {
+    /// Each chord's `chord label` hint, in the file's order.
+    pub fn hints(&self) -> impl Iterator<Item = &str> {
+        self.keys.values().map(|binding| binding.hint.as_str())
+    }
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Action {
     Server(Command),
     Client(ClientAction),
-    None,
 }
 
 /// Actions without arguments are empty struct variants (`Detach {}`), not
@@ -84,7 +126,7 @@ pub enum ClientAction {
 pub enum ClientTab {
     Next {},
     Prev {},
-    Select { row: Row },
+    Select { row: u16 },
     Expand {},
     Collapse {},
 }
@@ -94,7 +136,13 @@ pub enum ClientTab {
 pub enum ClientPane {
     Next {},
     Prev {},
-    Focus { direction: Direction },
+    Focus {
+        direction: Direction,
+    },
+    /// Exchange with the neighbor `focus` would pick, through `server.pane.swap`.
+    Swap {
+        direction: Direction,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -109,285 +157,110 @@ pub enum ConfigAction {
     Reload {},
 }
 
-/// 1 to 9.
-#[derive(Clone, Copy, Debug, Deserialize)]
-#[serde(try_from = "u8")]
-pub struct Row(pub u8);
-
-impl TryFrom<u8> for Row {
-    type Error = String;
-
-    fn try_from(row: u8) -> std::result::Result<Self, String> {
-        match row {
-            1..=9 => Ok(Self(row)),
-            _ => Err(format!("row {row} is not between 1 and 9")),
-        }
-    }
-}
-
-/// The file's shape down to each mode, which deserializes on its own so one
-/// bad mode doesn't hide the others' errors. The root holds only `server`
-/// (the server's part) and `client`.
-#[derive(Deserialize)]
+/// The client's part of the config file. The defaults and the user's file
+/// both read as this, and the file then goes over the defaults.
+#[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Root {
+struct File {
+    /// Left to the server; named so a misspelled table is still an error.
+    #[serde(default, rename = "server")]
+    _server: IgnoredAny,
     #[serde(default)]
-    #[expect(dead_code, reason = "accepted and left to the server")]
-    server: IgnoredAny,
-    #[serde(default)]
-    #[expect(dead_code, reason = "checked here, read from figment's tree")]
-    client: RawClient,
+    client: Client,
 }
 
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RawClient {
+struct Client {
+    sidebar_width: Option<u16>,
     #[serde(default)]
-    #[expect(dead_code, reason = "read from figment's tree, which keeps tags")]
-    modes: BTreeMap<String, IgnoredAny>,
+    modes: HashMap<ModeName, ModeFile>,
 }
 
-/// Bindings are read from figment's tree instead, because deserializing a
-/// `Value` drops the tags that say which source it came from.
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RawMode {
+struct ModeFile {
     kind: Option<ModeKind>,
+    /// Drop the mode's default bindings before the file's apply.
     #[serde(default)]
     clear_defaults: bool,
-    #[serde(default)]
-    #[expect(dead_code, reason = "read from figment's tree, which keeps tags")]
-    keys: BTreeMap<String, IgnoredAny>,
+    #[serde(default, deserialize_with = "normalized")]
+    keys: IndexMap<KeyCombination, Binding>,
 }
 
-/// The embedded defaults with every binding wrapped in a one-item list.
-/// figment merges two tables key by key, so a file binding over a default
-/// one would blend both actions; a list under a table is replaced whole.
-struct Defaults;
-
-impl Provider for Defaults {
-    fn metadata(&self) -> Metadata {
-        Metadata::named(DEFAULTS_NAME)
-    }
-
-    fn data(&self) -> std::result::Result<Map<Profile, Dict>, figment::Error> {
-        let mut data = Toml::string(DEFAULTS).data()?;
-        for root in data.values_mut() {
-            let Some(Value::Dict(_, client)) = root.get_mut("client") else {
-                continue;
-            };
-            let Some(Value::Dict(_, modes)) = client.get_mut("modes") else {
-                continue;
-            };
-            for mode in modes.values_mut() {
-                if let Value::Dict(_, mode) = mode
-                    && let Some(Value::Dict(_, keys)) = mode.get_mut("keys")
-                {
-                    for binding in keys.values_mut() {
-                        *binding = Value::Array(Tag::Default, vec![binding.clone()]);
-                    }
-                }
-            }
-        }
-        Ok(data)
-    }
+/// crokey parses chords without normalizing them, and lookups use the
+/// normalized form. Normalizing before the merge also lets a file chord
+/// replace a default spelled differently.
+fn normalized<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<IndexMap<KeyCombination, Binding>, D::Error> {
+    let keys = IndexMap::<String, Binding>::deserialize(deserializer)?;
+    keys.into_iter()
+        .map(|(spelling, mut binding)| {
+            let chord: KeyCombination = spelling.parse().map_err(D::Error::custom)?;
+            binding.hint = format!("{spelling} {}", binding.hint);
+            Ok((chord.normalized(), binding))
+        })
+        .collect()
 }
 
-/// A chord's binding and where it came from, while a mode's keys resolve.
-struct Found {
-    spelling: String,
-    default: bool,
-    binding: Option<Binding>,
-}
-
-impl Keymap {
-    /// Defaults merged under the file; a missing file is the defaults. A
-    /// file chord replaces the default on the same chord, however it's
-    /// spelled. Each mode and binding deserializes on its own, so every
-    /// error is collected, each naming the file and its key path. Used at
-    /// startup, on reload and by `ship config check`, so check reports
-    /// exactly what loading rejects.
-    pub fn load(path: &Path) -> std::result::Result<Self, Vec<AppError>> {
-        Self::build(&Figment::from(Defaults).merge(Toml::file(path)), path)
+impl ClientSettings {
+    /// The file over the defaults; a missing file is the defaults. A file
+    /// chord replaces the default on that chord. Used at startup, on reload
+    /// and by `ship config check`.
+    pub fn load(path: &Path) -> Result<Self> {
+        Ok(Self::over_defaults(config::load(path)?))
     }
 
     pub fn defaults() -> Self {
-        match Self::build(&Figment::from(Defaults), Path::new(DEFAULTS_NAME)) {
-            Ok(keymap) => keymap,
-            Err(errors) => panic!("invalid default keys: {errors:?}"),
-        }
+        Self::over_defaults(File::default())
     }
 
-    fn build(figment: &Figment, path: &Path) -> std::result::Result<Self, Vec<AppError>> {
-        figment
-            .extract::<Root>()
-            .map_err(|error| vec![located(path, &[], error)])?;
-        let Ok(Value::Dict(_, defined)) = figment.find_value("client.modes") else {
-            unreachable!("the defaults define modes");
+    fn over_defaults(file: File) -> Self {
+        let defaults: File = match toml::from_str(DEFAULTS) {
+            Ok(defaults) => defaults,
+            Err(error) => panic!("invalid default keys: {error}"),
         };
-        let mut errors = Vec::new();
-        let mut modes = HashMap::new();
-        for (name, tree) in &defined {
-            let at = ["client", "modes", name.as_str()];
-            let raw: RawMode = match tree.deserialize() {
-                Ok(raw) => raw,
-                Err(error) => {
-                    errors.push(located(path, &at, error));
-                    continue;
-                }
-            };
-            if name == ModeName::NORMAL && raw.kind.is_some() {
-                errors.push(invalid(
-                    path,
-                    &[&at[..], &["kind"]].concat(),
-                    "normal is always sticky",
-                ));
+        let mut modes = defaults.client.modes;
+        for (name, over) in file.client.modes {
+            let mode = modes.entry(name).or_default();
+            if over.clear_defaults {
+                mode.keys.clear();
             }
-            let keys_at = [&at[..], &["keys"]].concat();
-            let mut found: HashMap<KeyCombination, Found> = HashMap::new();
-            for (spelling, value) in raw_keys(tree).into_iter().flatten() {
-                let default = figment
-                    .get_metadata(value.tag())
-                    .is_some_and(|source| source.name == DEFAULTS_NAME);
-                if default && raw.clear_defaults {
-                    continue;
-                }
-                let spelling = spelling.clone();
-                let at = [&keys_at[..], &[spelling.as_str()]].concat();
-                let chord = match crokey::parse(&spelling) {
-                    Ok(chord) => chord.normalized(),
-                    Err(error) => {
-                        errors.push(invalid(path, &at, error));
-                        continue;
-                    }
-                };
-                // A table is one action and a list is several. Dispatching
-                // here keeps figment's key path in the error, which
-                // trying one shape and then the other would lose.
-                let binding = match value {
-                    Value::Array(..) => value.deserialize(),
-                    _ => value.deserialize().map(|action| vec![action]),
-                }
-                .map(Binding)
-                .map_err(|error| located(path, &at, error))
-                .and_then(|binding| {
-                    binding
-                        .check(&defined)
-                        .map(|()| binding)
-                        .map_err(|message| invalid(path, &at, message))
-                })
-                .map_err(|error| errors.push(error))
-                .ok();
-                let new = Found {
-                    spelling,
-                    default,
-                    binding,
-                };
-                match found.entry(chord) {
-                    Entry::Vacant(entry) => {
-                        entry.insert(new);
-                    }
-                    Entry::Occupied(mut entry) => match (entry.get().default, new.default) {
-                        (true, false) => {
-                            entry.insert(new);
-                        }
-                        (false, true) => {}
-                        _ => errors.push(invalid(
-                            path,
-                            &keys_at,
-                            format!(
-                                "\"{}\" and \"{}\" are the same chord",
-                                entry.get().spelling,
-                                new.spelling
-                            ),
-                        )),
-                    },
-                }
+            // File chords follow untouched defaults in their file order.
+            for chord in over.keys.keys() {
+                mode.keys.shift_remove(chord);
             }
-            let keys = found
-                .into_iter()
-                .filter_map(|(chord, found)| Some((chord, found.binding?)))
-                .filter(|(_, binding)| !binding.unbinds())
-                .collect();
-            modes.insert(
-                ModeName(name.clone()),
-                Mode {
-                    kind: raw.kind.unwrap_or_default(),
-                    keys,
-                },
-            );
+            mode.keys.extend(over.keys);
+            mode.kind = over.kind.or(mode.kind);
         }
-        match errors.is_empty() {
-            true => Ok(Self { modes }),
-            false => Err(errors),
+        let modes = modes
+            .into_iter()
+            .map(|(name, mode)| (name, mode.into()))
+            .collect();
+        Self {
+            keymap: Keymap { modes },
+            sidebar_width: file.client.sidebar_width.unwrap_or(26),
+        }
+    }
+}
+
+impl From<ModeFile> for Mode {
+    fn from(mut file: ModeFile) -> Self {
+        file.keys.retain(|_, binding| !binding.actions.is_empty());
+        Self {
+            kind: file.kind.unwrap_or_default(),
+            keys: file.keys,
         }
     }
 }
 
 impl Binding {
-    /// Whether this is `"none"`, which leaves the chord to the program.
-    fn unbinds(&self) -> bool {
-        matches!(self.0.as_slice(), [Action::None])
-    }
-
-    /// What deserializing can't see: an empty list, `"none"` beside other
-    /// actions, and modes the file doesn't define.
-    fn check(&self, modes: &Dict) -> std::result::Result<(), String> {
-        match self.0.as_slice() {
-            [] => return Err("an empty list binds nothing; write \"none\" to unbind".into()),
-            [_] => {}
-            actions if actions.iter().any(|action| matches!(action, Action::None)) => {
-                return Err("\"none\" can't be part of a list".into());
-            }
-            _ => {}
-        }
-        for action in &self.0 {
-            if let Action::Client(ClientAction::Mode(ModeName(mode))) = action
-                && !modes.contains_key(mode)
-            {
-                return Err(format!("no mode named \"{mode}\""));
-            }
-        }
-        Ok(())
-    }
-
     /// Whether running this enters a mode, so a one-shot mode doesn't leave
     /// for normal on its own.
     pub fn enters_mode(&self) -> bool {
-        self.0
+        self.actions
             .iter()
             .any(|action| matches!(action, Action::Client(ClientAction::Mode(_))))
-    }
-}
-
-/// A mode's `keys` table in figment's tree.
-fn raw_keys(mode: &Value) -> Option<&Dict> {
-    match mode {
-        Value::Dict(_, mode) => match mode.get("keys")? {
-            Value::Dict(_, keys) => Some(keys),
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
-/// `<file>: <key path>: <message>`. Figment's own message prefixes the key
-/// with its `default.` profile, and a value deserialized on its own only
-/// knows the path below `at`, so the location comes from both. Syntax errors
-/// have no key path, and their message carries the line and column.
-fn located(path: &Path, at: &[&str], error: figment::Error) -> AppError {
-    let kind = error.kind.to_string();
-    let at: Vec<&str> = at
-        .iter()
-        .copied()
-        .chain(error.path.iter().map(String::as_str))
-        .collect();
-    invalid(path, &at, kind.trim_end())
-}
-
-fn invalid(path: &Path, at: &[&str], message: impl std::fmt::Display) -> AppError {
-    match at.join(".") {
-        key if key.is_empty() => err!(Configuration, "{}: {message}", path.display()),
-        key => err!(Configuration, "{}: {key}: {message}", path.display()),
     }
 }
