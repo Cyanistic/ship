@@ -9,22 +9,24 @@
 //! - As ghostty types dont implement Sync we keep a ratatui Buffer behind a mutex, and thus storing the current viewport twice.
 
 use std::cell::RefCell;
-use std::io::{Read as IoRead, Write};
+use std::error::Error;
+use std::io::{self, Read as IoRead, Write};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
+use std::{fmt, panic};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use crate::colors::HostColors;
+use crate::colors::{HostColors, Rgb};
 use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
 use crate::widget::{CursorState, TerminalWidget};
 use crossbeam_channel::{Receiver, Sender};
 use libghostty_vt::fmt::{Format, Formatter, FormatterOptions};
 use libghostty_vt::render::RenderState;
-use libghostty_vt::screen::GridRef;
+use libghostty_vt::screen::{GridRef, Screen};
 use libghostty_vt::selection::gesture::{
     Autoscroll, AutoscrollTickEvent, Behavior, DragEvent, Geometry, Gesture, PressEvent,
     ReleaseEvent,
@@ -55,8 +57,7 @@ const REPEAT_CLICK: Duration = Duration::from_millis(500);
 const CELL: u32 = 4;
 
 /// Callback used to resize the PTY when the terminal dimensions change.
-pub type Resizer =
-    Box<dyn FnMut(u16, u16) -> Result<(), Box<dyn std::error::Error + Send + Sync>> + Send>;
+pub type Resizer = Box<dyn FnMut(u16, u16) -> Result<(), Box<dyn Error + Send + Sync>> + Send>;
 
 /// I/O handles for the child process.
 ///
@@ -100,15 +101,15 @@ pub enum SessionError {
     /// Failed to initialize or operate the terminal emulator.
     Terminal(libghostty_vt::Error),
     /// An I/O error occurred (e.g. broken PTY pipe).
-    Io(std::io::Error),
+    Io(io::Error),
     /// The PTY resize callback failed.
-    Resize(Box<dyn std::error::Error + Send + Sync>),
+    Resize(Box<dyn Error + Send + Sync>),
     /// The session thread panicked.
     Panicked,
 }
 
-impl std::fmt::Display for SessionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for SessionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Terminal(e) => write!(f, "terminal error: {e}"),
             Self::Io(e) => write!(f, "I/O error: {e}"),
@@ -118,8 +119,8 @@ impl std::fmt::Display for SessionError {
     }
 }
 
-impl std::error::Error for SessionError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl Error for SessionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Terminal(e) => Some(e),
             Self::Io(e) => Some(e),
@@ -135,8 +136,8 @@ impl From<libghostty_vt::Error> for SessionError {
     }
 }
 
-impl From<std::io::Error> for SessionError {
-    fn from(e: std::io::Error) -> Self {
+impl From<io::Error> for SessionError {
+    fn from(e: io::Error) -> Self {
         Self::Io(e)
     }
 }
@@ -297,7 +298,7 @@ impl SessionHandle {
         thread::Builder::new()
             .name("session".into())
             .spawn(move || {
-                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let result = panic::catch_unwind(panic::AssertUnwindSafe(|| {
                     session_thread(
                         ThreadConfig {
                             cols,
@@ -823,7 +824,7 @@ impl<'a> SessionState<'a> {
             Some(mouse::Button::Five) => (self.scroll_delta, KeyCode::Down),
             _ => return,
         };
-        if self.terminal.active_screen().ok() == Some(libghostty_vt::screen::Screen::Primary) {
+        if self.terminal.active_screen().ok() == Some(Screen::Primary) {
             self.terminal.scroll_viewport(ScrollViewport::Delta(delta));
             *needs_render = true;
         } else if self.terminal.mode(Mode::ALT_SCROLL).unwrap_or(false) {
@@ -893,9 +894,7 @@ impl<'a> SessionState<'a> {
                 *needs_render = true;
             }
             SessionCommand::Scroll(scroll) => {
-                if self.terminal.active_screen().ok()
-                    == Some(libghostty_vt::screen::Screen::Primary)
-                {
+                if self.terminal.active_screen().ok() == Some(Screen::Primary) {
                     let to = match scroll {
                         Scroll::Lines(delta) => ScrollViewport::Delta(delta),
                         Scroll::Pages(delta) => {
@@ -987,14 +986,14 @@ fn session_thread(
     let events_local: Rc<RefCell<Vec<SessionEvent>>> = Rc::new(RefCell::new(Vec::new()));
 
     terminal.on_bell({
-        let events = events_local.clone();
+        let events = Rc::clone(&events_local);
         move |_| {
             events.borrow_mut().push(SessionEvent::Bell);
         }
     })?;
 
     terminal.on_title_changed({
-        let events = events_local.clone();
+        let events = Rc::clone(&events_local);
         move |term: &Terminal| {
             if let Ok(t) = term.title() {
                 events
@@ -1005,7 +1004,7 @@ fn session_thread(
     })?;
 
     terminal.on_pwd_changed({
-        let events = events_local.clone();
+        let events = Rc::clone(&events_local);
         move |term: &Terminal| {
             if let Ok(pwd) = term.pwd() {
                 events
@@ -1017,7 +1016,7 @@ fn session_thread(
 
     // Only text for the standard clipboard goes on; reads never reach here.
     terminal.on_clipboard_write({
-        let events = events_local.clone();
+        let events = Rc::clone(&events_local);
         move |_, write| {
             if write.location() == ClipboardLocation::Standard
                 && let Some(text) = write
@@ -1038,7 +1037,7 @@ fn session_thread(
     let writer: Rc<RefCell<Box<dyn Write + Send>>> = Rc::new(RefCell::new(writer));
 
     terminal.on_pty_write({
-        let writer = writer.clone();
+        let writer = Rc::clone(&writer);
         move |_, data| {
             let _ = writer.borrow_mut().write_all(data);
         }
@@ -1089,7 +1088,7 @@ fn session_thread(
         cols,
         rows,
         scroll_delta,
-        events: events_local.clone(),
+        events: Rc::clone(&events_local),
         selecting: Selecting::new()?,
     };
 
@@ -1242,7 +1241,7 @@ fn linearize(c: u8) -> f32 {
     }
 }
 
-fn is_dark(bg: crate::colors::Rgb) -> bool {
+fn is_dark(bg: Rgb) -> bool {
     let l = 0.2126 * linearize(bg.r) + 0.7152 * linearize(bg.g) + 0.0722 * linearize(bg.b);
     l < 0.5
 }

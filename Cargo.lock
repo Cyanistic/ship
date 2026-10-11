@@ -2374,10 +2374,12 @@ dependencies = [
 name = "ratatui-ghostty"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "crossbeam-channel",
  "crossterm",
  "libc",
  "libghostty-vt",
+ "portable-pty",
  "ratatui",
 ]
 

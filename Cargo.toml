@@ -1,8 +1,6 @@
 [workspace]
-members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core", "crates/ship-macros"]
+members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core", "crates/ship-macros", "vendor/ratatui-ghostty"]
 resolver = "3"
-# Vendored with its own lints and tests; a path dependency, not a member.
-exclude = ["vendor/ratatui-ghostty"]
 
 [workspace.package]
 version = "0.1.0"

@@ -1,6 +1,6 @@
 # Provenance
 
-Copied on 2026-10-06 from `experiments/terminal-transport/vendor/wrapper-compat`, byte-for-byte and in full, including tests and examples. The experiment copy stays where it is. This is Ship's production copy of the wrapper; `ship-server` depends on it by path. It isn't a workspace member, so Ship's lints and line budget don't apply to it.
+Copied on 2026-10-06 from `experiments/terminal-transport/vendor/wrapper-compat`, byte-for-byte and in full, including tests and examples. The experiment copy stays where it is. This is Ship's production copy of the wrapper; `ship-server` depends on it by path. Since change 17 it is a workspace member that opts into Ship's workspace lints. Ship's line budget doesn't apply to it.
 
 The wrapper section of `experiments/terminal-transport/vendor/PROVENANCE.md` carries over below.
 
@@ -64,6 +64,12 @@ Made for Ship's scrollback slice 4:
 16. Selections are Ghostty's, set from the gesture results with `set_selection`, so they follow their text and are pruned with it, and keys and pastes clear them (change 13). A single press clears the selection; a double or triple press selects a word or line; a drag extends by cell, word or line. Ghostty decides whether a cell drag includes its first and last cells by where in them the pointer is, which a cell-sized pointer can't express, so a cell drag spans from the pressed cell to the pointed cell inclusively in either direction; word and line drags keep Ghostty's result. Releasing a held press formats the selection, if any, as plain text with soft wraps joined and trailing whitespace trimmed, and pushes `SessionEvent::Copied`. `on_clipboard_write` pushes `SessionEvent::ClipboardWrite` with the `text/plain` representation of writes to the standard clipboard; writes to the primary or selection clipboards are dropped, and Ghostty never forwards OSC 52 reads. `widget.rs` toggles `Modifier::REVERSED` on each cell inside its row's `RowSelection` range; Ghostty marks a frame fully dirty when the selection changes, so incremental rendering redraws it. `examples/demo/app.rs` ignores the two new events.
 
 All 80 existing wrapper tests pass after change 16 and the gesture part of 15, run in a copy outside the repo; the pre-existing crash-reproduction test remains ignored.
+
+Made for Ship on 2026-10-11:
+
+17. The wrapper moved from the workspace's `exclude` list into its members, sharing Ship's lockfile and target directory, and `Cargo.toml` sets `[lints] workspace = true`. Outside the workspace, rust-analyzer had checked it as a separate project with its own `target/` and `Cargo.lock`, and its tests had to run in a copy outside the repo. Satisfying Ship's lints changed no behavior: paths such as `std::io::Error` became imports (`absolute_paths`), `.clone()` on an `Rc` became `Rc::clone` (`clone_on_ref_ptr`), the examples dropped two redundant `Sender` clones, and each `unsafe` block gained a `SAFETY` comment.
+
+All 80 wrapper tests pass after change 17, run in place with `cargo test -p ratatui-ghostty`; the pre-existing crash-reproduction test remains ignored.
 
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 

@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, MouseEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEvent};
 use libghostty_vt::terminal::{Mode, Terminal};
 use libghostty_vt::{key, mouse};
 
@@ -81,10 +81,7 @@ impl IntoKeyInput for KeyEvent {
         let mods = from_crossterm::key_modifiers(self.modifiers);
 
         let (utf8, unshifted_codepoint) = if let KeyCode::Char(c) = self.code {
-            let unshifted = if self
-                .modifiers
-                .contains(crossterm::event::KeyModifiers::SHIFT)
-            {
+            let unshifted = if self.modifiers.contains(KeyModifiers::SHIFT) {
                 c.to_ascii_lowercase()
             } else {
                 c
