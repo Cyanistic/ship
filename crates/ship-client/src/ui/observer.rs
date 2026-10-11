@@ -54,7 +54,7 @@ impl Observer {
                     .and_then(|selected| selected.tab.geometry.as_ref())
                     .is_some_and(|geometry| geometry.panes.contains_key(&pane));
             }
-            SseEvent::Ended(_) => return false,
+            SseEvent::Ended(_) | SseEvent::Clipboard(_) => return false,
         }
         self.reconcile();
         true

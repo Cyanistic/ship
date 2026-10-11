@@ -4,7 +4,7 @@ use libghostty_vt::style::RgbColor;
 use libghostty_vt::terminal::Terminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::Color;
+use ratatui::style::{Color, Modifier};
 use ratatui::widgets::Widget;
 
 use crate::convert::to_ratatui;
@@ -142,6 +142,9 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
                 }
             }
 
+            // Selected cells swap foreground and background, as a reversed
+            // cell would swap back.
+            let selected = row.selection().ok().flatten();
             let Ok(mut cell_iteration) = cell_iter.update(row) else {
                 row_idx += 1;
                 continue;
@@ -179,6 +182,10 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
                         Ok(CellContentTag::BgColorRgb) => raw.bg_color_rgb().ok().map(rgb_to_color),
                         _ => None,
                     };
+                }
+
+                if selected.is_some_and(|range| (range.start_x..=range.end_x).contains(&col_idx)) {
+                    ratatui_style.add_modifier.toggle(Modifier::REVERSED);
                 }
 
                 let buf_x = area.x + col_idx;

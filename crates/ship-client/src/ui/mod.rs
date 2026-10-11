@@ -32,7 +32,9 @@ use ship_core::{
     id::{Attachment, IdOf},
     model::{NodeId, Pane},
     prelude::*,
-    protocol::{AttachRequest, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput},
+    protocol::{
+        AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput,
+    },
     screen::Size,
     tree::{self, Tabs},
 };
@@ -196,6 +198,10 @@ async fn drive(
                     return Ok(match reason {
                         EndReason::ServerShutdown => Exit::ServerStopped,
                     });
+                }
+                Some(Ok(SseEvent::Clipboard(ClipboardText { text }))) => {
+                    guard.copy(&text)?;
+                    false
                 }
                 Some(Ok(event)) => {
                     if let SseEvent::Attached(attached) = &event {

@@ -28,10 +28,10 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 4. Drag selection and program copies to the system clipboard
 
-- [ ] 4.1 Wrapper change 16 and the gesture part of 15: Ghostty selection from gestures, autoscroll ticks, `Reversed` drawing of selected ranges (G5), `Copied` and `ClipboardWrite` events. Verify with the wrapper's tests in an outside copy and confirm `PROVENANCE.md` records 12 to 16.
-- [ ] 4.2 Publish `Clipboard` on the pane bus, deliver `SseEvent::Clipboard` from the attach stream to the copying attachment or every viewer of the tab, and write it with crossterm's `CopyToClipboard` (`osc52` feature). Verify that a drag highlights for both clients and its release reaches only the copying client's clipboard (`pbpaste`), that double- and triple-clicks take a word and a line, and that a plain click copies nothing.
+- [x] 4.1 Wrapper change 16 and the gesture part of 15: Ghostty selection from gestures, autoscroll ticks, `Reversed` drawing of selected ranges (G5), `Copied` and `ClipboardWrite` events. Verify with the wrapper's tests in an outside copy and confirm `PROVENANCE.md` records 12 to 16.
+- [x] 4.2 Publish `Clipboard` on the pane bus, deliver `SseEvent::Clipboard` from the attach stream to the copying attachment or every viewer of the tab, and write it with crossterm's `CopyToClipboard` (`osc52` feature). Verify that a drag highlights for both clients and its release reaches only the copying client's clipboard (`pbpaste`), that double- and triple-clicks take a word and a line, and that a plain click copies nothing.
 - [ ] 4.3 Verify the selection's lifetime and the clipboard's trust boundary. Dragging past the top edge scrolls and keeps selecting. Typing clears the highlight. Output arriving keeps it on its text. `"+y` in `nvim` reaches both clients on the tab but not a client on another tab. `printf '\e]52;c;?\a'` gets no answer.
-- [ ] 4.4 Verify SC-004 on Linux if available: in foot over SSH, as in the U-3 check, a drag reaches `wl-paste`. Otherwise report Linux unverified.
+- [x] 4.4 Verify SC-004 on Linux if available: in foot over SSH, as in the U-3 check, a drag reaches `wl-paste`. Otherwise report Linux unverified.
 
 ## 5. Docs, tracking issues and size report
 

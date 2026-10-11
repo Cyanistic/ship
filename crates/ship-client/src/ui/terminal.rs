@@ -7,6 +7,7 @@ use std::{
 };
 
 use crossterm::{
+    clipboard::CopyToClipboard,
     cursor::{SetCursorStyle, Show},
     event::{DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture},
     execute,
@@ -70,6 +71,13 @@ impl TerminalGuard {
         .map_err(|error| err!(Io, "cannot set mouse capture", @external: error))?;
         self.mouse = enabled;
         Ok(())
+    }
+
+    /// Put `text` on the clipboard through the terminal's OSC 52, which some
+    /// terminals ignore or cap in size.
+    pub fn copy(&self, text: &str) -> Result<()> {
+        execute!(io::stdout(), CopyToClipboard::to_clipboard_from(text))
+            .map_err(|error| err!(Io, "cannot write the clipboard", @external: error))
     }
 
     /// Match the pane's cursor shape. ratatui places and shows the cursor but

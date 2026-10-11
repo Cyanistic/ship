@@ -462,3 +462,15 @@ Mouse routing, input frames, capture/reload/restoration, hit-testing and sidebar
 After review, Cyan approved reshaping the client's routing: `row_at` returns a sidebar-local `Row` instead of `Clicked`, `route` returns `Option<Clicked>` without a `None` variant, and the sketches above now say so.
 
 Tasks 3.1 to 3.5 are checked. Cyan confirmed task 3.3's physical drag check from foot on Linux, over SSH to the Mac running the client: `mouse = false` returns Shift-free drag selection to the outer terminal, `true` takes it back, and detaching leaves no mouse escapes. Building and running Ship on Linux remains unverified.
+
+### Slice 4: implementation and verification
+
+Selection, highlight, copy on release and program clipboard writes are implemented as sketched. [Slice-4 evidence](../evidence-slice-4.md) records the macOS checks. Departures from the sketches:
+
+- The wrapper sets Ghostty's selection on each press, drag and autoscroll tick rather than only on release, so every viewer sees the highlight while a drag runs (FR-025).
+- A cell drag spans from the pressed cell to the pointed cell inclusively in either direction. Ghostty's own cell drag includes those cells depending on where in them the pointer sits, which pointers in whole cells can't express. Word and line drags keep Ghostty's result.
+- Only program writes to the standard clipboard are forwarded. Writes to the primary or selection clipboards, such as Neovim's `"*y`, are dropped, since the client writes only the standard clipboard.
+- The pane task's trace log of each pointer's attachment is replaced by remembering that attachment for the next copy.
+
+Tasks 4.1, 4.2 and 4.4 are checked. Cyan confirmed that a drag's copy reaches the system clipboard on macOS and from Linux over SSH. Task 4.3 waits on Cyan's decision on dragging past a lone pane's edges, which no real terminal can report.
+

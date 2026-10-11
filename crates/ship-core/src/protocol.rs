@@ -263,6 +263,9 @@ pub enum SseEvent {
     /// The latest screen of a pane in the attachment's viewed tab. Sent when
     /// it changes, and for every such pane when the viewed tab changes.
     Screen(PaneScreen),
+    /// Text for this client's clipboard: its own mouse selection, or a
+    /// program's clipboard write in a pane of its viewed tab.
+    Clipboard(ClipboardText),
     /// Always last: why the server is closing the stream. A stream that ends
     /// without it was cut.
     Ended(Ended),
@@ -273,6 +276,12 @@ pub enum SseEvent {
 pub struct PaneScreen {
     pub pane: IdOf<Pane>,
     pub screen: Arc<Screen>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ClipboardText {
+    pub text: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

@@ -8,13 +8,15 @@
 //! - Notifies the a rerender is possible with the wake callback.
 //! - As ghostty types dont implement Sync we keep a ratatui Buffer behind a mutex, and thus storing the current viewport twice.
 
+use std::cell::RefCell;
 use std::io::{Read as IoRead, Write};
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use crate::colors::HostColors;
 use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
@@ -22,8 +24,15 @@ use crate::widget::{CursorState, TerminalWidget};
 use crossbeam_channel::{Receiver, Sender};
 use libghostty_vt::fmt::{Format, Formatter, FormatterOptions};
 use libghostty_vt::render::RenderState;
-use libghostty_vt::selection::Selection;
-use libghostty_vt::terminal::{ColorScheme, CursorStyle, Mode, ScrollViewport, Terminal};
+use libghostty_vt::screen::GridRef;
+use libghostty_vt::selection::gesture::{
+    Autoscroll, AutoscrollTickEvent, Behavior, DragEvent, Geometry, Gesture, PressEvent,
+    ReleaseEvent,
+};
+use libghostty_vt::selection::{FormatOptions, Selection};
+use libghostty_vt::terminal::{
+    ClipboardLocation, ColorScheme, CursorStyle, Mode, ScrollViewport, Terminal,
+};
 use libghostty_vt::terminal::{Point, PointCoordinate};
 use libghostty_vt::{key, mouse};
 use ratatui::buffer::Buffer;
@@ -33,6 +42,17 @@ use ratatui::widgets::Widget;
 /// Longest the session thread drains queued output before rendering. Without
 /// it, sustained output keeps the queue full and nothing renders until it stops.
 const DRAIN_BUDGET: Duration = Duration::from_millis(8);
+
+/// How often a selection dragged past the top or bottom scrolls one row.
+const AUTOSCROLL: Duration = Duration::from_millis(50);
+
+/// Longest gap between presses that still counts as a double or triple click.
+const REPEAT_CLICK: Duration = Duration::from_millis(500);
+
+/// Ghostty's gestures work in surface pixels; pointers arrive in cells, so
+/// each cell stands for a square this many pixels wide, and a pointer for
+/// its center.
+const CELL: u32 = 4;
 
 /// Callback used to resize the PTY when the terminal dimensions change.
 pub type Resizer =
@@ -134,6 +154,10 @@ pub enum SessionEvent {
     Exited,
     /// Session thread encountered an unrecoverable error.
     Error(SessionError),
+    /// A mouse selection ended with text in it: plain, soft wraps joined.
+    Copied(String),
+    /// The program wrote the standard clipboard, OSC 52 already decoded.
+    ClipboardWrite(String),
 }
 
 /// Builder for constructing and spawning a [`SessionHandle`].
@@ -562,16 +586,179 @@ struct SessionState<'a> {
     terminal: Box<Terminal<'static, 'static>>,
     key_encoder: key::Encoder<'static>,
     mouse_encoder: mouse::Encoder<'static>,
-    writer: std::rc::Rc<std::cell::RefCell<Box<dyn Write + Send>>>,
+    writer: Rc<RefCell<Box<dyn Write + Send>>>,
     resizer: &'a mut Resizer,
     shared: &'a SharedBuffer,
     focused: bool,
     cols: u16,
     rows: u16,
     scroll_delta: isize,
+    events: Rc<RefCell<Vec<SessionEvent>>>,
+    selecting: Selecting,
+}
+
+/// Left-button text selection through Ghostty's gesture state.
+struct Selecting {
+    gesture: Gesture<'static>,
+    press: PressEvent<'static>,
+    drag: DragEvent<'static>,
+    release: ReleaseEvent<'static>,
+    tick: AutoscrollTickEvent<'static>,
+    /// Press times count from here; crossterm's events carry none.
+    epoch: Instant,
+    /// Where the held button last was, possibly past the grid; `None` when
+    /// no press is held.
+    held: Option<(i32, i32)>,
+}
+
+impl Selecting {
+    fn new() -> Result<Self, libghostty_vt::Error> {
+        Ok(Self {
+            gesture: Gesture::new()?,
+            press: PressEvent::new()?,
+            drag: DragEvent::new()?,
+            release: ReleaseEvent::new()?,
+            tick: AutoscrollTickEvent::new()?,
+            epoch: Instant::now(),
+            held: None,
+        })
+    }
+}
+
+/// Ghostty's cell drag takes the pressed and pointed cells by where in
+/// them the pointer is, which a cell-sized pointer can't say, so a cell drag
+/// spans both cells whichever way it goes. Word and line drags keep
+/// Ghostty's selection.
+fn cell_span<'t>(
+    gesture: &Gesture<'_>,
+    terminal: &'t Terminal<'_, '_>,
+    cell: GridRef<'t>,
+    selection: Option<Selection<'t>>,
+) -> Option<Selection<'t>> {
+    if gesture.behavior(terminal).ok()? != Behavior::Cell {
+        return selection;
+    }
+    if !gesture.dragged(terminal).ok()? {
+        return None;
+    }
+    Some(Selection::new(gesture.anchor(terminal).ok()??, cell, false))
+}
+
+/// A pointer's position in the gestures' surface pixels.
+fn surface(x: i32, y: i32) -> (f64, f64) {
+    let center = |cell: i32| f64::from(cell) * f64::from(CELL) + f64::from(CELL / 2);
+    (center(x), center(y))
 }
 
 impl<'a> SessionState<'a> {
+    fn geometry(&self) -> Geometry {
+        Geometry {
+            columns: u32::from(self.cols),
+            cell_width: CELL,
+            padding_left: 0,
+            screen_height: u32::from(self.rows) * CELL,
+        }
+    }
+
+    /// The viewport cell nearest a pointer.
+    fn viewport(&self, x: i32, y: i32) -> PointCoordinate {
+        PointCoordinate {
+            x: x.clamp(0, i32::from(self.cols.saturating_sub(1))) as u16,
+            y: y.clamp(0, i32::from(self.rows.saturating_sub(1))) as u32,
+        }
+    }
+
+    /// Press, drag and release of the left button: a press clears the
+    /// selection or, repeated, selects a word or line; dragging extends it;
+    /// releasing copies it. Errors leave the selection as it was.
+    fn select(&mut self, kind: MouseEventKind, x: i32, y: i32, needs_render: &mut bool) {
+        let at = self.viewport(x, y);
+        let geometry = self.geometry();
+        let (px, py) = surface(x, y);
+        let terminal = &*self.terminal;
+        let s = &mut self.selecting;
+        let Ok(cell) = terminal.grid_ref(Point::Viewport(at)) else {
+            return;
+        };
+        match kind {
+            MouseEventKind::Down(_) => {
+                s.held = Some((x, y));
+                let time = s.epoch.elapsed();
+                let selection = s
+                    .press
+                    .set_position(px, py)
+                    .and_then(|press| press.set_time(time))
+                    .and_then(|press| press.set_repeat_interval(REPEAT_CLICK))
+                    .and_then(|press| press.set_repeat_distance(f64::from(CELL)))
+                    .and_then(|press| press.apply(&mut s.gesture, terminal, cell));
+                if let Ok(selection) = selection {
+                    terminal.set_selection(selection.as_ref()).ok();
+                    *needs_render = true;
+                }
+            }
+            MouseEventKind::Drag(_) if s.held.is_some() => {
+                s.held = Some((x, y));
+                let selection = s
+                    .drag
+                    .set_position(px, py)
+                    .and_then(|drag| drag.apply(&mut s.gesture, terminal, cell.clone(), geometry));
+                if let Ok(selection) = selection
+                    && let Some(selection) = cell_span(&s.gesture, terminal, cell, selection)
+                {
+                    terminal.set_selection(Some(&selection)).ok();
+                    *needs_render = true;
+                }
+            }
+            MouseEventKind::Up(_) if s.held.take().is_some() => {
+                s.release.apply(&mut s.gesture, terminal, Some(cell)).ok();
+                let options = FormatOptions::new()
+                    .with_emit_format(Format::Plain)
+                    .with_unwrap(true)
+                    .with_trim(true);
+                if let Ok(Some(text)) = terminal.format_selection_alloc(None, options)
+                    && !text.is_empty()
+                {
+                    let text = String::from_utf8_lossy(&text).into_owned();
+                    self.events.borrow_mut().push(SessionEvent::Copied(text));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// While a held selection is past the top or bottom edge.
+    fn autoscrolling(&self) -> bool {
+        self.selecting.held.is_some()
+            && self
+                .selecting
+                .gesture
+                .autoscroll(&self.terminal)
+                .is_ok_and(|autoscroll| autoscroll != Autoscroll::None)
+    }
+
+    /// Scroll one row toward the held pointer and extend the selection to
+    /// the row now under it.
+    fn autoscroll(&mut self, needs_render: &mut bool) {
+        let Some((x, y)) = self.selecting.held else {
+            return;
+        };
+        let at = self.viewport(x, y);
+        let geometry = self.geometry();
+        let (px, py) = surface(x, y);
+        let terminal = &*self.terminal;
+        let s = &mut self.selecting;
+        let selection = s
+            .tick
+            .set_position(px, py)
+            .and_then(|tick| tick.apply(&mut s.gesture, terminal, at, geometry));
+        *needs_render = true;
+        if let Ok(selection) = selection
+            && let Ok(cell) = terminal.grid_ref(Point::Viewport(at))
+            && let Some(selection) = cell_span(&s.gesture, terminal, cell, selection)
+        {
+            terminal.set_selection(Some(&selection)).ok();
+        }
+    }
     fn input_bottom(&mut self, needs_render: &mut bool) {
         self.terminal.scroll_viewport(ScrollViewport::Bottom);
         self.terminal.set_selection(None).ok();
@@ -664,6 +851,18 @@ impl<'a> SessionState<'a> {
                 }
             }
             SessionCommand::Pointer(pointer) => {
+                let tracking = self.terminal.is_mouse_tracking().unwrap_or(false);
+                if let MouseEventKind::Down(MouseButton::Left)
+                | MouseEventKind::Drag(MouseButton::Left)
+                | MouseEventKind::Up(MouseButton::Left) = pointer.kind
+                    && !tracking
+                {
+                    self.select(pointer.kind, pointer.x, pointer.y, needs_render);
+                    return false;
+                }
+                if tracking && self.selecting.held.take().is_some() {
+                    self.selecting.gesture.reset(&self.terminal);
+                }
                 let event = MouseEvent {
                     kind: pointer.kind,
                     modifiers: pointer.modifiers,
@@ -767,8 +966,6 @@ fn session_thread(
         focused,
         read_buffer_size,
     } = cfg;
-    use std::cell::RefCell;
-    use std::rc::Rc;
 
     let SessionContext {
         shared,
@@ -815,6 +1012,22 @@ fn session_thread(
                     .borrow_mut()
                     .push(SessionEvent::CwdChanged(pwd.to_string()));
             }
+        }
+    })?;
+
+    // Only text for the standard clipboard goes on; reads never reach here.
+    terminal.on_clipboard_write({
+        let events = events_local.clone();
+        move |_, write| {
+            if write.location() == ClipboardLocation::Standard
+                && let Some(text) = write
+                    .contents()
+                    .find(|content| content.mime.starts_with("text/plain"))
+            {
+                let text = String::from_utf8_lossy(text.data).into_owned();
+                events.borrow_mut().push(SessionEvent::ClipboardWrite(text));
+            }
+            Ok(())
         }
     })?;
 
@@ -876,6 +1089,8 @@ fn session_thread(
         cols,
         rows,
         scroll_delta,
+        events: events_local.clone(),
+        selecting: Selecting::new()?,
     };
 
     loop {
@@ -930,7 +1145,13 @@ fn session_thread(
         }
 
         let mut cmd_needs_render = false;
+        let autoscroll = if state.autoscrolling() {
+            crossbeam_channel::after(AUTOSCROLL)
+        } else {
+            crossbeam_channel::never()
+        };
         crossbeam_channel::select! {
+            recv(autoscroll) -> _ => state.autoscroll(&mut cmd_needs_render),
             recv(cmd_rx) -> msg => {
                 if let Ok(cmd) = msg && state.handle_command(cmd, &mut cmd_needs_render) {
                     break;

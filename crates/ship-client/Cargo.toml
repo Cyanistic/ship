@@ -10,7 +10,7 @@ description = "HTTP client library and full-screen client for Ship"
 ship-core.workspace = true
 
 crokey.workspace = true
-crossterm = { workspace = true, features = ["bracketed-paste", "event-stream"] }
+crossterm = { workspace = true, features = ["bracketed-paste", "event-stream", "osc52"] }
 futures-util.workspace = true
 indexmap.workspace = true
 notify-debouncer-mini.workspace = true

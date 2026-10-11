@@ -187,6 +187,15 @@ pub(crate) enum PaneChange {
     Exited(ExitStatus),
 }
 
+/// Text for clients' clipboards, on the bus apart from `PaneEvent`, since it
+/// changes no shared state. `to: None` is every viewer of `pane`'s tab.
+#[derive(Clone)]
+pub(crate) struct Clipboard {
+    pub pane: IdOf<Pane>,
+    pub to: Option<IdOf<Attachment>>,
+    pub text: String,
+}
+
 /// Shared by the wrapper's resizer and teardown, which on Unix reads the
 /// terminal's foreground group from it.
 type Master = Arc<Mutex<Box<dyn MasterPty + Send>>>;
@@ -325,6 +334,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         dir: None,
         reported: false,
         pid,
+        pointer: None,
         buffer,
         screen,
         bus,
@@ -363,6 +373,9 @@ struct PaneTask {
     /// the lookups of `pid`'s working directory.
     reported: bool,
     pid: Option<u32>,
+    /// The attachment that last sent pointer input, which a mouse
+    /// selection's copy goes to.
+    pointer: Option<IdOf<Attachment>>,
     /// Kept between captures so each one doesn't allocate a grid.
     buffer: Buffer,
     screen: watch::Sender<Arc<Screen>>,
@@ -458,7 +471,7 @@ impl PaneTask {
                 );
             }
             PaneCommand::Mouse(PaneMouse { input, from }) => {
-                tracing::trace!(pane = %self.pane, attachment = %from, "pointer input");
+                self.pointer = Some(from);
                 self.session.send_pointer(Pointer {
                     kind: input.kind,
                     modifiers: input.modifiers,
@@ -485,8 +498,11 @@ impl PaneTask {
     async fn publish(&mut self) {
         let mut changed = false;
         let mut dir = None;
+        let mut copies = Vec::new();
         while let Some(event) = self.session.poll_event() {
             match event {
+                SessionEvent::Copied(text) => copies.push((self.pointer, text)),
+                SessionEvent::ClipboardWrite(text) => copies.push((None, text)),
                 SessionEvent::TitleChanged(title) => {
                     self.title = Some(title).filter(|title| !title.is_empty());
                     changed = true;
@@ -504,6 +520,13 @@ impl PaneTask {
         if let Some(screen) = capture(&self.session, &mut self.buffer) {
             tracing::trace!(pane = %self.pane, "screen published");
             self.screen.send_replace(Arc::new(screen));
+        }
+        for (to, text) in copies {
+            let pane = self.pane;
+            self.bus
+                .tell(Publish(Clipboard { pane, to, text }))
+                .await
+                .ok();
         }
         if changed {
             self.event(PaneChange::Title(self.title.clone())).await;

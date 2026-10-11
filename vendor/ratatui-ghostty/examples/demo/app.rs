@@ -91,7 +91,9 @@ impl App {
                         SessionEvent::Exited
                         | SessionEvent::Bell
                         | SessionEvent::CwdChanged(_)
-                        | SessionEvent::Error(_) => {}
+                        | SessionEvent::Error(_)
+                        | SessionEvent::Copied(_)
+                        | SessionEvent::ClipboardWrite(_) => {}
                     }
                 }
                 if pane.is_dirty() {
