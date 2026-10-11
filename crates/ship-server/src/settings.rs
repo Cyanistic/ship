@@ -1,15 +1,26 @@
-//! `[server]` in the config file. Read whenever a shell starts, never cached.
+//! `[server]` in the config file. Read whenever a pane starts, never cached.
 
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use ship_core::{config, prelude::*};
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct ServerSettings {
     /// Absent: the login shell.
     pub shell: Option<PathBuf>,
+    /// History cap for panes created after the file is saved.
+    pub scrollback_bytes: usize,
+}
+
+impl Default for ServerSettings {
+    fn default() -> Self {
+        Self {
+            shell: None,
+            scrollback_bytes: 10_000_000,
+        }
+    }
 }
 
 /// The file's top level as the server sees it: only `server`, with the

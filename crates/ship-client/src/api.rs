@@ -12,12 +12,13 @@ use ship_core::{
     model::{Named, Pane, Tab},
     prelude::*,
     protocol::{
-        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, ResizePane, SseEvent, SwapPane,
-        ViewInput, ViewingRecord, ZoomPane,
+        AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, REVISION_HEADER, ReadPane,
+        ResizePane, ScrollPane, SseEvent, SwapPane, ViewInput, ViewingRecord, ZoomPane,
     },
     tree::Tabs,
 };
 use sse_stream::SseByteStream;
+use tokio::time::timeout;
 use url::Url;
 
 use crate::{NO_BODY, http_error};
@@ -152,6 +153,40 @@ impl Client {
     /// Move the pane's edge; returns its tab.
     pub async fn resize(&self, pane: IdOf<Pane>, body: &ResizePane) -> Result<Tab> {
         self.pane_edit(pane, "resize", body).await
+    }
+
+    /// Scroll the shared viewport, including after program exit.
+    pub async fn scroll(&self, pane: IdOf<Pane>, body: &ScrollPane) -> Result<()> {
+        let path = format!("{}/{pane}/scroll", Pane::COLLECTION);
+        self.request(
+            Method::POST,
+            &path,
+            Some(body),
+            None,
+            StatusCode::NO_CONTENT,
+        )
+        .await
+    }
+
+    /// Read terminal text without changing the shared viewport.
+    pub async fn read(&self, pane: IdOf<Pane>, query: &ReadPane) -> Result<String> {
+        let path = format!("{}/{pane}/text", Pane::COLLECTION);
+        let (request, safe) = self.build(Method::GET, &path, NO_BODY, None);
+        let exchange = async {
+            let response = crate::open(request.query(query), StatusCode::OK).await?;
+            if let Some(revision) = response
+                .headers()
+                .get(REVISION_HEADER)
+                .and_then(|value| value.to_str().ok()?.parse().ok())
+            {
+                self.wrote(revision);
+            }
+            response.text().await.map_err(http_error)
+        };
+        timeout(crate::TIMEOUT, exchange)
+            .await
+            .unwrap_or_else(|_| Err(err!(Network, "HTTP request timed out")))
+            .context(format!("request to {safe} failed"))
     }
 
     async fn pane_edit(

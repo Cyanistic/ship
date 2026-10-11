@@ -72,7 +72,7 @@ Completion evidence:
 - Pi, Neovim, ordinary shells and running tests work side by side.
 - Repeated splitting and resizing preserve usable rendering and input.
 - Alternate-screen applications enter and exit correctly.
-- Selection, copying, pasting and search work in representative sessions.
+- Selection, copying, pasting and search work in representative sessions. Until built-in search lands, `ship pane read --lines N` piped into `grep` or an editor stands in for the search evidence, as approved in the scrollback change's 2026-10-11 amendment. Copy mode and edit-scrollback are also deferred.
 - These behaviors are exercised on Linux and macOS, with known limitations recorded.
 
 ### 2. Leave and come back

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyEvent, KeyModifiers, MouseEventKind};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
@@ -20,7 +20,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 8;
+pub const PROTOCOL_VERSION: u32 = 9;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -140,6 +140,35 @@ pub struct ResizePane {
     pub amount: Option<u16>,
 }
 
+/// POST /panes/{id}/scroll body.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ScrollPane {
+    pub direction: ScrollDirection,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<u32>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, ToSchema)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+#[serde(rename_all = "snake_case")]
+pub enum ScrollDirection {
+    Up,
+    Down,
+    Top,
+    Bottom,
+}
+
+/// GET /panes/{id}/text query.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ReadPane {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lines: Option<u32>,
+    pub unwrap: bool,
+    pub ansi: bool,
+}
+
 /// POST /tabs/{id}/move body: exactly one destination. `{"parent": "tab:…"}`,
 /// `{"parent": null}` for the top level, `{"before": "tab:…"}` or
 /// `{"after": "tab:…"}`.
@@ -234,6 +263,9 @@ pub enum SseEvent {
     /// The latest screen of a pane in the attachment's viewed tab. Sent when
     /// it changes, and for every such pane when the viewed tab changes.
     Screen(PaneScreen),
+    /// Text for this client's clipboard: its own mouse selection, or a
+    /// program's clipboard write in a pane of its viewed tab.
+    Clipboard(ClipboardText),
     /// Always last: why the server is closing the stream. A stream that ends
     /// without it was cut.
     Ended(Ended),
@@ -244,6 +276,12 @@ pub enum SseEvent {
 pub struct PaneScreen {
     pub pane: IdOf<Pane>,
     pub screen: Arc<Screen>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ClipboardText {
+    pub text: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -276,6 +314,7 @@ pub struct Attached {
 pub enum InputFrame {
     Key(KeyInput),
     Paste(PasteInput),
+    Mouse(MouseInput),
 }
 
 /// A key press, encoded on the server against the pane's live terminal modes.
@@ -287,6 +326,19 @@ pub struct KeyInput {
     /// "kind": "Press", "state": ""}`; modifiers read `"SHIFT | CONTROL"`.
     #[schema(value_type = Object)]
     pub key: KeyEvent,
+}
+
+/// A pointer relative to the pane's content; drags may be outside it.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MouseInput {
+    pub pane: IdOf<Pane>,
+    #[schema(value_type = Object)]
+    pub kind: MouseEventKind,
+    #[schema(value_type = String)]
+    pub modifiers: KeyModifiers,
+    pub x: i32,
+    pub y: i32,
 }
 
 /// Text sent as one paste; bracketed when the program asked for it.

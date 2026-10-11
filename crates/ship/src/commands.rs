@@ -1,4 +1,8 @@
-use std::{path::Path, time::Duration};
+use std::{
+    io::{self, Write},
+    path::Path,
+    time::Duration,
+};
 
 use serde::Serialize;
 use ship_client::{Client, Outcome, Scope, keymap::ClientSettings};
@@ -15,6 +19,10 @@ const STOP_WAIT: Duration = Duration::from_secs(10);
 pub async fn action(client: &Client, command: Command) -> Result<()> {
     match client.execute(command, &Scope::Cli).await? {
         Outcome::Closed => Ok(()),
+        Outcome::Text(text) => io::stdout()
+            .lock()
+            .write_all(text.as_bytes())
+            .map_err(|error| err!(Io, "cannot print pane text", @external: error)),
         outcome => print(&outcome),
     }
 }

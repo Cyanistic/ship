@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use ratatui::{
     Frame,
-    layout::Rect,
+    layout::{Position, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
@@ -18,10 +18,29 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use super::draw::tab_label;
 
+/// Drawn before the selected row and blanked to its width on the others,
+/// whenever something is selected.
+const HIGHLIGHT: &str = " ";
+const OPEN: &str = "▾ ";
+const CLOSED: &str = "▸ ";
+/// tui-tree-widget's fixed indent per level.
+const INDENT: u16 = 2;
+
 pub(super) struct Sidebar {
     collapsed: HashSet<IdOf<Tab>>,
     pub shown: bool,
     pub width: u16,
+    /// The tree as last drawn, for hit-testing.
+    rendered: TreeState<IdOf<Tab>>,
+    /// Where the tree was last drawn.
+    tree: Rect,
+}
+
+/// A sidebar row under the pointer.
+pub(super) struct Row {
+    pub tab: IdOf<Tab>,
+    /// On the fold marker, which only rows with children have.
+    pub marker: bool,
 }
 
 impl Sidebar {
@@ -30,6 +49,8 @@ impl Sidebar {
             collapsed: HashSet::new(),
             shown: true,
             width,
+            rendered: TreeState::default(),
+            tree: Rect::ZERO,
         }
     }
 
@@ -37,10 +58,14 @@ impl Sidebar {
         if self.shown { self.width } else { 0 }
     }
 
-    /// Forget removed tabs and open ancestors of the authoritative selection
-    /// (or a pending local navigation). The selected row itself may be folded.
-    pub fn reconcile(&mut self, tabs: &Tabs, selection: Option<NodeId>) {
-        self.collapsed.retain(|id| tree::tab(tabs, *id).is_ok());
+    /// Forget folds for removed tabs or tabs without children.
+    pub fn reconcile(&mut self, tabs: &Tabs) {
+        self.collapsed
+            .retain(|id| tree::tab(tabs, *id).is_ok_and(|tab| !tab.tabs.is_empty()));
+    }
+
+    /// Open the selection's ancestors, leaving its own row's fold unchanged.
+    pub fn reveal(&mut self, tabs: &Tabs, selection: Option<NodeId>) {
         let path = selection
             .and_then(|node| tree::path(tabs, node))
             .unwrap_or_default();
@@ -77,7 +102,41 @@ impl Sidebar {
         }
     }
 
-    pub fn draw(&self, frame: &mut Frame, area: Rect, tabs: &Tabs, selection: Option<NodeId>) {
+    /// The row drawn at `position`, if any. The marker's column repeats the
+    /// tree widget's layout: the highlight symbol, then the indent.
+    pub fn row_at(&self, position: Position) -> Option<Row> {
+        if !self.shown {
+            return None;
+        }
+        let path = self.rendered.rendered_at(position)?;
+        let tab = *path.last()?;
+        let highlight = if self.rendered.selected().is_empty() {
+            0
+        } else {
+            Span::raw(HIGHLIGHT).width() as u16
+        };
+        let depth = path.len().saturating_sub(1) as u16;
+        let start = self.tree.x + highlight + INDENT * depth;
+        let symbol = if self.rendered.opened().contains(path) {
+            Some(OPEN)
+        } else {
+            self.collapsed.contains(&tab).then_some(CLOSED)
+        };
+        Some(Row {
+            tab,
+            marker: symbol.is_some_and(|symbol| {
+                (start..start.saturating_add(Span::raw(symbol).width() as u16))
+                    .contains(&position.x)
+            }),
+        })
+    }
+
+    pub fn toggle(&mut self, tab: IdOf<Tab>) {
+        self.fold(tab, !self.collapsed.contains(&tab));
+    }
+
+    pub fn draw(&mut self, frame: &mut Frame, area: Rect, tabs: &Tabs, selection: Option<NodeId>) {
+        self.rendered = TreeState::default();
         if area.is_empty() {
             return;
         }
@@ -111,20 +170,18 @@ impl Sidebar {
         // Tabs is an ID-keyed map, so sibling identifiers are unique.
         let widget = Tree::new(&items)
             .expect("unique tab IDs")
-            .node_open_symbol("▾ ")
-            .node_closed_symbol("▸ ")
-            .highlight_symbol(" ")
+            .node_open_symbol(OPEN)
+            .node_closed_symbol(CLOSED)
+            .highlight_symbol(HIGHLIGHT)
             .style(Style::new().gray())
             .highlight_style(Style::new().fg(Color::Reset).on_dark_gray().bold());
-        frame.render_stateful_widget(
-            widget,
-            Rect {
-                y: content.y.saturating_add(content.height.min(2)),
-                height: content.height.saturating_sub(2),
-                ..content
-            },
-            &mut state,
-        );
+        self.tree = Rect {
+            y: content.y.saturating_add(content.height.min(2)),
+            height: content.height.saturating_sub(2),
+            ..content
+        };
+        frame.render_stateful_widget(widget, self.tree, &mut state);
+        self.rendered = state;
     }
 
     fn items(
@@ -137,7 +194,7 @@ impl Sidebar {
             .enumerate()
             .map(|(position, tab)| {
                 path.push(tab.id);
-                if !self.collapsed.contains(&tab.id) {
+                if !tab.tabs.is_empty() && !self.collapsed.contains(&tab.id) {
                     state.open(path.clone());
                 }
                 let children = self.items(&tab.tabs, path, state);

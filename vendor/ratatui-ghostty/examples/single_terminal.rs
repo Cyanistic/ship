@@ -3,6 +3,7 @@ use std::os::unix::io::AsRawFd;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
+use std::{env, fs, panic};
 
 use crossterm::cursor::SetCursorStyle;
 use crossterm::event::{
@@ -27,7 +28,8 @@ enum AppEvent {
 }
 
 fn redirect_stderr() {
-    if let Ok(log) = std::fs::File::create("/tmp/ratatui-ghostty-example.log") {
+    if let Ok(log) = fs::File::create("/tmp/ratatui-ghostty-example.log") {
+        // SAFETY: both descriptors are open for the duration of the call.
         unsafe { libc::dup2(log.as_raw_fd(), libc::STDERR_FILENO) };
     }
 }
@@ -46,7 +48,7 @@ fn spawn_session(
         pixel_height: 0,
     })?;
 
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string());
+    let shell = env::var("SHELL").unwrap_or_else(|_| "bash".to_string());
     let mut cmd = CommandBuilder::new(&shell);
     cmd.env("TERM", "xterm-256color");
     let _child = pair.slave.spawn_command(cmd)?;
@@ -91,8 +93,8 @@ fn inner_area(area: Rect) -> Rect {
 fn main() -> anyhow::Result<()> {
     redirect_stderr();
 
-    let default_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
+    let default_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
         let _ = terminal::disable_raw_mode();
         let _ = execute!(
             io::stdout(),
@@ -141,7 +143,7 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    let wake_tx = tx.clone();
+    let wake_tx = tx;
     let inner = inner_area(term_size);
     let session = spawn_session(inner.width, inner.height, &host_colors, move || {
         let _ = wake_tx.send(AppEvent::SessionUpdate);

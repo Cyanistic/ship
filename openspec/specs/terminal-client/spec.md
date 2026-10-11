@@ -125,11 +125,15 @@ An unnamed pane's label SHALL be its program's current title, else its command. 
 - **THEN** the tab's derived label follows that pane without changing either pane's identity
 
 ### Requirement: Terminal restoration
-The client SHALL restore the user's terminal to its state before opening on every exit path, including detach, server shutdown, panics and signals it can handle.
+The client SHALL restore the user's terminal to its state before opening on every exit path, including detach, server shutdown, panics and signals it can handle. Restoring SHALL include turning mouse capture off.
 
 #### Scenario: Client killed
 - **WHEN** the client receives SIGTERM, or panics in a temporary probe build
 - **THEN** the outer terminal is usable without running `reset`
+
+#### Scenario: Mouse released on detach
+- **WHEN** a user detaches with `alt-q` and drags in the outer terminal
+- **THEN** the outer terminal selects text and no mouse escape sequences appear at the shell prompt
 
 ### Requirement: Pane frames and screens
 A tab with two or more panes SHALL draw labeled borders around its visible splits with a visually distinct selected-pane border and shared adjoining edges. A lone or zoomed pane SHALL fill its area without a border. Each visible pane SHALL display its own faithful screen, with the selected pane's cursor placed inside its content rectangle.
@@ -164,3 +168,10 @@ The sidebar SHALL show a plain `tabs` title above one row per visible tab in tre
 #### Scenario: Empty selection beside sidebar
 - **WHEN** nothing is selected or an empty tab is selected
 - **THEN** the existing corresponding empty-state hint appears in the pane area beside the sidebar
+
+### Requirement: Scroll indicator
+A pane scrolled up from the bottom SHALL show how far it is from the bottom, on its border, or at its content's top right when it has no border. A pane at the bottom SHALL show no indicator. Its exact wording is settled in rendering review.
+
+#### Scenario: Indicator appears and goes
+- **WHEN** a user scrolls a bordered shell pane up one page, then types a key
+- **THEN** the pane's border shows its distance from the bottom, and the indicator disappears once input returns it to the bottom

@@ -113,6 +113,7 @@ fn poll_read(fd: i32, timeout: Duration) -> io::Result<bool> {
         events: libc::POLLIN,
         revents: 0,
     };
+    // SAFETY: `pfd` is a live, initialized pollfd and the count is 1.
     match unsafe { libc::poll(&raw mut pfd, 1, ms) } {
         -1 => Err(io::Error::last_os_error()),
         0 => Ok(false),
@@ -168,7 +169,7 @@ fn parse_osc(content: &[u8], fg: &mut Rgb, bg: &mut Rgb, palette: &mut [Rgb]) ->
 }
 
 fn parse_osc_inner(content: &[u8], fg: &mut Rgb, bg: &mut Rgb, palette: &mut [Rgb]) -> Option<()> {
-    let s = std::str::from_utf8(content).ok()?;
+    let s = str::from_utf8(content).ok()?;
     let (num_str, rest) = s.split_once(';')?;
     match num_str.parse::<u16>().ok()? {
         10 => *fg = parse_rgb(rest)?,

@@ -7,8 +7,9 @@ use std::{
 };
 
 use crossterm::{
+    clipboard::CopyToClipboard,
     cursor::{SetCursorStyle, Show},
-    event::{DisableBracketedPaste, EnableBracketedPaste},
+    event::{DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -29,6 +30,8 @@ pub(super) struct TerminalGuard {
     pub terminal: Terminal<CrosstermBackend<BufWriter<Stdout>>>,
     /// The cursor shape last set, so it's only written when it changes.
     cursor: Option<(CursorShape, bool)>,
+    /// Whether mouse capture is on.
+    mouse: bool,
 }
 
 impl TerminalGuard {
@@ -48,10 +51,33 @@ impl TerminalGuard {
         let guard = Self {
             terminal: terminal.inspect_err(|_| restore())?,
             cursor: None,
+            mouse: false,
         };
         execute!(io::stdout(), EnterAlternateScreen, EnableBracketedPaste)
             .map_err(|error| err!(Io, "cannot enter the alternate screen", @external: error))?;
         Ok(guard)
+    }
+
+    pub fn mouse(&self) -> bool {
+        self.mouse
+    }
+
+    pub fn set_mouse(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            execute!(io::stdout(), EnableMouseCapture)
+        } else {
+            execute!(io::stdout(), DisableMouseCapture)
+        }
+        .map_err(|error| err!(Io, "cannot set mouse capture", @external: error))?;
+        self.mouse = enabled;
+        Ok(())
+    }
+
+    /// Put `text` on the clipboard through the terminal's OSC 52, which some
+    /// terminals ignore or cap in size.
+    pub fn copy(&self, text: &str) -> Result<()> {
+        execute!(io::stdout(), CopyToClipboard::to_clipboard_from(text))
+            .map_err(|error| err!(Io, "cannot write the clipboard", @external: error))
     }
 
     /// Match the pane's cursor shape. ratatui places and shows the cursor but
@@ -89,6 +115,7 @@ impl Drop for TerminalGuard {
 fn restore() {
     execute!(
         io::stdout(),
+        DisableMouseCapture,
         DisableBracketedPaste,
         LeaveAlternateScreen,
         SetCursorStyle::DefaultUserShape,

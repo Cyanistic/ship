@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
@@ -50,7 +51,7 @@ impl App {
         colors: HostColors,
         wake: Arc<dyn Fn() + Send + Sync>,
     ) -> anyhow::Result<Self> {
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "bash".to_string());
+        let shell = env::var("SHELL").unwrap_or_else(|_| "bash".to_string());
         let tab = Tab::new_with_shell(cols, rows, &shell, &colors, Arc::clone(&wake))?;
         Ok(Self {
             tabs: vec![tab],
@@ -91,7 +92,9 @@ impl App {
                         SessionEvent::Exited
                         | SessionEvent::Bell
                         | SessionEvent::CwdChanged(_)
-                        | SessionEvent::Error(_) => {}
+                        | SessionEvent::Error(_)
+                        | SessionEvent::Copied(_)
+                        | SessionEvent::ClipboardWrite(_) => {}
                     }
                 }
                 if pane.is_dirty() {

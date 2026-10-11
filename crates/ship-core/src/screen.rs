@@ -12,6 +12,17 @@ pub struct Screen {
     /// Absent when the cursor is hidden.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor: Option<Cursor>,
+    /// Distance above the bottom, absent at the bottom.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrolled: Option<Scrolled>,
+}
+
+/// Rows above the bottom, out of the history's rows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Scrolled {
+    pub offset: u32,
+    pub history: u32,
 }
 
 /// Default-valued fields are omitted on the wire, so a blank cell is `{}`.

@@ -3,6 +3,7 @@
 mod draw;
 mod keys;
 mod memory;
+mod mouse;
 mod observer;
 mod panes;
 mod sidebar;
@@ -21,6 +22,7 @@ use crossterm::{
     terminal::size,
 };
 use futures_util::{Stream, StreamExt};
+use ratatui::layout::Rect;
 use ship_core::{
     command::{
         Command, Direction, PaneTarget,
@@ -30,7 +32,9 @@ use ship_core::{
     id::{Attachment, IdOf},
     model::{NodeId, Pane},
     prelude::*,
-    protocol::{AttachRequest, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput},
+    protocol::{
+        AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput,
+    },
     screen::Size,
     tree::{self, Tabs},
 };
@@ -44,6 +48,7 @@ use self::{
     draw::Status,
     keys::{Handled, Keys},
     memory::Memory,
+    mouse::{Clicked, Mouse},
     observer::Observer,
     sidebar::Sidebar,
     terminal::TerminalGuard,
@@ -154,6 +159,8 @@ async fn drive(
     let mut observer = Observer::default();
     let mut memory = Memory::default();
     let (settings, mut message) = loaded;
+    guard.set_mouse(settings.mouse)?;
+    let mut mouse = Mouse::default();
     let mut sidebar = Sidebar::new(settings.sidebar_width);
     let mut keys = Keys::new(settings.keymap);
     let mut saves: Option<Saves> = match watch::changes(config) {
@@ -181,7 +188,7 @@ async fn drive(
     redraw(
         guard,
         &observer,
-        &sidebar,
+        &mut sidebar,
         &status(&keys, message.as_deref()),
     )?;
     loop {
@@ -192,6 +199,10 @@ async fn drive(
                         EndReason::ServerShutdown => Exit::ServerStopped,
                     });
                 }
+                Some(Ok(SseEvent::Clipboard(ClipboardText { text }))) => {
+                    guard.copy(&text)?;
+                    false
+                }
                 Some(Ok(event)) => {
                     if let SseEvent::Attached(attached) = &event {
                         let (frames, received) = mpsc::unbounded_channel();
@@ -200,10 +211,14 @@ async fn drive(
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));
+                    let previous = observer.record().and_then(|record| record.selection);
                     let visible = observer.apply(event);
                     if !screen && let Some(replica) = &observer.replica {
                         let selection = observer.record().and_then(|record| record.selection);
                         memory.observe(&replica.tabs, selection);
+                        if previous != selection {
+                            sidebar.reveal(&replica.tabs, selection);
+                        }
                     }
                     visible
                 }
@@ -214,6 +229,7 @@ async fn drive(
                     sending = None;
                     putting = None;
                     chosen = None;
+                    mouse = Mouse::default();
                     client.forget();
                     observer.connected = false;
                     if let Some(remembered) = observer.remembered(view_area(terminal, &sidebar)) {
@@ -258,7 +274,7 @@ async fn drive(
             save = next(&mut saves) => {
                 match save {
                     Some(()) => {
-                        message = reload(&mut keys, &mut sidebar, config).err().map(|error| error.to_string());
+                        message = reload(&mut keys, &mut sidebar, guard, &mut mouse, config).err().map(|error| error.to_string());
                     }
                     None => saves = None,
                 }
@@ -278,6 +294,41 @@ async fn drive(
                     terminal = (cols, rows);
                     true
                 }
+                Some(Ok(Event::Mouse(event))) if guard.mouse() && observer.connected => {
+                    let selected = observer.selected();
+                    let (_, panes) = draw::split(Rect::new(0, 0, terminal.0, terminal.1), sidebar.width());
+                    let clicked = mouse.route(
+                        event,
+                        panes,
+                        selected.as_ref().and_then(|selected| selected.tab.geometry.as_deref()),
+                        selected.and_then(|selected| selected.pane).map(|pane| pane.id),
+                        &sidebar,
+                    );
+                    match clicked {
+                        Some(Clicked::Select(NodeId::Tab(id))) => {
+                            if let Some(replica) = &observer.replica
+                                && let Ok(tab) = tree::tab(&replica.tabs, id) {
+                                chosen = Some(memory.landing(tab));
+                            }
+                            true
+                        }
+                        Some(Clicked::Select(node)) => {
+                            chosen = Some(node);
+                            true
+                        }
+                        Some(Clicked::Fold(tab)) => {
+                            sidebar.toggle(tab);
+                            true
+                        }
+                        Some(Clicked::Frame(frame)) => {
+                            if let Some(input) = &input { input.send(frame).ok(); }
+                            false
+                        }
+                        None => false,
+                    }
+                }
+                // Decoded before capture went off.
+                Some(Ok(Event::Mouse(_))) => false,
                 Some(Ok(event)) => {
                     let selected = observer.selected().and_then(|selected| selected.pane).map(|pane| pane.id);
                     let before = keys.shown_mode().cloned();
@@ -460,7 +511,7 @@ async fn drive(
                     }
                     ClientAction::Detach {} => return Ok(Exit::Detached),
                     ClientAction::Config(ConfigAction::Reload {}) => {
-                        reload(&mut keys, &mut sidebar, config)
+                        reload(&mut keys, &mut sidebar, guard, &mut mouse, config)
                     }
                 },
             };
@@ -470,16 +521,13 @@ async fn drive(
             }
         }
         if let Some(replica) = &observer.replica {
-            sidebar.reconcile(
-                &replica.tabs,
-                chosen.or(observer.record().and_then(|record| record.selection)),
-            );
+            sidebar.reconcile(&replica.tabs);
         }
         if visible {
             redraw(
                 guard,
                 &observer,
-                &sidebar,
+                &mut sidebar,
                 &status(&keys, message.as_deref()),
             )?;
         }
@@ -489,7 +537,7 @@ async fn drive(
 fn redraw(
     guard: &mut TerminalGuard,
     observer: &Observer,
-    sidebar: &Sidebar,
+    sidebar: &mut Sidebar,
     status: &Status,
 ) -> Result<()> {
     let mut cursor = None;
@@ -512,9 +560,19 @@ fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
     }
 }
 
-/// Loads `config` into `keys`. A bad file keeps the running keymap.
-fn reload(keys: &mut Keys, sidebar: &mut Sidebar, config: &Path) -> Result<()> {
+/// Loads `config` into `keys`, the sidebar and mouse capture. A bad file
+/// keeps the running settings. A press held across the reload is dropped,
+/// since its release may go to the outer terminal.
+fn reload(
+    keys: &mut Keys,
+    sidebar: &mut Sidebar,
+    guard: &mut TerminalGuard,
+    mouse: &mut Mouse,
+    config: &Path,
+) -> Result<()> {
     let settings = ClientSettings::load(config)?;
+    guard.set_mouse(settings.mouse)?;
+    *mouse = Mouse::default();
     sidebar.width = settings.sidebar_width;
     keys.replace(settings.keymap);
     Ok(())

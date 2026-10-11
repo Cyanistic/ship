@@ -16,7 +16,8 @@ use ship_core::{
     model::{NodeId, Pane, Tab},
     prelude::*,
     protocol::{
-        CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ResizePane, SwapPane, ZoomPane,
+        CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ReadPane, ResizePane,
+        ScrollPane, SwapPane, ZoomPane,
     },
     tree::{self, Tabs},
 };
@@ -50,6 +51,7 @@ pub enum Outcome {
     Tab(Tab),
     Pane(Pane),
     Closed,
+    Text(String),
 }
 
 impl Client {
@@ -160,6 +162,34 @@ impl Client {
                 }) => {
                     let id = Self::pane_target(pane, scope)?;
                     Outcome::Tab(self.resize(id, &ResizePane { direction, amount }).await?)
+                }
+                PaneCommand::Scroll(pane::Scroll {
+                    pane,
+                    direction,
+                    amount,
+                }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    self.scroll(id, &ScrollPane { direction, amount }).await?;
+                    Outcome::Closed
+                }
+                PaneCommand::Read(pane::Read {
+                    pane,
+                    lines,
+                    unwrap,
+                    ansi,
+                }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Text(
+                        self.read(
+                            id,
+                            &ReadPane {
+                                lines,
+                                unwrap,
+                                ansi,
+                            },
+                        )
+                        .await?,
+                    )
                 }
                 PaneCommand::Zoom(pane::Zoom { pane, zoomed }) => {
                     let id = Self::pane_target(pane, scope)?;

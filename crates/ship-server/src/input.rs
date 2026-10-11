@@ -1,4 +1,4 @@
-//! The input stream: keys and pastes from one attachment, routed to panes.
+//! The input stream: keys, pastes and pointers from one attachment, routed to panes.
 
 use std::io;
 
@@ -10,7 +10,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use futures_util::{StreamExt, TryStreamExt};
-use ship_core::{AppError, Result, err, protocol::*};
+use ship_core::{
+    AppError, Result, err,
+    id::{Attachment, IdOf},
+    protocol::*,
+};
 use tokio_util::{
     codec::{FramedRead, LinesCodec},
     io::StreamReader,
@@ -19,7 +23,7 @@ use tokio_util::{
 use crate::{
     AppState,
     attach::AttachmentHeader,
-    pane::{LivePanes, PaneCommand},
+    pane::{LivePanes, PaneCommand, PaneMouse},
     state::CheckAttachment,
 };
 
@@ -31,7 +35,7 @@ use crate::{
         description = "Attachment ID from the stream's `attached` event, e.g. attachment:3f2a...")),
     request_body(content = InputFrame, content_type = "application/x-ndjson",
         description = "One `InputFrame` per line, each at most 64 KiB, read as they arrive. \
-            Frames for panes that aren't running are ignored."),
+            Removed panes ignore frames; exited panes still accept mouse input."),
     responses(
         (status = 204, description = "The body ended, or the attachment or server did"),
         (status = 400, description = "Missing or malformed attachment header", body = AppError),
@@ -57,7 +61,7 @@ pub(crate) async fn input(
                     .map_err(|error| err!(Validation, "unreadable input line", @external: error))
                     .and_then(|line| frame(&line))
                 {
-                    Ok(Some(frame)) => route(&app.live.borrow(), frame),
+                    Ok(Some(frame)) => route(&app.live.borrow(), frame, attachment),
                     Ok(None) => {}
                     Err(error) => {
                         return Ok((StatusCode::UNPROCESSABLE_ENTITY, Json(error)).into_response());
@@ -90,10 +94,11 @@ fn frame(line: &str) -> Result<Option<InputFrame>> {
         .map_err(|error| err!(Validation, "malformed input frame", @external: error))
 }
 
-fn route(live: &LivePanes, frame: InputFrame) {
+fn route(live: &LivePanes, frame: InputFrame, from: IdOf<Attachment>) {
     let (pane, command) = match frame {
         InputFrame::Key(KeyInput { pane, key }) => (pane, PaneCommand::Key(key)),
         InputFrame::Paste(PasteInput { pane, text }) => (pane, PaneCommand::Paste(text)),
+        InputFrame::Mouse(input) => (input.pane, PaneCommand::Mouse(PaneMouse { input, from })),
     };
     if let Some(handle) = live.get(&pane) {
         handle.commands.send(command).ok();

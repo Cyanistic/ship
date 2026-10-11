@@ -1,3 +1,5 @@
+use std::env;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,7 +28,7 @@ pub struct PrefixState {
 
 impl PrefixState {
     pub fn new() -> Self {
-        let prefix_key = std::env::var("RATATUI_GHOSTTY_PREFIX_KEY")
+        let prefix_key = env::var("RATATUI_GHOSTTY_PREFIX_KEY")
             .ok()
             .and_then(|s| s.chars().next())
             .unwrap_or('b');

@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
+use std::{fs, panic};
 
 use crossterm::cursor::SetCursorStyle;
 use crossterm::event::{
@@ -33,15 +34,16 @@ enum AppEvent {
 
 /// Required as ghostty zig lib logs to stderr, see readme
 fn redirect_stderr() {
-    if let Ok(log) = std::fs::File::create("/tmp/ratatui-ghostty.log") {
+    if let Ok(log) = fs::File::create("/tmp/ratatui-ghostty.log") {
+        // SAFETY: both descriptors are open for the duration of the call.
         unsafe { libc::dup2(log.as_raw_fd(), libc::STDERR_FILENO) };
     }
 }
 
 fn main() -> anyhow::Result<()> {
     redirect_stderr();
-    let default_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
+    let default_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
         let _ = terminal::disable_raw_mode();
         let _ = execute!(
             io::stdout(),
@@ -88,7 +90,7 @@ fn main() -> anyhow::Result<()> {
         }
     });
 
-    let pane_wake_tx = wake_tx.clone();
+    let pane_wake_tx = wake_tx;
     let wake: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
         let _ = pane_wake_tx.send(AppEvent::PaneUpdate);
     });

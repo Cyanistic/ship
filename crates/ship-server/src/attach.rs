@@ -11,13 +11,18 @@ use axum::{
 };
 use futures_util::{StreamExt, stream};
 use kameo::actor::ActorRef;
-use ship_core::{AppError, Result, err, id::*, model::Pane, protocol::*, screen::Screen};
-use tokio::{runtime::Handle, sync::watch};
+use ship_core::{
+    AppError, Result, err, id::*, model::Pane, protocol::*, relay::Subscribe, screen::Screen,
+};
+use tokio::{
+    runtime::Handle,
+    sync::{mpsc, watch},
+};
 use tokio_stream::{StreamMap, wrappers::WatchStream};
 
 use crate::{
     AppState,
-    pane::LivePanes,
+    pane::{Clipboard, LivePanes},
     state::{Attach, Detach, ServerState, SetView, tree},
 };
 
@@ -50,8 +55,8 @@ impl Drop for AttachmentGuard {
         (status = 200, content_type = "text/event-stream", body = SseEvent,
             description = "Server-sent events whose `data:` lines are `SseEvent` JSON: \
                 `attached` first, then `state` for each newer replica and `screen` for each \
-                changed screen of a pane in the viewed tab, then `ended` when the server \
-                shuts down. Viewing a tab sends each of its panes' current screens."),
+                changed screen of a pane in the viewed tab, `clipboard` for text to copy, then \
+                `ended` when the server shuts down. Viewing a tab sends each of its panes' current screens."),
         (status = 422, description = "Malformed selection or area"),
         (status = 503, body = AppError),
     ),
@@ -72,8 +77,16 @@ pub(crate) async fn attach(
             request,
         })
         .await?;
+    let (clipboard_tx, clipboard) = mpsc::unbounded_channel();
+    app.bus
+        .ask(Subscribe::<Clipboard> {
+            sink: Box::new(clipboard_tx),
+        })
+        .await
+        .map_err(|error| err!(Internal, "cannot subscribe to copies", @external: error))?;
     let mut progress = Progress {
         attachment,
+        clipboard,
         replicas: app.replicas.clone(),
         live: app.live.clone(),
         replica: Arc::clone(&attached.replica),
@@ -104,6 +117,9 @@ pub(crate) async fn attach(
 /// What one attach stream has sent, and the screens it watches.
 struct Progress {
     attachment: IdOf<Attachment>,
+    /// Every pane's copies; this stream sends those addressed to it, and
+    /// program writes in the panes it watches.
+    clipboard: mpsc::UnboundedReceiver<Clipboard>,
     replicas: watch::Receiver<Arc<Replica>>,
     /// Holds every pane of a replica the stream has, because the state actor
     /// publishes it first.
@@ -131,6 +147,11 @@ impl Progress {
                 }
                 Some((pane, screen)) = self.watching.next() => {
                     return Ok(SseEvent::Screen(PaneScreen { pane, screen }));
+                }
+                Some(Clipboard { pane, to, text }) = self.clipboard.recv() => {
+                    if to.map_or(self.watching.contains_key(&pane), |to| to == self.attachment) {
+                        return Ok(SseEvent::Clipboard(ClipboardText { text }));
+                    }
                 }
             }
         }
