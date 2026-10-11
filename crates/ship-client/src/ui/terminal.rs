@@ -8,7 +8,7 @@ use std::{
 
 use crossterm::{
     cursor::{SetCursorStyle, Show},
-    event::{DisableBracketedPaste, EnableBracketedPaste},
+    event::{DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -29,6 +29,8 @@ pub(super) struct TerminalGuard {
     pub terminal: Terminal<CrosstermBackend<BufWriter<Stdout>>>,
     /// The cursor shape last set, so it's only written when it changes.
     cursor: Option<(CursorShape, bool)>,
+    /// Whether mouse capture is on.
+    mouse: bool,
 }
 
 impl TerminalGuard {
@@ -48,10 +50,26 @@ impl TerminalGuard {
         let guard = Self {
             terminal: terminal.inspect_err(|_| restore())?,
             cursor: None,
+            mouse: false,
         };
         execute!(io::stdout(), EnterAlternateScreen, EnableBracketedPaste)
             .map_err(|error| err!(Io, "cannot enter the alternate screen", @external: error))?;
         Ok(guard)
+    }
+
+    pub fn mouse(&self) -> bool {
+        self.mouse
+    }
+
+    pub fn set_mouse(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            execute!(io::stdout(), EnableMouseCapture)
+        } else {
+            execute!(io::stdout(), DisableMouseCapture)
+        }
+        .map_err(|error| err!(Io, "cannot set mouse capture", @external: error))?;
+        self.mouse = enabled;
+        Ok(())
     }
 
     /// Match the pane's cursor shape. ratatui places and shows the cursor but
@@ -89,6 +107,7 @@ impl Drop for TerminalGuard {
 fn restore() {
     execute!(
         io::stdout(),
+        DisableMouseCapture,
         DisableBracketedPaste,
         LeaveAlternateScreen,
         SetCursorStyle::DefaultUserShape,

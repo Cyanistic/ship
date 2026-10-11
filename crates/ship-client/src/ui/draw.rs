@@ -29,12 +29,27 @@ pub(super) struct Status<'a> {
     pub hints: Vec<&'a str>,
 }
 
+/// `area` split into the sidebar's columns and the pane area beside them,
+/// for drawing, hit-testing and the size the server gives panes.
+pub(super) fn split(area: Rect, sidebar_width: u16) -> (Rect, Rect) {
+    let width = sidebar_width.min(area.width);
+    (
+        Rect { width, ..area },
+        Rect {
+            x: area.x + width,
+            width: area.width - width,
+            ..area
+        },
+    )
+}
+
 /// The area a terminal of `cols` by `rows` leaves for the tab. The server
 /// sizes panes to it. The status line overlays the tab, so it takes none.
 pub(super) fn tab_area(cols: u16, rows: u16, sidebar_width: u16) -> Size {
+    let (_, tab) = split(Rect::new(0, 0, cols, rows), sidebar_width);
     Size {
-        cols: cols.saturating_sub(sidebar_width),
-        rows,
+        cols: tab.width,
+        rows: tab.height,
     }
 }
 
@@ -44,20 +59,10 @@ pub(super) fn tab_area(cols: u16, rows: u16, sidebar_width: u16) -> Size {
 pub(super) fn draw(
     frame: &mut Frame,
     observer: &Observer,
-    sidebar: &Sidebar,
+    sidebar: &mut Sidebar,
     status: &Status,
 ) -> Option<Cursor> {
-    let main = frame.area();
-    let sidebar_width = sidebar.width().min(main.width);
-    let sidebar_area = Rect {
-        width: sidebar_width,
-        ..main
-    };
-    let main = Rect {
-        x: main.x.saturating_add(sidebar_width),
-        width: main.width.saturating_sub(sidebar_width),
-        ..main
-    };
+    let (sidebar_area, main) = split(frame.area(), sidebar.width());
     if sidebar.shown
         && let Some(replica) = &observer.replica
     {

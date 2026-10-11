@@ -20,14 +20,14 @@ use ratatui::{
     style::{self as tui, Modifier},
 };
 use ratatui_ghostty::{
-    session::{Read, Scroll, SessionConfig, SessionEvent, SessionHandle, SessionIo},
+    session::{Pointer, Read, Scroll, SessionConfig, SessionEvent, SessionHandle, SessionIo},
     widget::CursorStyle,
 };
 use ship_core::{
-    id::IdOf,
+    id::{Attachment, IdOf},
     model::{ExitStatus, Pane},
     prelude::*,
-    protocol::{ReadPane, ScrollDirection, ScrollPane},
+    protocol::{MouseInput, ReadPane, ScrollDirection, ScrollPane},
     relay::{Publish, RelayBus},
     screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Scrolled, Size},
 };
@@ -151,7 +151,14 @@ pub(crate) struct PaneHandle {
     pub commands: mpsc::UnboundedSender<PaneCommand>,
 }
 
+/// Pointer input tagged with the attachment that sent it.
+pub(crate) struct PaneMouse {
+    pub input: MouseInput,
+    pub from: IdOf<Attachment>,
+}
+
 pub(crate) enum PaneCommand {
+    Mouse(PaneMouse),
     /// Encoded by the wrapper against the terminal's live modes.
     Key(KeyEvent),
     /// Bracketed by the wrapper when the program enabled it.
@@ -400,9 +407,14 @@ impl PaneTask {
         done.send(()).ok();
     }
 
-    /// Exited programs ignore input and resizes, but still scroll and read.
+    /// Exited programs ignore keys, pastes and resizes, but keep history input.
     fn command(&mut self, command: PaneCommand) {
-        if self.exit.reaped && !matches!(command, PaneCommand::Scroll(_) | PaneCommand::Read(..)) {
+        if self.exit.reaped
+            && !matches!(
+                command,
+                PaneCommand::Scroll(_) | PaneCommand::Read(..) | PaneCommand::Mouse(_)
+            )
+        {
             return;
         }
         match command {
@@ -444,6 +456,15 @@ impl PaneTask {
                         reply.send(text).ok();
                     }),
                 );
+            }
+            PaneCommand::Mouse(PaneMouse { input, from }) => {
+                tracing::trace!(pane = %self.pane, attachment = %from, "pointer input");
+                self.session.send_pointer(Pointer {
+                    kind: input.kind,
+                    modifiers: input.modifiers,
+                    x: input.x,
+                    y: input.y,
+                });
             }
             PaneCommand::Key(key) => self.session.send_key(key),
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),

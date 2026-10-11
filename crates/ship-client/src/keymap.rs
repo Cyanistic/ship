@@ -17,6 +17,7 @@ use ship_core::{
 const DEFAULTS: &str = include_str!("keymap/defaults.toml");
 
 pub struct ClientSettings {
+    pub mouse: bool,
     pub keymap: Keymap,
     pub sidebar_width: u16,
 }
@@ -172,6 +173,7 @@ struct File {
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Client {
+    mouse: Option<bool>,
     sidebar_width: Option<u16>,
     #[serde(default)]
     modes: HashMap<ModeName, ModeFile>,
@@ -241,6 +243,7 @@ impl ClientSettings {
         Self {
             keymap: Keymap { modes },
             sidebar_width: file.client.sidebar_width.unwrap_or(26),
+            mouse: file.client.mouse.unwrap_or(true),
         }
     }
 }

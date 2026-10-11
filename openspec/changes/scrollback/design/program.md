@@ -147,14 +147,13 @@ use crossterm::event::{MouseEvent, MouseEventKind};
 use ratatui::layout::Rect;
 use ship_core::{geometry::TabGeometry, id::IdOf, model::{NodeId, Pane, Tab}, protocol::{InputFrame, MouseInput}};
 
-/// What a mouse event does. Also what `Sidebar::row_at` answers.
+/// What a mouse event does.
 pub(super) enum Clicked {
     /// Select this pane, or land on this tab as the keyboard does.
     Select(NodeId),
     /// Fold or unfold a sidebar row.
     Fold(IdOf<Tab>),
     Frame(InputFrame),
-    None,
 }
 
 /// Which pane a press started in, so drags and the release go to it even
@@ -171,7 +170,7 @@ impl Mouse {
         geometry: Option<&TabGeometry>,
         selected: Option<IdOf<Pane>>,
         sidebar: &super::sidebar::Sidebar,
-    ) -> Clicked;
+    ) -> Option<Clicked>;
 }
 
 /// `event` for `pane`, relative to its `content`, negative above or left.
@@ -343,13 +342,13 @@ Both are registered in `api_router`.
   - Arms for `Scroll` and `Read`.
 - **`keymap.rs`:** `ClientSettings.mouse: bool`, default `true`.
 - **`keymap/defaults.toml`:** the two bindings above.
-- **`ui/terminal.rs`:** `TerminalGuard::set_mouse(bool)` sends `EnableMouseCapture` or `DisableMouseCapture`, and `restore` disables it. `TerminalGuard::copy(&str)` writes crossterm's `CopyToClipboard`.
+- **`ui/terminal.rs`:** `TerminalGuard::set_mouse(bool)` sends `EnableMouseCapture` or `DisableMouseCapture` and records the state `mouse()` reports, and `restore` disables it. `TerminalGuard::copy(&str)` writes crossterm's `CopyToClipboard`.
 - **`ui/mod.rs`:**
-  - `Event::Mouse` goes through `Mouse::route` when `mouse` is on. `Select` sets `chosen`, a tab landing through `Memory`, and `Fold` calls `Sidebar::fold`.
+  - `Event::Mouse` goes through `Mouse::route` when `TerminalGuard` reports capture on. `Select` sets `chosen`, a tab landing through `Memory`, and `Fold` calls `Sidebar::toggle`.
   - `SseEvent::Clipboard` calls `guard.copy`.
-  - A reload applies `set_mouse`.
-- **`ui/draw.rs`:** exposes the pane area it draws, for hit-testing.
-- **`ui/sidebar.rs`:** `draw` takes `&mut self` and keeps the last `TreeState`. `row_at(Position) -> Clicked` reads `rendered_at`, answering `Fold` when the fold marker was hit (the two columns after one highlight column and `2 × depth` of indent), `Select` elsewhere on a row, and `None` below the rows.
+  - A reload applies `set_mouse` and drops a held press.
+- **`ui/draw.rs`:** `split(area, sidebar_width)` gives the sidebar and pane areas, shared by drawing, hit-testing and `tab_area`.
+- **`ui/sidebar.rs`:** `draw` takes `&mut self` and keeps the last `TreeState`. `row_at(Position) -> Option<Row>` reads `rendered_at` and answers `Row { tab, marker }`, where `marker` says the fold marker was hit (the marker symbol's columns after the highlight symbol and `2 × depth` of indent), or `None` below the rows. The tree's symbols are constants, so the widths come from what is drawn. `Mouse::route` turns a row into `Fold` or `Select`.
 - **`ui/panes.rs`:** draws `Screen.scrolled` as `[offset/history]` at the frame's top right, or at the content's top-right corner without a border (FR-006, wording open under U-4).
 
 ### Untouched
@@ -455,3 +454,11 @@ At the first fill, the oldest retained line was `44506`, with 5,473 history rows
 Debug and release workspace builds, workspace Clippy with warnings denied, formatting, and ship-core checks with and without `clap` passed on macOS. The wrapper's existing tests passed in an outside copy: 80 passed, one pre-existing crash test ignored.
 
 Temporary probe `/tmp/ship-scrollback-slice1.py` exercised real HTTP/CLI requests, two independent attach streams, and a real client under a PTY. It verified retained line 1 for 5,000 rows at 200 columns; all four scroll directions, explicit amounts and page defaults; shared screens; a stable scrolled viewport during `yes | head -1000`; key input returning to the bottom and reaching the program; scrolling after exit; the saved 20,000-byte setting affecting only newly spawned panes; Neovim ignoring history scroll; real Alt-PageUp/PageDown input and the borderless indicator; the bordered indicator on two real clients; typing and bracketed paste snapping to the bottom and reaching the shell; malformed config falling back to defaults with a logged error; detaching; and rejection of a binding's misspelled `direciton`. The probe's PTY output is drained continuously so a full pipe cannot stall the client. Servers, clients and panes created by the checks were cleaned up. Final successful live-run log: `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-scroll-slice1-xf6e7mdm/server.log`. The indicator uses the program paper's provisional `[offset/history]` form; U-4 rendering review remains open, and actual Ghostty/Kitty/macOS outer-terminal delivery of the Alt chords remains unverified under U-3. The PTY check verifies Ship receiving and handling their escape sequences, not those terminals' own key handling.
+
+### Slice 3: implementation and verification
+
+Mouse routing, input frames, capture/reload/restoration, hit-testing and sidebar clicks are implemented. [Slice-3 evidence](../evidence-slice-3.md) records the macOS builds, 80 passing wrapper tests, live client/NDJSON checks, Neovim, less, Pi in regular mode, and Cyan's confirmation of real mouse-wheel scrolling. It also records the temporary probe's cleanup correction and the sidebar fix needed to keep explicit ancestor folds from immediately reopening. Gesture/clipboard work stays in slice 4.
+
+After review, Cyan approved reshaping the client's routing: `row_at` returns a sidebar-local `Row` instead of `Clicked`, `route` returns `Option<Clicked>` without a `None` variant, and the sketches above now say so.
+
+Tasks 3.1 to 3.5 are checked. Cyan confirmed task 3.3's physical drag check from foot on Linux, over SSH to the Mac running the client: `mouse = false` returns Shift-free drag selection to the outer terminal, `true` takes it back, and detaching leaves no mouse escapes. Building and running Ship on Linux remains unverified.

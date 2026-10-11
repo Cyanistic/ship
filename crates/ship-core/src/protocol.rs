@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyEvent, KeyModifiers, MouseEventKind};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use utoipa::{
@@ -305,6 +305,7 @@ pub struct Attached {
 pub enum InputFrame {
     Key(KeyInput),
     Paste(PasteInput),
+    Mouse(MouseInput),
 }
 
 /// A key press, encoded on the server against the pane's live terminal modes.
@@ -316,6 +317,19 @@ pub struct KeyInput {
     /// "kind": "Press", "state": ""}`; modifiers read `"SHIFT | CONTROL"`.
     #[schema(value_type = Object)]
     pub key: KeyEvent,
+}
+
+/// A pointer relative to the pane's content; drags may be outside it.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MouseInput {
+    pub pane: IdOf<Pane>,
+    #[schema(value_type = Object)]
+    pub kind: MouseEventKind,
+    #[schema(value_type = String)]
+    pub modifiers: KeyModifiers,
+    pub x: i32,
+    pub y: i32,
 }
 
 /// Text sent as one paste; bracketed when the program asked for it.

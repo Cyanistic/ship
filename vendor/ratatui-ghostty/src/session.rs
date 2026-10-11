@@ -14,6 +14,8 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+
 use crate::colors::HostColors;
 use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
 use crate::widget::{CursorState, TerminalWidget};
@@ -21,7 +23,7 @@ use crossbeam_channel::{Receiver, Sender};
 use libghostty_vt::fmt::{Format, Formatter, FormatterOptions};
 use libghostty_vt::render::RenderState;
 use libghostty_vt::selection::Selection;
-use libghostty_vt::terminal::{ColorScheme, CursorStyle, ScrollViewport, Terminal};
+use libghostty_vt::terminal::{ColorScheme, CursorStyle, Mode, ScrollViewport, Terminal};
 use libghostty_vt::terminal::{Point, PointCoordinate};
 use libghostty_vt::{key, mouse};
 use ratatui::buffer::Buffer;
@@ -327,6 +329,11 @@ impl SessionHandle {
             .send(SessionCommand::Key(event.into_key_input()));
     }
 
+    /// Route a pane-relative pointer against the terminal's live modes.
+    pub fn send_pointer(&self, pointer: Pointer) {
+        let _ = self.cmd_tx.send(SessionCommand::Pointer(pointer));
+    }
+
     /// Send a mouse event with session-relative coordinates.
     ///
     /// Returns `false` if the event could not be converted (e.g. unsupported mouse action).
@@ -500,9 +507,19 @@ pub struct Rendered {
     pub scrolled: Option<Scrolled>,
 }
 
+/// Pane-relative coordinates, including positions outside a dragged pane.
+#[derive(Debug, Clone)]
+pub struct Pointer {
+    pub kind: MouseEventKind,
+    pub modifiers: KeyModifiers,
+    pub x: i32,
+    pub y: i32,
+}
+
 enum SessionCommand {
     Key(KeyInput),
     Mouse(MouseInput),
+    Pointer(Pointer),
     Focus(bool),
     Resize { cols: u16, rows: u16 },
     Scroll(Scroll),
@@ -589,6 +606,51 @@ impl<'a> SessionState<'a> {
         Ok(String::from_utf8_lossy(&formatter.format_alloc(None)?).into_owned())
     }
 
+    /// To the program when it tracks the mouse. Otherwise the vertical wheel
+    /// scrolls primary-screen history, or sends arrows on the alternate
+    /// screen when the program enabled alternate scroll.
+    fn mouse(&mut self, input: MouseInput, needs_render: &mut bool) {
+        let size = mouse::EncoderSize {
+            cell_width: 1,
+            cell_height: 1,
+            screen_width: self.cols as u32,
+            screen_height: self.rows as u32,
+            padding_left: 0,
+            padding_top: 0,
+            padding_right: 0,
+            padding_bottom: 0,
+        };
+        if self.terminal.is_mouse_tracking().unwrap_or(false) {
+            if let Ok(data) =
+                input::encode_mouse(&mut self.mouse_encoder, &input, &self.terminal, size)
+                && !data.is_empty()
+            {
+                let mut w = self.writer.borrow_mut();
+                let _ = w.write_all(&data);
+                let _ = w.flush();
+            }
+            return;
+        }
+        let (delta, code) = match input.button {
+            Some(mouse::Button::Four) => (-self.scroll_delta, KeyCode::Up),
+            Some(mouse::Button::Five) => (self.scroll_delta, KeyCode::Down),
+            _ => return,
+        };
+        if self.terminal.active_screen().ok() == Some(libghostty_vt::screen::Screen::Primary) {
+            self.terminal.scroll_viewport(ScrollViewport::Delta(delta));
+            *needs_render = true;
+        } else if self.terminal.mode(Mode::ALT_SCROLL).unwrap_or(false) {
+            let key = KeyEvent::new(code, KeyModifiers::NONE).into_key_input();
+            if let Ok(data) = input::encode_key(&mut self.key_encoder, &key, &self.terminal) {
+                let mut w = self.writer.borrow_mut();
+                for _ in 0..self.scroll_delta.unsigned_abs() {
+                    let _ = w.write_all(&data);
+                }
+                let _ = w.flush();
+            }
+        }
+    }
+
     fn handle_command(&mut self, cmd: SessionCommand, needs_render: &mut bool) -> bool {
         match cmd {
             SessionCommand::Key(input) => {
@@ -601,34 +663,18 @@ impl<'a> SessionState<'a> {
                     let _ = w.flush();
                 }
             }
-            SessionCommand::Mouse(input) => {
-                let size = mouse::EncoderSize {
-                    cell_width: 1,
-                    cell_height: 1,
-                    screen_width: self.cols as u32,
-                    screen_height: self.rows as u32,
-                    padding_left: 0,
-                    padding_top: 0,
-                    padding_right: 0,
-                    padding_bottom: 0,
+            SessionCommand::Pointer(pointer) => {
+                let event = MouseEvent {
+                    kind: pointer.kind,
+                    modifiers: pointer.modifiers,
+                    column: pointer.x.clamp(0, i32::from(self.cols.saturating_sub(1))) as u16,
+                    row: pointer.y.clamp(0, i32::from(self.rows.saturating_sub(1))) as u16,
                 };
-                if let Ok(data) =
-                    input::encode_mouse(&mut self.mouse_encoder, &input, &self.terminal, size)
-                    && !data.is_empty()
-                {
-                    let mut w = self.writer.borrow_mut();
-                    let _ = w.write_all(&data);
-                    let _ = w.flush();
-                } else if input.button == Some(mouse::Button::Four) {
-                    self.terminal
-                        .scroll_viewport(ScrollViewport::Delta(-self.scroll_delta));
-                    *needs_render = true;
-                } else if input.button == Some(mouse::Button::Five) {
-                    self.terminal
-                        .scroll_viewport(ScrollViewport::Delta(self.scroll_delta));
-                    *needs_render = true;
+                if let Some(input) = event.into_mouse_input() {
+                    self.mouse(input, needs_render);
                 }
             }
+            SessionCommand::Mouse(input) => self.mouse(input, needs_render),
             SessionCommand::Focus(gained) => {
                 self.focused = gained;
                 let data = input::encode_focus(gained);

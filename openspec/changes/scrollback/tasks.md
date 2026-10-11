@@ -20,11 +20,11 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 3. Clicks and the wheel to selected panes, sidebar rows and program input
 
-- [ ] 3.1 Wrapper change 15's pointer part: `send_pointer` routing to the program when it tracks the mouse, else alternate-scroll arrows, else wheel scroll, else gestures. Verify with the wrapper's tests in an outside copy.
-- [ ] 3.2 Add `InputFrame::Mouse` and route it from the input stream to the pane task, tagged with the sending attachment. Verify with a temporary NDJSON probe that a mouse frame reaches the right pane, and that an exited pane still accepts the wheel.
-- [ ] 3.3 Add `[client] mouse`, capture through `TerminalGuard`, and release on every restore path. Verify that `mouse = false` takes effect on save and returns drags to the outer terminal, and that detaching or killing the client leaves no mouse escapes at the shell prompt.
-- [ ] 3.4 Add `ui/mouse.rs` hit-testing, sidebar `row_at` and the drawn pane area. Verify that clicking among three panes selects each with no stray `^[[<0;…M` in the shells, sidebar clicks select tabs, a fold-marker click folds, and the wheel over the sidebar does nothing.
-- [ ] 3.5 Verify mouse behavior in real programs. In `nvim` with `mouse=a`, a click moves the cursor and the wheel scrolls the buffer. In `less`, the wheel sends arrows. In a shell, it scrolls history. The wheel over an unselected pane scrolls it without selecting it (G2). Pi behaves as in the outer terminal (SC-003).
+- [x] 3.1 Wrapper change 15's pointer part: `send_pointer` routing to the program when it tracks the mouse, else alternate-scroll arrows, else wheel scroll, else gestures. Verify with the wrapper's tests in an outside copy.
+- [x] 3.2 Add `InputFrame::Mouse` and route it from the input stream to the pane task, tagged with the sending attachment. Verify with a temporary NDJSON probe that a mouse frame reaches the right pane, and that an exited pane still accepts the wheel.
+- [x] 3.3 Add `[client] mouse`, capture through `TerminalGuard`, and release on every restore path. Verify that `mouse = false` takes effect on save and returns drags to the outer terminal, and that detaching or killing the client leaves no mouse escapes at the shell prompt.
+- [x] 3.4 Add `ui/mouse.rs` hit-testing, sidebar `row_at` and the drawn pane area. Verify that clicking among three panes selects each with no stray `^[[<0;…M` in the shells, sidebar clicks select tabs, a fold-marker click folds, and the wheel over the sidebar does nothing.
+- [x] 3.5 Verify mouse behavior in real programs. In `nvim` with `mouse=a`, a click moves the cursor and the wheel scrolls the buffer. In `less`, the wheel sends arrows. In a shell, it scrolls history. The wheel over an unselected pane scrolls it without selecting it (G2). Pi behaves as in the outer terminal (SC-003).
 
 ## 4. Drag selection and program copies to the system clipboard
 
