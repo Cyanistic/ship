@@ -8,7 +8,7 @@ Settled gates, each accepted as recommended:
 - **G2, the wheel over a pane that isn't selected.** The product paper only covers clicks there (FR-010) and the selected pane (FR-011). Decision: the wheel acts on the pane under the pointer without selecting it, scrolling its history or reaching its program by FR-011 and FR-012's rules, as tmux and Zellij do. The alternative is that the wheel does nothing outside the selected pane. The wheel's step stays the wrapper's fixed 3 lines; making it a setting is possible but not in the product paper.
 - **G5, the selection's look until rendering review (U-4).** Decision: selected cells swap foreground and background (`Reversed`, toggled), as tmux and Herdr do by default. Rendering review can still change it.
 
-G3, G4 and G6 (covered-pane storage, splitting `$EDITOR`, the temporary file) went with edit-scrollback and move to its tracking issue.
+G3, G4 and G6 (covered-pane storage, splitting `$EDITOR`, the temporary file) went with edit-scrollback and remain in its archived design note.
 
 ## Rationale
 
@@ -354,7 +354,7 @@ Both are registered in `api_router`.
 ### Untouched
 
 - **Ship's crate layout and the transport:** unchanged. SSE out, NDJSON in, zstd.
-- **Copy mode, search and edit-scrollback:** not here, and tracked by issues filed in slice 5. `Pane`, `Layout` and the state actor are unchanged.
+- **Copy mode, search and edit-scrollback:** not here; slice 5 preserves unfiled design notes, not backlog commitments. `Pane`, `Layout` and the state actor are unchanged.
 - **Layout edits:** split, close, swap and resize logic unchanged.
 - **`ship-macros`, `health.rs` and `app.rs`:** unchanged.
 
@@ -414,17 +414,16 @@ Each slice runs on Cyan's request and stops for review before the next. Checks r
      - `printf '\e]52;c;?\a'` gets no answer.
      - Linux: in foot over SSH, as in the U-3 check, a drag reaches the Linux clipboard (`wl-paste`). Otherwise reported unverified.
 
-5. **Docs, issues and size.**
+5. **Docs, deferred notes and size.**
    - Files: `README.md` (keys, commands, settings), `AGENTS.md` ("viewing position"), `docs/product-brief.md` (milestone 1's search note), `openspec/changes/scrollback/design.md`.
    - Delivers: the "changes to other documents" in the product paper.
    - Checks:
-     - Five tracking issues drafted from the template:
+     - Four archived design notes, superseding the five-issue requirement with Cyan's slice-5 approval:
        - Copy mode, with the probe's findings.
        - Search, with the probe's findings.
-       - The 10 KB history default.
        - Edit-scrollback, carrying the product requirements deferred on 2026-10-11, the leaf-with-cover model, layout commands on a covered pane acting on its slot, sizes left alone while covered, `NamedTempFile` and `shell-words`, and what tmux, Zellij, Herdr and kitty do.
-       - A bindable run action with the target pane in its environment, plus `ship clipboard copy` reusing slice 4's clipboard route, with tmux, Zellij and Herdr as precedent for running it on the server.
-     - Issues are filed only after Cyan approves their text.
+       - A bindable run action with the target pane in its environment, plus `ship clipboard copy` reusing slice 4's clipboard route, with tmux, Zellij and Herdr as precedent for running commands alongside pane programs.
+     - The 10 KB follow-up is dropped. Notes are unfiled design input, not a backlog or permission to implement. Create issues only if Cyan later chooses to pursue the work.
      - Implementation Rust and test line counts reported separately against the estimate.
 
 ## Deviation log
@@ -473,4 +472,12 @@ Selection, highlight, copy on release and program clipboard writes are implement
 - The pane task's trace log of each pointer's attachment is replaced by remembering that attachment for the next copy.
 
 Tasks 4.1 to 4.4 are checked. Cyan confirmed that a drag's copy reaches the system clipboard on macOS and from Linux over SSH, and that dragging to a lone pane's edge autoscrolls, so no edge-row rule was added.
+
+### Slice 5: deferred notes instead of issues, verification and size
+
+Cyan approved replacing the five-issue requirement in chat: drop the unnecessary 10 KB follow-up, keep copy mode, search, edit-scrollback and run/clipboard as archived, unfiled design notes, and create an issue only if the work later becomes a good fit. The product paper records the amendment. No GitHub issues were filed; these notes are not a backlog or implementation commitments.
+
+[Slice-5 evidence](../evidence-slice-5.md) records all nine README CLI blocks running as written against an owned temporary server, the macOS build/format/Clippy/core checks, 80 passing wrapper tests and one pre-existing ignored test, and a rerun of the dependency probe. Linux Ship builds and execution remain unverified.
+
+`cloc` 2.10 reports 7,287 implementation Rust lines in Ship and zero authored test lines, versus 6,712 and zero at planning commit `452301a`: +575 implementation lines. This exceeds the 320 to 420 estimate by 155 lines above its upper bound (about 37%), while staying below the roughly 20,000-line ceiling. Wrapper implementation is separately uncounted: 1,773 lines, up 320 from 1,453; wrapper tests remain 988, and examples are 1,212, up 6. The estimate remains visible as an estimate rather than being rewritten to match the result. This slice changes Markdown only.
 

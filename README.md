@@ -67,7 +67,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. Panes can be zoomed, swapped and resized. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Splitting from keys starts the new shell in the selected pane's current directory, `alt-shift-n` adds a child tab, and an unnamed tab is labeled by its first pane's directory. Agent status and restoring after a restart are still to come.
+Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. Panes can be zoomed, swapped and resized. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Splitting from keys starts the new shell in the selected pane's current directory, `alt-shift-n` adds a child tab, and an unnamed tab is labeled by its first pane's directory. Panes now keep scrollable history, and `ship pane read` lets agents and scripts read their output. Mouse clicks select panes and sidebar rows; dragging selects text and copies it on release. Agent status and restoring after a restart are still to come.
 
 ## Installation
 
@@ -116,11 +116,44 @@ Inspection reports `layout`, whose `kind` is `pane` or `split`. A split has `axi
 
 `--direction` defaults to `right`. With just `--tab`, creation splits the largest content rectangle, breaking ties in layout order, or creates the first pane in an empty tab. `--pane` anchors the split directly, including the default from `SHIP_PANE_ID` inside a pane; an explicit `--tab` takes precedence. Each half needs at least 1x1 content, otherwise creation fails with `no space for new pane` before starting a program. Existing layouts squeeze on terminal shrink without losing panes or proportions. Each published tab carries its own optional `geometry`, derived by the server from its layout and current viewers. This applies to nested tabs too: a viewed child has geometry even when its parent is unviewed. Tab inspection includes geometry only while that tab is viewed; there is no separate replica geometry map. Published geometry can have zero content; PTYs and terminal emulators use at least 1x1 internally until content grows again.
 
-### Protocol 8 compatibility
+### Scroll and read output
 
-The layout wire change requires matching client and server builds. `ship server status` reports `protocolVersion: 8`. Current clients check health, service identity and protocol before ordinary commands, attach or shutdown. `--server-url URL` and `SHIP_SERVER_URL` select an existing server and never start one; status and stop never start one either.
+Each pane keeps about 10 MB of history by default. `alt-pageup` and `alt-pagedown` scroll the selected pane one page; the wheel scrolls the pane under the pointer without selecting it. Every client viewing that pane sees the same scroll position. New output leaves a scrolled view in place, and typing or pasting returns it to the bottom before reaching the program. A `[offset/history]` indicator shows how many rows above the bottom you are, out of the history rows retained.
 
-Already-built protocol-7 clients reject protocol 8 when they check health, including status and attach, but their explicit-URL ordinary commands skip that check and can reach incompatible endpoints. Those commands have no compatibility guarantee and can mutate the server even if decoding the response fails. Update client and server together. A server restart discards its in-memory tabs and programs, so plan the upgrade rather than stopping live work unexpectedly.
+Try the CLI with a pane that prints 200 numbered lines and exits:
+```sh
+TAB=$(ship tab create --name history | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" -- /bin/sh -c 'seq 199; printf 200' | jq -r .id)
+sleep 1
+ship pane scroll --pane "$PANE" --direction top
+ship pane scroll --pane "$PANE" --direction down --amount 5
+ship pane scroll --pane "$PANE" --direction up
+ship pane scroll --pane "$PANE" --direction bottom
+ship pane read --pane "$PANE"
+ship pane read --pane "$PANE" --lines 50
+ship pane read --pane "$PANE" --lines 200 --unwrap
+ship pane read --pane "$PANE" --ansi | cat
+ship pane read --pane "$PANE" --lines 200 | grep '^150$'
+ship tab close --tab "$TAB"
+```
+
+`up` and `down` move by `--amount` lines, or by one page when it is omitted. `top` and `bottom` ignore the amount. Inside a pane, you can omit `--pane` as with other pane commands.
+
+`ship pane read` prints plain text from the active screen at the bottom, regardless of scroll position. `--lines N` reads the last N rows, including history; `--unwrap` joins soft-wrapped lines, and `--ansi` preserves colors and styles. Reading does not move the view. Exited panes still scroll, read and allow selection. Alternate-screen programs such as Neovim have no scrollback: scroll commands do nothing there, and reads return only that screen. Copy mode, built-in search and edit-scrollback are deferred; piping a read into `grep` or an editor stands in for search.
+
+### Mouse and clipboard
+
+Click an unselected pane to select it without sending that click to its program. Click a sidebar row to select its tab, or its fold marker to fold or unfold it. The wheel over the sidebar does nothing.
+
+In a selected pane, programs that request mouse input get clicks, drags and the wheel. Otherwise the wheel scrolls history, or sends arrow keys on the alternate screen when the program enables alternate scroll, as `less` does. Without program mouse tracking, drag to select text, double-click a word or triple-click a line; dragging past an edge scrolls while selecting. Every viewer sees the highlight, but releasing copies only to the selecting client's clipboard. A plain click copies nothing. Typing or pasting clears the highlight.
+
+Copies use the outer terminal's clipboard escape, OSC 52. Program writes to the standard clipboard, such as Neovim's `"+y`, reach every client viewing the pane's tab, not other tabs. Programs cannot read a client's clipboard. Terminals without OSC 52 support, such as macOS Terminal.app, cannot receive these copies; some terminals also limit large copies. There is no fallback. To use the outer terminal's own selection, use its mouse override (usually Shift) or set `[client] mouse = false`.
+
+### Protocol 9 compatibility
+
+The scrollback and mouse wire changes require matching client and server builds. `ship server status` reports `protocolVersion: 9`. Current clients check health, service identity and protocol before ordinary commands, attach or shutdown. `--server-url URL` and `SHIP_SERVER_URL` select an existing server and never start one; status and stop never start one either.
+
+Clients built for protocols 1 through 8 reject protocol 9 when they check health. Already-built protocol-7 clients' explicit-URL ordinary commands skip that check and can reach incompatible endpoints. Those commands have no compatibility guarantee and can mutate the server even if decoding the response fails. Update client and server together. A server restart discards its in-memory tabs and programs, so plan the upgrade rather than stopping live work unexpectedly.
 
 Run `ship --help` and `ship pane create --help` to see the command options.
 
@@ -138,6 +171,7 @@ Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (of
 | `alt-left` / `alt-right` | Previous or next visible tab row, back on the pane you last used there |
 | `alt-h` / `alt-j` / `alt-k` / `alt-l` | Select the pane to the left, below, above or right |
 | `alt-tab` | Next pane in the tab, in layout order |
+| `alt-pageup` / `alt-pagedown` | Scroll the selected pane up / down one page |
 | `alt-f` | Zoom the selected pane to fill its tab, or unzoom |
 | `alt-shift-h` / `j` / `k` / `l` | Swap the selected pane with its neighbor to the left, below, above or right |
 | `alt-g` | Tabs mode: `j` / `k` move between visible rows, `h` / `l` fold / unfold, `esc` leaves |
@@ -222,17 +256,19 @@ ship tab close --tab "$PROJECT"
 
 Ship reads one config file, `ship/config.toml` in your config directory. That's `~/.config/ship/config.toml` on Linux and macOS, or under `$XDG_CONFIG_HOME` if you set it. Use `--config <file>` or `SHIP_CONFIG` to point somewhere else. Without a file, Ship uses its defaults.
 
-`[server]` holds the shell new panes run when you don't give a command:
+`[server]` holds the default shell and each new pane's history byte cap:
 ```toml
 [server]
 shell = "/bin/bash"          # default: your login shell
+scrollback_bytes = 10000000   # default: about 10 MB, with no line cap
 ```
-The next pane you open uses it; panes already running keep their shell. A relative path is relative to the config file's folder.
+The next pane you open uses these settings; existing panes keep their shell and history cap. Ghostty estimates history storage and prunes whole pages, so a very small byte cap is approximate, not an exact memory ceiling. A relative path is relative to the config file's folder.
 
-`[client]` holds the sidebar width and the keys, grouped into modes. The sidebar defaults to 26 columns; set a fixed width without fitting it to changing labels:
+`[client]` holds mouse capture, sidebar width and the keys, grouped into modes. The sidebar defaults to 26 columns; set a fixed width without fitting it to changing labels:
 ```toml
 [client]
 sidebar_width = 40
+mouse = true                 # default; false leaves selection to the outer terminal
 ```
 
 Saving a valid width while attached updates the pane area and program sizes without restarting the client. Hidden sidebars retain the configured width for when they are shown again. A small window clips the sidebar to the available width and can leave zero pane content; it does not delete panes.
@@ -262,7 +298,7 @@ The `server.` actions are the CLI's commands with the same names and options: `s
 
 There is no permanent status bar. A one-row overlay appears over the bottom of the pane area, never the sidebar, only when there is something to say: outside normal mode, while reconnecting, when the selected pane's program has exited, or after an error until the next key action. It doesn't resize panes. It shows the mode's name, then exit status, connection state and the latest error, then key hints. Default tabs hints read `j next  k prev  h collapse  l expand  esc normal`; resize hints read `h left  j down  k up  l right  esc normal`. Untouched defaults keep their order; chords in your file follow them in file order. Each hint uses its first action's scalar value, else its last path segment. For example, `client.mode = "normal"` shows `normal`, while `client.tab.expand = {}` shows `expand`. Hints are cut from the end when space runs out.
 
-A running client reloads its width and keys when you save the file, including rename-saves. Bind `client.config.reload = {}` to a key for explicit reload. If the file has a mistake, the client keeps its current settings and shows the located error in the overlay. To check the file without a client:
+A running client reloads mouse capture, its width and keys when you save the file, including rename-saves. Bind `client.config.reload = {}` to a key for explicit reload. If the file has a mistake, the client keeps its current settings and shows the located error in the overlay. To check the file without a client:
 ```sh
 ship config check
 ```

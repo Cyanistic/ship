@@ -37,13 +37,13 @@ Panes keep about 10 KB of history today and have no way to scroll it, read it fr
 
 ## Build order
 
-Program paper, "Build order". Four feature slices, then a slice for docs, issues and size:
+Program paper, "Build order". Four feature slices, then a slice for docs, deferred notes and size:
 
 1. History and scrolling by keys.
 2. `ship pane read`.
 3. The mouse.
 4. Selection and the clipboard.
-5. Docs, issues and size.
+5. Docs, deferred notes and size.
 
 ## Risks / Trade-offs
 
@@ -64,4 +64,4 @@ History isn't persisted, so there's nothing to migrate. Protocol 8 goes to 9, so
 
 - U-3: whether `alt-pageup` and `alt-pagedown` reach Ship in Ghostty, Kitty and macOS outer terminals. They work in foot on Linux, and they're rebindable defaults.
 - U-4: the scroll indicator's text and the selection's final colors, settled in rendering review.
-- Tracking issues drafted in slice 5 carry copy mode, search, the 10 KB default, edit-scrollback and the run action.
+- Archived design notes from slice 5 preserve copy mode, search, edit-scrollback and the run action without creating a backlog or authorizing implementation. Cyan approved dropping the 10 KB follow-up and retaining notes in chat; issues are created only if the work later becomes worth pursuing.

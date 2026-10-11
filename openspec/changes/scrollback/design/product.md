@@ -32,7 +32,7 @@ Tested independently: run `seq 5000` in a pane, scroll to the top with the wheel
 
 ### P2: Edit a pane's history (deferred)
 
-Deferred on 2026-10-11 with edit-scrollback. Kept as written for its tracking issue.
+Deferred on 2026-10-11 with edit-scrollback. Kept as written for its archived design note.
 
 Given a pane with a long test log, when Cyan presses `alt-e`, then the editor opens in that pane's spot with the log in it and the cursor at the end. Other panes stay where they are. When the editor exits, the original pane comes back in the same spot, still running.
 
@@ -61,9 +61,9 @@ Tested independently: print 200 numbered lines in a pane, scroll it up, and chec
 
 ## Non-goals
 
-- Copy mode and search. Both are deferred with tracking issues that carry the probe findings. ~~Edit-scrollback stands in for them, including for milestone 1's "search" evidence.~~ `ship pane read` stands in for them, including for milestone 1's "search" evidence.
-- Edit-scrollback (FR-014 to FR-022), deferred on 2026-10-11 with a tracking issue carrying the design work so far.
-- A bindable action that runs a command against a pane, and `ship clipboard copy`. Raised while designing edit-scrollback; deferred with a tracking issue.
+- Copy mode and search. Both are deferred with archived design notes that carry the probe findings, not implementation commitments. ~~Edit-scrollback stands in for them, including for milestone 1's "search" evidence.~~ `ship pane read` stands in for them, including for milestone 1's "search" evidence.
+- Edit-scrollback (FR-014 to FR-022), deferred on 2026-10-11 with an archived design note carrying the design work so far.
+- A bindable action that runs a command against a pane, and `ship clipboard copy`. Raised while designing edit-scrollback; deferred with an archived design note.
 - Dragging pane borders to resize, and dragging the sidebar's edge.
 - The wheel over the sidebar. It does nothing in this change.
 - Rectangular selection, a setting for copy-on-select, right-click menus and clickable links.
@@ -98,7 +98,7 @@ Tested independently: print 200 numbered lines in a pane, scroll it up, and chec
 
 ### Edit-scrollback (deferred)
 
-Deferred on 2026-10-11. FR-014 to FR-022 are kept as written for the tracking issue and are not part of this change.
+Deferred on 2026-10-11. FR-014 to FR-022 are kept as written for the archived design note and are not part of this change.
 
 - FR-014: `server.pane.edit_scrollback` and `ship pane edit-scrollback` SHALL open the targeted pane's history and screen in an editor, as plain text with soft-wrapped lines joined. The defaults SHALL bind `alt-e` in normal mode. It SHALL work on exited panes.
 - FR-015: The editor SHALL run in a new pane with its own ID, in the targeted pane's exact place in the layout. The targeted pane SHALL become covered: hidden, still running at its size, still recording output, and still a valid target for every pane command.
@@ -156,7 +156,7 @@ Settled in conversation on 2026-10-10:
 - ~~Shared zoom (`session-observation`): a covered pane returning in place of its editor isn't a layout edit and doesn't unzoom (FR-018). Closing the editor pane by other means follows the same rule.~~ Deferred with edit-scrollback.
 - `AGENTS.md`: "viewing position" means which tab or pane a client views, not how far a pane is scrolled.
 - Product brief: milestone 1's search evidence is met by ~~edit-scrollback~~ `ship pane read` until search lands.
-- New tracking issues: copy mode, search, and the 10 KB history default as it stands before this change. Added on 2026-10-11: edit-scrollback, and a bindable run action with `ship clipboard copy`.
+- Archived design notes: copy mode, search, edit-scrollback, and a bindable run action with `ship clipboard copy`. The original five-issue requirement is superseded by Cyan's slice-5 amendment below; the 10 KB follow-up is dropped.
 
 ### Amendment 2026-10-11: edit-scrollback deferred
 
@@ -164,8 +164,12 @@ Asked for by Cyan in chat after the program paper's review opened questions abou
 
 - Deferred: P2, FR-014 to FR-022, SC-002, and the decisions marked (Deferred) above.
 - Changed: `ship pane read` replaces edit-scrollback as the stand-in for search, and FR-029 no longer mentions covered panes.
-- The edit-scrollback tracking issue carries the design work so far: a leaf holding the visible pane and the one it covers, layout commands on a covered pane acting on its slot, covered panes keeping their size until they return, a `NamedTempFile` for the history, and how tmux, Zellij, Herdr and kitty do it.
-- A separate tracking issue carries a bindable run action with the target pane in its environment, plus `ship clipboard copy`.
+- The edit-scrollback archived design note carries the design work so far: a leaf holding the visible pane and the one it covers, layout commands on a covered pane acting on its slot, covered panes keeping their size until they return, a `NamedTempFile` for the history, and how tmux, Zellij, Herdr and kitty do it.
+- A separate archived design note carries a bindable run action with the target pane in its environment, plus `ship clipboard copy`.
+
+### Slice-5 amendment: deferred work stays in notes
+
+Approved by Cyan in chat: "the 10kb one is unnecessary. the rest we can just keep here", followed by "go for it" on retaining four archived notes and revising slice 5. Copy mode, search, edit-scrollback and the run action need further thought; preserve their evidence and design input under `../deferred-notes/`, without treating them as backlog items or commitments. The already-created copy-mode and search drafts are retained as unfiled notes. No 10 KB follow-up is required because Ship now explicitly sets its history cap. Create an issue only if a deferred idea later becomes a good fit and Cyan chooses to pursue it. This supersedes the original five-issue requirement without changing implementation scope.
 
 ### Probe evidence
 

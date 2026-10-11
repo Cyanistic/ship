@@ -17,7 +17,7 @@ Panes keep about 10 KB of history and nothing can scroll it, so a long build log
 - Exited panes still scroll, read and select.
 - **BREAKING**: protocol version 8 to 9, for mouse input frames, clipboard events and the scroll offset on published screens. Server and client upgrade together.
 
-Copy mode, search, edit-scrollback, a bindable run action and `ship clipboard copy` are deferred with tracking issues. Until search lands, `ship pane read` stands in for milestone 1's search evidence.
+Copy mode, search, edit-scrollback, a bindable run action and `ship clipboard copy` are deferred with archived design notes, not tracking issues or implementation commitments. Cyan approved this slice-5 amendment in chat; the old 10 KB history default needs no follow-up issue. Until search lands, `ship pane read` stands in for milestone 1's search evidence.
 
 ## Capabilities
 

@@ -33,9 +33,9 @@ Verification uses real workflows and temporary probes, not permanent authored te
 - [x] 4.3 Verify the selection's lifetime and the clipboard's trust boundary. Dragging past the top edge scrolls and keeps selecting. Typing clears the highlight. Output arriving keeps it on its text. `"+y` in `nvim` reaches both clients on the tab but not a client on another tab. `printf '\e]52;c;?\a'` gets no answer.
 - [x] 4.4 Verify SC-004 on Linux if available: in foot over SSH, as in the U-3 check, a drag reaches `wl-paste`. Otherwise report Linux unverified.
 
-## 5. Docs, tracking issues and size report
+## 5. Docs, deferred notes and size report
 
-- [ ] 5.1 Update `README.md` with the scroll and read commands, `alt-pageup`/`alt-pagedown`, mouse behavior and both settings. Verify by running each documented command as written against a temporary server.
-- [ ] 5.2 Update `AGENTS.md` ("viewing position" means which tab or pane a client views, not scroll) and `docs/product-brief.md` (`ship pane read` stands in for milestone 1's search evidence). Verify against the product paper's "changes to locked papers and other documents".
-- [ ] 5.3 Draft five tracking issues from `.github/ISSUE_TEMPLATE/issue.md`: copy mode and search, each with the probe's findings; the 10 KB history default; edit-scrollback, with the deferred requirements and design notes from the product paper's amendment; and a bindable run action with `ship clipboard copy`. Verify by showing Cyan the drafts. File them only after Cyan approves the text.
-- [ ] 5.4 Report implementation Rust and test line counts separately against the 320 to 420 line estimate, with the wrapper's uncounted lines listed on their own.
+- [x] 5.1 Update `README.md` with the scroll and read commands, `alt-pageup`/`alt-pagedown`, mouse behavior and both settings. Verify by running each documented command as written against a temporary server.
+- [x] 5.2 Update `AGENTS.md` ("viewing position" means which tab or pane a client views, not scroll) and `docs/product-brief.md` (`ship pane read` stands in for milestone 1's search evidence). Verify against the product paper's "changes to locked papers and other documents".
+- [x] 5.3 Preserve four archived, unfiled design notes: copy mode and search, each with the probe's findings; edit-scrollback, with the deferred requirements and design notes from the product paper's amendment; and a bindable run action with `ship clipboard copy`. Verify that the evidence and unresolved choices remain available, without treating the notes as a backlog or implementation commitments. Cyan approved this replacement in chat during slice 5; drop the unnecessary 10 KB follow-up. Create issues only if Cyan later chooses to pursue the work.
+- [x] 5.4 Report implementation Rust and test line counts separately against the 320 to 420 line estimate, with the wrapper's uncounted lines listed on their own.
