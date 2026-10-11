@@ -4,284 +4,117 @@
 **Ship - A Terminal Workspace for Working Alongside Coding Agents**
 
 [Overview](#overview) •
-[Features](#features) •
-[Status](#status) •
+[What works today](#what-works-today) •
 [Installation](#installation) •
 [Keys](#keys) •
-[Configuration](#configuration)
+[Configuration](#configuration) •
+[Guide](docs/guide.md)
 
 </div>
 
 > [!WARNING]
-> **Ship is a work in progress.** There are no releases yet, and much of what the [Features](#features) section describes isn't built yet. [Status](#status) covers what works right now.
+> **Ship is a work in progress.** There are no releases yet, and the agent features that motivate it aren't built yet. [What works today](#what-works-today) is the honest list.
 
 ## Overview
 
 If you run a few coding agents at once, you end up with a pile of terminals: an agent in one, an editor in another, a shell running tests, another agent somewhere else. Typing the commands is the easy part. The hard part is keeping track of it all. Which agent finished? Which one is stuck waiting on you? Where did you leave it?
 
-Ship puts all of that in one place. It keeps your shells, editors and agents together, keeps them running when you close the window, shows you which agent needs attention, and lets agents drive the workspace themselves.
+Ship puts all of that in one place. It keeps your shells, editors and agents together, keeps them running when you close the window, and is heading toward showing you which agent needs attention and letting agents drive the workspace themselves.
 
 The name treats agents as your crew, and it's also about shipping software.
 
-## Features
-
-### Organize your work
-- **Tabs and split panes:**
-  Group related work into tabs. Tabs can nest inside other tabs, so a big task can hold its own smaller ones.
-
-- **Multiple clients, independent views:**
-  Attach from more than one terminal at a time. Each client keeps its own selection and focus while sharing the same underlying work.
-
-### Leave and come back
-- **Work that keeps running:**
-  Ship's server owns your terminals, so closing the window doesn't stop anything. Reattach later and everything is where you left it.
-
-- **Restore after a restart:**
-  If the server or machine restarts, Ship rebuilds your tabs and panes, and resumes agent conversations where the agent supports it.
-
-### Know which agent needs you
-- **Agent status at a glance:**
-  See which agents are working, blocked, idle or done with something you haven't looked at yet. When Ship can't tell, it says so instead of guessing.
-
-- **Jump to the one that needs you:**
-  An agent list and notifications get you to a waiting agent without checking every pane.
-
-### Let agents operate the workspace
-- **A command-line interface agents can use:**
-  Agents can open panes, run commands, send input, read output, and wait for another agent to finish, all through `ship` itself.
-
-### Small and fast
-- **Built on existing libraries:**
-  Ship leans on solid libraries for the mechanical parts (terminal emulation, PTYs, transport) and only writes the parts that are actually Ship. The goal is a codebase small enough to actually read. Small enough, in fact, that the whole thing fits in your agent's (sorry, crewmate's) context window.
-
-- **Snappy:**
-  Ship should feel at least as fast as tmux, Zellij and Herdr.
-
-- **Linux and macOS first:**
-  Both are priority platforms. Windows is best effort.
-
 ### Why another multiplexer?
-tmux and Zellij keep terminals alive, but they don't know what an agent is. [Herdr](https://github.com/herdrdev/herdr) does, and Ship is heavily inspired by it. Ship's angle is getting most of that daily value from a much smaller codebase.
 
-## Status
+tmux and Zellij keep terminals alive, but they don't know what an agent is. [Herdr](https://github.com/herdrdev/herdr) does, and Ship is heavily inspired by it. Ship's angle is getting most of that daily value from a much smaller codebase: it leans on solid libraries for the mechanical parts, like terminal emulation ([Ghostty](https://ghostty.org)'s), PTYs and transport, and only writes the parts that are actually Ship. The goal is a codebase small enough to fit in your agent's (sorry, crewmate's) context window.
 
-Today, `ship` runs a background server that keeps track of nested tabs and panes. You can create, rename, move and close them from the command line. Running `ship` opens a full-screen client on the whole server that updates as things change. Each client keeps its own selection and reconnects on its own if the connection drops.
+## What works today
 
-Each pane runs a real program, your shell by default, in its own terminal, and the server keeps it alive while clients come and go. Right/down splits now have a shared layout: inspection exposes the tree, programs receive their content sizes, and closing a pane gives its space to the sibling subtree. The client draws every pane of the viewed tab at once and moves between them with directional focus. Panes can be zoomed, swapped and resized. A foldable sidebar shows the nested tabs, and navigation returns to the pane each client last used in a tab. Splitting from keys starts the new shell in the selected pane's current directory, `alt-shift-n` adds a child tab, and an unnamed tab is labeled by its first pane's directory. Panes now keep scrollable history, and `ship pane read` lets agents and scripts read their output. Mouse clicks select panes and sidebar rows; dragging selects text and copies it on release. Agent status and restoring after a restart are still to come.
+- **Work that keeps running.** A background server owns your terminals. Close the window or press `alt-q` to detach, and everything keeps running until you come back.
+- **Tabs inside tabs.** Tabs can nest, so a big task can hold its own smaller ones. A sidebar shows the tree, and you can fold the parts you aren't looking at.
+- **Split panes.** Split, zoom, swap and resize from the keyboard. New splits open in the directory you were working in.
+- **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
+- **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
+- **A scriptable CLI.** Every action is also a `ship` command that prints JSON, so scripts and agents can create panes and read what another pane printed.
+- **Your keys.** Rebind anything, build tmux-style prefix modes, and see changes the moment you save the config.
+
+Linux and macOS are the priority platforms. Windows is best effort.
+
+### Not built yet
+
+- Agent status: seeing which agents are working, blocked, idle or done.
+- An agent list and notifications to jump to whichever one needs you.
+- Sending input to a pane, or waiting for another agent to finish, from the CLI.
+- Restoring tabs and panes after the server or machine restarts. For now, stopping the server ends everything in it.
+- Releases and packages.
 
 ## Installation
 
-There are no releases yet, so you'll need to build from source. You need a recent stable [Rust toolchain](https://www.rust-lang.org/tools/install).
+There are no releases yet, so you'll need to build from source. You need:
 
-1. Clone the repo
+- a recent stable [Rust toolchain](https://www.rust-lang.org/tools/install)
+- [Zig](https://ziglang.org/download/) 0.16 on your `PATH`, to build Ghostty's terminal library
+- `git` and a network connection on the first build, which fetches Ghostty's source
+
+Then:
 ```sh
 git clone https://github.com/Cyanistic/ship.git
 cd ship
-```
-2. Build it
-```sh
-cargo build --release
-```
-3. Run it, or put it on your PATH with `cargo install --path crates/ship` so the examples below work as written
-```sh
-./target/release/ship
+cargo install --path crates/ship
 ```
 
-Running `ship` finds the local server or starts one in the background, then opens the client. A server that `ship` starts begins with one tab holding a shell in your home directory, and the client opens on it. Press `alt-q` to detach. The server keeps running after `ship` exits, and `ship server stop` stops it.
+Run `ship`. It starts a server in the background if one isn't running, then opens on a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back. `ship server stop` shuts the server down and ends every program in it.
 
-To see tabs change live, leave `ship` open in one terminal and add a tab from another:
+On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or Ship's keys will type special characters instead.
+
+### A quick look at the CLI
+
+Leave `ship` open in one terminal and try this from another:
 ```sh
-TAB=$(ship tab create --name notes | jq -r .id)
-ship pane create --tab "$TAB" --name scratch
-```
-Then press `alt-right` and `alt-left` in the client to move between visible tab rows. `ship tab close --tab "$TAB"` closes it again.
-
-Inside a Ship pane you can leave out `--tab` and `--pane`: commands default to the pane they run in and the tab holding it. So `ship pane close` run in a pane closes that pane, and `ship pane create` adds a pane next to it.
-
-### Split and close from the CLI
-
-Create a shell, split it right, then split the right pane down:
-```sh
-TAB=$(ship tab create --name work | jq -r .id)
-LEFT=$(ship pane create --tab "$TAB" --name left | jq -r .id)
-RIGHT=$(ship pane create --pane "$LEFT" --direction right --name right | jq -r .id)
-BOTTOM=$(ship pane create --pane "$RIGHT" --direction down --name bottom | jq -r .id)
-ship tab get --tab "$TAB"
-ship pane close --pane "$LEFT"
-ship tab get --tab "$TAB"
+TAB=$(ship tab create --name demo | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" -- sh -c 'seq 100' | jq -r .id)
+ship pane read --pane "$PANE" --lines 5
 ship tab close --tab "$TAB"
 ```
 
-Inspection reports `layout`, whose `kind` is `pane` or `split`. A split has `axis`, first-child `ratio`, `first` and `second`; pane records live at the leaves in layout order. An empty tab omits `layout`. Closing `left` above lets `right` and `bottom` fill the tab. Viewers selected on the closed pane land in that sibling subtree; closing the last pane leaves an empty tab. Closing a pane ends its program, while the others keep running.
-
-`--direction` defaults to `right`. With just `--tab`, creation splits the largest content rectangle, breaking ties in layout order, or creates the first pane in an empty tab. `--pane` anchors the split directly, including the default from `SHIP_PANE_ID` inside a pane; an explicit `--tab` takes precedence. Each half needs at least 1x1 content, otherwise creation fails with `no space for new pane` before starting a program. Existing layouts squeeze on terminal shrink without losing panes or proportions. Each published tab carries its own optional `geometry`, derived by the server from its layout and current viewers. This applies to nested tabs too: a viewed child has geometry even when its parent is unviewed. Tab inspection includes geometry only while that tab is viewed; there is no separate replica geometry map. Published geometry can have zero content; PTYs and terminal emulators use at least 1x1 internally until content grows again.
-
-### Scroll and read output
-
-Each pane keeps about 10 MB of history by default. `alt-pageup` and `alt-pagedown` scroll the selected pane one page; the wheel scrolls the pane under the pointer without selecting it. Every client viewing that pane sees the same scroll position. New output leaves a scrolled view in place, and typing or pasting returns it to the bottom before reaching the program. A `[offset/history]` indicator shows how many rows above the bottom you are, out of the history rows retained.
-
-Try the CLI with a pane that prints 200 numbered lines and exits:
-```sh
-TAB=$(ship tab create --name history | jq -r .id)
-PANE=$(ship pane create --tab "$TAB" -- /bin/sh -c 'seq 199; printf 200' | jq -r .id)
-sleep 1
-ship pane scroll --pane "$PANE" --direction top
-ship pane scroll --pane "$PANE" --direction down --amount 5
-ship pane scroll --pane "$PANE" --direction up
-ship pane scroll --pane "$PANE" --direction bottom
-ship pane read --pane "$PANE"
-ship pane read --pane "$PANE" --lines 50
-ship pane read --pane "$PANE" --lines 200 --unwrap
-ship pane read --pane "$PANE" --ansi | cat
-ship pane read --pane "$PANE" --lines 200 | grep '^150$'
-ship tab close --tab "$TAB"
-```
-
-`up` and `down` move by `--amount` lines, or by one page when it is omitted. `top` and `bottom` ignore the amount. Inside a pane, you can omit `--pane` as with other pane commands.
-
-`ship pane read` prints plain text from the active screen at the bottom, regardless of scroll position. `--lines N` reads the last N rows, including history; `--unwrap` joins soft-wrapped lines, and `--ansi` preserves colors and styles. Reading does not move the view. Exited panes still scroll, read and allow selection. Alternate-screen programs such as Neovim have no scrollback: scroll commands do nothing there, and reads return only that screen. Copy mode, built-in search and edit-scrollback are deferred; piping a read into `grep` or an editor stands in for search.
-
-### Mouse and clipboard
-
-Click an unselected pane to select it without sending that click to its program. Click a sidebar row to select its tab, or its fold marker to fold or unfold it. The wheel over the sidebar does nothing.
-
-In a selected pane, programs that request mouse input get clicks, drags and the wheel. Otherwise the wheel scrolls history, or sends arrow keys on the alternate screen when the program enables alternate scroll, as `less` does. Without program mouse tracking, drag to select text, double-click a word or triple-click a line; dragging past an edge scrolls while selecting. Every viewer sees the highlight, but releasing copies only to the selecting client's clipboard. A plain click copies nothing. Typing or pasting clears the highlight.
-
-Copies use the outer terminal's clipboard escape, OSC 52. Program writes to the standard clipboard, such as Neovim's `"+y`, reach every client viewing the pane's tab, not other tabs. Programs cannot read a client's clipboard. Terminals without OSC 52 support, such as macOS Terminal.app, cannot receive these copies; some terminals also limit large copies. There is no fallback. To use the outer terminal's own selection, use its mouse override (usually Shift) or set `[client] mouse = false`.
-
-### Protocol 9 compatibility
-
-The scrollback and mouse wire changes require matching client and server builds. `ship server status` reports `protocolVersion: 9`. Current clients check health, service identity and protocol before ordinary commands, attach or shutdown. `--server-url URL` and `SHIP_SERVER_URL` select an existing server and never start one; status and stop never start one either.
-
-Clients built for protocols 1 through 8 reject protocol 9 when they check health. Already-built protocol-7 clients' explicit-URL ordinary commands skip that check and can reach incompatible endpoints. Those commands have no compatibility guarantee and can mutate the server even if decoding the response fails. Update client and server together. A server restart discards its in-memory tabs and programs, so plan the upgrade rather than stopping live work unexpectedly.
-
-Run `ship --help` and `ship pane create --help` to see the command options.
+The new tab shows up in the sidebar as soon as you create it, and `ship pane read` prints the last lines the pane wrote. Inside a Ship pane you can leave out `--tab` and `--pane`; commands default to the pane they run in. The [guide](docs/guide.md) walks through the rest, and `ship --help` lists every command.
 
 ## Keys
 
-Ship's keys are Alt chords. On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or the chords type special characters instead.
+All of Ship's default keys are Alt chords. Any other key goes to the program in the selected pane.
 
 | Key | Does |
 | --- | --- |
-| `alt-n` | New tab with a shell, after the selected one |
-| `alt-shift-n` | New tab with a shell as the last child of the selected tab, or of the selected pane's tab |
-| `alt-x` | Close the selected tab |
-| `alt-\|` / `alt--` | Split the selected pane right / down in its current directory, or the largest pane of the selected tab |
-| `alt-shift-x` | Close the selected pane |
-| `alt-left` / `alt-right` | Previous or next visible tab row, back on the pane you last used there |
-| `alt-h` / `alt-j` / `alt-k` / `alt-l` | Select the pane to the left, below, above or right |
-| `alt-tab` | Next pane in the tab, in layout order |
-| `alt-pageup` / `alt-pagedown` | Scroll the selected pane up / down one page |
-| `alt-f` | Zoom the selected pane to fill its tab, or unzoom |
-| `alt-shift-h` / `j` / `k` / `l` | Swap the selected pane with its neighbor to the left, below, above or right |
-| `alt-g` | Tabs mode: `j` / `k` move between visible rows, `h` / `l` fold / unfold, `esc` leaves |
-| `alt-b` | Hide or show this client's sidebar, preserving its folds |
-| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the selected pane's edge one cell, `esc` leaves |
+| `alt-n` | New tab with a shell |
+| `alt-shift-n` | New tab nested under the current one |
+| `alt-x` | Close the tab |
+| `alt-\|` / `alt--` | Split the pane right / down |
+| `alt-shift-x` | Close the pane |
+| `alt-left` / `alt-right` | Previous / next tab |
+| `alt-h` / `alt-j` / `alt-k` / `alt-l` | Move to the pane left, below, above or right |
+| `alt-tab` | Next pane in the tab |
+| `alt-shift-h` / `j` / `k` / `l` | Swap the pane with its neighbor in that direction |
+| `alt-f` | Zoom the pane to fill the tab, or unzoom |
+| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the pane's edge, `esc` leaves |
+| `alt-g` | Tabs mode: `j` / `k` move between tabs, `h` / `l` fold / unfold, `esc` leaves |
+| `alt-b` | Hide or show the sidebar |
+| `alt-pageup` / `alt-pagedown` | Scroll the pane up / down a page |
 | `alt-q` | Detach |
 
-In normal mode, every unbound key goes to the selected pane, including `alt-1` to `alt-9`, which have no default bindings. An explicitly bound `client.tab.select` still reports "not available yet".
-
-### Working in splits
-
-A tab with two or more panes draws them together, separated by shared borders that carry each pane's label. The selected pane has a heavier, colored border and the cursor, and typing goes to it. A lone pane fills the area without a border. Every pane keeps updating while you work in another.
-
-When several panes border the selected one on the side you move toward, `alt-h`/`j`/`k`/`l` picks the one you selected most recently, else the one whose center is nearest, else the first in layout order. That history belongs to your client and is never sent to the server, so two clients on the same tab move independently.
-
-Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the space left over.
-
-### Where new panes start
-
-A pane split from keys starts in the selected pane's current directory, so after `cd ~/Documents/projects/ship`, `alt--` opens a shell there. The current directory is the one the shell last reported through OSC 7, which zsh and fish setups usually send. On Linux and macOS, a shell that never reports one, such as oh-my-zsh when the server inherited SSH variables, has its working directory read instead each time its screen updates, so a `cd` still shows up by the next prompt. That directory has symlinks resolved, so `/tmp` reads `/private/tmp` on macOS. On other platforms, or before anything is known, the split starts in the selected pane's starting directory.
-
-The CLI keeps starting panes in the directory you run it from, or in `--cwd`. `ship pane get` shows both the starting `cwd` and the current `dir`:
-```sh
-TAB=$(ship tab create --name dirs | jq -r .id)
-PANE=$(ship pane create --tab "$TAB" --cwd /usr/share | jq -r .id)
-sleep 1
-ship pane get --pane "$PANE" | jq '{cwd, dir}'
-ship tab close --tab "$TAB"
-```
-New tabs' shells, from `alt-n`, `alt-shift-n` or `--starter`, still start in your home directory.
-
-### Zoom, swap and resize
-
-Zoom belongs to the tab, so every client viewing it sees the zoomed pane fill the area, and the tab's sidebar row is marked `Z`. The other panes keep running at their last sizes. Moving focus with `alt-h`/`j`/`k`/`l`, `alt-tab`, or `alt-shift-h`/`j`/`k`/`l` first unzooms the tab, then moves on the full layout. Creating, closing, swapping or resizing a pane unzooms too. Selecting another tab leaves the zoom in place.
-
-`alt-shift-h`/`j`/`k`/`l` picks a neighbor the same way focus does and exchanges the two panes' places; the programs and their screens move with them. With no neighbor that way, nothing is swapped.
-
-Resizing moves the edge of the selected pane on the side you press. When that side is the edge of the tab, it moves the opposite edge in that direction instead, so `l` on a rightmost pane narrows it. An edge stops when a pane would go below one row or column of content; a resize that can't move does nothing.
-
-The same edits work from the CLI, inside a pane or with `--pane`, and each prints the tab:
-```sh
-TAB=$(ship tab create --name work | jq -r .id)
-LEFT=$(ship pane create --tab "$TAB" --name left | jq -r .id)
-RIGHT=$(ship pane create --pane "$LEFT" --direction right --name right | jq -r .id)
-ship pane zoom --pane "$LEFT"                    # toggles
-ship pane swap --pane "$LEFT" --other "$RIGHT"   # any two panes in one tab
-ship pane resize --pane "$LEFT" --direction left --amount 5
-ship tab close --tab "$TAB"
-```
-`--amount` defaults to one cell. `ship pane swap` needs `--other`; it has no direction form. A key can carry an amount, for example `"alt-y" = [{ server.pane.resize = { direction = "right", amount = 5 } }]`.
-
-### Working in the tab tree
-
-The left sidebar has a `tabs` title and one row per visible tab. Rows are indented by depth; `▾` means expanded and `▸` means folded. The highlighted row is the selected tab, or the tab holding your selected pane. There is no separate sidebar cursor or Enter action.
-
-An unnamed tab's row shows the last component of its first pane's current directory, `~` at home, else that pane's label. A name always wins.
-
-Create a three-level tree from another terminal:
-```sh
-PROJECT=$(ship tab create --name project | jq -r .id)
-REVIEW=$(ship tab create --name review "$PROJECT" | jq -r .id)
-CHECKS=$(ship tab create --name checks "$REVIEW" | jq -r .id)
-ship pane create --tab "$CHECKS" --name check-shell
-```
-
-`alt-shift-n` builds the same kind of tree from keys: it adds a tab with a shell as the last child of the selected tab, or of the selected pane's tab, and selects the shell. With nothing selected it adds a top-level tab, like `alt-n`. From the CLI, `ship tab create --child` does the same for the tab holding the pane it runs in, or the pane given with `--pane`. Plain `ship tab create` stays top-level, and `--child` can't be combined with a parent, `--before` or `--after`:
-```sh
-CHECK=$(ship tab get --tab "$CHECKS" | jq -r .layout.id)
-ship tab create --child --pane "$CHECK" --name logs --starter | jq '{name, shell: .layout.command}'
-```
-
-Press `alt-g`, then `j` or `k` to select rows, `h` to fold the selected row and `l` to unfold it. `esc` returns to normal mode on the same selection. Next and previous wrap around; from nothing selected they open the first or last visible row. An empty parent shows the no-pane hint even if its child has a shell. When you return to a populated tab, you land on the surviving own pane you last used there, else its first pane in layout order. Selecting a descendant expands its ancestors automatically.
-
-Open a second `ship` client on the same server to try different folds and pane selections. Folds, sidebar visibility and pane memory belong to each client. `alt-b` hides the sidebar without changing the navigation rows, and gives its width back to the pane area. Hiding it on the smallest viewer lets the shared panes grow, subject to the other viewers' sizes. Run `stty size` in a pane to see its content dimensions.
-
-To close the example tree and its shell:
-```sh
-ship tab close --tab "$PROJECT"
-```
+The mouse works too: click a pane or a sidebar row to select it, scroll with the wheel, and drag to select and copy text.
 
 ## Configuration
 
-Ship reads one config file, `ship/config.toml` in your config directory. That's `~/.config/ship/config.toml` on Linux and macOS, or under `$XDG_CONFIG_HOME` if you set it. Use `--config <file>` or `SHIP_CONFIG` to point somewhere else. Without a file, Ship uses its defaults.
+Ship reads `~/.config/ship/config.toml` (or `$XDG_CONFIG_HOME/ship/config.toml`). Without one, it uses its defaults. A running client picks up changes as soon as you save.
 
-`[server]` holds the default shell and each new pane's history byte cap:
 ```toml
 [server]
-shell = "/bin/bash"          # default: your login shell
-scrollback_bytes = 10000000   # default: about 10 MB, with no line cap
-```
-The next pane you open uses these settings; existing panes keep their shell and history cap. Ghostty estimates history storage and prunes whole pages, so a very small byte cap is approximate, not an exact memory ceiling. A relative path is relative to the config file's folder.
+shell = "/bin/bash"            # default: your login shell
 
-`[client]` holds mouse capture, sidebar width and the keys, grouped into modes. The sidebar defaults to 26 columns; set a fixed width without fitting it to changing labels:
-```toml
 [client]
 sidebar_width = 40
-mouse = true                 # default; false leaves selection to the outer terminal
-```
 
-Saving a valid width while attached updates the pane area and program sizes without restarting the client. Hidden sidebars retain the configured width for when they are shown again. A small window clips the sidebar to the available width and can leave zero pane content; it does not delete panes.
-
-`normal` is where you start. Each key takes a list of actions, run in order. A binding in your file replaces the default on that key and leaves the rest alone:
-```toml
 [client.modes.normal.keys]
-"alt-t"  = [{ server.tab.create = {} }]        # new empty tab
 "alt-q"  = []                                  # unbind: alt-q reaches the program
-"alt-m"  = [                                   # a tab, then a second pane
-  { server.tab.create.starter = "shell" },
-  { server.pane.create = {} },
-]
 "ctrl-b" = [{ client.mode = "prefix" }]        # tmux habits
 
 [client.modes.prefix]
@@ -292,14 +125,4 @@ kind = "oneshot"                               # back to normal after one key
 "ctrl-b" = [{ client.send = "ctrl-b" }]        # a literal ctrl-b for the pane
 ```
 
-You can define your own modes the same way. A `oneshot` mode takes one key and returns to normal; a `sticky` mode stays until a binding leaves it, and swallows keys it doesn't bind. Set `clear_defaults = true` on a mode to start it with none of Ship's bindings.
-
-The `server.` actions are the CLI's commands with the same names and options: `server.tab.create.starter = "shell"` is `ship tab create --starter shell`. Key spellings like `ctrl-alt-x` and `shift-tab` come from [crokey](https://docs.rs/crokey).
-
-There is no permanent status bar. A one-row overlay appears over the bottom of the pane area, never the sidebar, only when there is something to say: outside normal mode, while reconnecting, when the selected pane's program has exited, or after an error until the next key action. It doesn't resize panes. It shows the mode's name, then exit status, connection state and the latest error, then key hints. Default tabs hints read `j next  k prev  h collapse  l expand  esc normal`; resize hints read `h left  j down  k up  l right  esc normal`. Untouched defaults keep their order; chords in your file follow them in file order. Each hint uses its first action's scalar value, else its last path segment. For example, `client.mode = "normal"` shows `normal`, while `client.tab.expand = {}` shows `expand`. Hints are cut from the end when space runs out.
-
-A running client reloads mouse capture, its width and keys when you save the file, including rename-saves. Bind `client.config.reload = {}` to a key for explicit reload. If the file has a mistake, the client keeps its current settings and shows the located error in the overlay. To check the file without a client:
-```sh
-ship config check
-```
-It prints the first mistake with its line and column and exits non-zero if there is one.
+`ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/guide.md#configuration) covers every setting, custom modes and how key actions map onto CLI commands.
