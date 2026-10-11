@@ -18,7 +18,7 @@ Every pane SHALL run exactly one program in its own terminal, started when the p
 - **THEN** the command fails with a message saying why, and `ship tab list` shows the same output as before the attempt
 
 ### Requirement: Program and starting directory
-`ship pane create` SHALL start the configured shell, else the user's login shell, by default, in the CLI's current directory. `--tab ID`, or `--pane ID` for the tab holding that pane, SHALL name the tab, defaulting to the tab holding the pane the command runs in. `--cwd DIR` SHALL set the starting directory, and SHALL fail creation without changing anything when `DIR` is not an existing directory. `-- COMMAND ARGS...` SHALL run that command instead of the shell. `--name NAME` SHALL be optional.
+`ship pane create` SHALL start the configured shell, else the user's login shell, by default, in the CLI's current directory. `--tab ID` SHALL name a tab and `--pane ID` SHALL name a split anchor in its owning tab, defaulting to the pane the command runs in. `--cwd DIR` SHALL set the starting directory, and SHALL fail creation without changing anything when `DIR` is not an existing directory. `-- COMMAND ARGS...` SHALL run that command instead of the shell. `--name NAME` SHALL be optional.
 
 #### Scenario: Default shell in the current directory
 - **WHEN** a user runs `ship pane create --tab <tab>` from `/tmp` with no shell configured
@@ -44,11 +44,23 @@ Programs in panes SHALL see a terminal that advertises 256 colors and 24-bit col
 - **THEN** it finds 256 and 24-bit color support, and an attached client shows the exact colors
 
 ### Requirement: Pane inspection
-`ship pane get` SHALL report the pane's command, starting directory, current title and status, which is running or exited with its exit code. The title SHALL follow the title the program sets, and SHALL be absent when the program has set none or has cleared it.
+`ship pane get` SHALL report the pane's command, starting directory, current title, current directory when known, and status, which is running or exited with its exit code. The title SHALL follow the title the program sets, and SHALL be absent when the program has set none or has cleared it. The current directory SHALL be the directory the shell last reported through OSC 7, else, on Linux and macOS, the program's working directory as of its latest output. It SHALL remain distinct from the starting directory and SHALL be absent until known.
 
 #### Scenario: Program sets a title
 - **WHEN** a pane runs `sh -c 'printf "\033]0;hello\007"; sleep 100'`
 - **THEN** `ship pane get` reports the title `hello` and the status running
+
+#### Scenario: Shell reports a changed directory
+- **WHEN** a pane starts in home, changes to `/tmp`, and its shell reports that directory through OSC 7
+- **THEN** inspection shows home as the starting directory and `/tmp` as the current directory
+
+#### Scenario: Shell that doesn't report its directory
+- **WHEN** a pane's shell on Linux or macOS never reports OSC 7 and the user runs `cd /usr/share`
+- **THEN** inspection shows `/usr/share` as the current directory once the next prompt is drawn, and retains the starting directory
+
+#### Scenario: No current directory known
+- **WHEN** the shell has not reported its directory and the platform offers no working-directory lookup
+- **THEN** inspection has no current directory and retains the starting directory
 
 ### Requirement: Exited programs
 When a pane's program exits, the pane SHALL remain with its last screen and exit status until it is removed, and SHALL ignore input.
@@ -82,3 +94,18 @@ Removing a pane, removing a tab containing it, or stopping the server SHALL end 
 #### Scenario: Stop the server
 - **WHEN** the server receives SIGTERM with three running panes, one of them running a program that ignores hangup
 - **THEN** the server exits within five seconds and no pane process remains
+
+### Requirement: Key-created pane directory
+A pane created from keys SHALL start in the selected anchor pane's current directory when known, else its starting directory. Without an explicit command it SHALL run the configured shell, else the login shell. The new pane SHALL be selected. CLI creation SHALL continue using the caller's directory unless `--cwd` overrides it.
+
+#### Scenario: Split after changing directory
+- **WHEN** a pane's shell reports `/tmp` and a client presses `alt--`
+- **THEN** a new shell starts below it in `/tmp` and is selected
+
+#### Scenario: Starting-directory fallback
+- **WHEN** the anchor has no current directory and a client creates a pane from keys
+- **THEN** the new pane starts in the anchor's starting directory
+
+#### Scenario: Caller overrides anchor directory
+- **WHEN** a CLI caller in `/var` creates a pane anchored to a pane reporting `/tmp`, without `--cwd`
+- **THEN** the new pane starts in `/var`
