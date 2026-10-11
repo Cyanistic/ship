@@ -1,6 +1,6 @@
 # Slice 4: selection and clipboard implementation and verification
 
-Drag, word and line selection, the shared highlight, copy on release and program clipboard writes are implemented across the wrapper, protocol, server and client. Tasks 4.1, 4.2 and 4.4 are verified. Task 4.3 is verified at the protocol level and waits on one open question, listed under "Open".
+Drag, word and line selection, the shared highlight, copy on release and program clipboard writes are implemented across the wrapper, protocol, server and client. Tasks 4.1 to 4.4 are verified.
 
 ## Implementation
 
@@ -33,6 +33,6 @@ Artifacts: `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-select-slice4-
 
 ## Open
 
-- **Lone panes can't be dragged past their edges.** A tab's only pane is drawn unbordered across the full terminal height, and terminals clamp mouse reports to the window. So the pointer can't get above the top row or below the bottom row, and autoscroll never starts. Bordered panes have a border row to drag onto. The probe's autoscroll check sent `y = -1` over NDJSON, which a real terminal can't produce for such a pane. This needs Cyan's decision; see the report.
+- **Lone panes.** A tab's only pane is drawn unbordered from the terminal's top row, so a real pointer can't go above it, and the probe's autoscroll check sent `y = -1` over NDJSON. Cyan dragged to the edge of a lone pane by hand and it autoscrolled, which settles task 4.3. By the wrapper's mapping the top row sits 2 pixels down, outside Ghostty's 1-pixel autoscroll buffer, so why it triggers wasn't traced.
 - **Physical clipboard.** Cyan confirmed that a drag's copy reaches the system clipboard on macOS and from Linux over SSH (tasks 4.2 and 4.4). Neovim's `"+y` and Pi's own copy reaching a physical clipboard weren't checked separately; the OSC 52 they produce is verified above.
 - **Linux.** Building and running Ship on Linux remains unverified; the client ran on the Mac.

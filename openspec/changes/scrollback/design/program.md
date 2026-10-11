@@ -472,5 +472,5 @@ Selection, highlight, copy on release and program clipboard writes are implement
 - Only program writes to the standard clipboard are forwarded. Writes to the primary or selection clipboards, such as Neovim's `"*y`, are dropped, since the client writes only the standard clipboard.
 - The pane task's trace log of each pointer's attachment is replaced by remembering that attachment for the next copy.
 
-Tasks 4.1, 4.2 and 4.4 are checked. Cyan confirmed that a drag's copy reaches the system clipboard on macOS and from Linux over SSH. Task 4.3 waits on Cyan's decision on dragging past a lone pane's edges, which no real terminal can report.
+Tasks 4.1 to 4.4 are checked. Cyan confirmed that a drag's copy reaches the system clipboard on macOS and from Linux over SSH, and that dragging to a lone pane's edge autoscrolls, so no edge-row rule was added.
 
