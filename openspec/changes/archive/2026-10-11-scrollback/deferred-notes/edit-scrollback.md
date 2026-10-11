@@ -42,4 +42,4 @@ Use `shell-words` as the candidate for splitting editor settings into executable
 
 ## Evidence and unresolved choices
 
-The existing scrollback probe demonstrates fast formatting, soft-wrap joining and tracked references, but does not exercise covering, editor launch or restoration. Resolve storage, lifecycle, layout targeting, editor arguments and temporary-file ownership in a future locked design before writing code.
+The scrollback probe, removed from the branch, demonstrated fast formatting, soft-wrap joining and tracked references, but did not exercise covering, editor launch or restoration. Resolve storage, lifecycle, layout targeting, editor arguments and temporary-file ownership in a future locked design before writing code.

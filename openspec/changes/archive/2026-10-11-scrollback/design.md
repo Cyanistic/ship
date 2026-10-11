@@ -8,7 +8,7 @@ Summary of the three locked papers in `design/`, which are the source of truth. 
 
 ## Context
 
-Panes keep about 10 KB of history today and have no way to scroll it, read it from a script, or select it with the mouse. Ship doesn't capture the mouse at all. This change adds history scrolling shared by every viewer, `ship pane read`, mouse capture with click-to-select, and drag selection with copy to the client's clipboard over OSC 52. Probe evidence is in `experiments/scrollback-probe/`, and the design conversation's notes are in `notes.md`.
+Panes keep about 10 KB of history today and have no way to scroll it, read it from a script, or select it with the mouse. Ship doesn't capture the mouse at all. This change adds history scrolling shared by every viewer, `ship pane read`, mouse capture with click-to-select, and drag selection with copy to the client's clipboard over OSC 52. Probe evidence came from `experiments/scrollback-probe/`, which was removed from the branch; its source is at `452301a:experiments/scrollback-probe/src/main.rs`. The design conversation's notes are in `notes.md`.
 
 ## Goals / Non-Goals
 

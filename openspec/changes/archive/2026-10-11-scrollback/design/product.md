@@ -1,6 +1,6 @@
 # Scrollback, mouse and edit-scrollback
 
-Status: Locked again on 2026-10-11, approved by Cyan in Plannotator review ("LGTM") after an amendment deferring edit-scrollback, made at Cyan's request in chat; see [the amendment](#amendment-2026-10-11-edit-scrollback-deferred). Deferred text is marked in place, not removed. Previously locked, approved by Cyan on 2026-10-11 after Plannotator review. Written on 2026-10-10 from a design conversation with Cyan, with decisions recorded in [notes](../notes.md) and settled in the same conversation. Probe evidence is in `experiments/scrollback-probe/`.
+Status: Locked again on 2026-10-11, approved by Cyan in Plannotator review ("LGTM") after an amendment deferring edit-scrollback, made at Cyan's request in chat; see [the amendment](#amendment-2026-10-11-edit-scrollback-deferred). Deferred text is marked in place, not removed. Previously locked, approved by Cyan on 2026-10-11 after Plannotator review. Written on 2026-10-10 from a design conversation with Cyan, with decisions recorded in [notes](../notes.md) and settled in the same conversation. Probe evidence came from `experiments/scrollback-probe/`, removed from the branch; its source is at `452301a:experiments/scrollback-probe/src/main.rs`.
 
 ## Summary
 
@@ -173,7 +173,7 @@ Approved by Cyan in chat: "the 10kb one is unnecessary. the rest we can just kee
 
 ### Probe evidence
 
-From `experiments/scrollback-probe/` against the pinned libghostty-vt, on macOS only:
+From the scrollback probe, removed from the branch (source at `452301a:experiments/scrollback-probe/src/main.rs`), against the pinned libghostty-vt, on macOS only:
 
 - A fresh terminal has a 10,000-byte history cap that overrides the line limit. A 200-column pane keeps about 250 to 290 rows today.
 - Formatting 10,000 rows at 200 columns takes 2.4 ms and gives 1 MB of text. About 38,600 rows fit in 64 MB at that width.

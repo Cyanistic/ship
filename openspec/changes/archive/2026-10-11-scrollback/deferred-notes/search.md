@@ -16,7 +16,7 @@ Design forward/backward search, match navigation and highlighting over retained 
 
 ### Cause
 
-`experiments/scrollback-probe/src/main.rs` sections G and H format text and use an owned literal substring scan. This is an experiment, not a production search mechanism or proof that Ghostty lacks a native search API.
+The scrollback probe's sections G and H, removed from the branch (source at `452301a:experiments/scrollback-probe/src/main.rs`), formatted text and used an owned literal substring scan. This is an experiment, not a production search mechanism or proof that Ghostty lacks a native search API.
 
 The slice-5 macOS release rerun observed:
 
@@ -40,5 +40,5 @@ Check for a reusable dependency API before owning search. If formatted-text scan
 
 - `openspec/changes/scrollback/design/product.md`: Non-goals, amendment and probe evidence.
 - `docs/product-brief.md`: milestone 1's temporary search evidence.
-- `experiments/scrollback-probe/src/main.rs`: sections D, G and H.
+- Scrollback probe, removed from the branch (source at `452301a:experiments/scrollback-probe/src/main.rs`): sections D, G and H.
 - `openspec/changes/scrollback/evidence-slice-5.md`: observed timings and limits.

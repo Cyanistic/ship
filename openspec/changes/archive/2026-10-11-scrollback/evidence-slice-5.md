@@ -31,7 +31,7 @@ Linux builds and live execution remain unverified in this slice. Prior user-conf
 
 ## Probe findings retained in the notes
 
-Reran the existing dependency experiment with `cargo run --release --manifest-path experiments/scrollback-probe/Cargo.toml`. Log: `/tmp/ship-scrollback-probe-slice5.log`. No new test or experiment Rust was authored.
+Reran the existing dependency experiment with `cargo run --release --manifest-path experiments/scrollback-probe/Cargo.toml` before the directory was removed from the branch; its source is at `452301a:experiments/scrollback-probe/src/main.rs`. Log: `/tmp/ship-scrollback-probe-slice5.log`. No new test or experiment Rust was authored.
 
 The notes retain tracked-reference pruning, word selection, the adjustment API's incomplete movement evidence, alternate-screen history behavior, formatting/search timings with the byte cap lifted, display-width mapping, and the failed row-wise match across a soft wrap. They explicitly distinguish callable APIs and synthetic timings from a verified future implementation. The run and edit-scrollback notes link inspected primary references for tmux, Zellij, Herdr and kitty, and leave consequential interfaces and lifecycle choices unsettled.
 

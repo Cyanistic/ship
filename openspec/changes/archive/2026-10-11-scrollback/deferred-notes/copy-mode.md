@@ -20,7 +20,7 @@ The scrollback notes propose a pane-owned cursor and selection, shared by viewer
 
 The pinned libghostty-vt revision `8953a740bc378cec3e07e1f6ca949f0595eab19b` already provides tracked grid references, `Selection::adjust`, `select_word` and text formatting. The wrapper now draws Ghostty's selection and emits `Copied`; Ship already routes a copy to its originating attachment.
 
-`experiments/scrollback-probe/src/main.rs` sections D and E exercise potential building blocks. A macOS rerun in slice 5 observed:
+The scrollback probe's sections D and E, removed from the branch (source at `452301a:experiments/scrollback-probe/src/main.rs`), exercised potential building blocks. A macOS rerun in slice 5 observed:
 
 - A tracked row follows its text as older rows are pruned and reports `has_value=false` after its own text is pruned. The 200-column, 1,000-line-cap case with the byte cap lifted demonstrates this; the small-terminal case never filled enough storage to prune.
 - `select_word` on `foo bar-baz qux` returned `bar-baz`.
@@ -39,5 +39,5 @@ Prefer extending typed wrapper commands for terminal movement and selection, lea
 
 - `openspec/changes/scrollback/design/product.md`: Non-goals and probe evidence.
 - `openspec/changes/scrollback/notes.md`: shared cursor/selection direction and historical binding.
-- `experiments/scrollback-probe/src/main.rs`: sections D, E and F.
+- Scrollback probe, removed from the branch (source at `452301a:experiments/scrollback-probe/src/main.rs`): sections D, E and F.
 - `openspec/changes/scrollback/evidence-slice-5.md`: probe rerun and platform limits.
