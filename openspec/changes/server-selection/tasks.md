@@ -17,8 +17,8 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 3. Creates select what they make
 
-- [ ] 3.1 Add `select` and `attachment` to both create commands, `select` to both request bodies, and `select_created` inside the create commits. Verify SC-004: `ship pane create --tab T -- sleep 9` moves no client, and with `--select --attachment A` client A lands on the new pane while `ship view list` in a loop never shows it unselected. `--select` without an attachment fails before creating, and an unknown attachment creates nothing and leaves no shell running.
-- [ ] 3.2 Fill the key scope's attachment in `execute`, set `select = true` on the four default creates, and remove the client's `creates` path. Verify that `alt-n`, `alt-shift-n`, `alt--` and `alt-|` still land on what they made, and that a binding without `select` leaves the selection alone.
+- [x] 3.1 Add `select` and `attachment` to both create commands, `select` to both request bodies, and `select_created` inside the create commits. Verify SC-004: `ship pane create --tab T -- sleep 9` moves no client, and with `--select --attachment A` client A lands on the new pane while `ship view list` in a loop never shows it unselected. `--select` without an attachment fails before creating, and an unknown attachment creates nothing and leaves no shell running.
+- [x] 3.2 Fill the key scope's attachment in `execute`, set `select = true` on the four default creates, and remove the client's `creates` path. Verify that `alt-n`, `alt-shift-n`, `alt--` and `alt-|` still land on what they made, and that a binding without `select` leaves the selection alone.
 
 ## 4. The lane orders everything a client does
 

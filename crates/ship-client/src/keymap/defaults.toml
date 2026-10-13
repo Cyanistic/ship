@@ -2,11 +2,11 @@
 # replaces the default on that chord in that mode (FR-012).
 
 [client.modes.normal.keys]
-"alt-n"       = { action = { server.tab.create.starter = "shell" } }
-"alt-shift-n" = { action = { server.tab.create = { starter = "shell", child = true } } }
+"alt-n"       = { action = { server.tab.create = { starter = "shell", select = true } } }
+"alt-shift-n" = { action = { server.tab.create = { starter = "shell", child = true, select = true } } }
 "alt-x"       = { action = { server.tab.close = {} } }
-"alt--"       = { action = { server.pane.create.direction = "down" } }
-"alt-|"       = { action = { server.pane.create.direction = "right" } }
+"alt--"       = { action = { server.pane.create = { direction = "down", select = true } } }
+"alt-|"       = { action = { server.pane.create = { direction = "right", select = true } } }
 "alt-shift-x" = { action = { server.pane.close = {} } }
 "alt-left"    = { action = { client.tab.prev = {} } }
 "alt-right"   = { action = { client.tab.next = {} } }

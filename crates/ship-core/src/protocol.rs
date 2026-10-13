@@ -50,6 +50,10 @@ pub struct CreateTab {
     pub name: OptionalName,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub starter: Option<Starter>,
+    /// Select the new tab, or its starter pane, in the same commit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(schema_with = attachment_schema)]
+    pub select: Option<IdOf<Attachment>>,
 }
 
 /// What a new tab starts with.
@@ -70,6 +74,10 @@ pub struct CreatePane {
     pub direction: SplitDirection,
     #[serde(flatten)]
     pub input: PaneInput,
+    /// Select the new pane in the same commit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(schema_with = attachment_schema)]
+    pub select: Option<IdOf<Attachment>>,
 }
 
 /// Split an explicit pane, or the largest pane of a tab (first pane if empty).

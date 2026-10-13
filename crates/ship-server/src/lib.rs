@@ -184,6 +184,7 @@ pub async fn serve(
         at: MoveTab::top(),
         name: OptionalName::default(),
         starter: Some(Starter::Shell),
+        select: None,
     };
     if starter && let Err(error) = state.ask(starter_tab).await {
         stop_actors(&state, &bus).await;

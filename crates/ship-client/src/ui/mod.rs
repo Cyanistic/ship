@@ -27,7 +27,6 @@ use ship_core::{
     command::{
         Command, Direction, PaneTarget,
         pane::{self, PaneCommand},
-        tab::TabCommand,
     },
     id::{Attachment, IdOf},
     model::{NodeId, Pane},
@@ -54,7 +53,7 @@ use self::{
     terminal::TerminalGuard,
 };
 use crate::{
-    Client, KeyScope, Outcome, Scope,
+    Client, KeyScope, Scope,
     keymap::{
         Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction,
         Sidebar as SidebarAction,
@@ -172,8 +171,8 @@ async fn drive(
     };
     // Bound actions still to run, oldest first.
     let mut queued: VecDeque<Action> = VecDeque::new();
-    // The server action in flight, resolving to what it created.
-    let mut running: Pending<Option<NodeId>> = None;
+    // The server action in flight; selection comes from its published state.
+    let mut running: Pending<()> = None;
     let mut terminal_events = EventStream::new();
     // Frames for the current input POST; `None` while disconnected.
     let mut input: Option<mpsc::UnboundedSender<InputFrame>> = None;
@@ -261,8 +260,7 @@ async fn drive(
             result = finish(&mut running) => {
                 running = None;
                 match result {
-                    Ok(Some(created)) => chosen = Some(created),
-                    Ok(None) => {}
+                    Ok(()) => {}
                     Err(error) => {
                         message = Some(error.to_string());
                     }
@@ -387,11 +385,8 @@ async fn drive(
             }
             let done = match action {
                 Action::Server(command) => {
-                    let creates = matches!(
-                        command,
-                        Command::Tab(TabCommand::Create(_)) | Command::Pane(PaneCommand::Create(_))
-                    );
                     let scope = Scope::Keys(KeyScope {
+                        attachment: observer.attachment,
                         selection: chosen.or(observer.record().and_then(|record| record.selection)),
                         tabs: observer
                             .replica
@@ -400,16 +395,7 @@ async fn drive(
                             .unwrap_or_default(),
                     });
                     running = Some(Box::pin(async move {
-                        Ok(match client.execute(command, &scope).await? {
-                            Outcome::Tab(tab) if creates => Some(
-                                tab.panes()
-                                    .next()
-                                    .map(|pane| pane.id)
-                                    .map_or(NodeId::Tab(tab.id), NodeId::Pane),
-                            ),
-                            Outcome::Pane(pane) if creates => Some(NodeId::Pane(pane.id)),
-                            _ => None,
-                        })
+                        client.execute(command, &scope).await.map(|_| ())
                     }));
                     Ok(())
                 }

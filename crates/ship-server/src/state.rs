@@ -360,6 +360,15 @@ impl Message<ListTabs> for ServerState {
     }
 }
 
+/// Select inside a create commit, before placing anything in the tree.
+fn select_created(viewers: &mut Viewers, attachment: IdOf<Attachment>, node: NodeId) -> Result<()> {
+    viewers
+        .get_mut(&attachment)
+        .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?
+        .selection = Some(node);
+    Ok(())
+}
+
 impl Message<CreateTab> for ServerState {
     type Reply = Result<Tab>;
 
@@ -387,7 +396,14 @@ impl Message<CreateTab> for ServerState {
             geometry: None,
             zoomed: None,
         };
-        self.commit(|tabs, _| {
+        self.commit(|tabs, viewers| {
+            if let Some(attachment) = create.select {
+                let node = tab
+                    .panes()
+                    .next()
+                    .map_or(NodeId::Tab(id), |pane| NodeId::Pane(pane.id));
+                select_created(viewers, attachment, node)?;
+            }
             tree::place(tabs, Arc::new(tab.clone()), create.at)?;
             Ok(tab)
         })
@@ -526,7 +542,10 @@ impl Message<CreatePane> for ServerState {
                 .map(|anchor| anchor.dir.clone().unwrap_or_else(|| anchor.cwd.clone()));
         }
         let pane = self.start_pane(start, input)?;
-        self.commit(|tabs, _| {
+        self.commit(|tabs, viewers| {
+            if let Some(attachment) = create.select {
+                select_created(viewers, attachment, NodeId::Pane(pane.id))?;
+            }
             layout::split(
                 tree::tab_mut(tabs, owner)?,
                 anchor,
