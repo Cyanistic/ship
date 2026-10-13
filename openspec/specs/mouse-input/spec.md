@@ -14,11 +14,15 @@ The client SHALL capture the mouse unless `[client] mouse = false`. A saved chan
 - **THEN** the client stops capturing the mouse without a restart and a drag selects text in the outer terminal
 
 ### Requirement: Click selects a pane
-A click in a pane that isn't selected SHALL select it for that client and SHALL NOT reach its program.
+A click in a pane that isn't selected SHALL select it for that client and SHALL NOT reach its program. While earlier input is still waiting to take effect, a press on any pane, selected or not, SHALL select it and SHALL NOT reach its program.
 
 #### Scenario: Click between panes
 - **WHEN** a tab has three shell panes and a user clicks each in turn
 - **THEN** each becomes selected and no mouse escape sequence reaches any shell
+
+#### Scenario: Click on the selected pane while input waits
+- **WHEN** a pane running Neovim with `mouse=a` is selected, and the user clicks in it while a create is still waiting on a slow link
+- **THEN** the click selects that pane and Neovim receives no click
 
 ### Requirement: Mouse input to programs
 In the selected pane, when its program has asked for mouse input, clicks, drags, releases, motion and the wheel SHALL reach the program in the form it asked for, with coordinates relative to the pane.
@@ -44,3 +48,14 @@ A click on a sidebar row SHALL select that tab as the keyboard does. A click on 
 #### Scenario: Click a row and a fold marker
 - **WHEN** a user clicks a tab's row, then clicks the fold marker of a row with children
 - **THEN** the first tab is selected as navigation keys would select it, and the second row folds
+
+### Requirement: Clicks keep their target
+A click on a pane, a sidebar row or a fold marker SHALL take its turn in the client's input order (see terminal-client's Ordered input) and act on what was clicked, not on what is selected at its turn. When that pane or tab is gone by its turn, the click SHALL do nothing and show no error.
+
+#### Scenario: Click during a pending create
+- **WHEN** 500 ms of delay is added each way, the user presses `alt-n` and at once clicks a pane in the current tab
+- **THEN** the tab is created, and the client ends on the clicked pane
+
+#### Scenario: Clicked pane closed first
+- **WHEN** a user clicks a pane while earlier input is waiting, and another client closes that pane before the click's turn
+- **THEN** the click does nothing and the status line shows no error

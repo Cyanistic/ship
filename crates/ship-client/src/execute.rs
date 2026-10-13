@@ -12,7 +12,7 @@ use ship_core::{
         pane::{self, PaneCommand},
         tab::{self, TabCommand},
     },
-    id::IdOf,
+    id::{Attachment, IdOf},
     model::{NodeId, Pane, Tab},
     prelude::*,
     protocol::{
@@ -40,6 +40,7 @@ pub enum Scope {
 pub struct KeyScope {
     pub selection: Option<NodeId>,
     pub tabs: Tabs,
+    pub attachment: Option<IdOf<Attachment>>,
 }
 
 /// What a command produced. Serializes as the resource itself; the CLI
@@ -67,7 +68,10 @@ impl Client {
                     starter,
                     child,
                     pane,
+                    select,
+                    attachment,
                 }) => {
+                    let select = Self::select_attachment(select, attachment, scope)?;
                     let at = match (to.resolve()?, child) {
                         (Some(_), true) => {
                             return Err(err!(Validation, "child takes no parent, before or after"));
@@ -86,6 +90,7 @@ impl Client {
                         at,
                         name: name.into(),
                         starter,
+                        select,
                     };
                     Outcome::Tab(self.create_tab(&body).await?)
                 }
@@ -114,7 +119,10 @@ impl Client {
                     name,
                     cwd,
                     command,
+                    select,
+                    attachment,
                 }) => {
+                    let select = Self::select_attachment(select, attachment, scope)?;
                     let at = Self::pane_at(tab, scope)?;
                     let cwd = match (cwd, scope) {
                         (Some(cwd), _) => Some(cwd),
@@ -140,6 +148,7 @@ impl Client {
                             at,
                             direction: direction.unwrap_or_default(),
                             input,
+                            select,
                         })
                         .await?,
                     )
@@ -220,7 +229,12 @@ impl Client {
                 },
                 Scope::Cli,
             ) => tree::pane_owner(&self.tabs().await?, pane),
-            (_, Scope::Keys(KeyScope { selection, tabs })) => selection
+            (
+                _,
+                Scope::Keys(KeyScope {
+                    selection, tabs, ..
+                }),
+            ) => selection
                 .and_then(|selection| tree::viewed_tab(tabs, selection))
                 .ok_or_else(|| err!(Validation, "no tab selected")),
             (_, Scope::Cli) => Err(err!(
@@ -236,9 +250,12 @@ impl Client {
         Ok(match (pane.id, scope) {
             (Some(pane), Scope::Keys(KeyScope { tabs, .. })) => Some(tree::pane_owner(tabs, pane)?),
             (Some(pane), Scope::Cli) => Some(tree::pane_owner(&self.tabs().await?, pane)?),
-            (None, Scope::Keys(KeyScope { selection, tabs })) => {
-                selection.and_then(|selection| tree::viewed_tab(tabs, selection))
-            }
+            (
+                None,
+                Scope::Keys(KeyScope {
+                    selection, tabs, ..
+                }),
+            ) => selection.and_then(|selection| tree::viewed_tab(tabs, selection)),
             (None, Scope::Cli) => None,
         })
     }
@@ -266,6 +283,23 @@ impl Client {
                 "pass --tab or --pane, or run inside a pane"
             )),
         }
+    }
+
+    fn select_attachment(
+        select: bool,
+        attachment: Option<IdOf<Attachment>>,
+        scope: &Scope,
+    ) -> Result<Option<IdOf<Attachment>>> {
+        if !select {
+            return Ok(None);
+        }
+        attachment
+            .or(match scope {
+                Scope::Keys(keys) => keys.attachment,
+                Scope::Cli => None,
+            })
+            .map(Some)
+            .ok_or_else(|| err!(Validation, "pass --attachment or set SHIP_ATTACHMENT_ID"))
     }
 
     fn pane_target(target: PaneTarget, scope: &Scope) -> Result<IdOf<Pane>> {

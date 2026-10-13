@@ -24,7 +24,7 @@ Implementation Rust has a budget of roughly 20,000 lines. It is a conservative c
 
 Keep the boundary crossable by a network later. The client reaches the server only through explicit commands, responses and events, never through server internals. Live resources (PTYs, child processes, Ghostty objects, tasks, connections) stay private to the server; serialize descriptions and screen contents, never handles.
 
-Shared state is server-authoritative and distinct from client presentation state such as tab/pane selection, focus, which tab or pane a client views, and sidebar expansion, which stay client-local. A pane's scroll position and text selection are shared, not client-local. Clients render the state the server publishes rather than predicting the result of their own commands.
+Shared state is server-authoritative. Each attachment's tab/pane selection is also held by the server, independently per client; navigation and clicks, a caller naming the attachment, selecting creates and server repair may change it. Navigation logic, selection memory, modes, sidebar folds and visibility stay client-local. A pane's scroll position and text selection are shared. Clients render the state the server publishes rather than predicting the result of their own commands.
 
 ## Performance
 

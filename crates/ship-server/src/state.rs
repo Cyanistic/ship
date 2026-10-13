@@ -339,7 +339,14 @@ pub struct Resize {
 }
 /// Whether an attachment is active, before the input route reads its body.
 pub struct CheckAttachment(pub IdOf<Attachment>);
-/// Replace an attachment's view.
+/// GET /views.
+pub struct ListViews;
+pub struct GetView(pub IdOf<Attachment>);
+pub struct Select {
+    pub attachment: IdOf<Attachment>,
+    pub selection: Option<NodeId>,
+}
+/// Update an attachment's area.
 pub struct SetView {
     pub attachment: IdOf<Attachment>,
     pub view: ViewInput,
@@ -351,6 +358,15 @@ impl Message<ListTabs> for ServerState {
     async fn handle(&mut self, _: ListTabs, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
         Ok(self.published_tabs())
     }
+}
+
+/// Select inside a create commit, before placing anything in the tree.
+fn select_created(viewers: &mut Viewers, attachment: IdOf<Attachment>, node: NodeId) -> Result<()> {
+    viewers
+        .get_mut(&attachment)
+        .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?
+        .selection = Some(node);
+    Ok(())
 }
 
 impl Message<CreateTab> for ServerState {
@@ -380,7 +396,14 @@ impl Message<CreateTab> for ServerState {
             geometry: None,
             zoomed: None,
         };
-        self.commit(|tabs, _| {
+        self.commit(|tabs, viewers| {
+            if let Some(attachment) = create.select {
+                let node = tab
+                    .panes()
+                    .next()
+                    .map_or(NodeId::Tab(id), |pane| NodeId::Pane(pane.id));
+                select_created(viewers, attachment, node)?;
+            }
             tree::place(tabs, Arc::new(tab.clone()), create.at)?;
             Ok(tab)
         })
@@ -519,7 +542,10 @@ impl Message<CreatePane> for ServerState {
                 .map(|anchor| anchor.dir.clone().unwrap_or_else(|| anchor.cwd.clone()));
         }
         let pane = self.start_pane(start, input)?;
-        self.commit(|tabs, _| {
+        self.commit(|tabs, viewers| {
+            if let Some(attachment) = create.select {
+                select_created(viewers, attachment, NodeId::Pane(pane.id))?;
+            }
             layout::split(
                 tree::tab_mut(tabs, owner)?,
                 anchor,
@@ -728,35 +754,81 @@ impl Message<CheckAttachment> for ServerState {
     }
 }
 
+impl Message<ListViews> for ServerState {
+    type Reply = Result<Viewers>;
+
+    async fn handle(&mut self, _: ListViews, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
+        Ok(self.viewers.clone())
+    }
+}
+
+impl Message<GetView> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    async fn handle(
+        &mut self,
+        GetView(attachment): GetView,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.viewers
+            .get(&attachment)
+            .cloned()
+            .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))
+    }
+}
+
+impl Message<Select> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    /// Validate both IDs before editing. Unzoom a hidden pane's tab in the
+    /// same commit so selection repair preserves the requested pane.
+    async fn handle(
+        &mut self,
+        Select {
+            attachment,
+            selection,
+        }: Select,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|tabs, viewers| {
+            let record = viewers
+                .get_mut(&attachment)
+                .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
+            if let Some(node) = selection {
+                tree::path(tabs, node).ok_or_else(|| tree::not_found(node))?;
+                if let NodeId::Pane(pane) = node {
+                    let owner = tree::pane_owner(tabs, pane)?;
+                    if tree::tab(tabs, owner)?
+                        .zoomed
+                        .is_some_and(|zoomed| zoomed != pane)
+                    {
+                        tree::tab_mut(tabs, owner)?.zoomed = None;
+                    }
+                }
+            }
+            record.selection = selection;
+            Ok(())
+        })
+        .await?;
+        Ok(self.viewers[&attachment].clone())
+    }
+}
+
 impl Message<SetView> for ServerState {
     type Reply = Result<ViewingRecord>;
 
-    /// The record becomes the view and is returned as stored. No selection is
-    /// always accepted; a selection no longer in the tree, such as a pane
-    /// removed a moment ago, leaves the record as it was. 404 if the
-    /// attachment isn't active.
+    /// Update only the area, preserving selection. 404 for an inactive attachment.
     async fn handle(
         &mut self,
         SetView { attachment, view }: SetView,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        let record = self
-            .viewers
-            .get(&attachment)
-            .cloned()
-            .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
-        if let Some(selection) = view.selection
-            && tree::path(&self.tabs, selection).is_none()
-        {
-            return Ok(record);
-        }
-        let record = ViewingRecord {
-            selection: view.selection,
-            area: view.area,
-        };
         self.commit(|_, viewers| {
-            viewers.insert(attachment, record.clone());
-            Ok(record)
+            let record = viewers
+                .get_mut(&attachment)
+                .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
+            record.area = view.area;
+            Ok(record.clone())
         })
         .await
     }

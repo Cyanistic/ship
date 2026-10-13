@@ -4,6 +4,7 @@ use std::{
 };
 
 use futures_util::{Stream, StreamExt, TryStreamExt};
+use indexmap::IndexMap;
 use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
 use ship_core::{
@@ -13,7 +14,7 @@ use ship_core::{
     prelude::*,
     protocol::{
         AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, REVISION_HEADER, ReadPane,
-        ResizePane, ScrollPane, SseEvent, SwapPane, ViewInput, ViewingRecord, ZoomPane,
+        ResizePane, ScrollPane, SelectView, SseEvent, SwapPane, ViewInput, ViewingRecord, ZoomPane,
     },
     tree::Tabs,
 };
@@ -245,7 +246,29 @@ impl Client {
         .await
     }
 
-    /// Replace the attachment's view; returns the record as stored.
+    /// Every attachment's view, in attach order.
+    pub async fn views(&self) -> Result<IndexMap<IdOf<Attachment>, ViewingRecord>> {
+        self.request(Method::GET, "/api/v0/views", NO_BODY, None, StatusCode::OK)
+            .await
+    }
+
+    pub async fn view(&self, attachment: IdOf<Attachment>) -> Result<ViewingRecord> {
+        let path = format!("/api/v0/views/{attachment}");
+        self.request(Method::GET, &path, NO_BODY, None, StatusCode::OK)
+            .await
+    }
+
+    pub async fn select(
+        &self,
+        attachment: IdOf<Attachment>,
+        body: &SelectView,
+    ) -> Result<ViewingRecord> {
+        let path = format!("/api/v0/views/{attachment}/selection");
+        self.request(Method::PUT, &path, Some(body), None, StatusCode::OK)
+            .await
+    }
+
+    /// Update the attachment's area; returns the record as stored.
     pub async fn set_view(
         &self,
         attachment: IdOf<Attachment>,

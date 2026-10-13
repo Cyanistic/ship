@@ -6,7 +6,9 @@ use std::{
 
 use serde::Serialize;
 use ship_client::{Client, Outcome, Scope, keymap::ClientSettings};
-use ship_core::{command::Command, prelude::*};
+use ship_core::{command::Command, prelude::*, protocol::SelectView};
+
+use crate::cli::ViewCommand;
 use ship_server::ServerSettings;
 
 use tokio::time::{Instant, sleep};
@@ -24,6 +26,19 @@ pub async fn action(client: &Client, command: Command) -> Result<()> {
             .write_all(text.as_bytes())
             .map_err(|error| err!(Io, "cannot print pane text", @external: error)),
         outcome => print(&outcome),
+    }
+}
+
+/// Read or steer an attachment's selection, printing one JSON line.
+pub async fn view(client: &Client, command: ViewCommand) -> Result<()> {
+    match command {
+        ViewCommand::List => print(&client.views().await?),
+        ViewCommand::Selected(view) => print(&client.view(view.attachment).await?.selection),
+        ViewCommand::Select { view, node, .. } => print(
+            &client
+                .select(view.attachment, &SelectView { selection: node })
+                .await?,
+        ),
     }
 }
 

@@ -3,6 +3,7 @@
 How Ship behaves once you're past the [README](../README.md). Every example assumes `ship` is on your `PATH` and `jq` is installed. Run `ship --help`, or `--help` on any subcommand, for the full list of options.
 
 - [The server and clients](#the-server-and-clients)
+- [Reading and steering a client](#reading-and-steering-a-client)
 - [Tabs](#tabs)
 - [Panes and splits](#panes-and-splits)
 - [Scrolling and reading output](#scrolling-and-reading-output)
@@ -16,9 +17,48 @@ Ship is split in two. The server owns your tabs, panes and the programs running 
 
 Bare `ship`, and any `tab` or `pane` command, reuses the local server or starts one in the background. A server started this way begins with one tab holding a shell in your home directory. `ship server status` prints the server's health as JSON, and `ship server stop` stops it, ending every program inside. Neither one ever starts a server.
 
-You can attach several clients at once, from different terminals. They share the work itself: tabs, panes, what each program prints, zoom, and each pane's scroll position. Each client keeps its own selection, which sidebar rows are folded, whether the sidebar is shown, and which pane it last used in each tab. If a client loses its connection, it reconnects on its own.
+You can attach several clients at once, from different terminals. They share the work itself: tabs, panes, what each program prints, zoom, and each pane's scroll position. The server holds a separate selection for each attached client. Sidebar folds, whether the sidebar is shown, and which pane a client last used in each tab stay local to that client. If a client loses its connection, it reconnects on its own.
+
+Keys, pastes, actions and clicks run in input order. On a slow link, typing right after `alt-n` waits for the new tab and reaches its shell. Navigation also waits for each server reply, so held navigation keys can keep moving after release. Mode changes, the sidebar toggle and config reloads apply immediately. A failed action shows its error without cancelling later input. Disconnecting drops waiting input rather than replaying it after reconnecting; `alt-q` lets earlier typing land before detaching. A server action can still overtake typing just before it, because they travel on separate connections.
+
+Typing with a tab selected reaches its zoomed pane, otherwise the pane you last selected there, otherwise its first pane. The tab itself stays selected. Resizing the terminal does not overwrite a selection set by a script.
 
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the leftover space.
+
+## Reading and steering a client
+
+`ship view list` prints every attached client's view as JSON, keyed by attachment ID in attach order. Each record contains its pane or tab selection, when it has one, and its terminal area. Use an ID from that listing to read or change one client's selection:
+
+```sh
+ship view list
+ATTACHMENT=$(ship view list | jq -r 'keys_unsorted[0]')
+TAB=$(ship tab create --name steer | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" | jq -r .id)
+ship view select --attachment "$ATTACHMENT" "$PANE"
+ship view selected --attachment "$ATTACHMENT"  # prints the pane ID as a JSON string
+ship view select --attachment "$ATTACHMENT" "$TAB"
+ship view select --attachment "$ATTACHMENT" --none
+ship view selected --attachment "$ATTACHMENT"  # prints null
+ship tab close --tab "$TAB"
+```
+
+Keep a client attached while running this example. Its display follows the selection when the server publishes it. Selecting a pane hidden by zoom unzooms its tab for every client. Unknown attachments or nodes fail without changing anything.
+
+`--attachment` defaults to `SHIP_ATTACHMENT_ID` when that variable is set. `view select` requires either a node ID or `--none`; omitting both is an argument error, not a request to clear the selection. A successful select prints the stored view record. Attachment IDs last only until that client detaches.
+
+### Creating and selecting together
+
+CLI creates leave every client's selection alone unless you pass `--select`. With it, the server creates and selects in one edit, so the chosen client never sees the new node before selecting it:
+
+```sh
+ATTACHMENT=$(ship view list | jq -r 'keys_unsorted[0]')
+TAB=$(ship tab create --name selected --starter --select --attachment "$ATTACHMENT" | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" --select --attachment "$ATTACHMENT" -- sleep 9 | jq -r .id)
+ship view selected --attachment "$ATTACHMENT"  # prints the new pane ID
+ship tab close --tab "$TAB"
+```
+
+Keep a client attached for this example. A tab with `--starter` selects its shell pane; an empty tab selects the tab itself. `--attachment` again defaults to `SHIP_ATTACHMENT_ID`; Ship does not set that variable in ordinary pane shells. Without either source of an attachment, `--select` fails before creating anything. An unknown attachment also creates nothing and leaves no starter program running. Passing `--attachment` alone does not select.
 
 ## Tabs
 
@@ -84,9 +124,13 @@ ship tab close --tab "$TAB"
 
 The same edits from the CLI each print the tab:
 ```sh
+TAB=$(ship tab create --name edits | jq -r .id)
+LEFT=$(ship pane create --tab "$TAB" | jq -r .id)
+RIGHT=$(ship pane create --pane "$LEFT" --direction right | jq -r .id)
 ship pane zoom --pane "$LEFT"                    # toggles
 ship pane swap --pane "$LEFT" --other "$RIGHT"   # any two panes in one tab
 ship pane resize --pane "$LEFT" --direction left --amount 5
+ship tab close --tab "$TAB"
 ```
 
 ## Scrolling and reading output
@@ -111,7 +155,7 @@ ship tab close --tab "$TAB"
 
 ## Mouse and clipboard
 
-Click a pane to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it.
+Click a pane to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it. Clicks wait behind earlier input but keep the target you clicked; if it disappears before the click runs, nothing happens. While input is waiting, a press on even the selected pane selects it instead of reaching its program.
 
 Programs that ask for the mouse, like Neovim with `mouse=a`, get clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
 
@@ -145,33 +189,36 @@ A running client reloads its settings and keys when you save the file. If the fi
 
 ### Keys and modes
 
-Keys belong to modes. You start in `normal`. Each key maps to a list of actions run in order, and a key you bind replaces only that key's default:
+Keys belong to modes. You start in `normal`. Each binding names one `action`, and a key you bind replaces only that key's default. Use `{}` to unbind:
 ```toml
 [client.modes.normal.keys]
-"alt-t"  = [{ server.tab.create = {} }]        # new empty tab
-"alt-q"  = []                                  # unbind: alt-q reaches the program
-"alt-m"  = [                                   # a tab, then a second pane
-  { server.tab.create.starter = "shell" },
-  { server.pane.create = {} },
-]
-"alt-y"  = [{ server.pane.resize = { direction = "right", amount = 5 } }]
-"ctrl-b" = [{ client.mode = "prefix" }]        # tmux habits
+"alt-t"  = { action = { server.tab.create = {} } } # new empty tab
+"alt-q"  = {}                                     # alt-q reaches the program
+"alt-y"  = { action = { server.pane.resize = { direction = "right", amount = 5 } } }
+"ctrl-b" = { action = { client.mode = "prefix" } } # tmux habits
 
 [client.modes.prefix]
-kind = "oneshot"                               # back to normal after one key
+kind = "oneshot"                                  # back to normal after one key
 
 [client.modes.prefix.keys]
-"c"      = [{ server.tab.create.starter = "shell" }]
-"ctrl-b" = [{ client.send = "ctrl-b" }]        # a literal ctrl-b for the pane
+"c"      = { action = { server.tab.create = { starter = "shell", select = true } } }
+"ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
+
+[client.modes.resize.keys]
+"f" = { action = { server.pane.zoom = {} }, hint = "fill" }
 ```
 
+Migrate old bindings from `[{ … }]` to `{ action = { … } }`, and from `[]` to `{}`. Bind separate steps to separate keys, rather than an action list. A bare action without the `action` field, or an unknown binding field such as `hnt`, is a config error.
+
 A `oneshot` mode takes one key and returns to normal. A `sticky` mode stays until a binding leaves it, and swallows keys it doesn't bind. `clear_defaults = true` starts a mode with none of Ship's bindings. Bind `client.config.reload = {}` to reload on demand.
+
+The four default create keys select what they make. In your own binding, set `select = true` to do the same for the pressing client; without it, creation leaves the selection alone. Bindings cannot name an `attachment`. For example, `"alt-t"` above creates an empty tab without moving you.
 
 `server.` actions are the CLI's commands with the same names and options: `server.tab.create.starter = "shell"` is `ship tab create --starter shell`. `client.` actions act on your own view, like `client.pane.focus`, `client.sidebar.toggle` and `client.detach`; Ship's own defaults are in [`defaults.toml`](../crates/ship-client/src/keymap/defaults.toml). Key spellings like `ctrl-alt-x` and `shift-tab` come from [crokey](https://docs.rs/crokey).
 
 ### The status line
 
-There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys.
+There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `hint` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
 
 ## Upgrading
 

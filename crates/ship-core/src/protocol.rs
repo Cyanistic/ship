@@ -20,7 +20,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 9;
+pub const PROTOCOL_VERSION: u32 = 10;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -50,6 +50,10 @@ pub struct CreateTab {
     pub name: OptionalName,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub starter: Option<Starter>,
+    /// Select the new tab, or its starter pane, in the same commit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(schema_with = attachment_schema)]
+    pub select: Option<IdOf<Attachment>>,
 }
 
 /// What a new tab starts with.
@@ -70,6 +74,10 @@ pub struct CreatePane {
     pub direction: SplitDirection,
     #[serde(flatten)]
     pub input: PaneInput,
+    /// Select the new pane in the same commit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(schema_with = attachment_schema)]
+    pub select: Option<IdOf<Attachment>>,
 }
 
 /// Split an explicit pane, or the largest pane of a tab (first pane if empty).
@@ -201,15 +209,19 @@ pub struct AttachRequest {
     pub area: Size,
 }
 
-/// PUT /attach/view body: the client's whole view. The server replaces the
-/// attachment's record with it.
+/// PUT /attach/view body: the client's area only.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewInput {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selection: Option<NodeId>,
     /// Where the client draws the viewed tab, after its own chrome.
     pub area: Size,
+}
+
+/// PUT /views/{attachment}/selection body; `null` selects nothing.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SelectView {
+    pub selection: Option<NodeId>,
 }
 
 /// Server-owned view of one attachment. Deleted only when the attachment

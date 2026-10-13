@@ -2,21 +2,17 @@
 
 use crokey::KeyCombination;
 use crossterm::event::{Event, KeyEventKind};
-use ship_core::{
-    id::IdOf,
-    model::Pane,
-    prelude::*,
-    protocol::{InputFrame, KeyInput, PasteInput},
-};
+use ship_core::prelude::*;
 
-use crate::keymap::{Binding, Keymap, ModeKind, ModeName};
+use super::lane::Item;
+use crate::keymap::{Action, Binding, ClientAction, Keymap, ModeKind, ModeName};
 
 pub(super) enum Handled {
-    /// A key or paste for the selected pane; dropped while disconnected.
-    Frame(InputFrame),
-    /// A bound key's actions, which the loop runs in order.
-    Run(Binding),
-    /// An unbound key outside normal, or input with no pane selected.
+    /// A bound action, key or paste with its target resolved at its turn.
+    Queue(Item),
+    /// Mode, sidebar and reload actions apply at press, ahead of the lane.
+    Now(ClientAction),
+    /// An unbound key outside normal.
     None,
 }
 
@@ -34,9 +30,9 @@ impl Keys {
     }
 
     /// `KeyCombination::from(key)`, looked up in the active mode. Unbound:
-    /// a frame in normal, dropped in any other mode. A one-shot mode returns
-    /// to normal after any key unless the binding enters a mode itself.
-    pub fn handle(&mut self, event: Event, selected: Option<IdOf<Pane>>) -> Handled {
+    /// a queued key in normal, dropped in any other mode. A one-shot mode
+    /// returns to normal after any key unless the binding enters a mode itself.
+    pub fn handle(&mut self, event: Event) -> Handled {
         match event {
             Event::Key(key) if key.kind != KeyEventKind::Release => {
                 let Some(mode) = self.keymap.modes.get(&self.active) else {
@@ -50,17 +46,18 @@ impl Keys {
                 {
                     self.active = ModeName::normal();
                 }
-                match (binding, selected) {
-                    (Some(binding), _) => Handled::Run(binding),
-                    (None, Some(pane)) if normal => {
-                        Handled::Frame(InputFrame::Key(KeyInput { pane, key }))
-                    }
-                    (None, _) => Handled::None,
+                match binding.and_then(|binding| binding.action) {
+                    Some(Action::Client(
+                        action @ (ClientAction::Mode(_)
+                        | ClientAction::Sidebar(_)
+                        | ClientAction::Config(_)),
+                    )) => Handled::Now(action),
+                    Some(action) => Handled::Queue(Item::Action(action)),
+                    None if normal => Handled::Queue(Item::Key(key)),
+                    None => Handled::None,
                 }
             }
-            Event::Paste(text) => selected.map_or(Handled::None, |pane| {
-                Handled::Frame(InputFrame::Paste(PasteInput { pane, text }))
-            }),
+            Event::Paste(text) => Handled::Queue(Item::Paste(text)),
             _ => Handled::None,
         }
     }

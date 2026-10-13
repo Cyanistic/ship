@@ -109,7 +109,8 @@ impl Destination {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, utoipa::ToSchema, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[serde(rename_all = "snake_case")]
 pub enum Direction {
@@ -125,12 +126,16 @@ pub mod tab {
     use serde::Deserialize;
 
     use super::{Destination, PaneTarget, TabTarget};
-    use crate::protocol::Starter;
+    use crate::{
+        id::{Attachment, IdOf},
+        protocol::Starter,
+    };
 
     /// `get` and `list` are CLI-only, so the config rejects them.
-    #[derive(Clone, Debug, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
+    #[strum(serialize_all = "snake_case")]
     pub enum TabCommand {
         /// List top-level tabs and their descendants as JSON, keyed by ID
         #[serde(skip)]
@@ -169,6 +174,16 @@ pub mod tab {
             arg(long, num_args = 0..=1, default_missing_value = "shell")
         )]
         pub starter: Option<Starter>,
+        /// Select the new tab, or its starter pane, for --attachment
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub select: bool,
+        /// Attachment to select for; defaults to SHIP_ATTACHMENT_ID
+        #[cfg_attr(
+            feature = "clap",
+            arg(long, env = "SHIP_ATTACHMENT_ID", value_name = "ID")
+        )]
+        #[serde(skip)]
+        pub attachment: Option<IdOf<Attachment>>,
         /// Make the tab the last child of the current tab: the selected one on
         /// keys, the one holding --pane on the CLI; the top level without one
         #[cfg_attr(
@@ -226,15 +241,16 @@ pub mod pane {
 
     use super::{Direction, PaneTarget, TabTarget};
     use crate::{
-        id::IdOf,
+        id::{Attachment, IdOf},
         model::Pane,
         protocol::{ScrollDirection, SplitDirection},
     };
 
     /// `get` and `read` are CLI-only, so the config rejects them.
-    #[derive(Clone, Debug, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
+    #[strum(serialize_all = "snake_case")]
     pub enum PaneCommand {
         /// Create a pane running a program and print it as JSON
         Create(Create),
@@ -283,6 +299,16 @@ pub mod pane {
         /// Command and arguments; defaults to your login shell
         #[cfg_attr(feature = "clap", arg(last = true, value_name = "COMMAND"))]
         pub command: Vec<String>,
+        /// Select the new pane for --attachment
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub select: bool,
+        /// Attachment to select for; defaults to SHIP_ATTACHMENT_ID
+        #[cfg_attr(
+            feature = "clap",
+            arg(long, env = "SHIP_ATTACHMENT_ID", value_name = "ID")
+        )]
+        #[serde(skip)]
+        pub attachment: Option<IdOf<Attachment>>,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]

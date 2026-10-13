@@ -2,6 +2,7 @@
 
 mod draw;
 mod keys;
+mod lane;
 mod memory;
 mod mouse;
 mod observer;
@@ -10,7 +11,6 @@ mod sidebar;
 mod terminal;
 
 use std::{
-    collections::VecDeque,
     future::{Future, pending},
     path::Path,
     pin::Pin,
@@ -27,13 +27,13 @@ use ship_core::{
     command::{
         Command, Direction, PaneTarget,
         pane::{self, PaneCommand},
-        tab::TabCommand,
     },
     id::{Attachment, IdOf},
     model::{NodeId, Pane},
     prelude::*,
     protocol::{
-        AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, SseEvent, ViewInput,
+        AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, PasteInput,
+        SelectView, SseEvent, ViewInput,
     },
     screen::Size,
     tree::{self, Tabs},
@@ -47,6 +47,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use self::{
     draw::Status,
     keys::{Handled, Keys},
+    lane::{Item, Lane, Turn},
     memory::Memory,
     mouse::{Clicked, Mouse},
     observer::Observer,
@@ -54,7 +55,7 @@ use self::{
     terminal::TerminalGuard,
 };
 use crate::{
-    Client, KeyScope, Outcome, Scope,
+    Client, KeyScope, Scope,
     keymap::{
         Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction,
         Sidebar as SidebarAction,
@@ -71,7 +72,7 @@ type Events = Pin<Box<dyn Stream<Item = Result<SseEvent>>>>;
 /// One item per save of the config file.
 type Saves = Pin<Box<dyn Stream<Item = ()>>>;
 /// A request the loop awaits alongside everything else.
-type Pending<'a, T> = Option<Pin<Box<dyn Future<Output = Result<T>> + 'a>>>;
+type Request<'a, T = ()> = Pin<Box<dyn Future<Output = Result<T>> + 'a>>;
 
 /// Where a navigation key moves the selection.
 #[derive(Clone, Copy)]
@@ -99,10 +100,10 @@ enum Exit {
 /// the status line, and reloaded when the file is saved; a bad save keeps the
 /// running keymap and shows the error. Bound keys queue their actions, which
 /// run one at a time.
-/// Navigation, created tabs and panes, and resizes mark the view dirty, and
-/// the frame tick sends at most one view per frame, latest wins. The screen
-/// follows the replica, not the keys. A cut connection keeps the last screen,
-/// drops keys and reconnects with backoff (250 ms doubling to 5 s).
+/// Keys, clicks and actions share one ordered lane. Server requests wait for
+/// their reply and the replica before the next turn. The frame tick sends
+/// area only. A cut connection keeps the last screen, drops the lane and
+/// reconnects with backoff (250 ms doubling to 5 s).
 ///
 /// Returns Ok after detach or `Ended(ServerShutdown)`, printing why after
 /// the terminal is restored. SIGTERM, SIGHUP and SIGINT restore the terminal
@@ -154,42 +155,38 @@ async fn drive(
 ) -> Result<Exit> {
     tokio::pin!(signaled);
     let mut events = Some(events);
-    let mut reconnect: Pending<Events> = None;
+    let mut reconnect: Option<Request<Events>> = None;
     let mut backoff = FIRST_BACKOFF;
-    let mut observer = Observer::default();
-    let mut memory = Memory::default();
-    let (settings, mut message) = loaded;
+    let (settings, message) = loaded;
     guard.set_mouse(settings.mouse)?;
-    let mut mouse = Mouse::default();
-    let mut sidebar = Sidebar::new(settings.sidebar_width);
-    let mut keys = Keys::new(settings.keymap);
+    let mut local = Local {
+        observer: Observer::default(),
+        memory: Memory::default(),
+        sidebar: Sidebar::new(settings.sidebar_width),
+        keys: Keys::new(settings.keymap),
+        mouse: Mouse::default(),
+        input: None,
+        message,
+    };
     let mut saves: Option<Saves> = match watch::changes(config) {
         Ok(saves) => Some(Box::pin(saves)),
         Err(error) => {
-            message = message.or(Some(error.to_string()));
+            local.message = local.message.or(Some(error.to_string()));
             None
         }
     };
-    // Each bound key's actions still to run, oldest first. A failure drops
-    // the rest of its key's actions.
-    let mut queued: VecDeque<VecDeque<Action>> = VecDeque::new();
-    // The server action in flight, resolving to what it created.
-    let mut running: Pending<Option<NodeId>> = None;
+    let mut lane = Lane::default();
     let mut terminal_events = EventStream::new();
-    // Frames for the current input POST; `None` while disconnected.
-    let mut input: Option<mpsc::UnboundedSender<InputFrame>> = None;
-    let mut sending: Pending<()> = None;
+    let mut sending: Option<Request> = None;
     let mut terminal = terminal_size()?;
-    // Where navigation moved the selection, until a view PUT carries it.
-    let mut chosen: Option<NodeId> = None;
-    let mut putting: Pending<Option<NodeId>> = None;
+    let mut putting: Option<Request> = None;
     let mut tick = time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     redraw(
         guard,
-        &observer,
-        &mut sidebar,
-        &status(&keys, message.as_deref()),
+        &local.observer,
+        &mut local.sidebar,
+        &status(&local.keys, local.message.as_deref()),
     )?;
     loop {
         let mut visible = tokio::select! {
@@ -206,33 +203,33 @@ async fn drive(
                 Some(Ok(event)) => {
                     if let SseEvent::Attached(attached) = &event {
                         let (frames, received) = mpsc::unbounded_channel();
-                        input = Some(frames);
+                        local.input = Some(frames);
                         sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));
-                    let previous = observer.record().and_then(|record| record.selection);
-                    let visible = observer.apply(event);
-                    if !screen && let Some(replica) = &observer.replica {
-                        let selection = observer.record().and_then(|record| record.selection);
-                        memory.observe(&replica.tabs, selection);
+                    let previous = local.observer.record().and_then(|record| record.selection);
+                    let visible = local.observer.apply(event);
+                    if !screen && let Some(replica) = &local.observer.replica {
+                        let selection = local.observer.record().and_then(|record| record.selection);
+                        local.memory.observe(&replica.tabs, selection);
                         if previous != selection {
-                            sidebar.reveal(&replica.tabs, selection);
+                            local.sidebar.reveal(&replica.tabs, selection);
                         }
                     }
                     visible
                 }
-                // Cut or failed: keep the screens, drop keys, reconnect.
+                // Keep the screens, but abandon all work from this connection.
                 Some(Err(_)) | None => {
                     events = None;
-                    input = None;
+                    local.input = None;
                     sending = None;
                     putting = None;
-                    chosen = None;
-                    mouse = Mouse::default();
+                    lane.clear();
+                    local.mouse = Mouse::default();
                     client.forget();
-                    observer.connected = false;
-                    if let Some(remembered) = observer.remembered(view_area(terminal, &sidebar)) {
+                    local.observer.connected = false;
+                    if let Some(remembered) = local.observer.remembered(view_area(terminal, &local.sidebar)) {
                         request = remembered;
                     }
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
@@ -247,34 +244,26 @@ async fn drive(
                 }
                 Err(_) => {
                     backoff = (backoff * 2).min(MAX_BACKOFF);
-                    request.area = view_area(terminal, &sidebar);
+                    request.area = view_area(terminal, &local.sidebar);
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
                     false
                 }
             },
-            // The input POST ended with its attachment; the next `Attached`
-            // starts another.
             _ = finish(&mut sending) => {
                 sending = None;
-                input = None;
+                local.input = None;
                 false
             }
-            result = finish(&mut running) => {
-                running = None;
-                match result {
-                    Ok(Some(created)) => chosen = Some(created),
-                    Ok(None) => {}
-                    Err(error) => {
-                        message = Some(error.to_string());
-                        queued.pop_front();
-                    }
+            result = lane.finished() => {
+                if let Err(error) = result {
+                    local.message = Some(error.to_string());
                 }
                 true
             }
             save = next(&mut saves) => {
                 match save {
                     Some(()) => {
-                        message = reload(&mut keys, &mut sidebar, guard, &mut mouse, config).err().map(|error| error.to_string());
+                        local.message = reload(&mut local.keys, &mut local.sidebar, guard, &mut local.mouse, config).err().map(|error| error.to_string());
                     }
                     None => saves = None,
                 }
@@ -282,10 +271,8 @@ async fn drive(
             }
             result = finish(&mut putting) => {
                 putting = None;
-                match result {
-                    // Moved again since; that view goes out next.
-                    Ok(sent) if chosen != sent => {}
-                    _ => chosen = None,
+                if let Err(error) = result {
+                    local.message = Some(error.to_string());
                 }
                 false
             }
@@ -294,243 +281,321 @@ async fn drive(
                     terminal = (cols, rows);
                     true
                 }
-                Some(Ok(Event::Mouse(event))) if guard.mouse() && observer.connected => {
-                    let selected = observer.selected();
-                    let (_, panes) = draw::split(Rect::new(0, 0, terminal.0, terminal.1), sidebar.width());
-                    let clicked = mouse.route(
+                Some(Ok(Event::Mouse(event))) if guard.mouse() && local.observer.connected => {
+                    let selected = local.observer.selected();
+                    let (_, panes) = draw::split(Rect::new(0, 0, terminal.0, terminal.1), local.sidebar.width());
+                    let clicked = local.mouse.route(
                         event,
                         panes,
                         selected.as_ref().and_then(|selected| selected.tab.geometry.as_deref()),
                         selected.and_then(|selected| selected.pane).map(|pane| pane.id),
-                        &sidebar,
+                        &local.sidebar,
+                        lane.busy(),
                     );
-                    match clicked {
-                        Some(Clicked::Select(NodeId::Tab(id))) => {
-                            if let Some(replica) = &observer.replica
-                                && let Ok(tab) = tree::tab(&replica.tabs, id) {
-                                chosen = Some(memory.landing(tab));
-                            }
-                            true
-                        }
-                        Some(Clicked::Select(node)) => {
-                            chosen = Some(node);
-                            true
-                        }
-                        Some(Clicked::Fold(tab)) => {
-                            sidebar.toggle(tab);
-                            true
-                        }
-                        Some(Clicked::Frame(frame)) => {
-                            if let Some(input) = &input { input.send(frame).ok(); }
-                            false
-                        }
-                        None => false,
+                    if let Some(clicked) = clicked {
+                        lane.push(match clicked {
+                            Clicked::Select(node) => Item::Select(node),
+                            Clicked::Fold(tab) => Item::Fold(tab),
+                            Clicked::Frame(frame) => Item::Mouse(frame),
+                        });
                     }
+                    false
                 }
-                // Decoded before capture went off.
                 Some(Ok(Event::Mouse(_))) => false,
                 Some(Ok(event)) => {
-                    let selected = observer.selected().and_then(|selected| selected.pane).map(|pane| pane.id);
-                    let before = keys.shown_mode().cloned();
-                    match keys.handle(event, selected) {
-                        Handled::Frame(frame) => {
-                            if let Some(input) = &input {
-                                input.send(frame).ok();
+                    let before = local.keys.shown_mode().cloned();
+                    let mut now = false;
+                    match local.keys.handle(event) {
+                        Handled::Queue(item) => {
+                            if matches!(item, Item::Action(_)) {
+                                local.message = None;
+                            }
+                            // Detach is still available while disconnected, but
+                            // no other waiting input survives to a new connection.
+                            if local.observer.connected {
+                                lane.push(item);
+                            } else if matches!(item, Item::Action(Action::Client(ClientAction::Detach {}))) {
+                                return Ok(Exit::Detached);
                             }
                         }
-                        Handled::Run(binding) => {
-                            message = None;
-                            queued.push_back(binding.actions.into());
+                        Handled::Now(action) => {
+                            local.message = match action {
+                                ClientAction::Mode(mode) => local.keys.enter(mode),
+                                ClientAction::Sidebar(SidebarAction::Toggle {}) => {
+                                    local.sidebar.shown = !local.sidebar.shown;
+                                    Ok(())
+                                }
+                                ClientAction::Config(ConfigAction::Reload {}) =>
+                                    reload(&mut local.keys, &mut local.sidebar, guard, &mut local.mouse, config),
+                                _ => unreachable!("Keys only returns press-time actions"),
+                            }.err().map(|error| error.to_string());
+                            now = true;
                         }
                         Handled::None => {}
                     }
-                    keys.shown_mode() != before.as_ref()
+                    now || local.keys.shown_mode() != before.as_ref()
                 }
                 Some(Err(error)) => return Err(err!(Io, "cannot read the terminal", @external: error)),
                 None => return Err(err!(Io, "terminal input closed")),
             },
-            // At most one view PUT per frame, and only once the replica shows
-            // the last one, so a record that hasn't caught up isn't resent.
             _ = tick.tick(), if putting.is_none()
-                && observer.connected
-                && observer.caught_up(client.written())
-                && unsent(&observer, chosen, view_area(terminal, &sidebar)).is_some() =>
+                && local.observer.connected
+                && local.observer.caught_up(client.written())
+                && unsent(&local.observer, view_area(terminal, &local.sidebar)).is_some() =>
             {
-                if let Some((attachment, view)) = unsent(&observer, chosen, view_area(terminal, &sidebar)) {
+                if let Some((attachment, view)) = unsent(&local.observer, view_area(terminal, &local.sidebar)) {
                     putting = Some(Box::pin(async move {
-                        client.set_view(attachment, &view).await.map(|_| view.selection)
+                        client.set_view(attachment, &view).await.map(|_| ())
                     }));
                 }
                 false
             }
             () = &mut signaled => return Ok(Exit::Signaled),
         };
-        // Run queued actions up to the next server action, which waits for
-        // the one in flight and then for the replica to show what it did.
-        while running.is_none()
-            && observer.caught_up(client.written())
-            && let Some(actions) = queued.front_mut()
-        {
-            let Some(action) = actions.pop_front() else {
-                queued.pop_front();
-                continue;
-            };
-            visible = true;
-            let selection = chosen.or(observer.record().and_then(|record| record.selection));
-            // Leave zoom for everyone first. The queue waits for the unzoom's
-            // revision, then runs the action again on the unzoomed geometry.
-            if matches!(action, Action::Client(ClientAction::Pane(_)))
-                && let Some(zoomed) = zoomed_pane(&observer, selection)
-            {
-                actions.push_front(action);
-                actions.push_front(Action::Server(Command::Pane(PaneCommand::Zoom(
-                    pane::Zoom {
-                        pane: PaneTarget { id: Some(zoomed) },
-                        zoomed: Some(false),
-                    },
-                ))));
-                continue;
-            }
-            let done = match action {
-                Action::Server(command) => {
-                    let creates = matches!(
-                        command,
-                        Command::Tab(TabCommand::Create(_)) | Command::Pane(PaneCommand::Create(_))
-                    );
-                    let scope = Scope::Keys(KeyScope {
-                        selection: chosen.or(observer.record().and_then(|record| record.selection)),
-                        tabs: observer
-                            .replica
-                            .as_ref()
-                            .map(|replica| replica.tabs.clone())
-                            .unwrap_or_default(),
-                    });
-                    running = Some(Box::pin(async move {
-                        Ok(match client.execute(command, &scope).await? {
-                            Outcome::Tab(tab) if creates => Some(
-                                tab.panes()
-                                    .next()
-                                    .map(|pane| pane.id)
-                                    .map_or(NodeId::Tab(tab.id), NodeId::Pane),
-                            ),
-                            Outcome::Pane(pane) if creates => Some(NodeId::Pane(pane.id)),
-                            _ => None,
-                        })
-                    }));
-                    Ok(())
+        while let Some(item) = lane.next(&local.observer, client.written()) {
+            // Input frames change only the server's screen; redraw on its
+            // publication, not on each keystroke or mouse frame.
+            visible |= matches!(item, Item::Action(_) | Item::Select(_) | Item::Fold(_));
+            match local.turn(client, item) {
+                Turn::Done => {}
+                Turn::Wait(request) => lane.wait(request),
+                Turn::First(items) => lane.first(items),
+                Turn::Detach => {
+                    // End the body and let the existing input POST drain before
+                    // dropping the attachment, otherwise queued frames are lost.
+                    local.input = None;
+                    if let Some(sending) = sending {
+                        tokio::select! {
+                            result = sending => result?,
+                            () = &mut signaled => return Ok(Exit::Signaled),
+                        }
+                    }
+                    return Ok(Exit::Detached);
                 }
-                Action::Client(action) => match action {
-                    ClientAction::Tab(tab @ (ClientTab::Next {} | ClientTab::Prev {})) => {
-                        let forward = matches!(tab, ClientTab::Next {});
-                        moved(
-                            &observer,
-                            &memory,
-                            &sidebar,
-                            &mut chosen,
-                            Step::Tab { forward },
-                        );
-                        Ok(())
-                    }
-                    ClientAction::Pane(pane @ (ClientPane::Next {} | ClientPane::Prev {})) => {
-                        let forward = matches!(pane, ClientPane::Next {});
-                        moved(
-                            &observer,
-                            &memory,
-                            &sidebar,
-                            &mut chosen,
-                            Step::Pane { forward },
-                        );
-                        Ok(())
-                    }
-                    ClientAction::Pane(ClientPane::Focus { direction }) => {
-                        moved(
-                            &observer,
-                            &memory,
-                            &sidebar,
-                            &mut chosen,
-                            Step::Focus(direction),
-                        );
-                        Ok(())
-                    }
-                    ClientAction::Pane(ClientPane::Swap { direction }) => {
-                        // Only the resolved pair goes to the server.
-                        if let Some(replica) = &observer.replica
-                            && let Some(NodeId::Pane(from)) = selection
-                            && let Some(other) = navigate(
-                                &replica.tabs,
-                                &memory,
-                                &sidebar,
-                                selection,
-                                Step::Focus(direction),
-                            )
-                            .and_then(|to| match to {
-                                NodeId::Pane(other) => Some(other),
-                                NodeId::Tab(_) => None,
-                            })
-                        {
-                            actions.push_front(Action::Server(Command::Pane(PaneCommand::Swap(
-                                pane::Swap {
-                                    pane: PaneTarget { id: Some(from) },
-                                    other,
-                                },
-                            ))));
-                        }
-                        Ok(())
-                    }
-                    ClientAction::Tab(ClientTab::Select { .. }) => unavailable("tab select"),
-                    ClientAction::Tab(action @ (ClientTab::Expand {} | ClientTab::Collapse {})) => {
-                        if let Some(replica) = &observer.replica
-                            && let Some(tab) = chosen
-                                .or(observer.record().and_then(|record| record.selection))
-                                .and_then(|node| tree::viewed_tab(&replica.tabs, node))
-                        {
-                            sidebar.fold(tab, matches!(action, ClientTab::Collapse {}));
-                        }
-                        Ok(())
-                    }
-                    ClientAction::Sidebar(SidebarAction::Toggle {}) => {
-                        sidebar.shown = !sidebar.shown;
-                        Ok(())
-                    }
-                    ClientAction::Mode(mode) => keys.enter(mode),
-                    ClientAction::Send(chord) => {
-                        match observer.selected().and_then(|selected| selected.pane) {
-                            Some(pane) => {
-                                if let Some(input) = &input {
-                                    input
-                                        .send(InputFrame::Key(KeyInput {
-                                            pane: pane.id,
-                                            key: chord.into(),
-                                        }))
-                                        .ok();
-                                }
-                                Ok(())
-                            }
-                            None => Err(err!(Validation, "no pane selected")),
-                        }
-                    }
-                    ClientAction::Detach {} => return Ok(Exit::Detached),
-                    ClientAction::Config(ConfigAction::Reload {}) => {
-                        reload(&mut keys, &mut sidebar, guard, &mut mouse, config)
-                    }
-                },
-            };
-            if let Err(error) = done {
-                message = Some(error.to_string());
-                queued.pop_front();
             }
         }
-        if let Some(replica) = &observer.replica {
-            sidebar.reconcile(&replica.tabs);
+        if let Some(replica) = &local.observer.replica {
+            local.sidebar.reconcile(&replica.tabs);
         }
         if visible {
             redraw(
                 guard,
-                &observer,
-                &mut sidebar,
-                &status(&keys, message.as_deref()),
+                &local.observer,
+                &mut local.sidebar,
+                &status(&local.keys, local.message.as_deref()),
             )?;
         }
+    }
+}
+
+/// Client-local state used to resolve each input at its turn.
+struct Local {
+    observer: Observer,
+    memory: Memory,
+    sidebar: Sidebar,
+    keys: Keys,
+    mouse: Mouse,
+    input: Option<mpsc::UnboundedSender<InputFrame>>,
+    message: Option<String>,
+}
+
+impl Local {
+    fn turn<'a>(&mut self, client: &'a Client, item: Item) -> Turn<'a> {
+        match item {
+            Item::Action(action) => self.act(client, action),
+            Item::Key(key) => {
+                if let Some(pane) = typing_pane(&self.observer, &self.memory) {
+                    self.send(InputFrame::Key(KeyInput { pane, key }));
+                }
+                Turn::Done
+            }
+            Item::Paste(text) => {
+                if let Some(pane) = typing_pane(&self.observer, &self.memory) {
+                    self.send(InputFrame::Paste(PasteInput { pane, text }));
+                }
+                Turn::Done
+            }
+            Item::Select(node) => {
+                let Some(replica) = &self.observer.replica else {
+                    return Turn::Done;
+                };
+                if tree::path(&replica.tabs, node).is_none() {
+                    return Turn::Done;
+                }
+                let node = match node {
+                    NodeId::Tab(id) => match tree::tab(&replica.tabs, id) {
+                        Ok(tab) => self.memory.landing(tab),
+                        Err(_) => return Turn::Done,
+                    },
+                    pane => pane,
+                };
+                self.select(client, node)
+            }
+            Item::Fold(tab) => {
+                if self
+                    .observer
+                    .replica
+                    .as_ref()
+                    .is_some_and(|replica| tree::tab(&replica.tabs, tab).is_ok())
+                {
+                    self.sidebar.toggle(tab);
+                }
+                Turn::Done
+            }
+            Item::Mouse(frame) => {
+                self.send(frame);
+                Turn::Done
+            }
+        }
+    }
+
+    fn send(&mut self, frame: InputFrame) {
+        if let Some(input) = &self.input {
+            input.send(frame).ok();
+        }
+    }
+
+    fn select<'a>(&mut self, client: &'a Client, node: NodeId) -> Turn<'a> {
+        let Some(attachment) = self.observer.attachment else {
+            return Turn::Done;
+        };
+        Turn::Wait(Box::pin(async move {
+            match client
+                .select(
+                    attachment,
+                    &SelectView {
+                        selection: Some(node),
+                    },
+                )
+                .await
+            {
+                Err(error) if matches!(error.code(), ErrorCode::NotFound) => Ok(()),
+                result => result.map(|_| ()),
+            }
+        }))
+    }
+
+    fn act<'a>(&mut self, client: &'a Client, action: Action) -> Turn<'a> {
+        let selection = self.observer.record().and_then(|record| record.selection);
+        if matches!(action, Action::Client(ClientAction::Pane(_)))
+            && let Some(zoomed) = zoomed_pane(&self.observer, selection)
+        {
+            return Turn::First(vec![
+                Item::Action(Action::Server(Command::Pane(PaneCommand::Zoom(
+                    pane::Zoom {
+                        pane: PaneTarget { id: Some(zoomed) },
+                        zoomed: Some(false),
+                    },
+                )))),
+                Item::Action(action),
+            ]);
+        }
+        let step = match &action {
+            Action::Client(ClientAction::Tab(ClientTab::Next {})) => {
+                Some(Step::Tab { forward: true })
+            }
+            Action::Client(ClientAction::Tab(ClientTab::Prev {})) => {
+                Some(Step::Tab { forward: false })
+            }
+            Action::Client(ClientAction::Pane(ClientPane::Next {})) => {
+                Some(Step::Pane { forward: true })
+            }
+            Action::Client(ClientAction::Pane(ClientPane::Prev {})) => {
+                Some(Step::Pane { forward: false })
+            }
+            Action::Client(ClientAction::Pane(ClientPane::Focus { direction })) => {
+                Some(Step::Focus(*direction))
+            }
+            _ => None,
+        };
+        if let Some(step) = step {
+            if let Some(replica) = &self.observer.replica
+                && let Some(to) =
+                    navigate(&replica.tabs, &self.memory, &self.sidebar, selection, step)
+                && Some(to) != selection
+            {
+                return self.select(client, to);
+            }
+            return Turn::Done;
+        }
+        let done = match action {
+            Action::Server(command) => {
+                let scope = Scope::Keys(KeyScope {
+                    attachment: self.observer.attachment,
+                    selection,
+                    tabs: self
+                        .observer
+                        .replica
+                        .as_ref()
+                        .map(|replica| replica.tabs.clone())
+                        .unwrap_or_default(),
+                });
+                return Turn::Wait(Box::pin(async move {
+                    client.execute(command, &scope).await.map(|_| ())
+                }));
+            }
+            Action::Client(action) => match action {
+                ClientAction::Pane(ClientPane::Swap { direction }) => {
+                    if let Some(replica) = &self.observer.replica
+                        && let Some(NodeId::Pane(from)) = selection
+                        && let Some(NodeId::Pane(other)) = navigate(
+                            &replica.tabs,
+                            &self.memory,
+                            &self.sidebar,
+                            selection,
+                            Step::Focus(direction),
+                        )
+                    {
+                        return Turn::First(vec![Item::Action(Action::Server(Command::Pane(
+                            PaneCommand::Swap(pane::Swap {
+                                pane: PaneTarget { id: Some(from) },
+                                other,
+                            }),
+                        )))]);
+                    }
+                    Ok(())
+                }
+                ClientAction::Tab(ClientTab::Select { .. }) => unavailable("tab select"),
+                ClientAction::Tab(action @ (ClientTab::Expand {} | ClientTab::Collapse {})) => {
+                    if let Some(replica) = &self.observer.replica
+                        && let Some(tab) =
+                            selection.and_then(|node| tree::viewed_tab(&replica.tabs, node))
+                    {
+                        self.sidebar
+                            .fold(tab, matches!(action, ClientTab::Collapse {}));
+                    }
+                    Ok(())
+                }
+                ClientAction::Send(chord) => match typing_pane(&self.observer, &self.memory) {
+                    Some(pane) => {
+                        self.send(InputFrame::Key(KeyInput {
+                            pane,
+                            key: chord.into(),
+                        }));
+                        Ok(())
+                    }
+                    None => Err(err!(Validation, "no pane selected")),
+                },
+                ClientAction::Detach {} => return Turn::Detach,
+                _ => unreachable!("press-time actions and navigation handled before the lane"),
+            },
+        };
+        if let Err(error) = done {
+            self.message = Some(error.to_string());
+        }
+        Turn::Done
+    }
+}
+
+/// Tab typing uses its landing pane without changing the tab selection.
+fn typing_pane(observer: &Observer, memory: &Memory) -> Option<IdOf<Pane>> {
+    let selected = observer.selected()?;
+    match selected.pane {
+        Some(pane) => Some(pane.id),
+        None => match memory.landing(selected.tab) {
+            NodeId::Pane(pane) => Some(pane),
+            NodeId::Tab(_) => None,
+        },
     }
 }
 
@@ -590,24 +655,6 @@ fn zoomed_pane(observer: &Observer, selection: Option<NodeId>) -> Option<IdOf<Pa
     let tabs = &observer.replica.as_ref()?.tabs;
     let tab = tree::tab(tabs, tree::pane_owner(tabs, pane).ok()?).ok()?;
     (tab.zoomed == Some(pane)).then_some(pane)
-}
-
-/// Moves the pending selection one `step`.
-fn moved(
-    observer: &Observer,
-    memory: &Memory,
-    sidebar: &Sidebar,
-    chosen: &mut Option<NodeId>,
-    step: Step,
-) {
-    if let (Some(replica), Some(record)) = (&observer.replica, observer.record()) {
-        let from = chosen.or(record.selection);
-        if let Some(to) = navigate(&replica.tabs, memory, sidebar, from, step)
-            && Some(to) != from
-        {
-            *chosen = Some(to);
-        }
-    }
 }
 
 /// Where `step` moves the selection `from`. Visible tab rows cycle in order and
@@ -706,21 +753,9 @@ fn view_area((cols, rows): (u16, u16), sidebar: &Sidebar) -> Size {
     draw::tab_area(cols, rows, sidebar.width())
 }
 
-/// The view this client wants the server to hold, with its attachment, when
-/// the server's record of it differs: the pending selection, else the
-/// recorded one, at `area`. `None` before the first `Attached` event.
-fn unsent(
-    observer: &Observer,
-    chosen: Option<NodeId>,
-    area: Size,
-) -> Option<(IdOf<Attachment>, ViewInput)> {
-    let record = observer.record()?;
-    let view = ViewInput {
-        selection: chosen.or(record.selection),
-        area,
-    };
-    (view.selection != record.selection || view.area != record.area)
-        .then_some((observer.attachment?, view))
+/// Send only the area, never a selection that could overwrite a script's edit.
+fn unsent(observer: &Observer, area: Size) -> Option<(IdOf<Attachment>, ViewInput)> {
+    (observer.record()?.area != area).then_some((observer.attachment?, ViewInput { area }))
 }
 
 /// Resolves on SIGTERM, SIGHUP or SIGINT, so the terminal is restored before

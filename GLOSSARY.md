@@ -12,4 +12,4 @@ _Avoid_: Session (the former top-level container, replaced by top-level tabs), W
 A terminal location within a tab's pane layout.
 
 **Selection**:
-A client's most specific chosen tab or pane, or nothing. It is distinct from sidebar expansion and remembered focus history.
+A client's most specific chosen tab or pane, or nothing, held by the server for that attachment. The client, a caller naming the attachment, a selecting create or the server's repair rules may change it; sidebar expansion and remembered focus history remain client-local.

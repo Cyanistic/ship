@@ -8,6 +8,7 @@ mod pane;
 mod routes;
 mod settings;
 mod state;
+mod views;
 
 use std::{
     future::{Future, IntoFuture},
@@ -101,6 +102,9 @@ fn api_router() -> OpenApiRouter<AppState> {
         attach::attach,
         input::input,
         attach::view,
+        views::list_views,
+        views::get_view,
+        views::select,
         routes::stop_server,
     )
 }
@@ -180,6 +184,7 @@ pub async fn serve(
         at: MoveTab::top(),
         name: OptionalName::default(),
         starter: Some(Starter::Shell),
+        select: None,
     };
     if starter && let Err(error) = state.ask(starter_tab).await {
         stop_actors(&state, &bus).await;

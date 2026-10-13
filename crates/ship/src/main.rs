@@ -113,6 +113,10 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
             let client = connect(&cli, explicit_target).await?;
             commands::action(&client, command).await
         }
+        Some(Command::View(command)) => {
+            let client = connect(&cli, explicit_target).await?;
+            commands::view(&client, command).await
+        }
         None => {
             let client = client(&cli.server_url)?;
             // A full-screen client must not misread another protocol. Only a
