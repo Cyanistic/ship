@@ -1,6 +1,6 @@
 //! `[client]` in the config file: settings, modes and their bindings.
 
-use std::{collections::HashMap, path::Path};
+use std::{borrow::Cow, collections::HashMap, path::Path};
 
 use crokey::KeyCombination;
 use indexmap::IndexMap;
@@ -9,7 +9,7 @@ use serde::{
     de::{Error as _, IgnoredAny},
 };
 use ship_core::{
-    command::{Command, Direction},
+    command::{Command, Direction, pane::PaneCommand},
     config,
     prelude::*,
 };
@@ -40,7 +40,7 @@ impl ModeName {
 
 pub struct Mode {
     pub kind: ModeKind,
-    /// Only bound chords: `[]` leaves the chord out.
+    /// Only bound chords: `{}` leaves the chord out.
     pub keys: IndexMap<KeyCombination, Binding>,
 }
 
@@ -52,51 +52,25 @@ pub enum ModeKind {
     Oneshot,
 }
 
-/// Actions run in order, stopping at the first failure. Empty unbinds the
-/// chord, so the key reaches the program.
-#[derive(Clone, Debug)]
+/// One action and its status-line hint. `{}` unbinds the chord, so the
+/// key reaches the program.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Binding {
-    pub actions: Vec<Action>,
-    /// Presentation from the source binding, completed with its chord on load.
-    hint: String,
-}
-
-impl<'de> Deserialize<'de> for Binding {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let values = Vec::<toml::Value>::deserialize(deserializer)?;
-        let hint = values.first().map(action_hint).unwrap_or_default();
-        let actions = values
-            .into_iter()
-            .map(|value| value.try_into())
-            .collect::<Result<_, _>>()
-            .map_err(D::Error::custom)?;
-        Ok(Self { actions, hint })
-    }
-}
-
-/// Follow the action path to its scalar value, or the last named table.
-fn action_hint(value: &toml::Value) -> String {
-    let mut value = value;
-    let mut name = "";
-    while let toml::Value::Table(table) = value {
-        if table.len() != 1 {
-            return name.into();
-        }
-        let (key, child) = table.iter().next().expect("one entry");
-        name = key;
-        value = child;
-    }
-    match value {
-        toml::Value::String(text) => text.clone(),
-        toml::Value::Array(_) => name.into(),
-        scalar => scalar.to_string(),
-    }
+    #[serde(default)]
+    pub action: Option<Action>,
+    /// Completed with its chord and the action's fallback word on load.
+    #[serde(default)]
+    hint: Option<String>,
 }
 
 impl Mode {
     /// Each chord's `chord label` hint, in the file's order.
     pub fn hints(&self) -> impl Iterator<Item = &str> {
-        self.keys.values().map(|binding| binding.hint.as_str())
+        self.keys
+            .values()
+            .filter(|binding| binding.action.is_some())
+            .filter_map(|binding| binding.hint.as_deref())
     }
 }
 
@@ -107,11 +81,34 @@ pub enum Action {
     Client(ClientAction),
 }
 
+impl Action {
+    /// The mode, direction or sent chord, otherwise the action's config name.
+    pub fn hint(&self) -> Cow<'static, str> {
+        let name: &'static str = match self {
+            Self::Server(Command::Tab(action)) => action.into(),
+            Self::Server(Command::Pane(PaneCommand::Resize(action))) => (&action.direction).into(),
+            Self::Server(Command::Pane(action)) => action.into(),
+            Self::Client(ClientAction::Mode(mode)) => return Cow::Owned(mode.0.clone()),
+            Self::Client(ClientAction::Send(chord)) => return Cow::Owned(chord.to_string()),
+            Self::Client(ClientAction::Tab(action)) => action.into(),
+            Self::Client(ClientAction::Pane(
+                ClientPane::Focus { direction } | ClientPane::Swap { direction },
+            )) => direction.into(),
+            Self::Client(ClientAction::Pane(action)) => action.into(),
+            Self::Client(ClientAction::Sidebar(action)) => action.into(),
+            Self::Client(ClientAction::Config(action)) => action.into(),
+            Self::Client(action) => action.into(),
+        };
+        Cow::Borrowed(name)
+    }
+}
+
 /// Actions without arguments are empty struct variants (`Detach {}`), not
 /// unit variants: the config writes them as `{}`, which figment accepts for a
 /// struct variant and rejects for a unit one.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum ClientAction {
     Tab(ClientTab),
     Pane(ClientPane),
@@ -122,8 +119,9 @@ pub enum ClientAction {
     Config(ConfigAction),
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum ClientTab {
     Next {},
     Prev {},
@@ -132,8 +130,9 @@ pub enum ClientTab {
     Collapse {},
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum ClientPane {
     Next {},
     Prev {},
@@ -146,14 +145,16 @@ pub enum ClientPane {
     },
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum Sidebar {
     Toggle {},
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum ConfigAction {
     Reload {},
 }
@@ -200,7 +201,13 @@ fn normalized<'de, D: Deserializer<'de>>(
     keys.into_iter()
         .map(|(spelling, mut binding)| {
             let chord: KeyCombination = spelling.parse().map_err(D::Error::custom)?;
-            binding.hint = format!("{spelling} {}", binding.hint);
+            if let Some(action) = &binding.action {
+                let hint = binding
+                    .hint
+                    .take()
+                    .map_or_else(|| action.hint(), Cow::Owned);
+                binding.hint = Some(format!("{spelling} {hint}"));
+            }
             Ok((chord.normalized(), binding))
         })
         .collect()
@@ -250,7 +257,7 @@ impl ClientSettings {
 
 impl From<ModeFile> for Mode {
     fn from(mut file: ModeFile) -> Self {
-        file.keys.retain(|_, binding| !binding.actions.is_empty());
+        file.keys.retain(|_, binding| binding.action.is_some());
         Self {
             kind: file.kind.unwrap_or_default(),
             keys: file.keys,
@@ -262,8 +269,6 @@ impl Binding {
     /// Whether running this enters a mode, so a one-shot mode doesn't leave
     /// for normal on its own.
     pub fn enters_mode(&self) -> bool {
-        self.actions
-            .iter()
-            .any(|action| matches!(action, Action::Client(ClientAction::Mode(_))))
+        matches!(self.action, Some(Action::Client(ClientAction::Mode(_))))
     }
 }

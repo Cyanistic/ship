@@ -4,6 +4,8 @@ Status: Locked on 2026-10-13, approved by Cyan after Plannotator review ("LGTM! 
 
 Amended on 2026-10-13 during program review: FR-018's binding syntax gains an `action` field and an optional `hint`. Approved by Cyan in chat ("yeah strum is exactly what i was thinking! let's update the papers please!"), with re-review waived ("don't worry about me checking them again. i'm sure they'll be correct").
 
+Slice-1 amendment, approved by Cyan in chat: "Waive strict list rejection and update the slice-1 planning documents accordingly." FR-018 no longer requires rejecting positional lists that Serde happens to accept. Tables remain the documented binding syntax; no parser guard is added.
+
 ## Summary
 
 Each client's selection already lives on the server, one per attachment, but only the client can change it, by sending what it chose with its view. This change makes that selection something other callers can read and set by naming the attachment, and lets tab and pane creates select what they made in the same edit. Navigation, folds, selection memory, modes and the keymap stay on the client.
@@ -90,7 +92,7 @@ Tested independently: set a client's selection from a second terminal to a pane,
 
 ### Bindings
 
-- FR-018: A binding SHALL be a table with an optional `action`, holding exactly one action, and an optional `hint`: `"alt-r" = { action = { client.mode = "resize" } }`, `"alt-n" = { action = { … }, hint = "new tab" }`. `{}` SHALL unbind the chord. A list, or any other key in the table, SHALL be a config error. The status line SHALL show `hint` when set, else a word taken from the action as it does today (the mode's name, the direction, the key sent, or the verb). A file binding SHALL still replace the default on its chord whole. This amends keys-config FR-012 and FR-030 and terminal-client's "Custom binding hint" scenario.
+- FR-018: The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `hint`: `"alt-r" = { action = { client.mode = "resize" } }`, `"alt-n" = { action = { … }, hint = "new tab" }`. `{}` SHALL unbind the chord. Any key in the table other than `action` and `hint` SHALL be a config error. Strict list rejection is not required; incidental positional forms accepted by Serde are left alone, not documented as binding syntax. The status line SHALL show `hint` when set, else a word taken from the action as it does today (the mode's name, the direction, the key sent, or the verb). A file binding SHALL still replace the default on its chord whole. This amends keys-config FR-012 and FR-030 and terminal-client's "Custom binding hint" scenario.
 
 ## Success criteria
 

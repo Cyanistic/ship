@@ -55,7 +55,7 @@ The default keys become tables with one named `action` (FR-018), and the four cr
 # …every other binding: brackets dropped, the action wrapped in `action = { … }`
 ```
 
-The defaults set no `hint`; each falls back to `Action::hint`, which gives the same words as today. A user file sets one with `hint = "new tab"` beside `action`, and unbinds with `{}`: `"alt-q" = {}`. A list, `"alt-q" = [{ … }]`, or a key other than `action` and `hint`, fails `ship config check` with its line and column.
+The defaults set no `hint`; each falls back to `Action::hint`, which gives the same words as today. A user file sets one with `hint = "new tab"` beside `action`, and unbinds with `{}`: `"alt-q" = {}`. A key other than `action` and `hint` fails `ship config check` with its line and column. Cyan waived strict list rejection during slice 1: leave Serde's incidental positional forms alone, without a parser guard.
 
 New dependency: `strum` with the `derive` feature, in the workspace and in `ship-core` and `ship-client`, for `IntoStaticStr` on the action enums. Not optional in `ship-core`, since the client needs the names from `Command`.
 
@@ -211,8 +211,8 @@ None.
 
 ```rust
 /// One action and its status-line hint. `{}` sets neither and unbinds the
-/// chord, so the key reaches the program. A list or another key is a config
-/// error, from serde itself.
+/// chord, so the key reaches the program. Another key is a config error,
+/// from serde itself; strict list rejection was waived during slice 1.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Binding {
@@ -437,7 +437,7 @@ In `drive`: terminal events become lane items or `Now` actions; a cut connection
 
 ## Build order
 
-1. **Bindings hold one named action.** Files: workspace `Cargo.toml` and the `ship-core` and `ship-client` manifests (`strum`), `command.rs` (`IntoStaticStr` on `TabCommand`, `PaneCommand`, `Direction`), `keymap.rs`, `keymap/defaults.toml`, `ui/keys.rs` (`enters_mode`), `ui/mod.rs` (`queued` holds actions, not lists). Delivers FR-018. Checks: `ship config check` accepts `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-t" = { action = { … }, hint = "new" }` and `"alt-q" = {}`, and rejects `"alt-t" = [{ … }]`, `"alt-t" = { server.tab.create = {} }` and `"alt-t" = { action = { … }, hnt = "x" }` with line and column. Every default key still works in a running client, `alt-q` unbound with `{}` reaches the shell, and the `resize` mode hints read `h left  j down  k up  l right  esc normal` as before. A set `hint` shows in place of the derived word.
+1. **Bindings hold one named action.** Files: workspace `Cargo.toml` and the `ship-core` and `ship-client` manifests (`strum`), `command.rs` (`IntoStaticStr` on `TabCommand`, `PaneCommand`, `Direction`), `keymap.rs`, `keymap/defaults.toml`, `ui/keys.rs` (`enters_mode`), `ui/mod.rs` (`queued` holds actions, not lists). Delivers FR-018. Checks: `ship config check` accepts `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-t" = { action = { … }, hint = "new" }` and `"alt-q" = {}`, and rejects `"alt-t" = { server.tab.create = {} }` and `"alt-t" = { action = { … }, hnt = "x" }` with line and column. Strict list rejection is waived: record the incidental acceptance of `"alt-t" = [{ server.tab.create = {} }]` without guarding it. Every default key still works in a running client, `alt-q` unbound with `{}` reaches the shell, and the `resize` mode hints read `h left  j down  k up  l right  esc normal` as before. A set `hint` shows in place of the derived word.
 2. **Views and `ship view`.** Files: `protocol.rs` (`SelectView`, version 10), `state.rs` (`ListViews`, `GetView`, `Select`), `views.rs`, `lib.rs` (routes), `api.rs`, `cli.rs`, `commands.rs`, `main.rs`. Delivers FR-001 to FR-004, P3 and U-1. The client still sends its selection on the view PUT during this slice. Checks (SC-003): with a client attached, `ship view list` shows it. `ship view select` to a pane, a tab and `--none` each move the client within a frame, and `ship view selected` prints each. Selecting a pane hidden by zoom unzooms the tab for a second client too. An unknown attachment or node exits non-zero and changes nothing. `ship server status` reports protocol 10.
 3. **Creates select.** Files: `command.rs`, `protocol.rs` (`select` on both bodies), `state.rs` (`select_created`), `execute.rs` (`KeyScope.attachment`), `defaults.toml` (`select = true`), `ui/mod.rs` (the `creates` path removed). Delivers FR-007 to FR-011, P2. Checks (SC-004): `ship pane create --tab T -- sleep 9` moves no client. With `--select --attachment A` the client lands on the new pane, and a second client never sees it unselected (watch `ship view list` in a loop). `--select` without an attachment fails before creating, and an unknown attachment creates nothing. `alt-n`, `alt-shift-n`, `alt--` and `alt-|` still land on what they made.
 4. **The lane.** Files: `ui/lane.rs`, `ui/keys.rs`, `ui/mouse.rs`, `ui/mod.rs`, `protocol.rs` (`ViewInput` without `selection`), `state.rs` (`SetView` area only), `api.rs`. Throwaway: `experiments/latency-proxy/` (G4). Delivers FR-005, FR-012 to FR-017, P1. Checks, through the proxy at 500 ms each way (SC-001): ten runs each of `alt-n` + `echo hi` + Enter and `alt-|` + `alt-f`, all landing right. A click on another pane during a pending create ends there. A failed action shows its error, and keys typed after it still arrive. Killing the proxy mid-burst drops what wasn't sent and replays nothing. `alt-q` after typing detaches after the typing lands. A script's `ship view select` survives a terminal resize. Against a local server (SC-002), typing, navigation and key repeat feel unchanged in daily use.
@@ -445,4 +445,9 @@ In `drive`: terminal events become lane items or `Now` actions; a cut connection
 
 ## Deviation log
 
-Empty.
+- **Slice 1, strict list rejection waived by Cyan.** Derived Serde struct deserialization also accepts positional sequences, so `[{ server.tab.create = {} }]` fills `action` and defaults `hint`. `deny_unknown_fields` rejects unknown map keys, not sequences. After this was demonstrated with `ship config check`, Cyan explicitly approved: "Waive strict list rejection and update the slice-1 planning documents accordingly." No custom parser guard was added. Tables remain the documented syntax. FR-018, architecture decision 7, the proposal, design summary, task 1.2 and the keymap delta reflect the waiver.
+- **Slice 1, binding docs moved forward.** Updated the guide's binding syntax and hints and the README config example with the runnable slice, rather than leaving invalid examples until slice 5. The remaining selection docs and other slice-5 work are still pending.
+
+### Slice-1 verification
+
+On macOS, `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, debug and release workspace builds, and `ship-core` checks with and without `clap` passed. Temporary `ship config check` files verified the supported table forms and unbinding, bare actions and `hnt` rejected with line and column, and incidental positional list acceptance. All TOML examples in the README and guide passed config checking. A temporary Rust probe verified derived action/direction names, action hint fallbacks and ordered resize hints. A real client in a PTY against an owned temporary server exercised every default key, exact resize hints, live reload with `hint = "fill"`, and unbound `alt-q` delivered to the shell as `ESC q` without detaching. The default `alt-q` detached without stopping the server. Probe logs remain at `/tmp/ship-slice1.5G3EVE/runtime.log` for this session; the client and temporary server were stopped. No permanent test code was added. Linux remains unverified.

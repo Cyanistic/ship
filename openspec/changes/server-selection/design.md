@@ -6,6 +6,8 @@ Summary of the three locked papers in `design/`, which are the source of truth. 
 - [`design/architecture.md`](design/architecture.md): shape A, one lane where every step waits, and key decisions 1 to 9.
 - [`design/program.md`](design/program.md): the planned files, types and signatures, the build order and the deviation log.
 
+Slice-1 amendment: Cyan waived strict list rejection. Tables remain the documented binding syntax, with derived Serde parsing and no guard against incidental positional forms. The approval is recorded in the product paper and the program deviation log.
+
 ## Context
 
 Each client's selection already lives on the server, one per attachment, but only the client can change it, by sending it with its view. Keys typed right after an action that changes the selection go to the old pane on a slow link, because the client stamps typing with the selection at press and sends it at once (#20). This change makes the selection readable and settable by attachment, lets creates select what they made in the same edit, and runs everything a client does through one ordered lane. [handoff.md](handoff.md) records an earlier direction, server-side navigation and a "selected" target, which was dropped.
@@ -60,7 +62,7 @@ Estimated size: within 150 lines either way of today's implementation Rust, unme
 
 ## Migration Plan
 
-Config files rewrite every binding from `[{ … }]` to `{ action = { … } }`; old syntax fails `ship config check` with its line and column. Protocol 9 goes to 10, so server and client are rebuilt as a pair, and mismatched versions fail the health check as before.
+Config files rewrite every binding from `[{ … }]` to `{ action = { … } }`, and `[]` to `{}`. A bare action or unknown binding field fails `ship config check` with its line and column. Strict rejection of positional list forms is waived; their incidental acceptance by Serde is left alone, not documented as binding syntax. Protocol 9 goes to 10, so server and client are rebuilt as a pair, and mismatched versions fail the health check as before.
 
 ## Open Questions
 

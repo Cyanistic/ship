@@ -19,6 +19,7 @@ indexmap.workspace = true
 ratatui-core.workspace = true
 kameo = { workspace = true, optional = true }
 serde.workspace = true
+strum.workspace = true
 ship-macros = { workspace = true, optional = true }
 serde_json.workspace = true
 serde_path_to_error.workspace = true

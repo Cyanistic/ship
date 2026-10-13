@@ -109,7 +109,8 @@ impl Destination {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, utoipa::ToSchema, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
 #[serde(rename_all = "snake_case")]
 pub enum Direction {
@@ -128,9 +129,10 @@ pub mod tab {
     use crate::protocol::Starter;
 
     /// `get` and `list` are CLI-only, so the config rejects them.
-    #[derive(Clone, Debug, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
+    #[strum(serialize_all = "snake_case")]
     pub enum TabCommand {
         /// List top-level tabs and their descendants as JSON, keyed by ID
         #[serde(skip)]
@@ -232,9 +234,10 @@ pub mod pane {
     };
 
     /// `get` and `read` are CLI-only, so the config rejects them.
-    #[derive(Clone, Debug, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
+    #[strum(serialize_all = "snake_case")]
     pub enum PaneCommand {
         /// Create a pane running a program and print it as JSON
         Create(Create),

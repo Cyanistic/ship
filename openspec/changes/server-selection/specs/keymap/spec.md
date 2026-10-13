@@ -3,15 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: Binding syntax
-A binding SHALL be a table with an optional `action`, holding exactly one action, and an optional `hint`, the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. A list, an action written without `action`, or any other key in the table SHALL be a config error with its line and column.
+The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `hint`, the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. An action written without `action`, or any other key in the table, SHALL be a config error with its line and column. Strict rejection of positional list forms is not required, per Cyan's slice-1 amendment; their incidental acceptance by Serde is not documented binding syntax.
 
 #### Scenario: Accepted forms
 - **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-y" = { action = { server.tab.close = {} }, hint = "close" }` and `"alt-q" = {}`, and the user runs `ship config check`
 - **THEN** it prints nothing and exits 0
-
-#### Scenario: A list
-- **WHEN** a file binds `"alt-t" = [{ server.tab.create = {} }]` and the user runs `ship config check`
-- **THEN** it reports the error at that binding's line and column and exits 1
 
 #### Scenario: An action without `action`
 - **WHEN** a file binds `"alt-t" = { server.tab.create = {} }` and the user runs `ship config check`
@@ -128,4 +124,4 @@ A key binding SHALL act on the client's selection as it is at the binding's turn
 
 ### Requirement: Action lists
 **Reason**: A binding holds one action (keys-config FR-012 and FR-030, amended by server-selection FR-018). The lists in use were a create followed by its starter or a selection, which `starter` and `select = true` now do in one edit, and one action per binding settles error handling and the mixing of client and server actions.
-**Migration**: Rewrite `"chord" = [{ … }]` as `"chord" = { action = { … } }`, and `[]` as `{}`. Bind a multi-step sequence as separate keys. `ship config check` reports every remaining list with its line and column.
+**Migration**: Rewrite `"chord" = [{ … }]` as `"chord" = { action = { … } }`, and `[]` as `{}`. Bind a multi-step sequence as separate keys. Strict list rejection is waived; incidental Serde positional forms are left alone, not supported as multi-action bindings.

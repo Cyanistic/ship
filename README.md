@@ -114,15 +114,15 @@ shell = "/bin/bash"            # default: your login shell
 sidebar_width = 40
 
 [client.modes.normal.keys]
-"alt-q"  = []                                  # unbind: alt-q reaches the program
-"ctrl-b" = [{ client.mode = "prefix" }]        # tmux habits
+"alt-q"  = {}                                     # alt-q reaches the program
+"ctrl-b" = { action = { client.mode = "prefix" } } # tmux habits
 
 [client.modes.prefix]
 kind = "oneshot"                               # back to normal after one key
 
 [client.modes.prefix.keys]
-"c"      = [{ server.tab.create.starter = "shell" }]
-"ctrl-b" = [{ client.send = "ctrl-b" }]        # a literal ctrl-b for the pane
+"c"      = { action = { server.tab.create.starter = "shell" } }
+"ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
 ```
 
 `ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/guide.md#configuration) covers every setting, custom modes and how key actions map onto CLI commands.

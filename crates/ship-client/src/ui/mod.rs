@@ -170,9 +170,8 @@ async fn drive(
             None
         }
     };
-    // Each bound key's actions still to run, oldest first. A failure drops
-    // the rest of its key's actions.
-    let mut queued: VecDeque<VecDeque<Action>> = VecDeque::new();
+    // Bound actions still to run, oldest first.
+    let mut queued: VecDeque<Action> = VecDeque::new();
     // The server action in flight, resolving to what it created.
     let mut running: Pending<Option<NodeId>> = None;
     let mut terminal_events = EventStream::new();
@@ -266,7 +265,6 @@ async fn drive(
                     Ok(None) => {}
                     Err(error) => {
                         message = Some(error.to_string());
-                        queued.pop_front();
                     }
                 }
                 true
@@ -340,7 +338,7 @@ async fn drive(
                         }
                         Handled::Run(binding) => {
                             message = None;
-                            queued.push_back(binding.actions.into());
+                            queued.extend(binding.action);
                         }
                         Handled::None => {}
                     }
@@ -369,12 +367,8 @@ async fn drive(
         // the one in flight and then for the replica to show what it did.
         while running.is_none()
             && observer.caught_up(client.written())
-            && let Some(actions) = queued.front_mut()
+            && let Some(action) = queued.pop_front()
         {
-            let Some(action) = actions.pop_front() else {
-                queued.pop_front();
-                continue;
-            };
             visible = true;
             let selection = chosen.or(observer.record().and_then(|record| record.selection));
             // Leave zoom for everyone first. The queue waits for the unzoom's
@@ -382,8 +376,8 @@ async fn drive(
             if matches!(action, Action::Client(ClientAction::Pane(_)))
                 && let Some(zoomed) = zoomed_pane(&observer, selection)
             {
-                actions.push_front(action);
-                actions.push_front(Action::Server(Command::Pane(PaneCommand::Zoom(
+                queued.push_front(action);
+                queued.push_front(Action::Server(Command::Pane(PaneCommand::Zoom(
                     pane::Zoom {
                         pane: PaneTarget { id: Some(zoomed) },
                         zoomed: Some(false),
@@ -468,7 +462,7 @@ async fn drive(
                                 NodeId::Tab(_) => None,
                             })
                         {
-                            actions.push_front(Action::Server(Command::Pane(PaneCommand::Swap(
+                            queued.push_front(Action::Server(Command::Pane(PaneCommand::Swap(
                                 pane::Swap {
                                     pane: PaneTarget { id: Some(from) },
                                     other,
@@ -517,7 +511,6 @@ async fn drive(
             };
             if let Err(error) = done {
                 message = Some(error.to_string());
-                queued.pop_front();
             }
         }
         if let Some(replica) = &observer.replica {

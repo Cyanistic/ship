@@ -145,25 +145,26 @@ A running client reloads its settings and keys when you save the file. If the fi
 
 ### Keys and modes
 
-Keys belong to modes. You start in `normal`. Each key maps to a list of actions run in order, and a key you bind replaces only that key's default:
+Keys belong to modes. You start in `normal`. Each binding names one `action`, and a key you bind replaces only that key's default. Use `{}` to unbind:
 ```toml
 [client.modes.normal.keys]
-"alt-t"  = [{ server.tab.create = {} }]        # new empty tab
-"alt-q"  = []                                  # unbind: alt-q reaches the program
-"alt-m"  = [                                   # a tab, then a second pane
-  { server.tab.create.starter = "shell" },
-  { server.pane.create = {} },
-]
-"alt-y"  = [{ server.pane.resize = { direction = "right", amount = 5 } }]
-"ctrl-b" = [{ client.mode = "prefix" }]        # tmux habits
+"alt-t"  = { action = { server.tab.create = {} } } # new empty tab
+"alt-q"  = {}                                     # alt-q reaches the program
+"alt-y"  = { action = { server.pane.resize = { direction = "right", amount = 5 } } }
+"ctrl-b" = { action = { client.mode = "prefix" } } # tmux habits
 
 [client.modes.prefix]
-kind = "oneshot"                               # back to normal after one key
+kind = "oneshot"                                  # back to normal after one key
 
 [client.modes.prefix.keys]
-"c"      = [{ server.tab.create.starter = "shell" }]
-"ctrl-b" = [{ client.send = "ctrl-b" }]        # a literal ctrl-b for the pane
+"c"      = { action = { server.tab.create.starter = "shell" } }
+"ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
+
+[client.modes.resize.keys]
+"f" = { action = { server.pane.zoom = {} }, hint = "fill" }
 ```
+
+Migrate old bindings from `[{ … }]` to `{ action = { … } }`, and from `[]` to `{}`. Bind separate steps to separate keys, rather than an action list. A bare action without the `action` field, or an unknown binding field such as `hnt`, is a config error.
 
 A `oneshot` mode takes one key and returns to normal. A `sticky` mode stays until a binding leaves it, and swallows keys it doesn't bind. `clear_defaults = true` starts a mode with none of Ship's bindings. Bind `client.config.reload = {}` to reload on demand.
 
@@ -171,7 +172,7 @@ A `oneshot` mode takes one key and returns to normal. A `sticky` mode stays unti
 
 ### The status line
 
-There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys.
+There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `hint` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
 
 ## Upgrading
 

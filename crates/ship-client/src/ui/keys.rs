@@ -14,7 +14,7 @@ use crate::keymap::{Binding, Keymap, ModeKind, ModeName};
 pub(super) enum Handled {
     /// A key or paste for the selected pane; dropped while disconnected.
     Frame(InputFrame),
-    /// A bound key's actions, which the loop runs in order.
+    /// A bound key's action, which the loop runs in order.
     Run(Binding),
     /// An unbound key outside normal, or input with no pane selected.
     None,
