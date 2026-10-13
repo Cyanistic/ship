@@ -29,7 +29,7 @@ The documented binding syntax SHALL be a table with an optional `action`, holdin
 - **THEN** a pane is split below it and the original pane stays selected
 
 #### Scenario: Attachment in the config
-- **WHEN** a file binds `server.tab.create = { select = true, attachment = "…" }` and the user runs `ship config check`
+- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = { select = true, attachment = "…" } } }` and the user runs `ship config check`
 - **THEN** it reports the unknown field `attachment` and exits 1
 
 ## MODIFIED Requirements
@@ -114,7 +114,7 @@ A key binding SHALL act on the client's selection as it is at the binding's turn
 - **THEN** a top-level tab with a shell is created and its pane is selected
 
 ### Requirement: Send a chord
-`client.send` SHALL send its chord to the selected pane as if typed.
+`client.send` SHALL send its chord as if typed at its turn in the client's input order, to the selected pane or the landing pane of a selected tab, without changing the selection.
 
 #### Scenario: Pass the prefix through
 - **WHEN** `prefix` binds `"ctrl-b" = { action = { client.send = "ctrl-b" } }`, a pane runs `cat -v`, and the user enters `prefix` and presses `ctrl-b`

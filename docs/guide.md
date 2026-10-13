@@ -46,6 +46,20 @@ Keep a client attached while running this example. Its display follows the selec
 
 `--attachment` defaults to `SHIP_ATTACHMENT_ID` when that variable is set. `view select` requires either a node ID or `--none`; omitting both is an argument error, not a request to clear the selection. A successful select prints the stored view record. Attachment IDs last only until that client detaches.
 
+### Creating and selecting together
+
+CLI creates leave every client's selection alone unless you pass `--select`. With it, the server creates and selects in one edit, so the chosen client never sees the new node before selecting it:
+
+```sh
+ATTACHMENT=$(ship view list | jq -r 'keys_unsorted[0]')
+TAB=$(ship tab create --name selected --starter --select --attachment "$ATTACHMENT" | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" --select --attachment "$ATTACHMENT" -- sleep 9 | jq -r .id)
+ship view selected --attachment "$ATTACHMENT"  # prints the new pane ID
+ship tab close --tab "$TAB"
+```
+
+Keep a client attached for this example. A tab with `--starter` selects its shell pane; an empty tab selects the tab itself. `--attachment` again defaults to `SHIP_ATTACHMENT_ID`; Ship does not set that variable in ordinary pane shells. Without either source of an attachment, `--select` fails before creating anything. An unknown attachment also creates nothing and leaves no starter program running. Passing `--attachment` alone does not select.
+
 ## Tabs
 
 Tabs form a tree. A tab can hold panes, child tabs, or both, and can be empty.
@@ -110,9 +124,13 @@ ship tab close --tab "$TAB"
 
 The same edits from the CLI each print the tab:
 ```sh
+TAB=$(ship tab create --name edits | jq -r .id)
+LEFT=$(ship pane create --tab "$TAB" | jq -r .id)
+RIGHT=$(ship pane create --pane "$LEFT" --direction right | jq -r .id)
 ship pane zoom --pane "$LEFT"                    # toggles
 ship pane swap --pane "$LEFT" --other "$RIGHT"   # any two panes in one tab
 ship pane resize --pane "$LEFT" --direction left --amount 5
+ship tab close --tab "$TAB"
 ```
 
 ## Scrolling and reading output
@@ -183,7 +201,7 @@ Keys belong to modes. You start in `normal`. Each binding names one `action`, an
 kind = "oneshot"                                  # back to normal after one key
 
 [client.modes.prefix.keys]
-"c"      = { action = { server.tab.create.starter = "shell" } }
+"c"      = { action = { server.tab.create = { starter = "shell", select = true } } }
 "ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
 
 [client.modes.resize.keys]
@@ -193,6 +211,8 @@ kind = "oneshot"                                  # back to normal after one key
 Migrate old bindings from `[{ … }]` to `{ action = { … } }`, and from `[]` to `{}`. Bind separate steps to separate keys, rather than an action list. A bare action without the `action` field, or an unknown binding field such as `hnt`, is a config error.
 
 A `oneshot` mode takes one key and returns to normal. A `sticky` mode stays until a binding leaves it, and swallows keys it doesn't bind. `clear_defaults = true` starts a mode with none of Ship's bindings. Bind `client.config.reload = {}` to reload on demand.
+
+The four default create keys select what they make. In your own binding, set `select = true` to do the same for the pressing client; without it, creation leaves the selection alone. Bindings cannot name an `attachment`. For example, `"alt-t"` above creates an empty tab without moving you.
 
 `server.` actions are the CLI's commands with the same names and options: `server.tab.create.starter = "shell"` is `ship tab create --starter shell`. `client.` actions act on your own view, like `client.pane.focus`, `client.sidebar.toggle` and `client.detach`; Ship's own defaults are in [`defaults.toml`](../crates/ship-client/src/keymap/defaults.toml). Key spellings like `ctrl-alt-x` and `shift-tab` come from [crokey](https://docs.rs/crokey).
 

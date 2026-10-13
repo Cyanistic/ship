@@ -13,6 +13,13 @@ The server SHALL hold each attachment's selection. It SHALL change only through 
 - **WHEN** one client presses `alt-n` while a second client has a pane selected
 - **THEN** the second client's selection doesn't move
 
+### Requirement: Area-only view updates
+`PUT /api/v0/attach/view` SHALL carry only the attachment's terminal `area`, with the attachment named by `x-ship-attachment-id`. Updating the area SHALL NOT replace its selection; selection changes SHALL use the selection route or a selecting create, apart from attachment initialization and server repair.
+
+#### Scenario: Resize after an external selection
+- **WHEN** a script selects a pane for an attached client and that client resizes its terminal
+- **THEN** the reported area changes and the scripted selection remains selected
+
 ### Requirement: Views routes
 `GET /api/v0/views` SHALL return every attachment's viewing record as a JSON object keyed by attachment ID, in attach order, with the same records the observation stream publishes under `viewers`. `GET /api/v0/views/{attachment}` SHALL return one record. `PUT /api/v0/views/{attachment}/selection` with `{"selection": <tab or pane ID>}` or `{"selection": null}` SHALL set that attachment's selection and return the record as stored. An unknown attachment or node SHALL get 404 and change nothing.
 

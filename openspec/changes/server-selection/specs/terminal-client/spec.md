@@ -24,8 +24,13 @@ A key action that fails SHALL show its error on the status line, and input after
 - **WHEN** a tab without panes is selected, and the user presses `alt-shift-x`, `alt-right` to a shell pane, and types `ls` and Enter
 - **THEN** the status line reports that no pane is selected, and `ls` runs in the shell
 
+#### Scenario: Selection target removed during a request
+- **WHEN** the client's navigation or click sends a selection request and another caller removes that target before the request is applied
+- **THEN** the client's lane treats that selection's 404 as nothing to do, shows no error and continues later input
+- **AND** a script making the same request still receives the not-found error
+
 ### Requirement: Input across a disconnect or detach
-When the connection drops, input not yet taken effect SHALL be dropped and SHALL NOT be sent after reconnecting. Detaching SHALL take effect after all input before it.
+When the connection drops, queued input SHALL be dropped and an in-flight action SHALL NOT be retried after reconnecting. Already-sent input or requests are not undone. Detaching SHALL close the input channel and await its existing input request before ending the attachment, so earlier typing is not abandoned; a signal may interrupt this drain.
 
 #### Scenario: Proxy cut mid-burst
 - **WHEN** 500 ms of delay is added each way, the user presses `alt-n` and types, and the connection is cut before the tab appears

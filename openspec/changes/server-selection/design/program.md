@@ -498,3 +498,41 @@ new code: One client lane and turn dispatcher, plus the throwaway proxy; the pri
 proof: Final build/lint/feature checks and real PTY workflows through the delayed and direct server boundaries, as recorded above.
 
 Uncertain decisions: None. Cyan's direct local-use confirmation completes task 4.4 without waiving its criterion.
+
+### Slice-5 reconciliation
+
+- The strict-list waiver is already recorded in the keymap delta's Binding syntax and Action lists migration; tables remain the documented syntax.
+- `ListViews::Reply = Result<Viewers>` is not user-visible: actor reply typing changes neither the JSON nor HTTP behavior.
+- Moving binding, view and lane documentation into earlier slices changed delivery timing only, not specified behavior. Slice 5 completes the remaining ownership and selecting-create documentation.
+- Detach's input-request drain is reflected in terminal-client's Input across a disconnect or detach. That requirement also distinguishes dropping queued work and not retrying an in-flight action from undoing requests already sent, which the lane cannot do.
+- Returning mode changes through `Handled::Now` is not user-visible; the keymap delta's apply-at-press rule and Mode change while input waits scenario already cover its behavior.
+- Avoiding speculative redraws for input is not a separate user-visible contract; Ordered input's Idle typing scenario covers responsiveness, with the slice-4 measurements and Cyan's local-use confirmation as evidence.
+- Area-only view updates and resize preservation are now explicit in the session-observation delta. The client's select-404 rule is explicit in terminal-client, and keymap's Send a chord includes selected-tab landing behavior.
+
+### Slice-5 verification and size
+
+On macOS, formatting, Clippy with `-D warnings`, debug and release workspace builds, and ship-core checks with `--no-default-features` and `--features clap` passed. No Rust changed in this slice. `openspec validate server-selection` passed after delta reconciliation.
+
+Against an owned temporary server with a real PTY client attached, all seven guide shell blocks and the README's CLI block ran as written, including selecting creates, pane/tab/null selection, nested tabs, cwd reporting, splits, zoom/swap/resize and scrollback reads. All three guide TOML blocks and the README TOML block passed `ship config check`. Status, attachment lookup via `SHIP_ATTACHMENT_ID`, help and server stop also passed. Installation commands were not rerun. Both the client and server were stopped by the probe; existing user work was untouched. Evidence is at `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-slice5.xjfi6abz/runtime.log`, with client ANSI and server logs alongside it; the throwaway probe is `/tmp/ship-slice5-probe.py`.
+
+All 31 local Markdown links and heading anchors in the changed docs and this change's artifacts resolved. Six external targets, including the handoff's issue #20, returned HTTP 200 after redirects. Two pre-existing archive links in the keys-config product paper were corrected. Its amendment now points to server-selection FR-018. The zoom/swap/resize guide block now creates and cleans up its own panes instead of reusing IDs closed by the preceding example.
+
+The handoff's server-owned navigation, folds, memory and selected-target direction is superseded by the locked papers. Its recorded mouse-drag questions (direct move calls for drops, valid drop depths) were brought to Cyan without asserting their current status. The product paper's deferred Pipeline/action-overtakes-keys gap, run actions, multiple servers, pending indicator and closing #20 at PR time were also brought to Cyan. No issue was filed or closed. `experiments/latency-proxy/` was already absent when slice 5 began and remains absent; slice-4 evidence is retained outside the repo.
+
+Size uses physical Rust lines, including comments and blank lines, matching the plan's `wc` basis. The baseline is `87cd38b`, the planning papers' source revision; the final implementation is `cdba37a`, unchanged by slice 5. Count tracked `crates/**/*.rs` separately from vendored sources, tests and examples:
+
+| Category | Baseline | Final | Change |
+| --- | ---: | ---: | ---: |
+| Ship implementation Rust (`crates/`) | 8,762 | 9,182 | +420 |
+| Ship authored tests | 0 | 0 | 0 |
+| Vendored implementation Rust | 2,165 | 2,165 | 0 |
+| Vendored tests | 1,147 | 1,147 | 0 |
+| Vendored examples (outside implementation budget) | 1,372 | 1,372 | 0 |
+
+The change missed the estimated ±150-line range by 270 lines. The increase comprises client +172, core +38, server +157 and binary +53 lines. Even including vendored implementation, the final 11,347 implementation lines remain below the roughly 20,000-line ceiling. SC-005 requires reporting, not meeting the estimate; no behavior was cut to chase it.
+
+reused: Existing docs and spec deltas, built CLI/config checker, server and PTY client.
+new code: No implementation or permanent test code; a throwaway external probe executes documentation examples.
+proof: Successful runtime examples, config checks, builds/lints/feature checks, link checks, OpenSpec validation and revision-based line counts recorded above. Linux remains unverified.
+
+Uncertain decisions: None. Deferred work remains unfiled pending Cyan's approval.

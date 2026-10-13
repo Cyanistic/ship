@@ -29,7 +29,7 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 5. Docs, spec sync and size report
 
-- [ ] 5.1 Update `docs/guide.md` (binding syntax and hints, `--select`, `ship view`), `README.md`'s config example, `GLOSSARY.md` "Selection", the `AGENTS.md` "Client/server boundary" section, and an amendment line atop the archived keys-config product paper. Verify by running each documented command as written against a temporary server, and that every link resolves.
-- [ ] 5.2 Bring the deltas under `specs/` in line with what was built, and run `openspec validate server-selection`. Verify that every deviation in the program paper's log is reflected in a delta or noted as not user-visible.
-- [ ] 5.3 Bring `handoff.md` and the product paper's deferred issues to Cyan, and remove `experiments/latency-proxy/`. Verify that nothing is filed without Cyan's approval.
-- [ ] 5.4 Report implementation Rust and test line counts separately against today's count and the 150-line estimate (SC-005).
+- [x] 5.1 Update `docs/guide.md` (binding syntax and hints, `--select`, `ship view`), `README.md`'s config example, `GLOSSARY.md` "Selection", the `AGENTS.md` "Client/server boundary" section, and an amendment line atop the archived keys-config product paper. Verify by running each documented command as written against a temporary server, and that every link resolves.
+- [x] 5.2 Bring the deltas under `specs/` in line with what was built, and run `openspec validate server-selection`. Verify that every deviation in the program paper's log is reflected in a delta or noted as not user-visible.
+- [x] 5.3 Bring `handoff.md` and the product paper's deferred issues to Cyan, and remove `experiments/latency-proxy/`. Verify that nothing is filed without Cyan's approval.
+- [x] 5.4 Report implementation Rust and test line counts separately against today's count and the 150-line estimate (SC-005).

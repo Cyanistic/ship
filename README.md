@@ -34,7 +34,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 - **Split panes.** Split, zoom, swap and resize from the keyboard. New splits open in the directory you were working in.
 - **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
 - **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
-- **A scriptable CLI.** Every action is also a `ship` command that prints JSON, so scripts and agents can create panes and read what another pane printed.
+- **A scriptable CLI.** Server actions are also `ship` commands that print JSON, so scripts and agents can create panes, read output and steer a specific client's selection.
 - **Your keys.** Rebind anything, build tmux-style prefix modes, and see changes the moment you save the config.
 
 Linux and macOS are the priority platforms. Windows is best effort.
@@ -121,7 +121,7 @@ sidebar_width = 40
 kind = "oneshot"                               # back to normal after one key
 
 [client.modes.prefix.keys]
-"c"      = { action = { server.tab.create.starter = "shell" } }
+"c"      = { action = { server.tab.create = { starter = "shell", select = true } } }
 "ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
 ```
 
