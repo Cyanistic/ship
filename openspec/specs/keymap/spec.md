@@ -127,7 +127,7 @@ A key binding SHALL act on the client's selection as it is at the binding's turn
 - **THEN** a top-level tab with a shell is created and its pane is selected
 
 ### Requirement: Actions before their feature
-Every action SHALL be accepted in the config even when its feature isn't built. Using one whose feature isn't built SHALL report "not available yet" and change nothing. Until layout is available, `server.pane.create` SHALL add a shell pane to the selected tab or selected pane's tab and select it, ignoring `direction`. Layout, focus, folding and sidebar actions SHALL work once provided by this change. `client.tab.select` SHALL remain accepted and unavailable, with no default row-number bindings.
+Every action SHALL be accepted in the config even when its feature isn't built. Using one whose feature isn't built SHALL report "not available yet" and change nothing. Until layout is available, `server.pane.create` SHALL add a shell pane to the selected tab or selected pane's tab, ignoring `direction`, and SHALL select it only when the binding sets `select = true`, as in Selecting creates from keys. Layout, focus, folding and sidebar actions SHALL work once provided by this change. `client.tab.select` SHALL remain accepted and unavailable, with no default row-number bindings.
 
 #### Scenario: Not available yet
 - **WHEN** a user binds `client.tab.select` with a valid row and invokes it
