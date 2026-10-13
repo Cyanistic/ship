@@ -3,6 +3,7 @@
 How Ship behaves once you're past the [README](../README.md). Every example assumes `ship` is on your `PATH` and `jq` is installed. Run `ship --help`, or `--help` on any subcommand, for the full list of options.
 
 - [The server and clients](#the-server-and-clients)
+- [Reading and steering a client](#reading-and-steering-a-client)
 - [Tabs](#tabs)
 - [Panes and splits](#panes-and-splits)
 - [Scrolling and reading output](#scrolling-and-reading-output)
@@ -16,9 +17,30 @@ Ship is split in two. The server owns your tabs, panes and the programs running 
 
 Bare `ship`, and any `tab` or `pane` command, reuses the local server or starts one in the background. A server started this way begins with one tab holding a shell in your home directory. `ship server status` prints the server's health as JSON, and `ship server stop` stops it, ending every program inside. Neither one ever starts a server.
 
-You can attach several clients at once, from different terminals. They share the work itself: tabs, panes, what each program prints, zoom, and each pane's scroll position. Each client keeps its own selection, which sidebar rows are folded, whether the sidebar is shown, and which pane it last used in each tab. If a client loses its connection, it reconnects on its own.
+You can attach several clients at once, from different terminals. They share the work itself: tabs, panes, what each program prints, zoom, and each pane's scroll position. The server holds a separate selection for each attached client. Sidebar folds, whether the sidebar is shown, and which pane a client last used in each tab stay local to that client. If a client loses its connection, it reconnects on its own.
 
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the leftover space.
+
+## Reading and steering a client
+
+`ship view list` prints every attached client's view as JSON, keyed by attachment ID in attach order. Each record contains its pane or tab selection, when it has one, and its terminal area. Use an ID from that listing to read or change one client's selection:
+
+```sh
+ship view list
+ATTACHMENT=$(ship view list | jq -r 'keys_unsorted[0]')
+TAB=$(ship tab create --name steer | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" | jq -r .id)
+ship view select --attachment "$ATTACHMENT" "$PANE"
+ship view selected --attachment "$ATTACHMENT"  # prints the pane ID as a JSON string
+ship view select --attachment "$ATTACHMENT" "$TAB"
+ship view select --attachment "$ATTACHMENT" --none
+ship view selected --attachment "$ATTACHMENT"  # prints null
+ship tab close --tab "$TAB"
+```
+
+Keep a client attached while running this example. Its display follows the selection when the server publishes it. Selecting a pane hidden by zoom unzooms its tab for every client. Unknown attachments or nodes fail without changing anything.
+
+`--attachment` defaults to `SHIP_ATTACHMENT_ID` when that variable is set. `view select` requires either a node ID or `--none`; omitting both is an argument error, not a request to clear the selection. A successful select prints the stored view record. Attachment IDs last only until that client detaches.
 
 ## Tabs
 

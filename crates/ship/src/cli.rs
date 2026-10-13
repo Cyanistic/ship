@@ -2,7 +2,13 @@ use std::path::{self, PathBuf};
 
 use clap::{Args, Parser, Subcommand};
 use etcetera::BaseStrategy;
-use ship_core::{DEFAULT_PORT, DEFAULT_SERVER_URL, command::Command as ServerAction, prelude::*};
+use ship_core::{
+    DEFAULT_PORT, DEFAULT_SERVER_URL,
+    command::Command as ServerAction,
+    id::{Attachment, IdOf},
+    model::NodeId,
+    prelude::*,
+};
 
 #[derive(Parser)]
 #[command(
@@ -50,9 +56,36 @@ pub enum Command {
     Server(ServerArgs),
     #[command(flatten)]
     Action(ServerAction),
+    /// List clients' views, or read or set one client's selection
+    #[command(subcommand)]
+    View(ViewCommand),
     /// Check the config file
     #[command(subcommand)]
     Config(ConfigCommand),
+}
+
+#[derive(Subcommand)]
+pub enum ViewCommand {
+    /// Print every attached client's view as JSON, keyed by attachment ID
+    List,
+    /// Print a client's selection as JSON: a tab or pane ID, or null
+    Selected(ViewTarget),
+    /// Select a tab or pane for a client, or nothing with --none
+    Select {
+        #[command(flatten)]
+        view: ViewTarget,
+        #[arg(required_unless_present = "none", conflicts_with = "none")]
+        node: Option<NodeId>,
+        #[arg(long)]
+        none: bool,
+    },
+}
+
+#[derive(Args)]
+pub struct ViewTarget {
+    /// Attachment ID, from ship view list
+    #[arg(long, env = "SHIP_ATTACHMENT_ID", value_name = "ID")]
+    pub attachment: IdOf<Attachment>,
 }
 
 #[derive(Subcommand)]

@@ -8,6 +8,7 @@ mod pane;
 mod routes;
 mod settings;
 mod state;
+mod views;
 
 use std::{
     future::{Future, IntoFuture},
@@ -101,6 +102,9 @@ fn api_router() -> OpenApiRouter<AppState> {
         attach::attach,
         input::input,
         attach::view,
+        views::list_views,
+        views::get_view,
+        views::select,
         routes::stop_server,
     )
 }

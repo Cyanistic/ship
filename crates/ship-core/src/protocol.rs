@@ -20,7 +20,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 9;
+pub const PROTOCOL_VERSION: u32 = 10;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -210,6 +210,13 @@ pub struct ViewInput {
     pub selection: Option<NodeId>,
     /// Where the client draws the viewed tab, after its own chrome.
     pub area: Size,
+}
+
+/// PUT /views/{attachment}/selection body; `null` selects nothing.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SelectView {
+    pub selection: Option<NodeId>,
 }
 
 /// Server-owned view of one attachment. Deleted only when the attachment

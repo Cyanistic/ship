@@ -12,8 +12,8 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 2. `ship view` reads and steers a client's selection
 
-- [ ] 2.1 Add `SelectView` and protocol version 10 in `ship-core`, the `ListViews`, `GetView` and `Select` messages in the state actor, with `Select` unzooming a hidden pane's tab in the same commit, and the three `/api/v0/views` routes. Verify with `curl` against a temporary server: list, get, select a pane, a tab and `null`, and 404 for an unknown attachment or node with nothing changed.
-- [ ] 2.2 Add the three `Client` methods and `ship view list | selected | select`, with `--attachment` from `SHIP_ATTACHMENT_ID` and `--none` (G2). Verify SC-003: with a client attached, `ship view list` shows it, and `ship view select` to a pane, a tab and `--none` each move it within a frame while `ship view selected` prints each. Neither `NODE` nor `--none` exits 2. Selecting a zoom-hidden pane unzooms the tab for a second client. `ship server status` reports protocol 10.
+- [x] 2.1 Add `SelectView` and protocol version 10 in `ship-core`, the `ListViews`, `GetView` and `Select` messages in the state actor, with `Select` unzooming a hidden pane's tab in the same commit, and the three `/api/v0/views` routes. Verify with `curl` against a temporary server: list, get, select a pane, a tab and `null`, and 404 for an unknown attachment or node with nothing changed.
+- [x] 2.2 Add the three `Client` methods and `ship view list | selected | select`, with `--attachment` from `SHIP_ATTACHMENT_ID` and `--none` (G2). Verify SC-003: with a client attached, `ship view list` shows it, and `ship view select` to a pane, a tab and `--none` each move it within a frame while `ship view selected` prints each. Neither `NODE` nor `--none` exits 2. Selecting a zoom-hidden pane unzooms the tab for a second client. `ship server status` reports protocol 10.
 
 ## 3. Creates select what they make
 

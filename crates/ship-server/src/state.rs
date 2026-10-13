@@ -339,6 +339,13 @@ pub struct Resize {
 }
 /// Whether an attachment is active, before the input route reads its body.
 pub struct CheckAttachment(pub IdOf<Attachment>);
+/// GET /views.
+pub struct ListViews;
+pub struct GetView(pub IdOf<Attachment>);
+pub struct Select {
+    pub attachment: IdOf<Attachment>,
+    pub selection: Option<NodeId>,
+}
 /// Replace an attachment's view.
 pub struct SetView {
     pub attachment: IdOf<Attachment>,
@@ -725,6 +732,66 @@ impl Message<CheckAttachment> for ServerState {
             return Err(err!(NotFound, "attachment {} not found", attachment));
         }
         Ok(self.revision)
+    }
+}
+
+impl Message<ListViews> for ServerState {
+    type Reply = Result<Viewers>;
+
+    async fn handle(&mut self, _: ListViews, _: &mut Context<Self, Self::Reply>) -> Self::Reply {
+        Ok(self.viewers.clone())
+    }
+}
+
+impl Message<GetView> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    async fn handle(
+        &mut self,
+        GetView(attachment): GetView,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.viewers
+            .get(&attachment)
+            .cloned()
+            .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))
+    }
+}
+
+impl Message<Select> for ServerState {
+    type Reply = Result<ViewingRecord>;
+
+    /// Validate both IDs before editing. Unzoom a hidden pane's tab in the
+    /// same commit so selection repair preserves the requested pane.
+    async fn handle(
+        &mut self,
+        Select {
+            attachment,
+            selection,
+        }: Select,
+        _: &mut Context<Self, Self::Reply>,
+    ) -> Self::Reply {
+        self.commit(|tabs, viewers| {
+            let record = viewers
+                .get_mut(&attachment)
+                .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
+            if let Some(node) = selection {
+                tree::path(tabs, node).ok_or_else(|| tree::not_found(node))?;
+                if let NodeId::Pane(pane) = node {
+                    let owner = tree::pane_owner(tabs, pane)?;
+                    if tree::tab(tabs, owner)?
+                        .zoomed
+                        .is_some_and(|zoomed| zoomed != pane)
+                    {
+                        tree::tab_mut(tabs, owner)?.zoomed = None;
+                    }
+                }
+            }
+            record.selection = selection;
+            Ok(())
+        })
+        .await?;
+        Ok(self.viewers[&attachment].clone())
     }
 }
 
