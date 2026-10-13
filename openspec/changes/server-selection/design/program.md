@@ -471,3 +471,30 @@ An owned temporary server hosted two real clients in PTYs and a separate SSE obs
 The temporary probe initially inferred that a single-pane redraw was complete from nonempty output, which also accepted the preceding split's border. Sending the next key immediately after an external pane close then targeted the removed pane and returned 404. The probe was corrected to wait for the actual single-pane prompt and published repaired selection before sending the next key. No code was changed to mask this existing stale-replica window; ordered-input and 404 handling remain slice 4.
 
 Evidence remains at `/tmp/ship-slice3.p10tPi/runtime.log`, `replicas.json`, `listings.json` and decoded client screens for this session. Both clients detached normally and the owned server stopped. No permanent tests or subagents were used. Linux remains unverified. A final combined diff/OpenSpec status command was blocked by an auto-mode classifier timeout and did not run. Broader documentation and spec sync remain slice 5.
+
+### Slice-4 implementation notes
+
+- Detach closes the input channel and awaits the existing input POST before dropping the attachment. Returning immediately from `Turn::Detach` would abandon buffered frames and violate FR-017. Signals can still interrupt this drain.
+- `Keys::handle` returns mode changes as `Handled::Now`, alongside sidebar and reload actions. `drive` applies them immediately in the terminal-event arm, before draining the lane, preserving FR-015 without adding a separate error-bearing return shape to `Keys`.
+- Typed keys, pastes and program mouse frames do not trigger a speculative redraw; the published screen triggers it, preserving the existing idle input path's rendering cost.
+- Added the slice's ordered-input, tab-typing and mouse behavior to `docs/guide.md` with the runnable code. Broader slice-5 docs and spec sync remain pending.
+
+### Slice-4 verification
+
+Tasks 4.1 through 4.3 are verified on macOS. Cyan completed the local responsiveness check for task 4.4 and SC-002, reporting in chat: "i just tested it and it feels super snappy locally". All slice-4 tasks are complete. Slice 5 was not started.
+
+Evidence: formatting, Clippy with `-D warnings`, debug and release workspace builds, and `ship-core` checks with `--no-default-features` and `--features clap` passed on the final code. The throwaway proxy delays each chunk 500 ms each way; the final `ship server status` round trip took about one second. Against an owned temporary server, a real client in a PTY passed ten consecutive `alt-n` + `echo hi` + Enter bursts without changing the previous pane's text, and ten `alt-|` + `alt-f` bursts zoomed the new pane. Terminal output was decoded with temporary pyte probes.
+
+The same client verified that a click during a pending create wins, a mode change renders immediately while a create waits, a failed action renders its error and later navigation/typing still work, tab-selected typing and `client.send` reach the remembered second pane without changing tab selection, and a scripted selection survives a terminal resize. Cutting the proxy before a pending create reached the server dropped queued typing and a second create; reconnecting sent neither again. Typing `touch <temporary path>` immediately followed by `alt-q` created the file and detached normally.
+
+A separate runtime probe removed a clicked pane before its select request reached the server. The server log recorded that exact selection route returning 404; the client showed no not-found error and later typing arrived. Removing a target while its click was still queued also caused no selection or error. A mouse-tracking program received idle press/release frames, but received neither frame from a press during a pending create; the queued click selected that program after the create. A fold-marker click behind a child create folded the updated row at its turn.
+
+Against a direct local server, twenty typing-to-shell-output measurements ranged from 6.7 to 16.1 ms, averaging 8.7 ms, including probe polling and HTTP text reads. Repeated splits, twenty pane-navigation steps, a pane click and bracketed paste passed. This is not a before/after benchmark or a daily-use feel check.
+
+Evidence remains at `/tmp/ship-slice4.YGHRfI/runtime.log`, `evidence.json`, decoded client screens and ANSI captures; additional race and mouse evidence is under `/tmp/ship-slice4.YGHRfI/races/`. Both final probes passed and cleaned up their owned clients, proxies and servers. Earlier probe failures came from incorrect CLI options, terminal escape sequences, wrapped-screen assumptions, insufficient geometry for repeated splits, and checks that observed server attachment creation before the client received its attached event. Those checks were corrected; no product behavior was weakened to satisfy them. No permanent tests or subagents were added. Linux remains unverified.
+
+reused: Existing navigation, selection memory, sidebar hit-testing, HTTP revision tracking, input POST and server commits.
+new code: One client lane and turn dispatcher, plus the throwaway proxy; the prior split paths could not order actions, keys and clicks together.
+proof: Final build/lint/feature checks and real PTY workflows through the delayed and direct server boundaries, as recorded above.
+
+Uncertain decisions: None. Cyan's direct local-use confirmation completes task 4.4 without waiving its criterion.

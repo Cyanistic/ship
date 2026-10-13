@@ -268,7 +268,7 @@ impl Client {
             .await
     }
 
-    /// Replace the attachment's view; returns the record as stored.
+    /// Update the attachment's area; returns the record as stored.
     pub async fn set_view(
         &self,
         attachment: IdOf<Attachment>,

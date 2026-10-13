@@ -19,6 +19,10 @@ Bare `ship`, and any `tab` or `pane` command, reuses the local server or starts 
 
 You can attach several clients at once, from different terminals. They share the work itself: tabs, panes, what each program prints, zoom, and each pane's scroll position. The server holds a separate selection for each attached client. Sidebar folds, whether the sidebar is shown, and which pane a client last used in each tab stay local to that client. If a client loses its connection, it reconnects on its own.
 
+Keys, pastes, actions and clicks run in input order. On a slow link, typing right after `alt-n` waits for the new tab and reaches its shell. Navigation also waits for each server reply, so held navigation keys can keep moving after release. Mode changes, the sidebar toggle and config reloads apply immediately. A failed action shows its error without cancelling later input. Disconnecting drops waiting input rather than replaying it after reconnecting; `alt-q` lets earlier typing land before detaching. A server action can still overtake typing just before it, because they travel on separate connections.
+
+Typing with a tab selected reaches its zoomed pane, otherwise the pane you last selected there, otherwise its first pane. The tab itself stays selected. Resizing the terminal does not overwrite a selection set by a script.
+
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the leftover space.
 
 ## Reading and steering a client
@@ -133,7 +137,7 @@ ship tab close --tab "$TAB"
 
 ## Mouse and clipboard
 
-Click a pane to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it.
+Click a pane to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it. Clicks wait behind earlier input but keep the target you clicked; if it disappears before the click runs, nothing happens. While input is waiting, a press on even the selected pane selects it instead of reaching its program.
 
 Programs that ask for the mouse, like Neovim with `mouse=a`, get clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
 

@@ -209,13 +209,10 @@ pub struct AttachRequest {
     pub area: Size,
 }
 
-/// PUT /attach/view body: the client's whole view. The server replaces the
-/// attachment's record with it.
+/// PUT /attach/view body: the client's area only.
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewInput {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selection: Option<NodeId>,
     /// Where the client draws the viewed tab, after its own chrome.
     pub area: Size,
 }

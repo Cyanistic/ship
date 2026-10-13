@@ -36,6 +36,7 @@ impl Mouse {
         geometry: Option<&TabGeometry>,
         selected: Option<IdOf<Pane>>,
         sidebar: &Sidebar,
+        busy: bool,
     ) -> Option<Clicked> {
         let at = Position::new(event.column, event.row);
         let offset = |rect: Rect| Rect {
@@ -78,7 +79,7 @@ impl Mouse {
                     .panes
                     .iter()
                     .find(|(_, pane)| offset(pane.frame).contains(at))?;
-                if down && Some(id) != selected {
+                if down && (busy || Some(id) != selected) {
                     return Some(Clicked::Select(NodeId::Pane(id)));
                 }
                 // The wheel reaches any pane; other input only the selected one.

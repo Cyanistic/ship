@@ -346,7 +346,7 @@ pub struct Select {
     pub attachment: IdOf<Attachment>,
     pub selection: Option<NodeId>,
 }
-/// Replace an attachment's view.
+/// Update an attachment's area.
 pub struct SetView {
     pub attachment: IdOf<Attachment>,
     pub view: ViewInput,
@@ -817,32 +817,18 @@ impl Message<Select> for ServerState {
 impl Message<SetView> for ServerState {
     type Reply = Result<ViewingRecord>;
 
-    /// The record becomes the view and is returned as stored. No selection is
-    /// always accepted; a selection no longer in the tree, such as a pane
-    /// removed a moment ago, leaves the record as it was. 404 if the
-    /// attachment isn't active.
+    /// Update only the area, preserving selection. 404 for an inactive attachment.
     async fn handle(
         &mut self,
         SetView { attachment, view }: SetView,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        let record = self
-            .viewers
-            .get(&attachment)
-            .cloned()
-            .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
-        if let Some(selection) = view.selection
-            && tree::path(&self.tabs, selection).is_none()
-        {
-            return Ok(record);
-        }
-        let record = ViewingRecord {
-            selection: view.selection,
-            area: view.area,
-        };
         self.commit(|_, viewers| {
-            viewers.insert(attachment, record.clone());
-            Ok(record)
+            let record = viewers
+                .get_mut(&attachment)
+                .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
+            record.area = view.area;
+            Ok(record.clone())
         })
         .await
     }

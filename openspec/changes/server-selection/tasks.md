@@ -22,10 +22,10 @@ Verification uses real workflows and temporary probes, not permanent authored te
 
 ## 4. The lane orders everything a client does
 
-- [ ] 4.1 Write the throwaway latency proxy in `experiments/latency-proxy/` (G4), delaying each chunk 500 ms each way. Verify that `ship server status` through it takes about a second.
-- [ ] 4.2 Add `ui/lane.rs`, `Local` and its turn, `Request` in place of `Pending`, `Keys::handle` without a pane, `Mouse::route` with `busy` (G1), and the lane's 404 rule (G3). Reduce the view PUT and `SetView` to area. Verify SC-001 through the proxy: ten runs each of `alt-n` + `echo hi` + Enter and `alt-|` + `alt-f`, all landing right.
-- [ ] 4.3 Verify the order rules through the proxy. A click on another pane during a pending create ends there. A failed action shows its error and later keys still arrive. Killing the proxy mid-burst drops what wasn't sent and replays nothing. `alt-q` after typing detaches after the typing lands. A script's `ship view select` survives a terminal resize. Typing with a tab selected reaches its landing pane.
-- [ ] 4.4 Verify SC-002 against a local server: typing, navigation, key repeat and clicks feel no slower in daily use.
+- [x] 4.1 Write the throwaway latency proxy in `experiments/latency-proxy/` (G4), delaying each chunk 500 ms each way. Verify that `ship server status` through it takes about a second.
+- [x] 4.2 Add `ui/lane.rs`, `Local` and its turn, `Request` in place of `Pending`, `Keys::handle` without a pane, `Mouse::route` with `busy` (G1), and the lane's 404 rule (G3). Reduce the view PUT and `SetView` to area. Verify SC-001 through the proxy: ten runs each of `alt-n` + `echo hi` + Enter and `alt-|` + `alt-f`, all landing right.
+- [x] 4.3 Verify the order rules through the proxy. A click on another pane during a pending create ends there. A failed action shows its error and later keys still arrive. Killing the proxy mid-burst drops what wasn't sent and replays nothing. `alt-q` after typing detaches after the typing lands. A script's `ship view select` survives a terminal resize. Typing with a tab selected reaches its landing pane.
+- [x] 4.4 Verify SC-002 against a local server: typing, navigation, key repeat and clicks feel no slower in daily use.
 
 ## 5. Docs, spec sync and size report
 
