@@ -20,6 +20,8 @@ Name your shapes. Prefer named types over anonymous inline structure, so data ca
 
 Earn every layer. A wrapper, abstraction or coordination mechanism should do something the thing beneath it doesn't. If it only forwards or restates, remove it.
 
+Combine only what needs the result. An endpoint takes a second effect as a parameter only when that effect needs something the call creates, usually the new ID, and stopping between the two would leave a state nobody asked for, like `--starter` and `--name` on create. Everything else is separate calls. Invariants are different: the server repairs those itself, as when closing the selected tab moves the selection to its parent.
+
 Check what's already guaranteed. Before building machinery, find out what the platform and dependencies already handle, verify it, and cover only the gap.
 
 ## Errors and results
