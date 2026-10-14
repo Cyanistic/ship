@@ -210,9 +210,19 @@ impl Mouse {
                 let geometry = scene.geometry?;
                 if kind == MouseEventKind::Down(MouseButton::Right)
                     && let Some(pane) = owner(geometry, relative)
-                    && !menu::items(scene.menus, Target::Pane(pane)).is_empty()
                 {
-                    return Some(Clicked::Menu(Target::Pane(pane), at));
+                    if let Some(content) = content(pane)
+                        && content.contains(at)
+                        && passes(scene, pane)
+                    {
+                        self.held = Some(pane);
+                        return Some(Clicked::Frame(InputFrame::Mouse(input(
+                            event, pane, content,
+                        ))));
+                    }
+                    if !menu::items(scene.menus, Target::Pane(pane)).is_empty() {
+                        return Some(Clicked::Menu(Target::Pane(pane), at));
+                    }
                 }
                 if kind == MouseEventKind::Down(MouseButton::Left) {
                     let edges = edges_at(geometry, relative);
@@ -311,6 +321,15 @@ fn owner(geometry: &TabGeometry, at: Position) -> Option<IdOf<Pane>> {
         .filter(|(_, pane)| pane.frame.contains(at))
         .max_by_key(|(_, pane)| (pane.frame.y, pane.frame.x))
         .map(|(id, _)| *id)
+}
+
+/// Decide passthrough at press; the held pane owns its drag and release.
+fn passes(scene: &Scene, pane: IdOf<Pane>) -> bool {
+    scene
+        .tab
+        .and_then(|tab| tab.panes().find(|candidate| candidate.id == pane))
+        .is_some_and(|pane| pane.right_click_passthrough)
+        && scene.screens.get(&pane).is_some_and(|screen| screen.mouse)
 }
 
 /// `event` for `pane`, relative to its `content`, negative above or left.

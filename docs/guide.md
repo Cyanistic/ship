@@ -96,7 +96,7 @@ ship pane create --tab "$TAB" --right-click-passthrough -- sh
 ship tab close --tab "$TAB"
 ```
 
-`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. The pane menu can toggle it, but forwarding right-clicks to programs is not built yet; right-clicks still open the menu. `--right-click-passthrough` on pane create starts it on.
+`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. When it is on and the program has asked for mouse input, right-clicks on the pane's contents reach the program without opening a menu or changing selection. The following drag and release stay with that program, even outside the pane. Labels and borders still open the menu, as do contents when the program isn't tracking the mouse, such as a shell prompt. The pane menu can toggle the setting for every client. `--right-click-passthrough` on pane create starts it on.
 
 Bindings use the same fields under `server.tab.set` and `server.pane.set`:
 ```toml
@@ -202,7 +202,7 @@ To use your terminal's own selection instead, hold its mouse override key (usual
 
 ### Right-click menus
 
-Right-click a pane's contents, label or border for its menu, or a sidebar row for the tab menu. This selects the clicked pane or tab, in input order, before any picked action. On shared borders the menu belongs to the pane below or to the right, and to the bottom-right pane at a junction. Labels and outer edges belong to their own pane.
+Right-click a pane's contents, label or border for its menu, or a sidebar row for the tab menu. Contents clicks instead reach the program when the pane's right-click passthrough is on and the program is tracking the mouse. Opening a menu selects the clicked pane or tab, in input order, before any picked action. On shared borders the menu belongs to the pane below or to the right, and to the bottom-right pane at a junction. Labels and outer edges belong to their own pane.
 
 Click `≡` at the end of the `tabs` heading, or right-click the heading or the space below the last tab, for the global menu. It does not change selection. Menus belong only to the client that opens them. They use your terminal's default foreground and background, with ANSI cyan borders and a bold black-on-cyan highlight. These colors follow your terminal palette, not a separate Ship theme.
 
@@ -213,7 +213,7 @@ The defaults are:
 - Tab: new tab, new child tab, close. A new tab is created just after the clicked tab; a new child is appended under it. Both start a selected shell.
 - Global: new tab, hide sidebar, reload config, detach.
 
-Menu actions work like key actions, including the status-line error on failure. Mode changes, sidebar actions and reloads apply immediately; other actions wait behind earlier input. The passthrough toggle stores the setting, but program right-click forwarding is still pending.
+Menu actions work like key actions, including the status-line error on failure. Mode changes, sidebar actions and reloads apply immediately; other actions wait behind earlier input. The passthrough toggle changes the shared pane setting, so every attached client follows it.
 
 Customize each target under `[client.menus]`:
 

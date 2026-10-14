@@ -35,7 +35,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 - **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
 - **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
 - **A scriptable CLI.** Server actions are also `ship` commands that print JSON, so scripts and agents can create panes, read output and steer a specific client's selection.
-- **Your keys and menus.** Rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. Changes apply when you save the config.
+- **Your keys and menus.** Rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. Let mouse-aware programs have right-clicks per pane. Config changes apply when you save.
 
 Linux and macOS are the priority platforms. Windows is best effort.
 

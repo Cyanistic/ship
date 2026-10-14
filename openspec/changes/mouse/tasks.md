@@ -214,11 +214,23 @@ The temporary `/tmp/ship-binding-label-probe.py` passed local config checks for 
 
 ## 8. Passthrough at the router
 
-- [ ] 8.1 Add `passes` and the passthrough branch to the mouse router. Verify P5's scenarios with Neovim `mouse=a` in two clients:
+- [x] 8.1 Add `passes` and the passthrough branch to the mouse router. Verify P5's scenarios with Neovim `mouse=a` in two clients:
   - A right drag in Neovim's visual mode follows past the pane's edge.
   - A passthrough pane's label and border still open the menu.
   - The shell prompt in a passthrough pane opens the menu.
   - The right-clicked pane isn't selected when the click passes through.
+
+### Slice 8 evidence
+
+Verified on macOS with an owned temporary server, two real full-screen clients in 120×32 PTYs, and Neovim running with `mouse=a`. Temporary expression mappings logged right presses, drags and releases while preserving Neovim's built-in handling:
+- Creating the editor pane with passthrough on exposed `rightClickPassthrough: true`. Both clients right-clicked its contents without opening a menu or changing their shell-pane selection.
+- The default menu item toggled passthrough off and on from the editor's label. Off restored the contents menu; enabling it in one client changed routing in the other.
+- Labels, outer borders and the shared border still opened the correct pane menu without sending input to Neovim.
+- A visual-mode right drag crossed the sidebar and neighboring pane; Neovim received each drag and the outside release, its visual cursor moved, and both clients kept their shell selection.
+- Disabling passthrough after a press did not redirect the held drag or release. Neovim with mouse tracking off, a passthrough shell prompt, and the exited editor all opened the pane menu.
+- Formatting, workspace Clippy with warnings denied, debug/release workspace builds, and `ship-core` checks with and without `clap` passed. The full menu, border/sidebar and current tab-drop regression probes passed. No permanent test code added.
+
+Probe: `/tmp/ship-mouse-slice8-probe.py`; results: `/tmp/ship-mouse-slice8-results.log`. Regression results: `/tmp/ship-mouse-slice8-menu-regression.log`, `/tmp/ship-mouse-slice8-border-regression.log`, and `/tmp/ship-mouse-slice8-tab-regression.log`. The obsolete slice-4 tab probe expected pre-menu right-click behavior and failed that assertion; the current slice-7 tab regression passed. Linux and physical-terminal hand checks remain unverified.
 
 ## 9. Docs, spec sync and size report
 
