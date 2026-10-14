@@ -12,7 +12,7 @@ Use owned temporary servers and config files, don't restart existing user work, 
 
 ## 1. `to` on pane resize
 
-- [ ] 1.1 Implement the resize changes and bump the protocol:
+- [x] 1.1 Implement the resize changes and bump the protocol:
   - Add `Resize.to` with the clap conflict, and `ResizePane.to`.
   - Add `layout::Change`, and have the resize handler choose between `amount` and `to`.
   - Pass `to` through `execute`.
@@ -24,10 +24,22 @@ Use owned temporary servers and config files, don't restart existing user work, 
   - `--to 2` stops with the neighbor at 1 column.
   - `--direction left --to 40` on the right pane moves the same edge.
   - Plain `--amount` behaves as before.
-- [ ] 1.2 Verify the rejections and the version:
+- [x] 1.2 Verify the rejections and the version:
   - `--to 5 --amount 2` exits 2.
   - The same pair in an HTTP body is rejected and changes nothing.
   - `ship server status` reports protocol 11.
+
+### Slice 1 evidence
+
+Verified on macOS with an owned temporary server and the real full-screen client attached in a 120×32 PTY (94×32 tab area). A temporary Python probe exercised CLI commands and HTTP inspection:
+- `--to 40` drew the border at column 40; repeating it preserved the whole tab and revision.
+- `--to 2` left the left pane's content one column wide; `--to 0` could not move it further and preserved the revision.
+- Leftward absolute resize from the right pane moved the same border. Relative `--amount 5`, the omitted one-cell amount, and absolute opposite-edge fallback passed.
+- Mixed `to`/`amount` gave CLI exit 2 and HTTP 400, preserving the tab and revision. Health reported protocol 11.
+- Additional geometry checks passed for vertical/up/fallback resize, a nested split with a nonzero origin, and `to = 65535` clamping.
+- Formatting, workspace Clippy with warnings denied, debug/release workspace builds, and `ship-core` checks with and without `clap` passed. No permanent test code added.
+
+The supplemental nested checks compare geometry rather than unrelated pane metadata: new panes can publish their discovered working directory during the exercise. The required two-pane no-op and rejection checks compare the whole tab and revision. Linux and manual terminal coverage remain unverified. `docs/guide.md` documents the shipped `--to` behavior; the remaining mouse docs stay in slice 9.
 
 ## 2. `set` replaces `rename`, with the passthrough attribute
 

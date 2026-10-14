@@ -168,9 +168,20 @@ impl Client {
                     pane,
                     direction,
                     amount,
+                    to,
                 }) => {
                     let id = Self::pane_target(pane, scope)?;
-                    Outcome::Tab(self.resize(id, &ResizePane { direction, amount }).await?)
+                    Outcome::Tab(
+                        self.resize(
+                            id,
+                            &ResizePane {
+                                direction,
+                                amount,
+                                to,
+                            },
+                        )
+                        .await?,
+                    )
                 }
                 PaneCommand::Scroll(pane::Scroll {
                     pane,

@@ -130,8 +130,11 @@ RIGHT=$(ship pane create --pane "$LEFT" --direction right | jq -r .id)
 ship pane zoom --pane "$LEFT"                    # toggles
 ship pane swap --pane "$LEFT" --other "$RIGHT"   # any two panes in one tab
 ship pane resize --pane "$LEFT" --direction left --amount 5
+ship pane resize --pane "$LEFT" --direction right --to 40
 ship tab close --tab "$TAB"
 ```
+
+`--to` places the edge's border at a zero-based column for left/right or row for up/down, measured from the tab's origin, not the terminal's. It uses the same opposite-edge fallback as `--amount` and stops before any pane's content drops below one column or row. An edge already there changes nothing. `--to` and `--amount` cannot be combined. Both are available in `server.pane.resize` bindings too. Keep a client viewing the tab to inspect its `geometry` with `ship tab get`; an unviewed tab uses an 80×24 fallback for resize.
 
 ## Scrolling and reading output
 

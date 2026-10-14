@@ -349,9 +349,14 @@ pub mod pane {
         #[cfg_attr(feature = "clap", arg(long))]
         pub direction: Direction,
         /// Cells; omitted means one
-        #[cfg_attr(feature = "clap", arg(long))]
+        #[cfg_attr(feature = "clap", arg(long, conflicts_with = "to"))]
         #[serde(default)]
         pub amount: Option<u16>,
+        /// Draw the edge's border at this cell, counted from the tab's left
+        /// edge for left/right or its top edge for up/down
+        #[cfg_attr(feature = "clap", arg(long))]
+        #[serde(default)]
+        pub to: Option<u16>,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]

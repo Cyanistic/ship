@@ -663,6 +663,16 @@ impl Message<Resize> for ServerState {
         Resize { id, resize }: Resize,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
+        let change = match (resize.amount, resize.to) {
+            (Some(_), Some(_)) => {
+                return Err(err!(
+                    Validation,
+                    "resize accepts either amount or to, not both"
+                ));
+            }
+            (_, Some(to)) => layout::Change::To(to),
+            (amount, None) => layout::Change::By(amount.unwrap_or(RESIZE_STEP)),
+        };
         let owner = tree::pane_owner(&self.tabs, id)?;
         let size = self
             .tab_sizes()
@@ -670,8 +680,7 @@ impl Message<Resize> for ServerState {
             .copied()
             .unwrap_or(Size::FALLBACK);
         let mut tab = tree::tab(&self.tabs, owner)?.clone();
-        let cells = resize.amount.unwrap_or(RESIZE_STEP);
-        if layout::resize(&mut tab, size, id, resize.direction, cells)? {
+        if layout::resize(&mut tab, size, id, resize.direction, change)? {
             self.commit(|tabs, _| {
                 *tree::tab_mut(tabs, owner)? = tab;
                 Ok(())
