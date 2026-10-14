@@ -8,7 +8,7 @@ use ship_core::{
     layout::Axis,
     model::{NodeId, Pane, Tab},
     prelude::*,
-    protocol::InputFrame,
+    protocol::{InputFrame, MoveTab},
 };
 
 use super::{Request, finish, observer::Observer};
@@ -27,6 +27,13 @@ pub(super) struct EdgeAt {
     pub to: u16,
 }
 
+/// A dropped tab keeps its explicit destination until its turn.
+#[derive(Clone, Copy)]
+pub(super) struct TabMove {
+    pub tab: IdOf<Tab>,
+    pub to: MoveTab,
+}
+
 /// Selection-dependent targets are resolved only when this item runs.
 pub(super) enum Item {
     Action(Action),
@@ -37,6 +44,7 @@ pub(super) enum Item {
     Fold(IdOf<Tab>),
     Mouse(InputFrame),
     Resize(EdgeAt),
+    Move(TabMove),
 }
 
 pub(super) enum Turn<'a> {

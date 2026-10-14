@@ -133,7 +133,7 @@ Temporary probe: `/tmp/ship-mouse-slice3-probe.py`; results: `/tmp/ship-mouse-sl
 
 ## 6. Tab drops
 
-- [ ] 6.1 Implement the drop:
+- [x] 6.1 Implement the drop:
   - In `Sidebar`, add `drawn`, `gap` and `movable`, and draw the drop line.
   - In the lane, add `TabMove` and `Item::Move`.
   - In `Mouse`, add `Gesture::Row` and `gap`.
@@ -141,12 +141,28 @@ Temporary probe: `/tmp/ship-mouse-slice3-probe.py`; results: `/tmp/ship-mouse-sl
   - Pass the gap from `draw`.
 
   Verify P2's scenarios, checking `ship tab list` against the line shown before each release.
-- [ ] 6.2 Verify the edge cases:
+- [x] 6.2 Verify the edge cases:
   - The depth range holds at a gap between a deep row and a shallower one.
   - Dropping into the dragged tab's own subtree shows no line and does nothing.
   - A drop whose target a script closes before its turn does nothing and shows no error.
   - A folded parent unfolds after a child drop.
   - The selection doesn't change, and a moved selected tab stays selected.
+
+### Consolidated slice 4 evidence
+
+Tasks 6.1–6.2 are complete. No menus or passthrough routing started. All runtime checks used owned temporary servers on random loopback ports; Cyan's running server was not contacted or changed.
+
+Verified on macOS with real full-screen clients in PTYs, rendered ANSI cells inspected through a temporary pyte dependency, and `ship tab list` inspected before and after each release:
+- P2 passed: C moved before A with the line on the blank row under the heading; B became A's child with its subtree and live shell intact; a child returned to the top level below the last row; a drop under a folded parent appended after its hidden children and unfolded only the dragging client's parent. A shell command confirmed the moved program still ran.
+- Every valid tested line underlined exactly the cells from the target indent to the divider. No tree edit occurred before release, and a second client showed no line. Top-level and nested gaps matched the resulting parent and sibling positions.
+- A deep-to-shallow gap accepted depths 0, 1 and 2; the divider column clamped to depth 2. A gap above a depth-2 child clamped a left-edge pointer to depth 2 and inserted before that child.
+- Own-subtree and no-op drops had no line and preserved the tree and revision. A one-cell row drag did not click or fold. Release outside the sidebar cancelled; other-button drags did nothing; an unmoved row click still selected only on release. Mouse-disabled config reload prevented drags.
+- Both clients retained their selections, including a moved selected pane and a moved selected tab. An unselected client stayed unselected, with its line starting without the highlight prefix.
+- Removing a source or target while held cleared invalid feedback without further pointer motion. An owned proxy held an earlier selecting create: a parent closed before the queued drop's turn produced zero move requests and no error. A target moved into the source's subtree before that turn was also rejected quietly. A target closed after the turn-time re-check produced one request and a quiet server not-found result, leaving the moving subtree intact.
+- The prior border/sidebar/input probe passed again, including junction drags, coalescing through 100 ms each-way delay, config reloads, pane selection, program mouse forwarding, wheel input and OSC 52 text copying.
+- Formatting, workspace Clippy with warnings denied, debug/release workspace builds, `ship-core` checks with and without `clap`, strict OpenSpec validation, and `git diff --check` passed.
+
+The tree widget's `rendered_at` returns its final identifier even below the last row. The drawn-row snapshot therefore removes repeated identifiers, and click hit-testing requires an actual drawn row; this keeps the final drop gap anchored to the real last row. No permanent test code or new dependency added. Temporary probe: `/tmp/ship-mouse-slice4-probe.py`; results: `/tmp/ship-mouse-slice4-results.log`; regression results: `/tmp/ship-mouse-slice4-regression.log`. README and guide describe tab drops. Live hand checks in two terminals and Linux remain unverified.
 
 ## 7. Menus
 

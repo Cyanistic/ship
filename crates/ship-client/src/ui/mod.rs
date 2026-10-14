@@ -37,7 +37,7 @@ use ship_core::{
     model::{NodeId, Pane, Tab},
     prelude::*,
     protocol::{
-        AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, PasteInput,
+        AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, MoveTab, PasteInput,
         ResizePane, SelectView, SseEvent, ViewInput,
     },
     screen::{Screen, Size},
@@ -56,7 +56,7 @@ use self::{
     memory::Memory,
     mouse::{Clicked, Mouse},
     observer::Observer,
-    sidebar::Sidebar,
+    sidebar::{Sidebar, movable},
     terminal::TerminalGuard,
 };
 use crate::{
@@ -291,6 +291,7 @@ async fn drive(
                         match clicked {
                             Clicked::Select(node) => lane.push(Item::Select(node)),
                             Clicked::Fold(tab) => lane.push(Item::Fold(tab)),
+                            Clicked::Move(tab) => lane.push(Item::Move(tab)),
                             Clicked::Frame(frame) => lane.push(Item::Mouse(frame)),
                             Clicked::Resize(positions) => {
                                 for position in positions { lane.push(Item::Resize(position)); }
@@ -348,7 +349,10 @@ async fn drive(
         while let Some(item) = lane.next(&local.observer, client.written()) {
             // Input frames change only the server's screen; redraw on its
             // publication, not on each keystroke or mouse frame.
-            visible |= matches!(item, Item::Action(_) | Item::Select(_) | Item::Fold(_));
+            visible |= matches!(
+                item,
+                Item::Action(_) | Item::Select(_) | Item::Fold(_) | Item::Move(_)
+            );
             match local.turn(client, item) {
                 Turn::Done => {}
                 Turn::Wait(request) => lane.wait(request),
@@ -369,6 +373,7 @@ async fn drive(
         }
         if let Some(replica) = &local.observer.replica {
             local.sidebar.reconcile(&replica.tabs);
+            local.mouse.reconcile(&replica.tabs);
         }
         if visible {
             redraw(guard, &mut local)?;
@@ -390,6 +395,7 @@ struct Local {
 /// Published geometry shared by the router and pane painter.
 struct Scene<'a> {
     panes: Rect,
+    tabs: Option<&'a Tabs>,
     tab: Option<&'a Tab>,
     geometry: Option<&'a TabGeometry>,
     selected: Option<IdOf<Pane>>,
@@ -403,6 +409,7 @@ impl Local {
         let tab = selected.as_ref().map(|selected| selected.tab);
         Scene {
             panes: draw::split(screen, self.sidebar.width()).1,
+            tabs: self.observer.replica.as_ref().map(|replica| &replica.tabs),
             tab,
             geometry: tab.and_then(|tab| tab.geometry.as_deref()),
             selected: selected
@@ -486,6 +493,32 @@ impl Local {
             Item::Mouse(frame) => {
                 self.send(frame);
                 Turn::Done
+            }
+            Item::Move(moving) => {
+                if !self
+                    .observer
+                    .replica
+                    .as_ref()
+                    .is_some_and(|replica| movable(&replica.tabs, moving.tab, moving.to))
+                {
+                    return Turn::Done;
+                }
+                if let MoveTab::Parent(Some(parent)) = moving.to {
+                    self.sidebar.fold(parent, false);
+                }
+                Turn::Wait(Box::pin(async move {
+                    match client.move_tab(moving.tab, &moving.to).await {
+                        Err(error)
+                            if matches!(
+                                error.code(),
+                                ErrorCode::NotFound | ErrorCode::InvalidStructure
+                            ) =>
+                        {
+                            Ok(())
+                        }
+                        result => result.map(|_| ()),
+                    }
+                }))
             }
             Item::Resize(position) => {
                 if !self.observer.replica.as_ref().is_some_and(|replica| {

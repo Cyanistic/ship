@@ -8,12 +8,13 @@ use ship_core::{
     layout::Axis,
     model::{NodeId, Pane, Tab},
     protocol::{InputFrame, MouseInput},
+    tree::Tabs,
 };
 
 use super::{
     Scene,
-    lane::{Edge, EdgeAt},
-    sidebar::{Hit, Row},
+    lane::{Edge, EdgeAt, TabMove},
+    sidebar::{Gap, Hit, Row, movable},
 };
 
 pub(super) enum Clicked {
@@ -21,6 +22,7 @@ pub(super) enum Clicked {
     Fold(IdOf<Tab>),
     Frame(InputFrame),
     Resize(Vec<EdgeAt>),
+    Move(TabMove),
     Width(u16),
 }
 
@@ -32,7 +34,8 @@ pub(super) struct Mouse {
 }
 
 enum Gesture {
-    Pressed { at: Position, row: Row, moved: bool },
+    Pressed { at: Position, row: Row },
+    Row { tab: IdOf<Tab>, gap: Option<Gap> },
     Border(Vec<Grab>),
     Divider { at: Position, moved: bool },
 }
@@ -45,6 +48,20 @@ struct Grab {
 impl Mouse {
     pub fn dragging(&self) -> bool {
         self.gesture.is_some()
+    }
+
+    /// Drop feedback whose source or destination disappeared or became invalid.
+    pub fn reconcile(&mut self, tabs: &Tabs) {
+        if let Some(Gesture::Row { tab, gap }) = &mut self.gesture {
+            *gap = gap.filter(|gap| movable(tabs, *tab, gap.to));
+        }
+    }
+
+    pub fn gap(&self) -> Option<&Gap> {
+        match &self.gesture {
+            Some(Gesture::Row { gap, .. }) => gap.as_ref(),
+            _ => None,
+        }
     }
 
     pub fn held(&self) -> impl Iterator<Item = Edge> + '_ {
@@ -79,18 +96,30 @@ impl Mouse {
         ) && let Some(mut gesture) = self.gesture.take()
         {
             let release = matches!(event.kind, MouseEventKind::Up(_));
+            if let Gesture::Pressed { at: origin, row } = &gesture
+                && at != *origin
+            {
+                gesture = Gesture::Row {
+                    tab: row.tab,
+                    gap: None,
+                };
+            }
             let clicked = match &mut gesture {
-                Gesture::Pressed {
-                    at: origin,
-                    row,
-                    moved,
-                } => {
-                    *moved |= at != *origin;
-                    if release && !*moved {
-                        Some(if row.marker {
-                            Clicked::Fold(row.tab)
-                        } else {
-                            Clicked::Select(NodeId::Tab(row.tab))
+                Gesture::Pressed { row, .. } => release.then_some(if row.marker {
+                    Clicked::Fold(row.tab)
+                } else {
+                    Clicked::Select(NodeId::Tab(row.tab))
+                }),
+                Gesture::Row { tab, gap } => {
+                    *gap = scene
+                        .tabs
+                        .and_then(|tabs| scene.sidebar.gap(tabs, *tab, at));
+                    if release {
+                        gap.map(|gap| {
+                            Clicked::Move(TabMove {
+                                tab: *tab,
+                                to: gap.to,
+                            })
                         })
                     } else {
                         None
@@ -153,11 +182,7 @@ impl Mouse {
             }
             MouseEventKind::Down(MouseButton::Left) if !scene.panes.contains(at) => {
                 self.gesture = Some(match scene.sidebar.hit(at)? {
-                    Hit::Row(row) => Gesture::Pressed {
-                        at,
-                        row,
-                        moved: false,
-                    },
+                    Hit::Row(row) => Gesture::Pressed { at, row },
                     Hit::Divider => Gesture::Divider { at, moved: false },
                 });
                 None

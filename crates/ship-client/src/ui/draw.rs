@@ -71,6 +71,7 @@ pub(super) fn draw(frame: &mut Frame, local: &mut Local) -> Option<Cursor> {
             sidebar_area,
             &replica.tabs,
             local.observer.record().and_then(|record| record.selection),
+            local.mouse.gap(),
         );
     }
     let scene = local.scene(frame.area());

@@ -12,6 +12,7 @@ use ratatui::{
 use ship_core::{
     id::IdOf,
     model::{NodeId, Tab},
+    protocol::MoveTab,
     tree::{self, Tabs},
 };
 use tui_tree_widget::{Tree, TreeItem, TreeState};
@@ -39,6 +40,20 @@ pub(super) struct Sidebar {
     rendered: TreeState<IdOf<Tab>>,
     /// Where the tree was last drawn.
     tree: Rect,
+    drawn: Vec<Drawn>,
+}
+
+struct Drawn {
+    tab: IdOf<Tab>,
+    depth: u16,
+    y: u16,
+}
+
+/// A valid destination and the start of its underlined row.
+#[derive(Clone, Copy)]
+pub(super) struct Gap {
+    pub to: MoveTab,
+    line: Position,
 }
 
 pub(super) enum Hit {
@@ -63,6 +78,7 @@ impl Sidebar {
             area: Rect::ZERO,
             rendered: TreeState::default(),
             tree: Rect::ZERO,
+            drawn: Vec::new(),
         }
     }
 
@@ -161,18 +177,13 @@ impl Sidebar {
     /// The row drawn at `position`, if any. The marker's column repeats the
     /// tree widget's layout: the highlight symbol, then the indent.
     fn row_at(&self, position: Position) -> Option<Row> {
-        if !self.shown {
+        if !self.shown || !self.drawn.iter().any(|row| row.y == position.y) {
             return None;
         }
         let path = self.rendered.rendered_at(position)?;
         let tab = *path.last()?;
-        let highlight = if self.rendered.selected().is_empty() {
-            0
-        } else {
-            Span::raw(HIGHLIGHT).width() as u16
-        };
         let depth = path.len().saturating_sub(1) as u16;
-        let start = self.tree.x + highlight + INDENT * depth;
+        let start = self.indent().saturating_add(INDENT.saturating_mul(depth));
         let symbol = if self.rendered.opened().contains(path) {
             Some(OPEN)
         } else {
@@ -187,12 +198,72 @@ impl Sidebar {
         })
     }
 
+    /// Resolve the gap above the pointer's row, or after the last drawn row.
+    pub fn gap(&self, tabs: &Tabs, tab: IdOf<Tab>, at: Position) -> Option<Gap> {
+        if !self.shown || !self.area.contains(at) || at.y < self.tree.y {
+            return None;
+        }
+        let index = self.drawn.partition_point(|row| row.y < at.y);
+        let below = self.drawn.get(index);
+        let above = index.checked_sub(1).and_then(|index| self.drawn.get(index));
+        let indent = self.indent();
+        let (to, depth, y) = match above {
+            None => {
+                let below = below?;
+                (
+                    MoveTab::Before(below.tab),
+                    below.depth,
+                    self.tree.y.saturating_sub(1),
+                )
+            }
+            Some(above) => {
+                let deepest = above.depth.saturating_add(1);
+                let depth = (at.x.saturating_sub(indent) / INDENT)
+                    .clamp(below.map_or(0, |row| row.depth), deepest);
+                let to = if depth == deepest {
+                    match below.filter(|row| row.depth == deepest) {
+                        Some(below) => MoveTab::Before(below.tab),
+                        None => MoveTab::Parent(Some(above.tab)),
+                    }
+                } else {
+                    let path = tree::path(tabs, NodeId::Tab(above.tab))?;
+                    let NodeId::Tab(ancestor) = *path.get(usize::from(depth))? else {
+                        return None;
+                    };
+                    MoveTab::After(ancestor)
+                };
+                (to, depth, above.y)
+            }
+        };
+        movable(tabs, tab, to).then_some(Gap {
+            to,
+            line: Position::new(indent.saturating_add(INDENT.saturating_mul(depth)), y),
+        })
+    }
+
+    fn indent(&self) -> u16 {
+        self.tree.x
+            + if self.rendered.selected().is_empty() {
+                0
+            } else {
+                Span::raw(HIGHLIGHT).width() as u16
+            }
+    }
+
     pub fn toggle(&mut self, tab: IdOf<Tab>) {
         self.fold(tab, !self.collapsed.contains(&tab));
     }
 
-    pub fn draw(&mut self, frame: &mut Frame, area: Rect, tabs: &Tabs, selection: Option<NodeId>) {
+    pub fn draw(
+        &mut self,
+        frame: &mut Frame,
+        area: Rect,
+        tabs: &Tabs,
+        selection: Option<NodeId>,
+        gap: Option<&Gap>,
+    ) {
         self.rendered = TreeState::default();
+        self.drawn.clear();
         self.area = area;
         if area.is_empty() {
             return;
@@ -239,6 +310,30 @@ impl Sidebar {
         };
         frame.render_stateful_widget(widget, self.tree, &mut state);
         self.rendered = state;
+        self.drawn = (self.tree.y..self.tree.bottom())
+            .filter_map(|y| {
+                let path = self.rendered.rendered_at(Position::new(self.tree.x, y))?;
+                Some(Drawn {
+                    tab: *path.last()?,
+                    depth: path.len().saturating_sub(1) as u16,
+                    y,
+                })
+            })
+            .collect();
+        // rendered_at returns the final identifier for blank rows below it.
+        self.drawn.dedup_by_key(|row| row.tab);
+        if let Some(gap) = gap {
+            let line = Rect::new(
+                gap.line.x,
+                gap.line.y,
+                content.right().saturating_sub(gap.line.x),
+                1,
+            )
+            .intersection(content);
+            for at in line.positions() {
+                frame.buffer_mut()[at].set_style(Style::new().underlined());
+            }
+        }
     }
 
     fn items(
@@ -264,5 +359,47 @@ impl Sidebar {
                 TreeItem::new(tab.id, row, children).expect("unique tab IDs")
             })
             .collect()
+    }
+}
+
+/// Shared by drag-time feedback and the lane's turn-time re-check.
+pub(super) fn movable(tabs: &Tabs, tab: IdOf<Tab>, to: MoveTab) -> bool {
+    let Some(path) = tree::path(tabs, NodeId::Tab(tab)) else {
+        return false;
+    };
+    let target = match to {
+        MoveTab::Parent(None) => None,
+        MoveTab::Parent(Some(id)) | MoveTab::Before(id) | MoveTab::After(id) => Some(id),
+    };
+    if let Some(target) = target
+        && !tree::path(tabs, NodeId::Tab(target))
+            .is_some_and(|path| !path.contains(&NodeId::Tab(tab)))
+    {
+        return false;
+    }
+    match to {
+        MoveTab::Parent(parent) => {
+            let current = path.iter().rev().nth(1).copied();
+            current != parent.map(NodeId::Tab)
+                || tree::siblings(tabs, tab)
+                    .and_then(|tabs| tabs.last())
+                    .map(|(id, _)| *id)
+                    != Some(tab)
+        }
+        MoveTab::Before(target) | MoveTab::After(target) => {
+            let Some((siblings, at)) = tree::siblings(tabs, target)
+                .and_then(|siblings| Some((siblings, siblings.get_index_of(&target)?)))
+            else {
+                return false;
+            };
+            let unchanged = match to {
+                MoveTab::Before(_) => at.checked_sub(1),
+                MoveTab::After(_) => at.checked_add(1),
+                MoveTab::Parent(_) => unreachable!(),
+            };
+            siblings
+                .get_index_of(&tab)
+                .is_none_or(|index| Some(index) != unchanged)
+        }
     }
 }
