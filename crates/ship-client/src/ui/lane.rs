@@ -5,13 +5,34 @@ use std::collections::VecDeque;
 use crossterm::event::KeyEvent;
 use ship_core::{
     id::IdOf,
-    model::{NodeId, Tab},
+    layout::Axis,
+    model::{NodeId, Pane, Tab},
     prelude::*,
-    protocol::InputFrame,
+    protocol::{InputFrame, MoveTab},
 };
 
 use super::{Request, finish, observer::Observer};
 use crate::keymap::Action;
+
+/// A shared border, named by its left or upper pane.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) struct Edge {
+    pub pane: IdOf<Pane>,
+    pub axis: Axis,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct EdgeAt {
+    pub edge: Edge,
+    pub to: u16,
+}
+
+/// A dropped tab keeps its explicit destination until its turn.
+#[derive(Clone, Copy)]
+pub(super) struct TabMove {
+    pub tab: IdOf<Tab>,
+    pub to: MoveTab,
+}
 
 /// Selection-dependent targets are resolved only when this item runs.
 pub(super) enum Item {
@@ -22,6 +43,8 @@ pub(super) enum Item {
     Select(NodeId),
     Fold(IdOf<Tab>),
     Mouse(InputFrame),
+    Resize(EdgeAt),
+    Move(TabMove),
 }
 
 pub(super) enum Turn<'a> {
@@ -40,6 +63,15 @@ pub(super) struct Lane<'a> {
 
 impl<'a> Lane<'a> {
     pub fn push(&mut self, item: Item) {
+        if let Item::Resize(position) = &item
+            && let Some(Item::Resize(waiting)) = self
+                .items
+                .iter_mut()
+                .find(|item| matches!(item, Item::Resize(waiting) if waiting.edge == position.edge))
+        {
+            *waiting = *position;
+            return;
+        }
         self.items.push_back(item);
     }
 

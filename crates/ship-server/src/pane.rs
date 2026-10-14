@@ -622,6 +622,7 @@ fn capture(session: &SessionHandle, buffer: &mut Buffer) -> Option<Screen> {
     let rendered = session.take_if_dirty(buffer, area)?;
     let cursor = rendered.cursor;
     Some(Screen {
+        mouse: rendered.mouse,
         scrolled: rendered.scrolled.map(|value| Scrolled {
             offset: value.offset,
             history: value.history,

@@ -18,7 +18,7 @@ use ship_core::{
     prelude::*,
     protocol::{
         AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, Replica,
-        ResizePane, Starter, SwapPane, ViewInput, ViewingRecord, ZoomPane,
+        ResizePane, SetPane, SetTab, Starter, SwapPane, ViewInput, ViewingRecord, ZoomPane,
     },
     screen::Size,
 };
@@ -274,6 +274,7 @@ impl ServerState {
         Ok(Pane {
             id,
             name: input.name,
+            right_click_passthrough: input.right_click_passthrough,
             command,
             cwd: cwd.display().to_string(),
             dir: None,
@@ -311,9 +312,9 @@ impl ServerState {
 /// GET /tabs.
 pub struct ListTabs;
 pub struct Get<T: Identified>(pub IdOf<T>);
-pub struct Rename<T: Identified> {
+pub struct Set<T: Identified, B> {
     pub id: IdOf<T>,
-    pub name: OptionalName,
+    pub set: B,
 }
 pub struct Remove<T: Identified>(pub IdOf<T>);
 pub struct Move {
@@ -423,21 +424,23 @@ impl Message<Get<Tab>> for ServerState {
     }
 }
 
-impl Message<Rename<Tab>> for ServerState {
+impl Message<Set<Tab, SetTab>> for ServerState {
     type Reply = Result<Tab>;
 
     async fn handle(
         &mut self,
-        rename: Rename<Tab>,
+        Set { id, set }: Set<Tab, SetTab>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|tabs, _| {
-            let tab = tree::tab_mut(tabs, rename.id)?;
-            tab.name = rename.name;
-            Ok(())
-        })
-        .await?;
-        tree::tab(&self.published_tabs(), rename.id).cloned()
+        let tab = tree::tab(&self.tabs, id)?;
+        if let Some(name) = set.name.filter(|name| *name != tab.name) {
+            self.commit(|tabs, _| {
+                tree::tab_mut(tabs, id)?.name = name;
+                Ok(())
+            })
+            .await?;
+        }
+        self.published_tab(id)
     }
 }
 
@@ -570,23 +573,34 @@ impl Message<Get<Pane>> for ServerState {
     }
 }
 
-impl Message<Rename<Pane>> for ServerState {
+impl Message<Set<Pane, SetPane>> for ServerState {
     type Reply = Result<Pane>;
 
     async fn handle(
         &mut self,
-        rename: Rename<Pane>,
+        Set { id, set }: Set<Pane, SetPane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        self.commit(|tabs, _| {
-            let owner = tree::pane_owner(tabs, rename.id)?;
-            let pane = tree::tab_mut(tabs, owner)?
-                .pane_mut(rename.id)
-                .ok_or_else(|| tree::not_found(NodeId::Pane(rename.id)))?;
-            pane.name = rename.name;
-            Ok(pane.clone())
-        })
-        .await
+        let mut pane = tree::pane(&self.tabs, id)?.clone();
+        let name = set.name.unwrap_or_else(|| pane.name.clone());
+        let passthrough = set
+            .right_click_passthrough
+            .map_or(pane.right_click_passthrough, |switch| {
+                switch.apply(pane.right_click_passthrough)
+            });
+        if pane.name != name || pane.right_click_passthrough != passthrough {
+            pane.name = name;
+            pane.right_click_passthrough = passthrough;
+            self.commit(|tabs, _| {
+                let owner = tree::pane_owner(tabs, id)?;
+                *tree::tab_mut(tabs, owner)?
+                    .pane_mut(id)
+                    .ok_or_else(|| tree::not_found(NodeId::Pane(id)))? = pane.clone();
+                Ok(())
+            })
+            .await?;
+        }
+        Ok(pane)
     }
 }
 
@@ -663,6 +677,16 @@ impl Message<Resize> for ServerState {
         Resize { id, resize }: Resize,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
+        let change = match (resize.amount, resize.to) {
+            (Some(_), Some(_)) => {
+                return Err(err!(
+                    Validation,
+                    "resize accepts either amount or to, not both"
+                ));
+            }
+            (_, Some(to)) => layout::Change::To(to),
+            (amount, None) => layout::Change::By(amount.unwrap_or(RESIZE_STEP)),
+        };
         let owner = tree::pane_owner(&self.tabs, id)?;
         let size = self
             .tab_sizes()
@@ -670,8 +694,7 @@ impl Message<Resize> for ServerState {
             .copied()
             .unwrap_or(Size::FALLBACK);
         let mut tab = tree::tab(&self.tabs, owner)?.clone();
-        let cells = resize.amount.unwrap_or(RESIZE_STEP);
-        if layout::resize(&mut tab, size, id, resize.direction, cells)? {
+        if layout::resize(&mut tab, size, id, resize.direction, change)? {
             self.commit(|tabs, _| {
                 *tree::tab_mut(tabs, owner)? = tab;
                 Ok(())

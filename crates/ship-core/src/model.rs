@@ -46,6 +46,9 @@ pub struct Pane {
     /// The title the program last set; absent when none or cleared.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// Give right-clicks on contents to a program that tracks the mouse.
+    #[serde(default)]
+    pub right_click_passthrough: bool,
     pub status: PaneStatus,
 }
 
@@ -111,10 +114,45 @@ impl Identified for Pane {
     type Id = Id<Pane>;
 }
 
-/// Rename input; tabs and panes use `OptionalName`.
-#[derive(Clone, Debug, Serialize, Deserialize, utoipa::ToSchema)]
-pub struct Named<N> {
-    pub name: N,
+/// A two-valued attribute's new value, resolved where the edit takes effect.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[serde(untagged)]
+pub enum Switch {
+    Set(bool),
+    Toggle(Toggle),
+}
+
+/// The word `"toggle"`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Toggle {
+    Toggle,
+}
+
+impl Switch {
+    pub fn apply(self, current: bool) -> bool {
+        match self {
+            Self::Set(value) => value,
+            Self::Toggle(_) => !current,
+        }
+    }
+}
+
+impl FromStr for Switch {
+    type Err = AppError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "true" => Ok(Self::Set(true)),
+            "false" => Ok(Self::Set(false)),
+            "toggle" => Ok(Self::Toggle(Toggle::Toggle)),
+            _ => Err(err!(
+                Validation,
+                "expected true, false or toggle, got '{}'",
+                value
+            )),
+        }
+    }
 }
 
 /// Optional tab or pane name. Blank or whitespace-only input means none, so

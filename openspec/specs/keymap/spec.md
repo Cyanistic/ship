@@ -7,7 +7,7 @@ Let users drive the client from the keyboard through modes of chord bindings, wh
 ## Requirements
 
 ### Requirement: Default keys
-With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab with shell), `alt-shift-n` (new child tab with shell), `alt-x` (close tab), `alt--`/`alt-|` (split down/right), `alt-shift-x` (close pane), `alt-left`/`alt-right` (previous/next visible tab row), `alt-h/j/k/l` (pane focus), `alt-tab` (next pane), `alt-b` (sidebar), `alt-g`/`alt-r` (tabs/resize mode), `alt-f` (zoom), `alt-shift-h/j/k/l` (client directional swap), `alt-pageup`/`alt-pagedown` (scroll the selected pane up/down one page) and `alt-q` (detach). `alt-1..9` SHALL NOT be bound by default. The default resize mode's `h/j/k/l` SHALL omit `amount`, moving one cell per press.
+With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab with shell), `alt-shift-n` (new child tab with shell), `alt-x` (close tab), `alt--`/`alt-|` (split down/right), `alt-shift-x` (close pane), `alt-left`/`alt-right` (previous/next visible tab row), `alt-h/j/k/l` (pane focus), `alt-tab` (next pane), `alt-b` (sidebar), `alt-g`/`alt-r` (tabs/resize mode), `alt-f` (zoom), `alt-shift-h/j/k/l` (client directional swap), `alt-pageup`/`alt-pagedown` (scroll the selected pane up/down one page) and `alt-q` (detach). `alt-1..9` SHALL NOT be bound by default. The default resize mode's `h/j/k/l` SHALL omit `amount`, moving one cell per press. Resize mode SHALL also bind `shift-h` and `shift-l` to `client.sidebar.resize` left and right, with the hints `sidebar left` and `sidebar right`.
 
 #### Scenario: Herdr chords on the first run
 - **WHEN** a user with no config runs `ship` and presses `alt-n`, `alt-|`, `alt-right`, `alt-left`, `alt-tab` and `alt-q`
@@ -28,6 +28,10 @@ With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab wi
 #### Scenario: Scroll defaults
 - **WHEN** a user with no config presses `alt-pageup` in a shell pane with a long history, then `alt-pagedown`
 - **THEN** the pane scrolls up one page and back down, without either chord reaching the shell
+
+#### Scenario: Sidebar keys in resize mode
+- **WHEN** a user with no config presses `alt-r` and then `shift-l` three times
+- **THEN** the sidebar is 3 columns wider for that client
 
 ### Requirement: Server and client actions
 Every binding SHALL name one action, under `server.` or `client.`. A `server.` action SHALL change shared state and SHALL be the `ship` command at the same path without `server.`, taking the same action arguments. A `client.` action SHALL change only that client's view and SHALL be reachable only from keys and the mouse, except `client.pane.swap`, which SHALL resolve direction locally and submit the explicit server swap pair. `client.pane.swap` SHALL have no CLI form. Any action SHALL be bindable in any mode.
@@ -93,7 +97,7 @@ In normal mode, an unbound key SHALL reach the selected pane's program. In a sti
 - **THEN** the client returns to normal and nothing else happens
 
 ### Requirement: Key actions act on the selection
-A key binding SHALL act on the client's selection as it is at the binding's turn in the client's input order, not at press (see terminal-client's Ordered input). A `server.` action whose target is not selected, such as `server.pane.close` with only a tab selected, SHALL report that on the status line and change nothing. `client.mode`, `client.sidebar.toggle` and `client.config.reload` SHALL apply at press, ahead of any input still waiting.
+A key binding SHALL act on the client's selection as it is at the binding's turn in the client's input order, not at press (see terminal-client's Ordered input). A `server.` action whose target is not selected, such as `server.pane.close` with only a tab selected, SHALL report that on the status line and change nothing. `client.mode`, `client.sidebar.toggle`, `client.sidebar.resize` and `client.config.reload` SHALL apply at press, ahead of any input still waiting.
 
 #### Scenario: Close the selected pane
 - **WHEN** a pane is selected and the user presses `alt-shift-x`
@@ -187,10 +191,10 @@ Every action SHALL be accepted in the config even when its feature isn't built. 
 - **THEN** it rejects the arguments before submitting a swap
 
 ### Requirement: Binding syntax
-The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `hint`, the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. An action written without `action`, or any other key in the table, SHALL be a config error with its line and column. Strict rejection of positional list forms is not required, per Cyan's slice-1 amendment; their incidental acceptance by Serde is not documented binding syntax.
+The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `label`, the text used in the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. An action written without `action`, or any other key in the table, SHALL be a config error with its line and column. Strict rejection of positional list forms is not required, per Cyan's slice-1 amendment; their incidental acceptance by Serde is not documented binding syntax.
 
 #### Scenario: Accepted forms
-- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-y" = { action = { server.tab.close = {} }, hint = "close" }` and `"alt-q" = {}`, and the user runs `ship config check`
+- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-y" = { action = { server.tab.close = {} }, label = "close" }` and `"alt-q" = {}`, and the user runs `ship config check`
 - **THEN** it prints nothing and exits 0
 
 #### Scenario: An action without `action`
@@ -200,6 +204,10 @@ The documented binding syntax SHALL be a table with an optional `action`, holdin
 #### Scenario: A misspelled key
 - **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} }, hnt = "x" }` and the user runs `ship config check`
 - **THEN** it reports the unknown key `hnt` with its line and column and exits 1
+
+#### Scenario: Obsolete hint field
+- **WHEN** a binding contains `hint = "fill"` instead of `label = "fill"` and the user runs `ship config check`
+- **THEN** it reports the unknown field with its line and column and exits 1; no compatibility alias is accepted
 
 ### Requirement: Selecting creates from keys
 `server.tab.create` and `server.pane.create` SHALL accept `select = true`, which selects what they create for the pressing client in the same edit: the new pane, or the new tab when it has none. Without it, a create from a key SHALL NOT change any selection. The defaults SHALL set `select = true` on `alt-n`, `alt-shift-n`, `alt--` and `alt-|`. The config SHALL NOT name an attachment.
@@ -215,3 +223,29 @@ The documented binding syntax SHALL be a table with an optional `action`, holdin
 #### Scenario: Attachment in the config
 - **WHEN** a file binds `"alt-t" = { action = { server.tab.create = { select = true, attachment = "…" } } }` and the user runs `ship config check`
 - **THEN** it reports the unknown field `attachment` and exits 1
+
+### Requirement: Sidebar resize action
+`client.sidebar.resize` SHALL take a `direction` of `left` or `right` and an optional `amount` in columns, defaulting to 1, and SHALL move the sidebar's right edge that way under config-file's Sidebar width setting, as a dragged width does. It SHALL apply at press, SHALL do nothing while the sidebar is hidden, and SHALL have no CLI command. Any other direction SHALL be a config error with its line and column.
+
+#### Scenario: Bound amount
+- **WHEN** the file binds `"alt-[" = { action = { client.sidebar.resize = { direction = "left", amount = 5 } } }` and the user presses it
+- **THEN** the sidebar is 5 columns narrower
+
+#### Scenario: Vertical direction
+- **WHEN** the file binds `client.sidebar.resize = { direction = "up" }` and the user runs `ship config check`
+- **THEN** it reports the bad value with its line and column and exits 1
+
+#### Scenario: Hidden sidebar
+- **WHEN** the sidebar is hidden and the user presses `shift-l` in resize mode
+- **THEN** nothing changes, and showing the sidebar again shows its earlier width
+
+### Requirement: Set actions replace rename
+`server.tab.set` and `server.pane.set` SHALL be bindable with the fields of session-structure's Set attributes, written in snake_case, such as `server.pane.set = { right_click_passthrough = "toggle" }`. `server.tab.rename` and `server.pane.rename` SHALL NOT exist, so a binding naming either SHALL be a config error with its line and column, as any unknown action is.
+
+#### Scenario: Toggle from a key
+- **WHEN** the file binds `"alt-p" = { action = { server.pane.set = { right_click_passthrough = "toggle" } } }` and the user presses it twice
+- **THEN** the selected pane's passthrough turns on and then off
+
+#### Scenario: Old rename binding
+- **WHEN** the file binds `"alt-e" = { action = { server.tab.rename = { name = "x" } } }` and the user runs `ship config check`
+- **THEN** it reports the unknown action with its line and column and exits 1

@@ -15,6 +15,13 @@ pub struct Screen {
     /// Distance above the bottom, absent at the bottom.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scrolled: Option<Scrolled>,
+    /// Whether the program has asked for mouse input.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub mouse: bool,
+}
+
+pub(crate) fn is_false(value: &bool) -> bool {
+    !value
 }
 
 /// Rows above the bottom, out of the history's rows.

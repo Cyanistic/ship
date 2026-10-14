@@ -16,6 +16,16 @@ pub(super) enum Handled {
     None,
 }
 
+/// The same press-time/ordered-lane split for bindings and menu picks.
+pub(super) fn handled(action: Action) -> Handled {
+    match action {
+        Action::Client(
+            action @ (ClientAction::Mode(_) | ClientAction::Sidebar(_) | ClientAction::Config(_)),
+        ) => Handled::Now(action),
+        action => Handled::Queue(Item::Action(action)),
+    }
+}
+
 pub(super) struct Keys {
     pub keymap: Keymap,
     pub active: ModeName,
@@ -47,12 +57,7 @@ impl Keys {
                     self.active = ModeName::normal();
                 }
                 match binding.and_then(|binding| binding.action) {
-                    Some(Action::Client(
-                        action @ (ClientAction::Mode(_)
-                        | ClientAction::Sidebar(_)
-                        | ClientAction::Config(_)),
-                    )) => Handled::Now(action),
-                    Some(action) => Handled::Queue(Item::Action(action)),
+                    Some(action) => handled(action),
                     None if normal => Handled::Queue(Item::Key(key)),
                     None => Handled::None,
                 }

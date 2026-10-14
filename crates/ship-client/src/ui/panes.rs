@@ -1,7 +1,5 @@
 //! The pane area: frames, labels and screens, from the published geometry.
 
-use std::{collections::HashMap, sync::Arc};
-
 use ratatui::{
     Frame,
     buffer::Buffer,
@@ -12,13 +10,11 @@ use ratatui::{
     widgets::{Block, BorderType},
 };
 use ship_core::{
-    geometry::TabGeometry,
-    id::IdOf,
-    model::{Pane, Tab},
+    layout::Axis,
     screen::{Attr, Cell, Color, Cursor, Screen},
 };
 
-use super::draw::pane_label;
+use super::{Scene, draw::pane_label, lane::Edge};
 
 /// Marks pane-area cells no pane covers: space beyond the shared geometry on
 /// a larger client, or content a lagging screen doesn't reach yet.
@@ -32,12 +28,14 @@ const FILLER: &str = "·";
 /// where it falls on the frame.
 pub(super) fn draw(
     frame: &mut Frame,
-    area: Rect,
-    tab: &Tab,
-    geometry: &TabGeometry,
-    screens: &HashMap<IdOf<Pane>, Arc<Screen>>,
-    selected: Option<IdOf<Pane>>,
+    scene: &Scene,
+    held: impl Iterator<Item = Edge>,
 ) -> Option<(Position, Cursor)> {
+    let area = scene.panes;
+    let tab = scene.tab?;
+    let geometry = scene.geometry?;
+    let selected = scene.selected;
+    let screens = scene.screens;
     let offset = |rect: Rect| {
         area.intersection(Rect {
             x: area.x.saturating_add(rect.x),
@@ -71,6 +69,29 @@ pub(super) fn draw(
                 false => block.border_style(Style::new().dim()),
             };
             frame.render_widget(block, offset(pane.frame));
+        }
+        // Color only published border cells, never a predicted position.
+        for edge in held {
+            let Some(pane) = geometry.panes.get(&edge.pane) else {
+                continue;
+            };
+            let border = match edge.axis {
+                Axis::Horizontal => Rect::new(
+                    pane.frame.right().saturating_sub(1),
+                    pane.frame.y,
+                    1,
+                    pane.frame.height,
+                ),
+                Axis::Vertical => Rect::new(
+                    pane.frame.x,
+                    pane.frame.bottom().saturating_sub(1),
+                    pane.frame.width,
+                    1,
+                ),
+            };
+            for at in offset(border).positions() {
+                frame.buffer_mut()[at].set_style(accent.remove_modifier(Modifier::DIM));
+            }
         }
         // Labels after every border, since a border merges over text.
         for (id, pane) in &geometry.panes {

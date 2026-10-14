@@ -45,7 +45,29 @@ kind = "sticky"
 "j"   = { action = { server.pane.resize.direction = "down" } }
 "k"   = { action = { server.pane.resize.direction = "up" } }
 "l"   = { action = { server.pane.resize.direction = "right" } }
+"shift-h" = { action = { client.sidebar.resize = { direction = "left" } }, label = "sidebar left" }
+"shift-l" = { action = { client.sidebar.resize = { direction = "right" } }, label = "sidebar right" }
 "esc" = { action = { client.mode = "normal" } }
 
 [client.modes.prefix]              # defined, empty, and entered by no key
 kind = "oneshot"
+
+[client.menus]
+pane = [
+  { label = "split right", action = { server.pane.create = { direction = "right", select = true } } },
+  { label = "split down", action = { server.pane.create = { direction = "down", select = true } } },
+  { label = "zoom", action = { server.pane.zoom = {} } },
+  { label = "right-click passthrough", action = { server.pane.set = { right_click_passthrough = "toggle" } } },
+  { label = "close", action = { server.pane.close = {} } },
+]
+tab = [
+  { label = "new tab", action = { server.tab.create = { starter = "shell", select = true } } },
+  { label = "new child tab", action = { server.tab.create = { starter = "shell", child = true, select = true } } },
+  { label = "close", action = { server.tab.close = {} } },
+]
+global = [
+  { label = "new tab", action = { server.tab.create = { starter = "shell", select = true } } },
+  { label = "hide sidebar", action = { client.sidebar.toggle = {} } },
+  { label = "reload config", action = { client.config.reload = {} } },
+  { label = "detach", action = { client.detach = {} } },
+]

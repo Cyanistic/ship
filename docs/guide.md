@@ -80,6 +80,32 @@ ship tab close --tab "$PROJECT"    # closes everything under it too
 
 `ship tab create --child` adds a child of the tab holding the current pane, like `alt-shift-n`. `--starter` gives a new tab a shell in your home directory. `ship tab move` reparents or reorders a tab.
 
+### Setting names and pane attributes
+
+`ship tab set` and `ship pane set` replace the old `rename` commands. An omitted attribute stays as it is; a blank name clears it and restores the derived label. Empty or unchanged edits succeed without changing the shared revision.
+
+```sh
+TAB=$(ship tab create --name notes | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" | jq -r .id)
+ship pane set --pane "$PANE" --name build --right-click-passthrough true
+ship pane set --pane "$PANE" --right-click-passthrough toggle
+ship pane set --pane "$PANE" --name ""
+ship tab set --tab "$TAB" --name ""
+ship pane set --pane "$PANE"                     # leaves everything alone
+ship pane create --tab "$TAB" --right-click-passthrough -- sh
+ship tab close --tab "$TAB"
+```
+
+`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. When it is on and the program has asked for mouse input, right-clicks on the pane's contents reach the program without opening a menu or changing selection. The following drag and release stay with that program, even outside the pane. Labels and borders still open the menu, as do contents when the program isn't tracking the mouse, such as a shell prompt. The pane menu can toggle the setting for every client. `--right-click-passthrough` on pane create starts it on.
+
+Bindings use the same fields under `server.tab.set` and `server.pane.set`:
+```toml
+[client.modes.normal.keys]
+"alt-p" = { action = { server.pane.set = { right_click_passthrough = "toggle" } } }
+```
+
+Old `server.tab.rename` and `server.pane.rename` bindings are configuration errors. Migrate them to `set`; unlike rename, omitting `name` no longer clears it.
+
 ## Panes and splits
 
 Every pane runs a program, your login shell by default, in its own terminal. Closing a pane ends its program; the other panes keep running. When a program exits, its pane stays open with its output, and the status line says how it exited.
@@ -120,7 +146,7 @@ ship tab close --tab "$TAB"
 
 `alt-shift-h`/`j`/`k`/`l` swaps the selected pane with its neighbor in that direction. The programs and their screens move with them.
 
-`alt-r` enters resize mode, where `h`/`j`/`k`/`l` move the selected pane's edge on that side by one cell. At the edge of the tab, it moves the opposite edge instead, so `l` on the rightmost pane narrows it. `esc` leaves resize mode.
+`alt-r` enters resize mode, where `h`/`j`/`k`/`l` move the selected pane's edge on that side by one cell. At the edge of the tab, it moves the opposite edge instead, so `l` on the rightmost pane narrows it. `shift-h` and `shift-l` narrow or widen this client's sidebar by one column. They do nothing while the sidebar is hidden. `esc` leaves resize mode.
 
 The same edits from the CLI each print the tab:
 ```sh
@@ -130,8 +156,11 @@ RIGHT=$(ship pane create --pane "$LEFT" --direction right | jq -r .id)
 ship pane zoom --pane "$LEFT"                    # toggles
 ship pane swap --pane "$LEFT" --other "$RIGHT"   # any two panes in one tab
 ship pane resize --pane "$LEFT" --direction left --amount 5
+ship pane resize --pane "$LEFT" --direction right --to 40
 ship tab close --tab "$TAB"
 ```
+
+`--to` places the edge's border at a zero-based column for left/right or row for up/down, measured from the tab's origin, not the terminal's. It uses the same opposite-edge fallback as `--amount` and stops before any pane's content drops below one column or row. An edge already there changes nothing. `--to` and `--amount` cannot be combined. Both are available in `server.pane.resize` bindings too. Keep a client viewing the tab to inspect its `geometry` with `ship tab get`; an unviewed tab uses an 80×24 fallback for resize.
 
 ## Scrolling and reading output
 
@@ -155,13 +184,51 @@ ship tab close --tab "$TAB"
 
 ## Mouse and clipboard
 
-Click a pane to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it. Clicks wait behind earlier input but keep the target you clicked; if it disappears before the click runs, nothing happens. While input is waiting, a press on even the selected pane selects it instead of reaching its program.
+Click a pane's contents to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it. Sidebar clicks act on release, only if the pointer hasn't moved a cell during the press. Clicks wait behind earlier input but keep the target you clicked; if it disappears before the click runs, nothing happens. While input is waiting, a press on even the selected pane's contents selects it instead of reaching its program.
 
-Programs that ask for the mouse, like Neovim with `mouse=a`, get clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
+Drag a shared border between panes with the left button to resize them; a junction grabs both axes. The held border uses the selected-border color, but doesn't select a pane or send the press to a program. A press without motion does nothing. Borders stop before any pane's content becomes smaller than one column or row; lone and zoomed panes have no border to grab. If the grabbed pane closes, the drag ends quietly. Positions take their turn behind earlier input. On a slow link, the border can trail the pointer, then settle at the latest position rather than replaying every motion.
+
+Drag the sidebar's right divider to resize it for this client. Its width stays between 10 columns and the width that leaves 20 columns for panes; on narrower terminals, the pane minimum wins. Hiding and showing the sidebar keeps the width. Neither dragging nor the resize-mode keys writes to your config, and an unrelated config reload keeps your chosen width. Changing `sidebar_width` replaces it.
+
+Drag a sidebar row to move its tab, carrying its children and running programs with it. The pointer's row picks the gap above that row, or the gap after the last row when below it. Move left or right in two-column indent steps to choose the nesting depth. The depth is limited by the rows on either side of the gap; an underline on the row above shows where the tab will land. Above the first tab, the underline is on the blank row under `tabs`.
+
+Only visible rows can be drop targets; the sidebar does not scroll or auto-scroll during a drag. Drags use the left button, and Esc does not cancel them.
+
+Release to move the tab. Dropping as a child of a folded tab unfolds that parent in this client. Dragging doesn't select the tab, and a moved selected tab stays selected. A drop into the tab's own subtree or back where it already is shows no line and does nothing. Releasing outside the sidebar cancels the drop. A queued drop is checked again at its turn; if its source or target has disappeared or the move is no longer valid, nothing happens and no error is shown.
+
+Programs that ask for the mouse, like Neovim with `mouse=a`, get left clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
 
 Copies go through your terminal's clipboard escape (OSC 52). Most modern terminals support it; macOS Terminal.app doesn't, and some terminals cap how much you can copy. When a program copies to the clipboard itself, such as Neovim's `"+y`, every client viewing that tab receives it. Programs can't read your clipboard.
 
 To use your terminal's own selection instead, hold its mouse override key (usually Shift), or set `mouse = false` under `[client]`.
+
+### Right-click menus
+
+Right-click a pane's contents, label or border for its menu, or a sidebar row for the tab menu. Contents clicks instead reach the program when the pane's right-click passthrough is on and the program is tracking the mouse. Opening a menu selects the clicked pane or tab, in input order, before any picked action. On shared borders the menu belongs to the pane below or to the right, and to the bottom-right pane at a junction. Labels and outer edges belong to their own pane.
+
+Click `≡` at the end of the `tabs` heading, or right-click the heading or the space below the last tab, for the global menu. It does not change selection. Menus belong only to the client that opens them. They use your terminal's default foreground and background, with ANSI cyan borders and a bold black-on-cyan highlight. These colors follow your terminal palette, not a separate Ship theme.
+
+Hover over an item to highlight it, then click or press Enter to run it. Up/Down and `k`/`j` also move the highlight. Moving over the border or outside the menu keeps the last highlight. Esc closes without acting. A press outside closes the menu without selecting or sending input there; resizing the terminal also closes it. While open, the menu consumes keys, bindings and paste instead of passing them to a pane.
+
+The defaults are:
+- Pane: split right, split down, zoom, right-click passthrough, close.
+- Tab: new tab, new child tab, close. A new tab is created just after the clicked tab; a new child is appended under it. Both start a selected shell.
+- Global: new tab, hide sidebar, reload config, detach.
+
+Menu actions work like key actions, including the status-line error on failure. Mode changes, sidebar actions and reloads apply immediately; other actions wait behind earlier input. The passthrough toggle changes the shared pane setting, so every attached client follows it.
+
+Customize each target under `[client.menus]`:
+
+```toml
+[client.menus]
+pane = [
+  { action = { server.pane.zoom = {} }, label = "fill" },
+  { action = { server.pane.close = {} } },
+]
+tab = []
+```
+
+A named target replaces its whole default list, in the order given; omitted targets keep their defaults. An empty list disables that menu, leaving the old right-click behavior in place. Each item requires exactly one action, written as in a key binding. Without `label`, it uses the action's default label. Unknown targets, item fields or actions fail `ship config check` with a line and column. Valid saves reload menus with the rest of the client settings and close any open menu; invalid saves keep the last good settings. With `[client] mouse = false`, no menu opens.
 
 ## Configuration
 
@@ -185,6 +252,14 @@ sidebar_width = 40   # default: 26 columns
 mouse = true         # false leaves selection to your terminal
 ```
 
+`sidebar_width` is the starting width, subject to the limits described under [Mouse and clipboard](#mouse-and-clipboard). A drag or `client.sidebar.resize` overrides it until the client exits or the configured value changes. For a five-column key action:
+```toml
+[client.modes.normal.keys]
+"alt-[" = { action = { client.sidebar.resize = { direction = "left", amount = 5 } } }
+```
+
+Only `left` and `right` are accepted; omitting `amount` moves one column. This action has no CLI command.
+
 A running client reloads its settings and keys when you save the file. If the file has a mistake, the client keeps its current settings and shows the error. `ship config check` reports the first mistake with its line and column, and exits non-zero.
 
 ### Keys and modes
@@ -205,7 +280,7 @@ kind = "oneshot"                                  # back to normal after one key
 "ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
 
 [client.modes.resize.keys]
-"f" = { action = { server.pane.zoom = {} }, hint = "fill" }
+"f" = { action = { server.pane.zoom = {} }, label = "fill" }
 ```
 
 Migrate old bindings from `[{ … }]` to `{ action = { … } }`, and from `[]` to `{}`. Bind separate steps to separate keys, rather than an action list. A bare action without the `action` field, or an unknown binding field such as `hnt`, is a config error.
@@ -218,8 +293,12 @@ The four default create keys select what they make. In your own binding, set `se
 
 ### The status line
 
-There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `hint` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
+There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `label` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
 
 ## Upgrading
+
+If an older config uses `hint` on a key binding, rename it to `label`. `hint` is no longer accepted. The label still appears after the chord in the status line.
+
+The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship pane rename` and their bindings with `set`. Use `--name ""` to clear a name; omitting `name` leaves it unchanged.
 
 Update the client and server together. `ship` checks the server's protocol version and refuses to talk to one that doesn't match, so after rebuilding, run `ship server stop` and start again. Stopping the server ends every program in it, so finish or save running work first.

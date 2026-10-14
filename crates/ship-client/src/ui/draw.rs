@@ -13,6 +13,7 @@ use ship_core::{
 };
 
 use super::{
+    Local,
     observer::{Observer, Selected},
     panes,
     sidebar::Sidebar,
@@ -32,7 +33,11 @@ pub(super) struct Status<'a> {
 /// `area` split into the sidebar's columns and the pane area beside them,
 /// for drawing, hit-testing and the size the server gives panes.
 pub(super) fn split(area: Rect, sidebar_width: u16) -> (Rect, Rect) {
-    let width = sidebar_width.min(area.width);
+    let width = if sidebar_width == 0 {
+        0
+    } else {
+        Sidebar::clamp(sidebar_width, area.width)
+    };
     (
         Rect { width, ..area },
         Rect {
@@ -56,38 +61,30 @@ pub(super) fn tab_area(cols: u16, rows: u16, sidebar_width: u16) -> Size {
 /// The selected tab's panes beside the sidebar, or a hint when it has none
 /// or nothing is selected. The status line, when it has something to say,
 /// over the pane area's last row.
-pub(super) fn draw(
-    frame: &mut Frame,
-    observer: &Observer,
-    sidebar: &mut Sidebar,
-    status: &Status,
-) -> Option<Cursor> {
-    let (sidebar_area, main) = split(frame.area(), sidebar.width());
-    if sidebar.shown
-        && let Some(replica) = &observer.replica
+pub(super) fn draw(frame: &mut Frame, local: &mut Local) -> Option<Cursor> {
+    let (sidebar_area, main) = split(frame.area(), local.sidebar.width());
+    if local.sidebar.shown
+        && let Some(replica) = &local.observer.replica
     {
-        sidebar.draw(
+        local.sidebar.draw(
             frame,
             sidebar_area,
             &replica.tabs,
-            observer.record().and_then(|record| record.selection),
+            local.observer.record().and_then(|record| record.selection),
+            local.mouse.gap(),
         );
     }
+    let scene = local.scene(frame.area());
+    let observer = &local.observer;
+    let status = super::status(&local.keys, local.message.as_deref());
     let selected = observer.selected();
     let mut cursor = None;
     match selected.as_ref().and_then(|selected| {
         let geometry = selected.tab.geometry.as_ref()?;
         (!geometry.panes.is_empty()).then_some((selected, geometry))
     }) {
-        Some((selected, geometry)) => {
-            cursor = panes::draw(
-                frame,
-                main,
-                selected.tab,
-                geometry,
-                &observer.screens,
-                selected.pane.map(|pane| pane.id),
-            );
+        Some(_) => {
+            cursor = panes::draw(frame, &scene, local.mouse.held());
         }
         None => frame.render_widget(
             Paragraph::new(hint(observer, selected.as_ref()))
@@ -100,7 +97,7 @@ pub(super) fn draw(
             },
         ),
     }
-    if let Some(line) = status_line(selected.as_ref(), observer.connected, status) {
+    if let Some(line) = status_line(selected.as_ref(), observer.connected, &status) {
         let row = Rect {
             y: main.bottom().saturating_sub(1),
             height: main.height.min(1),
@@ -110,6 +107,10 @@ pub(super) fn draw(
         frame.render_widget(line, row);
         // A cursor under the overlay would sit on top of it.
         cursor = cursor.filter(|(at, _)| !row.contains(*at));
+    }
+    if let Some(menu) = &mut local.menu {
+        menu.draw(frame);
+        return None;
     }
     let (at, cursor) = cursor?;
     frame.set_cursor_position(at);

@@ -63,29 +63,23 @@ pub(crate) async fn get_tab(State(app): App, Path(id): Path<IdOf<Tab>>) -> Resul
 #[utoipa::path(
     patch,
     path = "/api/v0/tabs/{id}",
-    operation_id = "rename_tab",
+    operation_id = "set_tab",
     params(("id" = String, Path, description = "Tab ID, e.g. tab:3f2a...")),
-    request_body = Named<OptionalName>,
+    request_body = SetTab,
     responses(
         (status = 200, body = Tab),
         (status = 400, description = "Malformed tab ID"),
         (status = 404, body = AppError),
-        (status = 422, description = "Malformed name"),
+        (status = 422, description = "Malformed attributes or unknown field"),
         (status = 503, body = AppError),
     ),
 )]
-pub(crate) async fn rename_tab(
+pub(crate) async fn set_tab(
     State(app): App,
     Path(id): Path<IdOf<Tab>>,
-    Json(body): Json<Named<OptionalName>>,
+    Json(set): Json<SetTab>,
 ) -> Result<Response> {
-    let value = app
-        .state
-        .ask(Rename::<Tab> {
-            id,
-            name: body.name,
-        })
-        .await?;
+    let value = app.state.ask(Set { id, set }).await?;
     Ok(Json(value).into_response())
 }
 
@@ -171,29 +165,23 @@ pub(crate) async fn get_pane(State(app): App, Path(id): Path<IdOf<Pane>>) -> Res
 #[utoipa::path(
     patch,
     path = "/api/v0/panes/{id}",
-    operation_id = "rename_pane",
+    operation_id = "set_pane",
     params(("id" = String, Path, description = "Pane ID, e.g. pane:3f2a...")),
-    request_body = Named<OptionalName>,
+    request_body = SetPane,
     responses(
         (status = 200, body = Pane),
         (status = 400, description = "Malformed pane ID"),
         (status = 404, body = AppError),
-        (status = 422, description = "Malformed name"),
+        (status = 422, description = "Malformed attributes or unknown field"),
         (status = 503, body = AppError),
     ),
 )]
-pub(crate) async fn rename_pane(
+pub(crate) async fn set_pane(
     State(app): App,
     Path(id): Path<IdOf<Pane>>,
-    Json(body): Json<Named<OptionalName>>,
+    Json(set): Json<SetPane>,
 ) -> Result<Response> {
-    let value = app
-        .state
-        .ask(Rename::<Pane> {
-            id,
-            name: body.name,
-        })
-        .await?;
+    let value = app.state.ask(Set { id, set }).await?;
     Ok(Json(value).into_response())
 }
 

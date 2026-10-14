@@ -117,8 +117,16 @@ pub(crate) fn swap(tab: &mut Tab, a: IdOf<Pane>, b: IdOf<Pane>) -> Result<()> {
     Ok(())
 }
 
-/// Moves `pane`'s edge on the `direction` side by up to `cells` that way,
-/// or, when that side is the tab's edge, its opposite edge that way. The edge
+/// How far an edge moves.
+pub(crate) enum Change {
+    /// Cells in the requested direction.
+    By(u16),
+    /// Border cell from the tab's left or top edge.
+    To(u16),
+}
+
+/// Moves `pane`'s edge on the `direction` side by `change`,
+/// or, when that side is the tab's edge, its opposite edge. The edge
 /// is the nearest ancestor split on that axis with `pane` on the right side
 /// of it; its ratio becomes the one that puts the edge there at `size`. The
 /// move stops before any pane would be pushed below `MIN_CONTENT`. Returns
@@ -128,7 +136,7 @@ pub(crate) fn resize(
     size: Size,
     pane: IdOf<Pane>,
     direction: Direction,
-    cells: u16,
+    change: Change,
 ) -> Result<bool> {
     let (axis, forward) = match direction {
         Direction::Left => (Axis::Horizontal, false),
@@ -165,6 +173,22 @@ pub(crate) fn resize(
     };
     let first = length(frame(&split.first));
     let total = length(area);
+    let (forward, cells) = match change {
+        Change::By(cells) => (forward, cells),
+        Change::To(to) => {
+            let origin = match axis {
+                Axis::Horizontal => area.x,
+                Axis::Vertical => area.y,
+            };
+            // Include the shared border cell in the first side's length.
+            let target = (u32::from(to) + 1).saturating_sub(u32::from(origin));
+            let current = u32::from(first);
+            (
+                target > current,
+                target.abs_diff(current).min(u32::from(total)) as u16,
+            )
+        }
+    };
     // The ratio putting the edge `moved` cells along, if no pane goes below
     // the minimum it wasn't already below.
     let attempt = |moved: u16| {
