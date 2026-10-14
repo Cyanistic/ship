@@ -1,4 +1,4 @@
-> Superseded on 2026-10-13 by `openspec/changes/mouse/design/product.md`, which carries this change forward with right-click menus against server-owned selection and the ordered input lane.
+> Superseded on 2026-10-13 by `openspec/changes/archive/2026-10-14-mouse/design/product.md`, which carries this change forward with right-click menus against server-owned selection and the ordered input lane.
 
 # Mouse drag
 
