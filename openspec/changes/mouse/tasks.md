@@ -2,6 +2,8 @@
 
 These are checkpoints for implementing the locked plan, one slice at a time. Cyan locked the papers in `design/` on 2026-10-13, and they are the contract. `design/program.md` holds the file map, signatures and full checks for each slice. Complete and verify one slice, then stop for Cyan's review before starting the next. Record surprises in the program paper's deviation log.
 
+Cyan approved six consolidated checkpoints after slice 1: original section 1; sections 2–3 together; sections 4–5 together; section 6; sections 7–8 together; and section 9. The original task numbers below stay stable. Stop after verifying each consolidated checkpoint.
+
 Verification uses real workflows and temporary probes, not permanent authored tests. For each slice, run these checks:
 - `cargo fmt --all -- --check`;
 - `cargo clippy --workspace --all-targets -- -D warnings`;
@@ -43,7 +45,7 @@ The supplemental nested checks compare geometry rather than unrelated pane metad
 
 ## 2. `set` replaces `rename`, with the passthrough attribute
 
-- [ ] 2.1 Make the core and server changes:
+- [x] 2.1 Make the core and server changes:
   - Add `Switch`, `Pane.right_click_passthrough`, `PaneInput.right_click_passthrough`, and the `SetTab` and `SetPane` bodies, and remove `Named`.
   - Replace `tab::Set` and `pane::Set` for the `Rename` commands, and add `--right-click-passthrough` on create.
   - Add the `Set` handlers, which resolve `toggle` and commit only on change, and the `set_tab` and `set_pane` routes. Copy the flag in `start_pane`.
@@ -54,17 +56,29 @@ The supplemental nested checks compare geometry rather than unrelated pane metad
   - `ship pane create --right-click-passthrough -- sh` shows `rightClickPassthrough: true`, and a tab's starter pane shows `false`.
   - `--right-click-passthrough maybe` exits 2.
   - An empty `set` leaves the revision unchanged.
-- [ ] 2.2 Add `set` to the API client and `execute`. Verify:
+- [x] 2.2 Add `set` to the API client and `execute`. Verify:
   - A binding to `server.tab.rename` fails `ship config check` with its line and column.
   - `server.pane.set = { right_click_passthrough = "toggle" }` passes the check and toggles from a key in a running client.
   - A second client's replica shows the new value.
 
 ## 3. Mouse tracking on published screens
 
-- [ ] 3.1 Record `is_mouse_tracking()` in the vendored session's rendered snapshot, copy it in the pane actor's `capture`, and add `Screen.mouse`, which is skipped when false. Verify on a raw attach stream that the flag flips with each program's mode change, with no other screen change needed:
+- [x] 3.1 Record `is_mouse_tracking()` in the vendored session's rendered snapshot, copy it in the pane actor's `capture`, and add `Screen.mouse`, which is skipped when false. Verify on a raw attach stream that the flag flips with each program's mode change, with no other screen change needed:
   - A pane's screen carries `mouse: true` while Neovim runs with `mouse=a`.
   - It has no `mouse` at the shell prompt, in `less`, or after Neovim quits.
   - `less --mouse` turns it on.
+
+### Consolidated slice 2 evidence
+
+Verified on macOS with an owned temporary server, two real full-screen clients in 120×32 PTYs, and a raw attach observer:
+- P6 passed: name and passthrough changed together in one revision; a blank tab name restored the derived `~` label in both clients; empty and unchanged sets preserved the revision; both old rename commands exited 2.
+- Toggling twice restored the value. Pane create with passthrough started on; the starter pane started off. Invalid switch values exited 2. Blank and whitespace-only pane names cleared; HTTP null fields left attributes alone. Unknown fields and invalid HTTP switch values were rejected without partial edits or revision changes.
+- The old rename binding failed with line 2 and column 35. The new set/create bindings loaded, and real `alt-p` presses toggled the selected pane. A second observer's replica carried the new value. A real create key started a selected pane with passthrough on.
+- Raw screen events omitted `mouse` at the shell prompt and in plain `less`; Neovim `mouse=a` and `less --mouse` published `mouse: true`. Neovim mode off/on and both programs' exits changed the flag as expected.
+- A raw-mode program emitting only mouse-mode sequences published on/off screens with identical cells and cursor, without changing the shared revision.
+- Formatting, workspace Clippy with warnings denied, debug/release workspace builds, and `ship-core` checks with and without `clap` passed. The slice-1 resize probe passed again, guide examples ran as documented, and strict OpenSpec validation passed.
+
+The patch name serializer writes a present clearing `OptionalName` as `""`, not `null`, because null means leave unchanged. Tracking-query errors use the vendored input router's existing false fallback. No permanent test code added. Linux and manual terminal coverage remain unverified.
 
 ## 4. Gestures and border drags
 

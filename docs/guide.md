@@ -80,6 +80,32 @@ ship tab close --tab "$PROJECT"    # closes everything under it too
 
 `ship tab create --child` adds a child of the tab holding the current pane, like `alt-shift-n`. `--starter` gives a new tab a shell in your home directory. `ship tab move` reparents or reorders a tab.
 
+### Setting names and pane attributes
+
+`ship tab set` and `ship pane set` replace the old `rename` commands. An omitted attribute stays as it is; a blank name clears it and restores the derived label. Empty or unchanged edits succeed without changing the shared revision.
+
+```sh
+TAB=$(ship tab create --name notes | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" | jq -r .id)
+ship pane set --pane "$PANE" --name build --right-click-passthrough true
+ship pane set --pane "$PANE" --right-click-passthrough toggle
+ship pane set --pane "$PANE" --name ""
+ship tab set --tab "$TAB" --name ""
+ship pane set --pane "$PANE"                     # leaves everything alone
+ship pane create --tab "$TAB" --right-click-passthrough -- sh
+ship tab close --tab "$TAB"
+```
+
+`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. The setting is stored and published now; the right-click menu routing that uses it is not built yet. `--right-click-passthrough` on pane create starts it on.
+
+Bindings use the same fields under `server.tab.set` and `server.pane.set`:
+```toml
+[client.modes.normal.keys]
+"alt-p" = { action = { server.pane.set = { right_click_passthrough = "toggle" } } }
+```
+
+Old `server.tab.rename` and `server.pane.rename` bindings are configuration errors. Migrate them to `set`; unlike rename, omitting `name` no longer clears it.
+
 ## Panes and splits
 
 Every pane runs a program, your login shell by default, in its own terminal. Closing a pane ends its program; the other panes keep running. When a program exits, its pane stays open with its output, and the status line says how it exited.

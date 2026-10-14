@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use ship_core::{
     HEALTH_PATH, HealthResponse,
     id::{Attachment, Id, IdOf, Identified, Prefixed},
-    model::{Named, Pane, Tab},
+    model::{Pane, Tab},
     prelude::*,
     protocol::{
         AttachRequest, CreatePane, CreateTab, InputFrame, MoveTab, REVISION_HEADER, ReadPane,
@@ -121,11 +121,10 @@ impl Client {
             .await
     }
 
-    /// `None` clears the name.
-    pub async fn rename<T: Resource>(&self, id: IdOf<T>, name: Option<&str>) -> Result<T> {
+    /// Change the tab or pane's attributes and return it.
+    pub async fn set<T: Resource>(&self, id: IdOf<T>, body: &impl serde::Serialize) -> Result<T> {
         let path = format!("{}/{id}", T::COLLECTION);
-        let body = Named { name };
-        self.request(Method::PATCH, &path, Some(&body), None, StatusCode::OK)
+        self.request(Method::PATCH, &path, Some(body), None, StatusCode::OK)
             .await
     }
 

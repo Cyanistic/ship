@@ -12,8 +12,8 @@ use uuid::Uuid;
 use crate::{
     command::Direction,
     id::{Attachment, IdOf},
-    model::{NodeId, OptionalName, Pane, Tab, tabs_schema},
-    screen::{Screen, Size},
+    model::{NodeId, OptionalName, Pane, Switch, Tab, tabs_schema},
+    screen::{Screen, Size, is_false},
     tree::Tabs,
 };
 
@@ -115,8 +115,49 @@ pub struct PaneSpec {
 pub struct PaneInput {
     #[serde(default)]
     pub name: OptionalName,
+    /// Start with right-click passthrough on.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub right_click_passthrough: bool,
     #[serde(flatten)]
     pub spec: PaneSpec,
+}
+
+/// PATCH /tabs/{id} body. Absent or null leaves the name; blank clears it.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SetTab {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "set_name"
+    )]
+    #[schema(value_type = Option<String>)]
+    pub name: Option<OptionalName>,
+}
+
+/// PATCH /panes/{id} body. Absent or null fields stay as they are.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SetPane {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "set_name"
+    )]
+    #[schema(value_type = Option<String>)]
+    pub name: Option<OptionalName>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub right_click_passthrough: Option<Switch>,
+}
+
+/// A present blank name must serialize as `""` to clear, not `null` to leave.
+fn set_name<S: serde::Serializer>(
+    name: &Option<OptionalName>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    name.as_ref()
+        .map(|name| name.get().unwrap_or(""))
+        .serialize(serializer)
 }
 
 /// POST /panes/{id}/zoom body. `{}` toggles; `false` unzooms the pane's tab

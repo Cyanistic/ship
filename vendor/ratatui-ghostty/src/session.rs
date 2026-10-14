@@ -269,6 +269,7 @@ impl SessionHandle {
                 buffer: Buffer::empty(Rect::new(0, 0, cols, rows)),
                 cursor: CursorState::default(),
                 scrolled: None,
+                mouse: false,
             }),
             dirty: AtomicBool::new(true),
             cols: AtomicU16::new(cols),
@@ -464,6 +465,7 @@ impl SessionHandle {
         Some(Rendered {
             cursor: snap.cursor.clone(),
             scrolled: snap.scrolled.clone(),
+            mouse: snap.mouse,
         })
     }
 
@@ -530,6 +532,8 @@ pub struct Scrolled {
 pub struct Rendered {
     pub cursor: CursorState,
     pub scrolled: Option<Scrolled>,
+    /// Mouse tracking when these cells were rendered.
+    pub mouse: bool,
 }
 
 /// Pane-relative coordinates, including positions outside a dragged pane.
@@ -558,6 +562,7 @@ struct RenderSnapshot {
     buffer: Buffer,
     cursor: CursorState,
     scrolled: Option<Scrolled>,
+    mouse: bool,
 }
 
 impl RenderSnapshot {
@@ -1197,6 +1202,7 @@ fn render_to_shared(state: &mut SessionState<'_>, render_state: &mut RenderState
         .incremental(!resized);
     (&mut widget).render(area, &mut snap.buffer);
     snap.cursor = widget.cursor().clone();
+    snap.mouse = state.terminal.is_mouse_tracking().unwrap_or(false);
     snap.scrolled = state.terminal.scrollbar().ok().and_then(|bar| {
         let history = bar.total.saturating_sub(bar.len);
         let offset = history.saturating_sub(bar.offset);

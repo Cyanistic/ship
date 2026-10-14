@@ -814,4 +814,8 @@ None.
 
 ## Deviation log
 
+- **Consolidated slice 2, patch-name serialization.** `OptionalName` serializes a cleared name as null, but the planned PATCH bodies treat null as absent. A shared field serializer therefore writes a present cleared name as `""`. Both CLI clearing workflows passed. This enforces the planned wire semantics without changing user-visible requirements.
+
+- **Checkpoint consolidation, approved by Cyan after slice 1.** Six review checkpoints replace nine: original slice 1; slices 2–3 together; slices 4–5 together; slice 6; slices 7–8 together; slice 9. Scope, task numbers and verification requirements are unchanged. This is execution grouping, not user-visible behavior.
+
 - **Lock, architecture decision 5 amended by G1.** The drop item unfolds the new parent at its turn, after the re-check passes and before `tab move` is sent, not after the move succeeds. Approved with this paper ("LGTM"). The architecture paper's text is left as locked; this entry is the amendment.

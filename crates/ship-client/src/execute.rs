@@ -17,7 +17,7 @@ use ship_core::{
     prelude::*,
     protocol::{
         CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec, ReadPane, ResizePane,
-        ScrollPane, SwapPane, ZoomPane,
+        ScrollPane, SetPane, SetTab, SwapPane, ZoomPane,
     },
     tree::{self, Tabs},
 };
@@ -97,9 +97,17 @@ impl Client {
                 TabCommand::Get(tab::Get { tab }) => {
                     Outcome::Tab(self.get::<Tab>(self.tab_target(tab, scope).await?).await?)
                 }
-                TabCommand::Rename(tab::Rename { tab, name }) => {
+                TabCommand::Set(tab::Set { tab, name }) => {
                     let id = self.tab_target(tab, scope).await?;
-                    Outcome::Tab(self.rename::<Tab>(id, name.as_deref()).await?)
+                    Outcome::Tab(
+                        self.set::<Tab>(
+                            id,
+                            &SetTab {
+                                name: name.map(|name| Some(name).into()),
+                            },
+                        )
+                        .await?,
+                    )
                 }
                 TabCommand::Close(tab::Close { tab }) => {
                     self.remove::<Tab>(self.tab_target(tab, scope).await?)
@@ -117,6 +125,7 @@ impl Client {
                     tab,
                     direction,
                     name,
+                    right_click_passthrough,
                     cwd,
                     command,
                     select,
@@ -138,6 +147,7 @@ impl Client {
                         .transpose()?;
                     let input = PaneInput {
                         name: name.into(),
+                        right_click_passthrough,
                         spec: PaneSpec {
                             command: Some(command).filter(|command| !command.is_empty()),
                             cwd: cwd.map(|cwd| cwd.display().to_string()),
@@ -156,9 +166,22 @@ impl Client {
                 PaneCommand::Get(pane::Get { pane }) => {
                     Outcome::Pane(self.get::<Pane>(Self::pane_target(pane, scope)?).await?)
                 }
-                PaneCommand::Rename(pane::Rename { pane, name }) => {
+                PaneCommand::Set(pane::Set {
+                    pane,
+                    name,
+                    right_click_passthrough,
+                }) => {
                     let id = Self::pane_target(pane, scope)?;
-                    Outcome::Pane(self.rename::<Pane>(id, name.as_deref()).await?)
+                    Outcome::Pane(
+                        self.set::<Pane>(
+                            id,
+                            &SetPane {
+                                name: name.map(|name| Some(name).into()),
+                                right_click_passthrough,
+                            },
+                        )
+                        .await?,
+                    )
                 }
                 PaneCommand::Close(pane::Close { pane }) => {
                     self.remove::<Pane>(Self::pane_target(pane, scope)?).await?;

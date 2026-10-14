@@ -17,10 +17,10 @@ use crate::{
 #[cfg_attr(feature = "clap", derive(Subcommand))]
 #[serde(rename_all = "snake_case")]
 pub enum Command {
-    /// List, create, inspect, rename, close or move tabs
+    /// List, create, inspect, set attributes, close or move tabs
     #[cfg_attr(feature = "clap", command(subcommand))]
     Tab(tab::TabCommand),
-    /// Create, inspect, rename, close, resize, zoom or swap panes
+    /// Create, inspect, set attributes, close, resize, zoom or swap panes
     #[cfg_attr(feature = "clap", command(subcommand))]
     Pane(pane::PaneCommand),
 }
@@ -145,8 +145,8 @@ pub mod tab {
         /// Print a tab and its descendants as JSON
         #[serde(skip)]
         Get(Get),
-        /// Rename a tab and print it as JSON
-        Rename(Rename),
+        /// Change a tab's attributes and print it as JSON
+        Set(Set),
         /// Close a tab and everything in it
         Close(Close),
         /// Append under PARENT or to the top level, or place before or after a sibling
@@ -206,10 +206,11 @@ pub mod tab {
     #[derive(Clone, Debug, Default, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Args))]
     #[serde(default, deny_unknown_fields)]
-    pub struct Rename {
+    pub struct Set {
         #[cfg_attr(feature = "clap", command(flatten))]
         pub tab: TabTarget,
-        /// New name; omitted or blank clears it
+        /// New name; blank clears it
+        #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,
     }
 
@@ -242,7 +243,7 @@ pub mod pane {
     use super::{Direction, PaneTarget, TabTarget};
     use crate::{
         id::{Attachment, IdOf},
-        model::Pane,
+        model::{Pane, Switch},
         protocol::{ScrollDirection, SplitDirection},
     };
 
@@ -257,8 +258,8 @@ pub mod pane {
         /// Print a pane as JSON
         #[serde(skip)]
         Get(Get),
-        /// Rename a pane and print it as JSON
-        Rename(Rename),
+        /// Change a pane's attributes and print it as JSON
+        Set(Set),
         /// Close a pane
         Close(Close),
         /// Move a pane's edge and print its tab as JSON
@@ -293,6 +294,9 @@ pub mod pane {
         /// Pane name; omitted or blank means none
         #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,
+        /// Give right-clicks on contents to a program that tracks the mouse
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub right_click_passthrough: bool,
         /// Starting directory; defaults to the current directory
         #[cfg_attr(feature = "clap", arg(long))]
         pub cwd: Option<PathBuf>,
@@ -322,11 +326,15 @@ pub mod pane {
     #[derive(Clone, Debug, Default, Deserialize)]
     #[cfg_attr(feature = "clap", derive(Args))]
     #[serde(default, deny_unknown_fields)]
-    pub struct Rename {
+    pub struct Set {
         #[cfg_attr(feature = "clap", command(flatten))]
         pub pane: PaneTarget,
-        /// New name; omitted or blank clears it
+        /// New name; blank clears it
+        #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,
+        /// Give right-clicks on contents to a program that tracks the mouse
+        #[cfg_attr(feature = "clap", arg(long, value_name = "true|false|toggle"))]
+        pub right_click_passthrough: Option<Switch>,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]
