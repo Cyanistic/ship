@@ -30,6 +30,44 @@
 
 ## MODIFIED Requirements
 
+### Requirement: Binding syntax
+The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `label`, the text used in the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. An action written without `action`, or any other key in the table, SHALL be a config error with its line and column. Strict rejection of positional list forms is not required, per Cyan's slice-1 amendment; their incidental acceptance by Serde is not documented binding syntax.
+
+#### Scenario: Accepted forms
+- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-y" = { action = { server.tab.close = {} }, label = "close" }` and `"alt-q" = {}`, and the user runs `ship config check`
+- **THEN** it prints nothing and exits 0
+
+#### Scenario: An action without `action`
+- **WHEN** a file binds `"alt-t" = { server.tab.create = {} }` and the user runs `ship config check`
+- **THEN** it reports the unknown key `server` at that binding's line and column and exits 1
+
+#### Scenario: A misspelled key
+- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} }, hnt = "x" }` and the user runs `ship config check`
+- **THEN** it reports the unknown key `hnt` with its line and column and exits 1
+
+#### Scenario: Obsolete hint field
+- **WHEN** a binding contains `hint = "fill"` instead of `label = "fill"` and the user runs `ship config check`
+- **THEN** it reports the unknown field with its line and column and exits 1; no compatibility alias is accepted
+
+### Requirement: Key actions act on the selection
+A key binding SHALL act on the client's selection as it is at the binding's turn in the client's input order, not at press (see terminal-client's Ordered input). A `server.` action whose target is not selected, such as `server.pane.close` with only a tab selected, SHALL report that on the status line and change nothing. `client.mode`, `client.sidebar.toggle`, `client.sidebar.resize` and `client.config.reload` SHALL apply at press, ahead of any input still waiting.
+
+#### Scenario: Close the selected pane
+- **WHEN** a pane is selected and the user presses `alt-shift-x`
+- **THEN** that pane closes
+
+#### Scenario: Pane action with a tab selected
+- **WHEN** a tab without panes is selected and the user presses `alt-shift-x`
+- **THEN** the status line reports that no pane is selected and nothing changes
+
+#### Scenario: Close what the previous key made
+- **WHEN** on a slow link the user presses `alt-|` then `alt-shift-x` before the split appears
+- **THEN** the new pane closes, not the one that was selected at the first press
+
+#### Scenario: Mode change while input waits
+- **WHEN** on a slow link the user presses `alt-n` then `alt-r` before the tab appears
+- **THEN** the status line shows `resize` at once, and the tab is created as usual
+
 ### Requirement: Default keys
 With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab with shell), `alt-shift-n` (new child tab with shell), `alt-x` (close tab), `alt--`/`alt-|` (split down/right), `alt-shift-x` (close pane), `alt-left`/`alt-right` (previous/next visible tab row), `alt-h/j/k/l` (pane focus), `alt-tab` (next pane), `alt-b` (sidebar), `alt-g`/`alt-r` (tabs/resize mode), `alt-f` (zoom), `alt-shift-h/j/k/l` (client directional swap), `alt-pageup`/`alt-pagedown` (scroll the selected pane up/down one page) and `alt-q` (detach). `alt-1..9` SHALL NOT be bound by default. The default resize mode's `h/j/k/l` SHALL omit `amount`, moving one cell per press. Resize mode SHALL also bind `shift-h` and `shift-l` to `client.sidebar.resize` left and right, with the hints `sidebar left` and `sidebar right`.
 

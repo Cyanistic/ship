@@ -106,4 +106,4 @@ Not in this change (the product paper lists them all):
 - `ship`: the CLI derives `tab set`, `pane set`, `--to` and `--right-click-passthrough`, and `rename` goes away, with no hand-written changes.
 - Docs: `docs/guide.md` and the README's "What works today" and keys. The product brief's milestone-1 item is closed.
 - No new dependency.
-- Estimated about +650 client lines and +115 server and core lines of implementation Rust, plus about +5 vendored. None of it is measured yet.
+- Measured with `cloc` against `dac695b`: +820 client code lines and +113 server/core code lines of implementation Rust, plus +5 vendored. No authored tests added. Full counts, including physical lines, and verification are in [tasks.md](tasks.md).

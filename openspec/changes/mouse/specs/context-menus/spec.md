@@ -68,13 +68,26 @@ On a border cell, the pane SHALL be the one whose label is there. Otherwise it S
 - **THEN** no menu opens and the right-click acts as it did before menus existed
 
 ### Requirement: Using an open menu
-A menu SHALL open at the pointer and be moved as needed to fit fully on the client's screen. Its items SHALL appear in config order with the first highlighted. A menu SHALL belong to the client that opened it, and other clients see nothing of it. At most one menu SHALL be open. While a menu is open:
+A menu SHALL open at the pointer and be moved as needed to fit fully on the client's screen. Its items SHALL appear in config order with the first highlighted. A menu SHALL belong to the client that opened it, and other clients see nothing of it. At most one menu SHALL be open. Normal rows SHALL use terminal-default foreground and background, borders SHALL use ANSI cyan, and the highlighted item SHALL use bold ANSI black text on ANSI cyan without reverse video. Lists taller than the terminal SHALL show a viewport that follows keyboard navigation; mouse hit-testing SHALL use the currently drawn viewport. While a menu is open:
+- pointer movement over a visible item SHALL highlight it without running it or shifting the viewport; movement over the border or outside SHALL keep the last highlight;
 - a left click on an item SHALL run it and close the menu;
 - up and down, and `j` and `k`, SHALL move the highlight, and Enter SHALL run the highlighted item and close the menu;
 - Esc SHALL close the menu without running anything;
 - a press of any button outside the menu SHALL close it and SHALL NOT act anywhere else;
 - a terminal resize SHALL close it;
 - no key may reach a pane or run a binding.
+
+#### Scenario: Hover choice
+- **WHEN** a user moves the pointer across visible items, then over the border and outside the menu
+- **THEN** each item under the pointer is highlighted without activation, and the last highlight stays over the border and outside
+
+#### Scenario: Scrolled list hover
+- **WHEN** keyboard navigation scrolls a menu taller than the terminal and the user hovers its first visible row
+- **THEN** that visible item is highlighted without shifting the viewport
+
+#### Scenario: Terminal palette
+- **WHEN** a menu is drawn
+- **THEN** ordinary items use terminal-default colors, with ANSI cyan borders and a bold black-on-cyan highlight rather than fixed RGB colors or reverse video
 
 #### Scenario: Keyboard choice
 - **WHEN** a menu is open and the user presses `j` twice and Enter

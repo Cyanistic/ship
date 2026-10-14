@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Set attributes
-`server.tab.set` and `ship tab set`, and `server.pane.set` and `ship pane set`, SHALL change a tab's or a pane's attributes in one edit. Each attribute SHALL be an optional field, and a field left out SHALL stay as it is. A tab's only attribute SHALL be `name` (`--name`). A pane's attributes SHALL be `name` (`--name`) and `right_click_passthrough` (`--right-click-passthrough`). A blank name SHALL clear it. A two-valued attribute SHALL take `true`, `false` or `toggle`. `toggle` SHALL switch to the other value, resolved against the stored value when the edit takes effect. Toggling SHALL be offered only on attributes with exactly two values. From keys and menus, `set` SHALL act on the selected tab or pane. From the CLI it SHALL act on `--tab`, `--pane` or the caller's pane, as other tab and pane commands do. A `set` with no field, or one that changes nothing, SHALL succeed and SHALL NOT change the shared state's revision. Over HTTP, `PATCH /api/v0/tabs/{id}` SHALL take `{ "name"? }` and `PATCH /api/v0/panes/{id}` SHALL take `{ "name"?, "rightClickPassthrough"? }`. Both SHALL return the entity, and an unknown field SHALL be rejected without changing anything. `rename` SHALL NOT exist as a command or action.
+`server.tab.set` and `ship tab set`, and `server.pane.set` and `ship pane set`, SHALL change a tab's or a pane's attributes in one edit. Each attribute SHALL be an optional field, and a field left out SHALL stay as it is. A tab's only attribute SHALL be `name` (`--name`). A pane's attributes SHALL be `name` (`--name`) and `right_click_passthrough` (`--right-click-passthrough`). A blank name SHALL clear it. A two-valued attribute SHALL take `true`, `false` or `toggle`. `toggle` SHALL switch to the other value, resolved against the stored value when the edit takes effect. Toggling SHALL be offered only on attributes with exactly two values. From keys and menus, `set` SHALL act on the selected tab or pane. From the CLI it SHALL act on `--tab`, `--pane` or the caller's pane, as other tab and pane commands do. A `set` with no field, or one that changes nothing, SHALL succeed and SHALL NOT change the shared state's revision. Over HTTP, `PATCH /api/v0/tabs/{id}` SHALL take `{ "name"? }` and `PATCH /api/v0/panes/{id}` SHALL take `{ "name"?, "rightClickPassthrough"? }`. An absent or JSON `null` field SHALL leave its attribute unchanged; a present empty or whitespace-only `name` SHALL clear it. Both SHALL return the entity, and an unknown field SHALL be rejected without changing anything. `rename` SHALL NOT exist as a command or action.
 
 #### Scenario: Two attributes in one edit
 - **WHEN** a script runs `ship pane set --pane <id> --name build --right-click-passthrough true`
@@ -33,7 +33,7 @@ Every pane SHALL have a `right_click_passthrough` setting, on or off, defaulting
 - **THEN** `ship pane get` shows `rightClickPassthrough: true` for the new pane
 
 #### Scenario: Starter pane
-- **WHEN** a script runs `ship tab create`
+- **WHEN** a script runs `ship tab create --starter`
 - **THEN** its starter pane shows `rightClickPassthrough: false`
 
 ## MODIFIED Requirements

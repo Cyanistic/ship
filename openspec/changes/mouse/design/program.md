@@ -818,4 +818,12 @@ None.
 
 - **Checkpoint consolidation, approved by Cyan after slice 1.** Six review checkpoints replace nine: original slice 1; slices 2–3 together; slices 4–5 together; slice 6; slices 7–8 together; slice 9. Scope, task numbers and verification requirements are unchanged. This is execution grouping, not user-visible behavior.
 
-- **Lock, architecture decision 5 amended by G1.** The drop item unfolds the new parent at its turn, after the re-check passes and before `tab move` is sent, not after the move succeeds. Approved with this paper ("LGTM"). The architecture paper's text is left as locked; this entry is the amendment.
+- **Lock, architecture decision 5 amended by G1.** The drop item unfolds the new parent at its turn, after the re-check passes and before `tab move` is sent, not after the move succeeds. Approved with this paper ("LGTM"). The architecture paper's text is left as locked; this entry is the amendment. The mouse-input delta now states that timing and that a subsequent failed move leaves the parent unfolded.
+
+- **Slice 7 alone, requested by Cyan.** Cyan requested original slice 7 independently of slice 8 despite the earlier checkpoint consolidation. Both were completed and verified separately. This changes execution grouping only, not user-visible behavior.
+
+- **Slice 7 menu follow-up, requested by Cyan.** Pointer movement highlights a visible item without activating it, and border/outside movement preserves the last highlight. The menu uses terminal-default row colors, ANSI cyan borders and a bold ANSI black-on-cyan highlight instead of reverse video or fixed RGB colors. Ratatui ListState provides the viewport offset used for hit-testing a clipped list. The context-menus delta records the hover, viewport and palette behavior.
+
+- **Slice 7 naming amendment, approved by Cyan.** Both bindings and menu items accept `label`; the action fallback is `Action::label()`. A composed chord plus label remains a status-line hint. Binding `hint` fields are rejected without an alias. The keymap delta records the binding syntax and obsolete-field rejection, and the terminal-client delta uses `label` for status-line overrides. The published keymap and terminal-client specs had already been updated during the follow-up.
+
+- **Slice 9 accounting.** Against `dac695b`, `cloc` measures net growth of +820 client, +113 server/core and +5 vendored implementation Rust code lines, with no authored tests. This is within SC-006's +650 to +900 and +100 to +160 estimates. Physical growth including comments and blanks is +871 client, +138 server/core and +6 vendored. The complete counts, verification and SC-001 coverage limitations are recorded in [tasks.md](../tasks.md). The planning estimates above remain historical.

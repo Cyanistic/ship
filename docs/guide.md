@@ -192,6 +192,8 @@ Drag the sidebar's right divider to resize it for this client. Its width stays b
 
 Drag a sidebar row to move its tab, carrying its children and running programs with it. The pointer's row picks the gap above that row, or the gap after the last row when below it. Move left or right in two-column indent steps to choose the nesting depth. The depth is limited by the rows on either side of the gap; an underline on the row above shows where the tab will land. Above the first tab, the underline is on the blank row under `tabs`.
 
+Only visible rows can be drop targets; the sidebar does not scroll or auto-scroll during a drag. Drags use the left button, and Esc does not cancel them.
+
 Release to move the tab. Dropping as a child of a folded tab unfolds that parent in this client. Dragging doesn't select the tab, and a moved selected tab stays selected. A drop into the tab's own subtree or back where it already is shows no line and does nothing. Releasing outside the sidebar cancels the drop. A queued drop is checked again at its turn; if its source or target has disappeared or the move is no longer valid, nothing happens and no error is shown.
 
 Programs that ask for the mouse, like Neovim with `mouse=a`, get left clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
@@ -296,5 +298,7 @@ There's no permanent status bar. A one-row overlay appears at the bottom of the 
 ## Upgrading
 
 If an older config uses `hint` on a key binding, rename it to `label`. `hint` is no longer accepted. The label still appears after the chord in the status line.
+
+The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship pane rename` and their bindings with `set`. Use `--name ""` to clear a name; omitting `name` leaves it unchanged.
 
 Update the client and server together. `ship` checks the server's protocol version and refuses to talk to one that doesn't match, so after rebuilding, run `ship server stop` and start again. Stopping the server ends every program in it, so finish or save running work first.

@@ -234,12 +234,90 @@ Probe: `/tmp/ship-mouse-slice8-probe.py`; results: `/tmp/ship-mouse-slice8-resul
 
 ## 9. Docs, spec sync and size report
 
-- [ ] 9.1 Update the docs:
+- [x] 9.1 Update the docs:
   - `docs/guide.md`: drags, menus and `[client.menus]`, `set`, `--to`, passthrough, and the new resize-mode keys.
   - `README.md`'s "What works today" and keys, if they list mouse resizing as missing or show `rename`.
   - The product brief's milestone-1 item.
 
   Verify by running each documented command and config example as written against a temporary server, and check that every link resolves.
-- [ ] 9.2 Bring the deltas under `specs/` in line with what was built, and run `openspec validate mouse --strict`. Verify that every deviation in the program paper's log appears in a delta or is noted as not user-visible.
-- [ ] 9.3 Report implementation Rust, vendored Rust and test line counts separately, against `dac695b` and SC-006's estimate.
-- [ ] 9.4 Report SC-001 terminal coverage on macOS, with Linux unverified unless Cyan runs it there.
+- [x] 9.2 Bring the deltas under `specs/` in line with what was built, and run `openspec validate mouse --strict`. Verify that every deviation in the program paper's log appears in a delta or is noted as not user-visible.
+- [x] 9.3 Report implementation Rust, vendored Rust and test line counts separately, against `dac695b` and SC-006's estimate.
+- [x] 9.4 Report SC-001 terminal coverage on macOS, with Linux unverified unless Cyan runs it there.
+
+### Slice 9 evidence
+
+Tasks 9.1 to 9.4 are complete. This slice changed documentation and spec deltas only; no Rust, dependencies or permanent tests were added. README's shipped features and keys were already current, so it needed no edit. The guide now also states drag limitations and the protocol-11/set migration, and the product brief records pane-border resizing as implemented without claiming full platform coverage.
+
+#### Docs and verification
+
+On macOS, `/tmp/ship-mouse-slice9-probe.py` ran all eight guide shell blocks and its six TOML blocks, plus README's CLI and TOML examples. Shell blocks ran as written with `bash -e -o pipefail`, against an owned temporary loopback server and a real full-screen client in a 120x32 PTY. Every TOML block passed `ship config check`. The examples exercised attachment selection, selecting creates, recursive tabs, set/clear/toggle, passthrough create, split/zoom/swap, relative and absolute resize, scroll/read and cleanup. Status reported protocol 11; after stopping the owned server, status and stop failed without starting one. No running user server or config was touched. README's clone/install block was inspected rather than repeated; debug and release workspace builds passed.
+
+All 38 local Markdown file/heading links and image destinations across README, guide, product brief and this change's artifacts resolved. The five external Markdown links returned HTTP 200. Results: `/tmp/ship-mouse-slice9-results.log`. A first probe assertion incorrectly expected a newline between successive `pane read` outputs; the documented grep pipeline had succeeded, and the probe was corrected without changing product code or the example.
+
+Formatting, workspace Clippy with warnings denied, debug and release workspace builds, `ship-core` checks without default features and with `clap`, strict OpenSpec validation and `git diff --check` passed. This is documentation verification, not a new hand-run of the feature scenarios; earlier slice evidence remains the runtime record.
+
+#### Delta reconciliation
+
+Every program deviation is covered:
+- Patch-name serialization: session-structure now explicitly states absent/null leaves unchanged and a blank name clears. The field serializer is an implementation detail, not a separate user-visible behavior.
+- Checkpoint consolidation and running slice 7 alone: execution grouping only, not user-visible.
+- G1: mouse-input specifies unfolding after the turn-time re-check, before sending the move, and retaining the unfolded parent if the request then fails.
+- Menu follow-up: context-menus specifies hover without activation, viewport-aware hit-testing and terminal-palette colors.
+- Naming amendment: keymap includes `label` binding syntax and rejection of obsolete `hint`; terminal-client already specifies label-based status hints. The published specs had been updated during that follow-up; no archive or bulk spec sync was performed here.
+- Accounting: recorded below, not a product behavior change.
+
+The starter-pane scenario now explicitly uses `ship tab create --starter`, rather than an empty tab create. `openspec validate mouse --strict` passed with the reconciled deltas.
+
+#### Size against `dac695b`
+
+Primary measure is `cloc` Rust **code** lines, excluding blank and comment lines. Counts use tracked `crates/**/*.rs`, including macros; inline test modules and test directories are counted separately. Vendored source, inherited tests and examples are separate. Generated build output, dependencies, experiments and temporary probes are excluded. Baseline source was read from Git into a temporary directory, without changing the checkout.
+
+| Area | At `dac695b` | Current | Net code growth |
+| --- | ---: | ---: | ---: |
+| Client | 2,609 | 3,429 | +820 |
+| Core | 1,644 | 1,726 | +82 |
+| Server | 2,877 | 2,908 | +31 |
+| Binary | 448 | 448 | 0 |
+| Macros | 83 | 83 | 0 |
+| **Owned implementation Rust** | **7,661** | **8,594** | **+933** |
+| Authored tests | 0 | 0 | 0 |
+| **Owned total including tests** | **7,661** | **8,594** | **+933** |
+| Vendored implementation Rust | 1,701 | 1,706 | +5 |
+
+Owned implementation grew by 12.2%. SC-006 estimates +650 to +900 client lines and +100 to +160 server/core lines: measured growth is +820 and +113 respectively, within both ranges. `ui/menu.rs` remains 146 physical lines, below the roughly 250-line review trigger. Owned implementation stays below the roughly 20,000-line budget.
+
+For comparison, physical Rust lines including comments and blanks are:
+
+| Area | At `dac695b` | Current | Net physical growth |
+| --- | ---: | ---: | ---: |
+| Client | 3,083 | 3,954 | +871 |
+| Core | 2,101 | 2,203 | +102 |
+| Server | 3,365 | 3,401 | +36 |
+| Binary | 529 | 529 | 0 |
+| Macros | 104 | 104 | 0 |
+| **Owned implementation Rust** | **9,182** | **10,191** | **+1,009** |
+| Authored tests | 0 | 0 | 0 |
+| Vendored implementation Rust | 2,087 | 2,093 | +6 |
+| Inherited vendored tests, including inline modules | 1,452 | 1,452 | 0 |
+| Vendored examples, excluding inline tests | 1,145 | 1,145 | 0 |
+
+Physical count script and results: `/tmp/ship-mouse-slice9-count.py` and `/tmp/ship-mouse-slice9-counts.json`. No test growth was hidden in implementation or example counts.
+
+#### SC-001 terminal coverage
+
+| Environment | Evidence | Coverage limitation |
+| --- | --- | --- |
+| macOS PTYs, `TERM=xterm-256color` | All feature slices used real full-screen clients; their recorded probes cover P1 to P6 across CLI, published state and rendered ANSI cells, with two clients where required. Slice 9 reran the documented examples. | Two PTY clients are not two physical terminal applications; no complete hand-run in two named terminals is claimed. |
+| Cyan's live macOS border check | Slice 3 records real-time smooth border dragging and two-axis corner grabs, accepted by Cyan on 2026-10-14. | Terminal name not recorded; this is P1 feedback, not all stories or a formal tmux comparison. |
+| macOS terminal/theme matrix | Not run. | SC-001 two-terminal hand coverage, theme contrast and terminal-specific gaps remain unverified. |
+| Linux | No checks run there. | All Linux coverage remains unverified; no container or VM was used. |
+
+Task 9.4 is the coverage report, not a claim that SC-001 has passed. Full SC-001 acceptance still needs Cyan's hand checks in two terminals per platform. SC-002's formal tmux comparison and SC-004's subjective menu responsiveness also remain unverified beyond the recorded probes and border feedback.
+
+```text
+reused:   existing guide/README, locked papers, slice evidence, cloc and build checks
+new code: no product code; temporary doc/link and count probes outside the repository
+proof:    live-server examples/configs, resolved links, strict spec validation, measured counts
+```
+
+Uncertain decisions: None. Unrun platform and physical-terminal checks are explicitly reported, not inferred from PTYs.

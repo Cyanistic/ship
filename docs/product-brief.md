@@ -63,7 +63,7 @@ Include:
 - Sessions, recursive tabs and split panes.
 - Focus, resize, zoom, move, rename and close operations.
 - Configurable keyboard bindings.
-- Mouse focus, text selection and pane resizing.
+- Mouse focus, text selection and pane resizing. Pane-border resizing is implemented by the [mouse change](../openspec/changes/mouse/tasks.md), alongside sidebar resizing, tab drops and context menus. macOS PTY verification and Cyan's live border-drag check are recorded there; two-terminal hand coverage and Linux remain unverified.
 - Scrollback, copy/paste and terminal text search.
 - Terminal emulation and PTY handling through suitable libraries.
 

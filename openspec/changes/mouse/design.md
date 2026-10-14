@@ -83,7 +83,7 @@ The architecture paper's "Risks and unknowns" lists them all. These are the ones
 - The tracking flag could lag. The program paper finds this mostly resolved by reading the vendored session, and slice 3 confirms it with Neovim and `less`.
 - Menu size: revisit if `menu.rs` passes about 250 lines.
 
-Estimated size: about +650 client lines, +115 server and core, and +5 vendored. None of it is measured yet.
+Measured with `cloc` against `dac695b`: +820 client code lines, +113 server/core and +5 vendored implementation Rust code lines, within SC-006's estimates. No authored tests added. Full counts, including physical lines, and coverage limitations are in [tasks.md](tasks.md).
 
 ## Migration Plan
 
