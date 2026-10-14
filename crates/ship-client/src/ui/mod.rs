@@ -11,9 +11,12 @@ mod sidebar;
 mod terminal;
 
 use std::{
+    collections::HashMap,
     future::{Future, pending},
+    mem,
     path::Path,
     pin::Pin,
+    sync::Arc,
     time::Duration,
 };
 
@@ -28,14 +31,16 @@ use ship_core::{
         Command, Direction, PaneTarget,
         pane::{self, PaneCommand},
     },
+    geometry::TabGeometry,
     id::{Attachment, IdOf},
-    model::{NodeId, Pane},
+    layout::Axis,
+    model::{NodeId, Pane, Tab},
     prelude::*,
     protocol::{
         AttachRequest, ClipboardText, EndReason, Ended, InputFrame, KeyInput, PasteInput,
-        SelectView, SseEvent, ViewInput,
+        ResizePane, SelectView, SseEvent, ViewInput,
     },
-    screen::Size,
+    screen::{Screen, Size},
     tree::{self, Tabs},
 };
 use tokio::{
@@ -182,12 +187,7 @@ async fn drive(
     let mut putting: Option<Request> = None;
     let mut tick = time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
-    redraw(
-        guard,
-        &local.observer,
-        &mut local.sidebar,
-        &status(&local.keys, local.message.as_deref()),
-    )?;
+    redraw(guard, &mut local)?;
     loop {
         let mut visible = tokio::select! {
             event = next(&mut events) => match event {
@@ -282,24 +282,26 @@ async fn drive(
                     true
                 }
                 Some(Ok(Event::Mouse(event))) if guard.mouse() && local.observer.connected => {
-                    let selected = local.observer.selected();
-                    let (_, panes) = draw::split(Rect::new(0, 0, terminal.0, terminal.1), local.sidebar.width());
-                    let clicked = local.mouse.route(
-                        event,
-                        panes,
-                        selected.as_ref().and_then(|selected| selected.tab.geometry.as_deref()),
-                        selected.and_then(|selected| selected.pane).map(|pane| pane.id),
-                        &local.sidebar,
-                        lane.busy(),
-                    );
+                    let mut mouse = mem::take(&mut local.mouse);
+                    let was_dragging = mouse.dragging();
+                    let clicked = mouse.route(event, &local.scene(Rect::new(0, 0, terminal.0, terminal.1)), lane.busy());
+                    local.mouse = mouse;
+                    let mut visible = was_dragging || local.mouse.dragging();
                     if let Some(clicked) = clicked {
-                        lane.push(match clicked {
-                            Clicked::Select(node) => Item::Select(node),
-                            Clicked::Fold(tab) => Item::Fold(tab),
-                            Clicked::Frame(frame) => Item::Mouse(frame),
-                        });
+                        match clicked {
+                            Clicked::Select(node) => lane.push(Item::Select(node)),
+                            Clicked::Fold(tab) => lane.push(Item::Fold(tab)),
+                            Clicked::Frame(frame) => lane.push(Item::Mouse(frame)),
+                            Clicked::Resize(positions) => {
+                                for position in positions { lane.push(Item::Resize(position)); }
+                            }
+                            Clicked::Width(width) => {
+                                local.sidebar.set_width(width, terminal.0);
+                                visible = true;
+                            }
+                        }
                     }
-                    false
+                    visible
                 }
                 Some(Ok(Event::Mouse(_))) => false,
                 Some(Ok(event)) => {
@@ -319,16 +321,7 @@ async fn drive(
                             }
                         }
                         Handled::Now(action) => {
-                            local.message = match action {
-                                ClientAction::Mode(mode) => local.keys.enter(mode),
-                                ClientAction::Sidebar(SidebarAction::Toggle {}) => {
-                                    local.sidebar.shown = !local.sidebar.shown;
-                                    Ok(())
-                                }
-                                ClientAction::Config(ConfigAction::Reload {}) =>
-                                    reload(&mut local.keys, &mut local.sidebar, guard, &mut local.mouse, config),
-                                _ => unreachable!("Keys only returns press-time actions"),
-                            }.err().map(|error| error.to_string());
+                            local.message = local.now(action, guard, config, terminal.0).err().map(|error| error.to_string());
                             now = true;
                         }
                         Handled::None => {}
@@ -378,12 +371,7 @@ async fn drive(
             local.sidebar.reconcile(&replica.tabs);
         }
         if visible {
-            redraw(
-                guard,
-                &local.observer,
-                &mut local.sidebar,
-                &status(&local.keys, local.message.as_deref()),
-            )?;
+            redraw(guard, &mut local)?;
         }
     }
 }
@@ -399,7 +387,60 @@ struct Local {
     message: Option<String>,
 }
 
+/// Published geometry shared by the router and pane painter.
+struct Scene<'a> {
+    panes: Rect,
+    tab: Option<&'a Tab>,
+    geometry: Option<&'a TabGeometry>,
+    selected: Option<IdOf<Pane>>,
+    screens: &'a HashMap<IdOf<Pane>, Arc<Screen>>,
+    sidebar: &'a Sidebar,
+}
+
 impl Local {
+    fn scene(&self, screen: Rect) -> Scene<'_> {
+        let selected = self.observer.selected();
+        let tab = selected.as_ref().map(|selected| selected.tab);
+        Scene {
+            panes: draw::split(screen, self.sidebar.width()).1,
+            tab,
+            geometry: tab.and_then(|tab| tab.geometry.as_deref()),
+            selected: selected
+                .and_then(|selected| selected.pane)
+                .map(|pane| pane.id),
+            screens: &self.observer.screens,
+            sidebar: &self.sidebar,
+        }
+    }
+
+    fn now(
+        &mut self,
+        action: ClientAction,
+        guard: &mut TerminalGuard,
+        config: &Path,
+        cols: u16,
+    ) -> Result<()> {
+        match action {
+            ClientAction::Mode(mode) => self.keys.enter(mode),
+            ClientAction::Sidebar(SidebarAction::Toggle {}) => {
+                self.sidebar.shown = !self.sidebar.shown;
+                Ok(())
+            }
+            ClientAction::Sidebar(SidebarAction::Resize { direction, amount }) => {
+                self.sidebar.nudge(direction, amount.unwrap_or(1), cols);
+                Ok(())
+            }
+            ClientAction::Config(ConfigAction::Reload {}) => reload(
+                &mut self.keys,
+                &mut self.sidebar,
+                guard,
+                &mut self.mouse,
+                config,
+            ),
+            _ => unreachable!("Keys only returns press-time actions"),
+        }
+    }
+
     fn turn<'a>(&mut self, client: &'a Client, item: Item) -> Turn<'a> {
         match item {
             Item::Action(action) => self.act(client, action),
@@ -445,6 +486,32 @@ impl Local {
             Item::Mouse(frame) => {
                 self.send(frame);
                 Turn::Done
+            }
+            Item::Resize(position) => {
+                if !self.observer.replica.as_ref().is_some_and(|replica| {
+                    tree::pane_owner(&replica.tabs, position.edge.pane).is_ok()
+                }) {
+                    return Turn::Done;
+                }
+                Turn::Wait(Box::pin(async move {
+                    match client
+                        .resize(
+                            position.edge.pane,
+                            &ResizePane {
+                                direction: match position.edge.axis {
+                                    Axis::Horizontal => Direction::Right,
+                                    Axis::Vertical => Direction::Down,
+                                },
+                                amount: None,
+                                to: Some(position.to),
+                            },
+                        )
+                        .await
+                    {
+                        Err(error) if matches!(error.code(), ErrorCode::NotFound) => Ok(()),
+                        result => result.map(|_| ()),
+                    }
+                }))
             }
         }
     }
@@ -599,16 +666,11 @@ fn typing_pane(observer: &Observer, memory: &Memory) -> Option<IdOf<Pane>> {
     }
 }
 
-fn redraw(
-    guard: &mut TerminalGuard,
-    observer: &Observer,
-    sidebar: &mut Sidebar,
-    status: &Status,
-) -> Result<()> {
+fn redraw(guard: &mut TerminalGuard, local: &mut Local) -> Result<()> {
     let mut cursor = None;
     guard
         .terminal
-        .draw(|frame| cursor = draw::draw(frame, observer, sidebar, status))
+        .draw(|frame| cursor = draw::draw(frame, local))
         .map_err(|error| err!(Io, "cannot draw", @external: error))?;
     guard.set_cursor(cursor)
 }
@@ -638,7 +700,7 @@ fn reload(
     let settings = ClientSettings::load(config)?;
     guard.set_mouse(settings.mouse)?;
     *mouse = Mouse::default();
-    sidebar.width = settings.sidebar_width;
+    sidebar.configure(settings.sidebar_width);
     keys.replace(settings.keymap);
     Ok(())
 }

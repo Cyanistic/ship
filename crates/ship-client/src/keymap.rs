@@ -95,6 +95,9 @@ impl Action {
                 ClientPane::Focus { direction } | ClientPane::Swap { direction },
             )) => direction.into(),
             Self::Client(ClientAction::Pane(action)) => action.into(),
+            Self::Client(ClientAction::Sidebar(Sidebar::Resize { direction, .. })) => {
+                direction.into()
+            }
             Self::Client(ClientAction::Sidebar(action)) => action.into(),
             Self::Client(ClientAction::Config(action)) => action.into(),
             Self::Client(action) => action.into(),
@@ -150,6 +153,19 @@ pub enum ClientPane {
 #[strum(serialize_all = "snake_case")]
 pub enum Sidebar {
     Toggle {},
+    Resize {
+        direction: Side,
+        #[serde(default)]
+        amount: Option<u16>,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, strum::IntoStaticStr)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum Side {
+    Left,
+    Right,
 }
 
 #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]

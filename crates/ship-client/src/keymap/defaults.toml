@@ -45,6 +45,8 @@ kind = "sticky"
 "j"   = { action = { server.pane.resize.direction = "down" } }
 "k"   = { action = { server.pane.resize.direction = "up" } }
 "l"   = { action = { server.pane.resize.direction = "right" } }
+"shift-h" = { action = { client.sidebar.resize = { direction = "left" } }, hint = "sidebar left" }
+"shift-l" = { action = { client.sidebar.resize = { direction = "right" } }, hint = "sidebar right" }
 "esc" = { action = { client.mode = "normal" } }
 
 [client.modes.prefix]              # defined, empty, and entered by no key

@@ -31,7 +31,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 - **Work that keeps running.** A background server owns your terminals. Close the window or press `alt-q` to detach, and everything keeps running until you come back.
 - **Tabs inside tabs.** Tabs can nest, so a big task can hold its own smaller ones. A sidebar shows the tree, and you can fold the parts you aren't looking at.
-- **Split panes.** Split, zoom, swap and resize from the keyboard. New splits open in the directory you were working in.
+- **Split panes.** Split, zoom, swap and resize from the keyboard, or drag shared borders to resize. New splits open in the directory you were working in.
 - **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
 - **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
 - **A scriptable CLI.** Server actions are also `ship` commands that print JSON, so scripts and agents can create panes, read output and steer a specific client's selection.
@@ -94,13 +94,13 @@ All of Ship's default keys are Alt chords. Any other key goes to the program in 
 | `alt-tab` | Next pane in the tab |
 | `alt-shift-h` / `j` / `k` / `l` | Swap the pane with its neighbor in that direction |
 | `alt-f` | Zoom the pane to fill the tab, or unzoom |
-| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the pane's edge, `esc` leaves |
+| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the pane's edge, `shift-h` / `shift-l` resize the sidebar, `esc` leaves |
 | `alt-g` | Tabs mode: `j` / `k` move between tabs, `h` / `l` fold / unfold, `esc` leaves |
 | `alt-b` | Hide or show the sidebar |
 | `alt-pageup` / `alt-pagedown` | Scroll the pane up / down a page |
 | `alt-q` | Detach |
 
-The mouse works too: click a pane or a sidebar row to select it, scroll with the wheel, and drag to select and copy text.
+The mouse works too: click a pane or a sidebar row to select it, scroll with the wheel, drag to select and copy text, and drag pane borders or the sidebar divider to resize.
 
 ## Configuration
 

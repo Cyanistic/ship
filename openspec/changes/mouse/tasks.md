@@ -82,7 +82,7 @@ The patch name serializer writes a present clearing `OptionalName` as `""`, not 
 
 ## 4. Gestures and border drags
 
-- [ ] 4.1 Implement the border drag:
+- [x] 4.1 Implement the border drag:
   - In the lane, add `Edge`, `EdgeAt` and `Item::Resize`, with a waiting resize coalesced in place.
   - In `Mouse`, add `Gesture::Pressed` and `Gesture::Border`, plus `edges_at`, and make sidebar clicks act on release.
   - In `Local`, add `Scene` and `Local::scene`, and the `Resize` turn. `redraw` and `draw` take `Local`, and `panes::draw` takes `Scene` and the held edges.
@@ -91,7 +91,7 @@ The patch name serializer writes a present clearing `OptionalName` as `""`, not 
   - A 2x2 junction moves both edges.
   - A border click without motion does nothing.
   - The held border shows the selected-border color.
-- [ ] 4.2 Verify ordering and feel:
+- [x] 4.2 Verify ordering and feel:
   - A press on an unselected pane's border leaves the selection alone, even with a `sleep`-delayed create waiting.
   - Closing the dragged pane from a script mid-drag ends the drag with no error.
   - A fast drag over Neovim and a shell feels like a tmux drag and leaves no backlog (SC-002).
@@ -101,7 +101,7 @@ The patch name serializer writes a present clearing `OptionalName` as `""`, not 
 
 ## 5. Sidebar width
 
-- [ ] 5.1 Implement the width:
+- [x] 5.1 Implement the width:
   - In `Sidebar`, add `configured`, `chosen`, `set_width`, `nudge` and the `Divider` hit.
   - In `Mouse`, add `Gesture::Divider`.
   - In the keymap, add `Sidebar::Resize`, `Side` and the hint arm.
@@ -109,10 +109,27 @@ The patch name serializer writes a present clearing `OptionalName` as `""`, not 
   - In `Local`, add `now` and the `Width` handling, with `configure` called on reload.
 
   Verify P3's scenarios in two attached clients. On a 40-column terminal, the width stops where the pane area keeps 20.
-- [ ] 5.2 Verify the keys:
+- [x] 5.2 Verify the keys:
   - `client.sidebar.resize` with `direction = "up"` fails `ship config check` with its line and column.
   - The resize mode's hints end with `shift-h sidebar left  shift-l sidebar right  esc normal`.
   - With the sidebar hidden the keys do nothing, and showing it keeps the width.
+
+### Consolidated slice 3 evidence
+
+Tasks 4.1–5.2 are complete. Cyan accepted section 4 after a live test on 2026-10-14, reporting fully real-time, smooth dragging and successful two-axis corner grabs, and explicitly requested its tasks be marked complete. No later slice started.
+
+Verified on macOS with owned temporary servers, real full-screen clients in PTYs, rendered ANSI cells inspected through a temporary pyte dependency, CLI/HTTP geometry, and an owned proxy adding 100 ms per forwarding direction:
+- A vertical border moved five columns, retained the selected pane, clamped its neighbor to one content column, and accepted a changed final position on release. An unmoved press preserved the full tab and revision. The held cell used the cyan selected-border color, and rendered border positions matched published geometry.
+- A 2x2 junction moved both axes. Closing its grabbed pane ended subsequent motion/release without an error.
+- Sidebar rows and fold markers acted on release, not press; motion away and back suppressed both actions.
+- Two clients kept independent widths. Divider motion added ten columns; three `shift-l` presses added three, `shift-h` narrowed, and the documented five-column binding worked. Hiding kept the chosen width and made resize keys no-ops. An unrelated reload preserved it; a changed configured width reset it. The pane area kept 20 columns on 40- and 25-column terminals, with a 10-column sidebar minimum when space permitted.
+- Resize hints included `shift-h sidebar left  shift-l sidebar right  esc normal`. An `up` sidebar direction failed config checking with line and column.
+- Existing input paths passed: an unselected content click selected without reaching the program; a selected program's drag/release followed beyond its pane; wheel input reached an unselected program; a shell text drag copied through OSC 52.
+- Through the delay proxy, a selecting create ran before border resizing. The border press did not overwrite that selection. 81 motions plus final release settled with one resize request, even with a key queued between positions. Fast motion across Neovim and a shell settled at the final published geometry without a backlog. This demonstrates ordering and coalescing, not subjective feel.
+
+Formatting, workspace Clippy with warnings denied, debug/release workspace builds, `ship-core` checks with and without `clap`, strict OpenSpec validation, and `git diff --check` passed on the final changes.
+
+Temporary probe: `/tmp/ship-mouse-slice3-probe.py`; results: `/tmp/ship-mouse-slice3-results.log`. No permanent test code added. README and guide describe only the newly implemented behavior. Cyan's live feedback supplies the accepted responsiveness and junction checks; the comparison reported was with Herdr, not a formal tmux comparison. Two-terminal coverage, the complete hand-run SC-003 regression set, and Linux remain unverified; they are not claimed by this checkpoint acceptance.
 
 ## 6. Tab drops
 

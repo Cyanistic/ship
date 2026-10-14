@@ -17,6 +17,7 @@ use ship_core::{
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use super::draw::tab_label;
+use crate::keymap::Side;
 
 /// Drawn before the selected row and blanked to its width on the others,
 /// whenever something is selected.
@@ -25,15 +26,24 @@ const OPEN: &str = "▾ ";
 const CLOSED: &str = "▸ ";
 /// tui-tree-widget's fixed indent per level.
 const INDENT: u16 = 2;
+const MIN_WIDTH: u16 = 10;
+const MIN_PANES: u16 = 20;
 
 pub(super) struct Sidebar {
     collapsed: HashSet<IdOf<Tab>>,
     pub shown: bool,
-    pub width: u16,
+    configured: u16,
+    chosen: Option<u16>,
+    area: Rect,
     /// The tree as last drawn, for hit-testing.
     rendered: TreeState<IdOf<Tab>>,
     /// Where the tree was last drawn.
     tree: Rect,
+}
+
+pub(super) enum Hit {
+    Row(Row),
+    Divider,
 }
 
 /// A sidebar row under the pointer.
@@ -48,14 +58,60 @@ impl Sidebar {
         Self {
             collapsed: HashSet::new(),
             shown: true,
-            width,
+            configured: width,
+            chosen: None,
+            area: Rect::ZERO,
             rendered: TreeState::default(),
             tree: Rect::ZERO,
         }
     }
 
     pub fn width(&self) -> u16 {
-        if self.shown { self.width } else { 0 }
+        if self.shown {
+            self.chosen.unwrap_or(self.configured).max(MIN_WIDTH)
+        } else {
+            0
+        }
+    }
+
+    pub fn configure(&mut self, width: u16) {
+        if self.configured != width {
+            self.configured = width;
+            self.chosen = None;
+        }
+    }
+
+    pub fn set_width(&mut self, width: u16, cols: u16) {
+        self.chosen = Some(Self::clamp(width, cols));
+    }
+
+    pub fn nudge(&mut self, side: Side, amount: u16, cols: u16) {
+        if self.shown {
+            let width = Self::clamp(self.width(), cols);
+            self.set_width(
+                match side {
+                    Side::Left => width.saturating_sub(amount),
+                    Side::Right => width.saturating_add(amount),
+                },
+                cols,
+            );
+        }
+    }
+
+    /// The pane area's minimum wins when both minimums cannot fit.
+    pub fn clamp(width: u16, cols: u16) -> u16 {
+        let max = cols.saturating_sub(MIN_PANES);
+        width.clamp(MIN_WIDTH.min(max), max)
+    }
+
+    pub fn hit(&self, at: Position) -> Option<Hit> {
+        if !self.shown || !self.area.contains(at) {
+            return None;
+        }
+        if at.x == self.area.right().saturating_sub(1) {
+            return Some(Hit::Divider);
+        }
+        self.row_at(at).map(Hit::Row)
     }
 
     /// Forget folds for removed tabs or tabs without children.
@@ -104,7 +160,7 @@ impl Sidebar {
 
     /// The row drawn at `position`, if any. The marker's column repeats the
     /// tree widget's layout: the highlight symbol, then the indent.
-    pub fn row_at(&self, position: Position) -> Option<Row> {
+    fn row_at(&self, position: Position) -> Option<Row> {
         if !self.shown {
             return None;
         }
@@ -137,6 +193,7 @@ impl Sidebar {
 
     pub fn draw(&mut self, frame: &mut Frame, area: Rect, tabs: &Tabs, selection: Option<NodeId>) {
         self.rendered = TreeState::default();
+        self.area = area;
         if area.is_empty() {
             return;
         }

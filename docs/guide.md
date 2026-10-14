@@ -146,7 +146,7 @@ ship tab close --tab "$TAB"
 
 `alt-shift-h`/`j`/`k`/`l` swaps the selected pane with its neighbor in that direction. The programs and their screens move with them.
 
-`alt-r` enters resize mode, where `h`/`j`/`k`/`l` move the selected pane's edge on that side by one cell. At the edge of the tab, it moves the opposite edge instead, so `l` on the rightmost pane narrows it. `esc` leaves resize mode.
+`alt-r` enters resize mode, where `h`/`j`/`k`/`l` move the selected pane's edge on that side by one cell. At the edge of the tab, it moves the opposite edge instead, so `l` on the rightmost pane narrows it. `shift-h` and `shift-l` narrow or widen this client's sidebar by one column. They do nothing while the sidebar is hidden. `esc` leaves resize mode.
 
 The same edits from the CLI each print the tab:
 ```sh
@@ -184,7 +184,11 @@ ship tab close --tab "$TAB"
 
 ## Mouse and clipboard
 
-Click a pane to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it. Clicks wait behind earlier input but keep the target you clicked; if it disappears before the click runs, nothing happens. While input is waiting, a press on even the selected pane selects it instead of reaching its program.
+Click a pane's contents to select it; that click isn't passed to the program. Click a sidebar row to select its tab, or its `▾`/`▸` marker to fold or unfold it. Sidebar clicks act on release, only if the pointer hasn't moved a cell during the press. Clicks wait behind earlier input but keep the target you clicked; if it disappears before the click runs, nothing happens. While input is waiting, a press on even the selected pane's contents selects it instead of reaching its program.
+
+Drag a shared border between panes with the left button to resize them; a junction grabs both axes. The held border uses the selected-border color, but doesn't select a pane or send the press to a program. A press without motion does nothing. Borders stop before any pane's content becomes smaller than one column or row; lone and zoomed panes have no border to grab. If the grabbed pane closes, the drag ends quietly. Positions take their turn behind earlier input. On a slow link, the border can trail the pointer, then settle at the latest position rather than replaying every motion.
+
+Drag the sidebar's right divider to resize it for this client. Its width stays between 10 columns and the width that leaves 20 columns for panes; on narrower terminals, the pane minimum wins. Hiding and showing the sidebar keeps the width. Neither dragging nor the resize-mode keys writes to your config, and an unrelated config reload keeps your chosen width. Changing `sidebar_width` replaces it. Tab row drops and right-click menus are not built yet.
 
 Programs that ask for the mouse, like Neovim with `mouse=a`, get clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
 
@@ -213,6 +217,14 @@ These apply to panes opened afterwards; existing panes keep what they started wi
 sidebar_width = 40   # default: 26 columns
 mouse = true         # false leaves selection to your terminal
 ```
+
+`sidebar_width` is the starting width, subject to the limits described under [Mouse and clipboard](#mouse-and-clipboard). A drag or `client.sidebar.resize` overrides it until the client exits or the configured value changes. For a five-column key action:
+```toml
+[client.modes.normal.keys]
+"alt-[" = { action = { client.sidebar.resize = { direction = "left", amount = 5 } } }
+```
+
+Only `left` and `right` are accepted; omitting `amount` moves one column. This action has no CLI command.
 
 A running client reloads its settings and keys when you save the file. If the file has a mistake, the client keeps its current settings and shows the error. `ship config check` reports the first mistake with its line and column, and exits non-zero.
 
