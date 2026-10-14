@@ -1,3 +1,5 @@
+> Superseded on 2026-10-13 by `openspec/changes/mouse/design/product.md`, which carries this change forward with right-click menus against server-owned selection and the ordered input lane.
+
 # Mouse drag: architecture
 
 Status: Draft, written on 2026-10-11 against the [product paper](product.md) as locked with amendment A-1. Cyan picked absolute border positions in chat before this draft ("i think i prefer the amended version. let's go for it!") and kept `amount` beside the new `to` ("should we keep it as amount?", answered with the recommendation and no objection). Not locked.

@@ -1,3 +1,5 @@
+> Superseded on 2026-10-13 by `openspec/changes/mouse/design/product.md`, which carries this change forward with right-click menus against server-owned selection and the ordered input lane.
+
 # Mouse drag
 
 Status: Locked on 2026-10-11, approved by Cyan in Plannotator review ("LGTM"). Written on 2026-10-11 from a design conversation with Cyan. Cyan accepted every recommendation in the interview round ("all recommendations. looks good to me! write it up!"). In the first review Cyan asked for a key action to resize the sidebar like panes, and approved `client.sidebar.resize` bound to `shift-h` and `shift-l` in resize mode ("looks good to me"). The approval doesn't authorize implementation; Cyan requests that separately.
