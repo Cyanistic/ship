@@ -96,7 +96,7 @@ ship pane create --tab "$TAB" --right-click-passthrough -- sh
 ship tab close --tab "$TAB"
 ```
 
-`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. The setting is stored and published now; the right-click menu routing that uses it is not built yet. `--right-click-passthrough` on pane create starts it on.
+`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. The pane menu can toggle it, but forwarding right-clicks to programs is not built yet; right-clicks still open the menu. `--right-click-passthrough` on pane create starts it on.
 
 Bindings use the same fields under `server.tab.set` and `server.pane.set`:
 ```toml
@@ -192,13 +192,41 @@ Drag the sidebar's right divider to resize it for this client. Its width stays b
 
 Drag a sidebar row to move its tab, carrying its children and running programs with it. The pointer's row picks the gap above that row, or the gap after the last row when below it. Move left or right in two-column indent steps to choose the nesting depth. The depth is limited by the rows on either side of the gap; an underline on the row above shows where the tab will land. Above the first tab, the underline is on the blank row under `tabs`.
 
-Release to move the tab. Dropping as a child of a folded tab unfolds that parent in this client. Dragging doesn't select the tab, and a moved selected tab stays selected. A drop into the tab's own subtree or back where it already is shows no line and does nothing. Releasing outside the sidebar cancels the drop. A queued drop is checked again at its turn; if its source or target has disappeared or the move is no longer valid, nothing happens and no error is shown. Right-click menus are not built yet.
+Release to move the tab. Dropping as a child of a folded tab unfolds that parent in this client. Dragging doesn't select the tab, and a moved selected tab stays selected. A drop into the tab's own subtree or back where it already is shows no line and does nothing. Releasing outside the sidebar cancels the drop. A queued drop is checked again at its turn; if its source or target has disappeared or the move is no longer valid, nothing happens and no error is shown.
 
-Programs that ask for the mouse, like Neovim with `mouse=a`, get clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
+Programs that ask for the mouse, like Neovim with `mouse=a`, get left clicks, drags and the wheel in the selected pane. Otherwise, drag to select text, double-click for a word or triple-click for a line, and release to copy. Dragging past the edge scrolls. Everyone viewing the pane sees the highlight, but only the client that made it gets the copy.
 
 Copies go through your terminal's clipboard escape (OSC 52). Most modern terminals support it; macOS Terminal.app doesn't, and some terminals cap how much you can copy. When a program copies to the clipboard itself, such as Neovim's `"+y`, every client viewing that tab receives it. Programs can't read your clipboard.
 
 To use your terminal's own selection instead, hold its mouse override key (usually Shift), or set `mouse = false` under `[client]`.
+
+### Right-click menus
+
+Right-click a pane's contents, label or border for its menu, or a sidebar row for the tab menu. This selects the clicked pane or tab, in input order, before any picked action. On shared borders the menu belongs to the pane below or to the right, and to the bottom-right pane at a junction. Labels and outer edges belong to their own pane.
+
+Click `≡` at the end of the `tabs` heading, or right-click the heading or the space below the last tab, for the global menu. It does not change selection. Menus belong only to the client that opens them. They use your terminal's default foreground and background, with ANSI cyan borders and a bold black-on-cyan highlight. These colors follow your terminal palette, not a separate Ship theme.
+
+Hover over an item to highlight it, then click or press Enter to run it. Up/Down and `k`/`j` also move the highlight. Moving over the border or outside the menu keeps the last highlight. Esc closes without acting. A press outside closes the menu without selecting or sending input there; resizing the terminal also closes it. While open, the menu consumes keys, bindings and paste instead of passing them to a pane.
+
+The defaults are:
+- Pane: split right, split down, zoom, right-click passthrough, close.
+- Tab: new tab, new child tab, close. A new tab is created just after the clicked tab; a new child is appended under it. Both start a selected shell.
+- Global: new tab, hide sidebar, reload config, detach.
+
+Menu actions work like key actions, including the status-line error on failure. Mode changes, sidebar actions and reloads apply immediately; other actions wait behind earlier input. The passthrough toggle stores the setting, but program right-click forwarding is still pending.
+
+Customize each target under `[client.menus]`:
+
+```toml
+[client.menus]
+pane = [
+  { action = { server.pane.zoom = {} }, label = "fill" },
+  { action = { server.pane.close = {} } },
+]
+tab = []
+```
+
+A named target replaces its whole default list, in the order given; omitted targets keep their defaults. An empty list disables that menu, leaving the old right-click behavior in place. Each item requires exactly one action, written as in a key binding. Without `label`, it uses the action's default label. Unknown targets, item fields or actions fail `ship config check` with a line and column. Valid saves reload menus with the rest of the client settings and close any open menu; invalid saves keep the last good settings. With `[client] mouse = false`, no menu opens.
 
 ## Configuration
 
@@ -250,7 +278,7 @@ kind = "oneshot"                                  # back to normal after one key
 "ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
 
 [client.modes.resize.keys]
-"f" = { action = { server.pane.zoom = {} }, hint = "fill" }
+"f" = { action = { server.pane.zoom = {} }, label = "fill" }
 ```
 
 Migrate old bindings from `[{ … }]` to `{ action = { … } }`, and from `[]` to `{}`. Bind separate steps to separate keys, rather than an action list. A bare action without the `action` field, or an unknown binding field such as `hnt`, is a config error.
@@ -263,8 +291,10 @@ The four default create keys select what they make. In your own binding, set `se
 
 ### The status line
 
-There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `hint` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
+There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `label` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
 
 ## Upgrading
+
+If an older config uses `hint` on a key binding, rename it to `label`. `hint` is no longer accepted. The label still appears after the chord in the status line.
 
 Update the client and server together. `ship` checks the server's protocol version and refuses to talk to one that doesn't match, so after rebuilding, run `ship server stop` and start again. Stopping the server ends every program in it, so finish or save running work first.

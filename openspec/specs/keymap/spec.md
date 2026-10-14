@@ -187,10 +187,10 @@ Every action SHALL be accepted in the config even when its feature isn't built. 
 - **THEN** it rejects the arguments before submitting a swap
 
 ### Requirement: Binding syntax
-The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `hint`, the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. An action written without `action`, or any other key in the table, SHALL be a config error with its line and column. Strict rejection of positional list forms is not required, per Cyan's slice-1 amendment; their incidental acceptance by Serde is not documented binding syntax.
+The documented binding syntax SHALL be a table with an optional `action`, holding exactly one action, and an optional `label`, the text used in the binding's status-line hint: `"alt-r" = { action = { client.mode = "resize" } }`. `{}` SHALL unbind the chord. An action written without `action`, or any other key in the table, SHALL be a config error with its line and column. Strict rejection of positional list forms is not required, per Cyan's slice-1 amendment; their incidental acceptance by Serde is not documented binding syntax.
 
 #### Scenario: Accepted forms
-- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-y" = { action = { server.tab.close = {} }, hint = "close" }` and `"alt-q" = {}`, and the user runs `ship config check`
+- **WHEN** a file binds `"alt-t" = { action = { server.tab.create = {} } }`, `"alt-y" = { action = { server.tab.close = {} }, label = "close" }` and `"alt-q" = {}`, and the user runs `ship config check`
 - **THEN** it prints nothing and exits 0
 
 #### Scenario: An action without `action`

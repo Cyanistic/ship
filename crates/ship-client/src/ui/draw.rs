@@ -108,6 +108,10 @@ pub(super) fn draw(frame: &mut Frame, local: &mut Local) -> Option<Cursor> {
         // A cursor under the overlay would sit on top of it.
         cursor = cursor.filter(|(at, _)| !row.contains(*at));
     }
+    if let Some(menu) = &mut local.menu {
+        menu.draw(frame);
+        return None;
+    }
     let (at, cursor) = cursor?;
     frame.set_cursor_position(at);
     Some(cursor)

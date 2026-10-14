@@ -46,8 +46,8 @@ That is about +650 client, +115 server and core, and +5 vendored. If `menu.rs` p
 ```toml
 [client.modes.resize.keys]
 # …existing h, j, k, l, esc
-"shift-h" = { action = { client.sidebar.resize = { direction = "left" } }, hint = "sidebar left" }
-"shift-l" = { action = { client.sidebar.resize = { direction = "right" } }, hint = "sidebar right" }
+"shift-h" = { action = { client.sidebar.resize = { direction = "left" } }, label = "sidebar left" }
+"shift-l" = { action = { client.sidebar.resize = { direction = "right" } }, label = "sidebar right" }
 
 [client.menus]
 pane = [
@@ -743,7 +743,7 @@ pub struct MenuItem {
 }
 
 impl MenuItem {
-    /// The label, else `Action::hint`.
+    /// The label, else `Action::label`.
     pub fn label(&self) -> Cow<'_, str>;
 }
 
@@ -775,7 +775,7 @@ pub enum Side {
     Right,
 }
 
-// `Action::hint` gains an arm: `Sidebar(Resize { direction })` gives the
+// `Action::label` gains an arm: `Sidebar(Resize { direction })` gives the
 // direction's name, like pane resize.
 // `Client` (the file struct) gains `#[serde(default)] menus: MenusFile`.
 ```
@@ -806,7 +806,7 @@ None.
 2. **`set` replaces `rename`; the passthrough attribute.** Files: `command.rs`, `model.rs` (`Switch`, `Pane` field, `Named` removed), `protocol.rs` (`SetTab`, `SetPane`, `PaneInput`), `routes.rs`, `lib.rs`, `state.rs` (`Set` handlers, `start_pane`), `execute.rs`, `api.rs`. Delivers FR-037 and FR-039 to FR-043, and P6. Checks: P6's four scenarios as written. `ship pane set --right-click-passthrough toggle` twice returns to the first value. `ship pane create --right-click-passthrough -- sh` shows `rightClickPassthrough: true`, and a tab's starter pane shows `false`. `--right-click-passthrough maybe` exits 2. A config binding `server.tab.rename` fails `ship config check` with line and column, and `server.pane.set = { right_click_passthrough = "toggle" }` passes. An empty `set` leaves the revision unchanged. A second client's replica shows the new value.
 3. **Mouse tracking on `Screen`.** Files: `vendor/ratatui-ghostty/src/session.rs`, `pane.rs` (`capture`), `screen.rs`. Delivers what SC-005 allows for FR-038. Checks: on a raw attach stream, a pane's `Screen` carries `mouse: true` while Neovim with `mouse=a` runs, and no `mouse` at the shell prompt, in `less` without `--mouse`, or after Neovim quits. `less --mouse` turns it on. The flag flips with the program's mode change without any other screen change (confirms the reading in the rationale).
 4. **Gestures and border drags.** Files: `lane.rs` (`Edge`, `EdgeAt`, `Item::Resize`, coalescing), `mouse.rs` (`Gesture` with `Pressed` and `Border`, `edges_at`, sidebar clicks on release), `mod.rs` (`Scene`, `Local::scene`, `redraw` taking `Local`, the `Resize` turn, redraw while dragging), `panes.rs` (drawing from `Scene`, held edges), `draw.rs` (`draw` taking `Local`). Delivers FR-001, FR-002, FR-004 to FR-007, FR-009 to FR-013 and P1. Checks: P1's drag scenarios by hand, with `ship tab get` geometry matching what's drawn. A 2x2 junction moves both edges. A press on the border of an unselected pane leaves selection alone, even with a `sleep`-delayed create waiting. A border click without motion does nothing. A fast drag over Neovim and a shell feels like a tmux drag and leaves no backlog (SC-002). Through a proxy adding 100 ms each way, the border trails and then settles at the pointer. Closing the dragged pane from a script mid-drag ends the drag with no error. Sidebar rows select and fold on release, not press, and a row press that moves does neither. Every other mouse behavior is as before (SC-003).
-5. **Sidebar width.** Files: `sidebar.rs` (`configured`, `chosen`, `set_width`, `nudge`, `hit` with `Divider`), `mouse.rs` (`Divider`), `keymap.rs` (`Sidebar::Resize`, `Side`, hint arm), `defaults.toml` (`shift-h`, `shift-l`), `mod.rs` (`Local::now`, `Width`, `configure` on reload). Delivers FR-014 to FR-019 and P3. Checks: P3's scenarios in two attached clients. On a 40-column terminal, the width stops so the pane area keeps 20. `client.sidebar.resize` with `direction = "up"` fails `ship config check` with line and column. The resize mode's hints end with `shift-h sidebar left  shift-l sidebar right`. With the sidebar hidden, the keys do nothing and showing it keeps the width.
+5. **Sidebar width.** Files: `sidebar.rs` (`configured`, `chosen`, `set_width`, `nudge`, `hit` with `Divider`), `mouse.rs` (`Divider`), `keymap.rs` (`Sidebar::Resize`, `Side`, label arm), `defaults.toml` (`shift-h`, `shift-l`), `mod.rs` (`Local::now`, `Width`, `configure` on reload). Delivers FR-014 to FR-019 and P3. Checks: P3's scenarios in two attached clients. On a 40-column terminal, the width stops so the pane area keeps 20. `client.sidebar.resize` with `direction = "up"` fails `ship config check` with line and column. The resize mode's hints end with `shift-h sidebar left  shift-l sidebar right`. With the sidebar hidden, the keys do nothing and showing it keeps the width.
 6. **Tab drops.** Files: `sidebar.rs` (`drawn`, `gap`, `movable`, the drop line), `lane.rs` (`TabMove`, `Item::Move`), `mouse.rs` (`Row`, `gap`), `mod.rs` (the `Move` turn), `draw.rs` (passing the gap to the sidebar). Delivers FR-020 to FR-026 and P2. Checks: P2's scenarios, checking `ship tab list` against the line shown before each release. The depth range holds at a gap between a deep row and a shallower one. Dropping into the dragged tab's own subtree shows no line and does nothing. A drop whose target a script closes before its turn does nothing and shows no error. A folded parent unfolds after a child drop. Selection doesn't change, and a moved selected tab stays selected.
 7. **Menus.** Files: `menu.rs`, `keymap.rs` (`Menus`, `MenuItem`, `MenusFile`), `defaults.toml` (`[client.menus]`), `keys.rs` (`handled`), `mouse.rs` (right-click routing, `owner`, button), `sidebar.rs` (`Heading`, `Button`, `Below`, button drawing), `mod.rs` (`Local.menu`, menu-first routing, select then open), `draw.rs` (menu last). Delivers FR-027 to FR-036 (FR-038's passthrough branch comes in slice 8) and P4. Checks: P4's scenarios by hand, including the replaced and emptied config. A menu near the bottom-right corner fits on screen. A right-click on a border opens the menu for the pane FR-030 names, at a junction too. An item that fails shows its error on the status line. "hide sidebar" and "reload config" act at once, and a menu action after a pending create acts on the clicked target (SC-004). `[client.menus] pain = []` and an item with `lable` fail `ship config check` with line and column. With `mouse = false`, nothing opens (FR-003). `menu.rs` is under about 250 lines.
 8. **Passthrough at the router.** Files: `mouse.rs` (`passes`, the passthrough branch). Delivers FR-038 and P5. Checks: P5's scenarios with Neovim `mouse=a` in two clients. A right drag in Neovim's visual mode follows past the pane's edge. A passthrough pane's label and border still open the menu, and the shell prompt in a passthrough pane opens the menu. The right-clicked pane isn't selected when the click passes through.

@@ -14,6 +14,7 @@ use ship_core::{
 use super::{
     Scene,
     lane::{Edge, EdgeAt, TabMove},
+    menu::{self, Target},
     sidebar::{Gap, Hit, Row, movable},
 };
 
@@ -24,6 +25,7 @@ pub(super) enum Clicked {
     Resize(Vec<EdgeAt>),
     Move(TabMove),
     Width(u16),
+    Menu(Target, Position),
 }
 
 #[derive(Default)]
@@ -180,16 +182,38 @@ impl Mouse {
                     content(id)?,
                 ))))
             }
-            MouseEventKind::Down(MouseButton::Left) if !scene.panes.contains(at) => {
-                self.gesture = Some(match scene.sidebar.hit(at)? {
-                    Hit::Row(row) => Gesture::Pressed { at, row },
-                    Hit::Divider => Gesture::Divider { at, moved: false },
-                });
-                None
+            MouseEventKind::Down(button) if !scene.panes.contains(at) => {
+                match (button, scene.sidebar.hit(at)?) {
+                    (MouseButton::Left, Hit::Button)
+                    | (MouseButton::Right, Hit::Heading | Hit::Button | Hit::Below) => {
+                        (!menu::items(scene.menus, Target::Global).is_empty())
+                            .then_some(Clicked::Menu(Target::Global, at))
+                    }
+                    (MouseButton::Right, Hit::Row(row)) => {
+                        let target = Target::Tab(row.tab);
+                        (!menu::items(scene.menus, target).is_empty())
+                            .then_some(Clicked::Menu(target, at))
+                    }
+                    (MouseButton::Left, Hit::Row(row)) => {
+                        self.gesture = Some(Gesture::Pressed { at, row });
+                        None
+                    }
+                    (MouseButton::Left, Hit::Divider) => {
+                        self.gesture = Some(Gesture::Divider { at, moved: false });
+                        None
+                    }
+                    _ => None,
+                }
             }
             _ if !scene.panes.contains(at) => None,
             kind => {
                 let geometry = scene.geometry?;
+                if kind == MouseEventKind::Down(MouseButton::Right)
+                    && let Some(pane) = owner(geometry, relative)
+                    && !menu::items(scene.menus, Target::Pane(pane)).is_empty()
+                {
+                    return Some(Clicked::Menu(Target::Pane(pane), at));
+                }
                 if kind == MouseEventKind::Down(MouseButton::Left) {
                     let edges = edges_at(geometry, relative);
                     if !edges.is_empty() {
@@ -276,6 +300,17 @@ fn edges_at(geometry: &TabGeometry, at: Position) -> Vec<Edge> {
                 .map(|(pane, _)| Edge { pane: *pane, axis })
         })
         .collect()
+}
+
+/// Shared borders belong to the lowest, then rightmost containing frame.
+/// The same rule gives each label and outer edge to its own pane.
+fn owner(geometry: &TabGeometry, at: Position) -> Option<IdOf<Pane>> {
+    geometry
+        .panes
+        .iter()
+        .filter(|(_, pane)| pane.frame.contains(at))
+        .max_by_key(|(_, pane)| (pane.frame.y, pane.frame.x))
+        .map(|(id, _)| *id)
 }
 
 /// `event` for `pane`, relative to its `content`, negative above or left.

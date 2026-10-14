@@ -29,6 +29,7 @@ const CLOSED: &str = "▸ ";
 const INDENT: u16 = 2;
 const MIN_WIDTH: u16 = 10;
 const MIN_PANES: u16 = 20;
+const BUTTON: &str = "≡";
 
 pub(super) struct Sidebar {
     collapsed: HashSet<IdOf<Tab>>,
@@ -58,6 +59,9 @@ pub(super) struct Gap {
 
 pub(super) enum Hit {
     Row(Row),
+    Heading,
+    Button,
+    Below,
     Divider,
 }
 
@@ -127,7 +131,17 @@ impl Sidebar {
         if at.x == self.area.right().saturating_sub(1) {
             return Some(Hit::Divider);
         }
-        self.row_at(at).map(Hit::Row)
+        if at.y == self.area.y {
+            return Some(if at.x == self.area.right().saturating_sub(2) {
+                Hit::Button
+            } else {
+                Hit::Heading
+            });
+        }
+        if let Some(row) = self.row_at(at) {
+            return Some(Hit::Row(row));
+        }
+        (at.y >= self.tree.y).then_some(Hit::Below)
     }
 
     /// Forget folds for removed tabs or tabs without children.
@@ -281,6 +295,10 @@ impl Sidebar {
                 height: 1,
                 ..content
             },
+        );
+        frame.render_widget(
+            Paragraph::new(BUTTON).dark_gray(),
+            Rect::new(content.right().saturating_sub(1), content.y, 1, 1).intersection(content),
         );
         let mut state = TreeState::default();
         let items = self.items(tabs, &mut Vec::new(), &mut state);

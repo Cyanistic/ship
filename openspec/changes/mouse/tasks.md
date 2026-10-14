@@ -104,7 +104,7 @@ The patch name serializer writes a present clearing `OptionalName` as `""`, not 
 - [x] 5.1 Implement the width:
   - In `Sidebar`, add `configured`, `chosen`, `set_width`, `nudge` and the `Divider` hit.
   - In `Mouse`, add `Gesture::Divider`.
-  - In the keymap, add `Sidebar::Resize`, `Side` and the hint arm.
+  - In the keymap, add `Sidebar::Resize`, `Side` and the label arm.
   - Bind `shift-h` and `shift-l` in `defaults.toml`.
   - In `Local`, add `now` and the `Width` handling, with `configure` called on reload.
 
@@ -166,7 +166,7 @@ The tree widget's `rendered_at` returns its final identifier even below the last
 
 ## 7. Menus
 
-- [ ] 7.1 Implement the menus:
+- [x] 7.1 Implement the menus:
   - Add `ui/menu.rs`.
   - In the keymap, add `Menus`, `MenuItem` and `MenusFile`, and put `[client.menus]` in `defaults.toml`.
   - Add `keys::handled`.
@@ -179,13 +179,38 @@ The tree widget's `rendered_at` returns its final identifier even below the last
   - A menu near the bottom-right corner fits on screen.
   - A right-click on a border opens the menu for the pane that context-menus names, at a junction too.
   - A terminal resize closes an open menu (G2).
-- [ ] 7.2 Verify the actions and the config:
+- [x] 7.2 Verify the actions and the config:
   - An item that fails shows its error on the status line.
   - `hide sidebar` and `reload config` act at once.
   - A menu action after a pending create acts on the clicked target (SC-004).
   - `[client.menus] pain = []` and an item with `lable` fail `ship config check` with their line and column.
   - With `mouse = false`, no menu opens.
   - `menu.rs` is under about 250 lines.
+
+### Slice 7 evidence
+
+Tasks 7.1–7.2 are complete. Cyan requested original slice 7 alone, so slice 8's passthrough routing remains untouched. All runtime checks used owned temporary servers, config files and proxies on random loopback ports; Cyan's running server was not contacted or changed.
+
+Verified on macOS with real full-screen clients in PTYs, ANSI cells inspected through temporary pyte, and CLI inspection of the resulting tabs, panes and attachment selections:
+- P4's observable scenarios passed: the default pane menu selected its clicked target and highlighted the first item; mouse picking split right selected the new pane; `j` twice and Enter zoomed the target. Arrow keys and `k` also navigated. The passthrough item toggled the shared attribute, without implementing program forwarding.
+- Tab menus created a selected sibling shell just after the clicked tab, or appended a selected child shell. Right-clicking a fold marker selected the tab without folding it. The heading button, heading right-click and below-last-row right-click opened the global menu without changing selection.
+- The remaining default actions passed: split down selected the lower pane; pane close removed only that pane; tab close removed its subtree; global new tab created a selected sibling shell; detach exited cleanly.
+- Label cells, shared vertical and horizontal borders, junctions and outer edges selected the lowest/rightmost containing frame across a five-pane layout. A bottom-right menu fit fully inside the terminal. Terminal resize closed it. Menus appeared only in the opening client, with its cursor hidden; another client continued sending keys to a raw-mode capture program.
+- Typed keys, bound chords and bracketed paste were swallowed while open. Esc and outside left/middle presses closed without selecting another target or forwarding input. Valid config reload closed an overlay; an invalid live save kept it and the last good menus while showing the config error.
+- Replacing only `pane` retained tab/global defaults. Label fallback, empty targets, and the previous selected-program right-click path passed. `mouse = false` prevented menus. Unknown targets, item fields and actions, missing/empty actions and multiple actions failed `ship config check` with line and column.
+- A failed menu resize showed the same red status-line request error as a key action. An owned proxy held a selecting create before the server: the menu opened while it waited, and the picked zoom ran after target selection, zooming the clicked existing pane rather than the created pane. Hide sidebar acted while the create was held. Explicit reload disabled mouse before the file watcher's debounce and before the held create finished. A mode item entered resize mode immediately.
+- The border/sidebar/input probe passed again. The tab-drop probe also passed with empty menus configured, preserving its pre-menu right-click assumptions; this included stale drops, depth clamping, local folding and delayed-lane re-checks.
+- Formatting, workspace Clippy with warnings denied, debug/release workspace builds, `ship-core` checks with and without `clap`, strict OpenSpec validation and `git diff --check` passed. `ui/menu.rs` is 146 lines. No new dependency or permanent test code added.
+
+README and guide describe menus, configuration and the still-pending program passthrough. Temporary probe: `/tmp/ship-mouse-slice7-probe.py`; results: `/tmp/ship-mouse-slice7-results.log`; regressions: `/tmp/ship-mouse-slice7-border-regression.log` and `/tmp/ship-mouse-slice7-tab-regression.log`. Live two-terminal hand checks, responsiveness judgment under SC-004, and Linux remain unverified.
+
+Cyan's menu follow-up adds hover highlighting and terminal-palette colors. Mouse movement highlights the visible item without activating it; movement over the border or outside keeps the last highlight. Ratatui's persistent `ListState` supplies the rendered viewport offset, so hovering a clipped list does not shift the viewport or address the wrong item. The menu uses terminal-default foreground/background, ANSI cyan borders, and bold ANSI black text on an ANSI cyan highlight, rather than fixed RGB colors or reverse video.
+
+The updated macOS PTY probe passed the full menu suite, including movement across multiple items without activation, border/outside movement, hover followed by Enter, and hovering the top visible row of a 45-item scrolled menu without shifting it. It also verified all-motion capture, indexed cyan/black cell styles, default normal-row colors, bold highlighting and the absence of reverse video. Existing border and tab-drop regression probes passed again. No visual contrast checks in foot or other terminal themes are claimed; Linux and live terminal/theme comparisons remain unverified.
+
+Cyan approved the review's naming amendment: bindings and menu items now both accept `label`, and the action fallback is `Action::label()`. The composed `chord label` status text remains a hint. Default sidebar bindings, guide examples, published keymap/status-line specs and the active mouse paper/spec use the new field. Old binding `hint` fields are rejected as unknown fields, without a compatibility alias.
+
+The temporary `/tmp/ship-binding-label-probe.py` passed local config checks for labels in bindings and menus and rejection of obsolete `hint` fields with line and column. In a real macOS PTY, resize mode rendered `f fill`, the unlabeled fallback `g zoom`, and both default sidebar labels; an unbound chord was omitted. A custom menu label rendered, and the labeled key still zoomed its pane. The full menu probe passed again. Results: `/tmp/ship-binding-label-results.log`. Checks used only owned temporary servers and config files; no running user server or config was changed.
 
 ## 8. Passthrough at the router
 

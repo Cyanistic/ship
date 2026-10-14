@@ -4,6 +4,7 @@ mod draw;
 mod keys;
 mod lane;
 mod memory;
+mod menu;
 mod mouse;
 mod observer;
 mod panes;
@@ -54,6 +55,7 @@ use self::{
     keys::{Handled, Keys},
     lane::{Item, Lane, Turn},
     memory::Memory,
+    menu::{Menu, Picked},
     mouse::{Clicked, Mouse},
     observer::Observer,
     sidebar::{Sidebar, movable},
@@ -62,7 +64,7 @@ use self::{
 use crate::{
     Client, KeyScope, Scope,
     keymap::{
-        Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction,
+        Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction, Menus,
         Sidebar as SidebarAction,
     },
     watch,
@@ -170,6 +172,7 @@ async fn drive(
         sidebar: Sidebar::new(settings.sidebar_width),
         keys: Keys::new(settings.keymap),
         mouse: Mouse::default(),
+        menu: None,
         input: None,
         message,
     };
@@ -227,6 +230,7 @@ async fn drive(
                     putting = None;
                     lane.clear();
                     local.mouse = Mouse::default();
+                    local.menu = None;
                     client.forget();
                     local.observer.connected = false;
                     if let Some(remembered) = local.observer.remembered(view_area(terminal, &local.sidebar)) {
@@ -263,7 +267,7 @@ async fn drive(
             save = next(&mut saves) => {
                 match save {
                     Some(()) => {
-                        local.message = reload(&mut local.keys, &mut local.sidebar, guard, &mut local.mouse, config).err().map(|error| error.to_string());
+                        local.message = local.reload(guard, config).err().map(|error| error.to_string());
                     }
                     None => saves = None,
                 }
@@ -279,9 +283,10 @@ async fn drive(
             event = terminal_events.next() => match event {
                 Some(Ok(Event::Resize(cols, rows))) => {
                     terminal = (cols, rows);
+                    local.menu = None;
                     true
                 }
-                Some(Ok(Event::Mouse(event))) if guard.mouse() && local.observer.connected => {
+                Some(Ok(Event::Mouse(event))) if local.menu.is_none() && guard.mouse() && local.observer.connected => {
                     let mut mouse = mem::take(&mut local.mouse);
                     let was_dragging = mouse.dragging();
                     let clicked = mouse.route(event, &local.scene(Rect::new(0, 0, terminal.0, terminal.1)), lane.busy());
@@ -292,6 +297,13 @@ async fn drive(
                             Clicked::Select(node) => lane.push(Item::Select(node)),
                             Clicked::Fold(tab) => lane.push(Item::Fold(tab)),
                             Clicked::Move(tab) => lane.push(Item::Move(tab)),
+                            Clicked::Menu(target, at) => {
+                                local.menu = Menu::open(menu::items(&local.keys.keymap.menus, target), at, Rect::new(0, 0, terminal.0, terminal.1));
+                                if local.menu.is_some() && let Some(node) = target.node() {
+                                    lane.push(Item::Select(node));
+                                }
+                                visible = true;
+                            }
                             Clicked::Frame(frame) => lane.push(Item::Mouse(frame)),
                             Clicked::Resize(positions) => {
                                 for position in positions { lane.push(Item::Resize(position)); }
@@ -304,11 +316,27 @@ async fn drive(
                     }
                     visible
                 }
-                Some(Ok(Event::Mouse(_))) => false,
+                Some(Ok(Event::Mouse(_))) if local.menu.is_none() => false,
                 Some(Ok(event)) => {
                     let before = local.keys.shown_mode().cloned();
                     let mut now = false;
-                    match local.keys.handle(event) {
+                    let handled = if let Some(menu) = &mut local.menu {
+                        now = true;
+                        match menu.handle(&event) {
+                            Picked::Run(action) => {
+                                local.menu = None;
+                                keys::handled(action)
+                            }
+                            Picked::Close => {
+                                local.menu = None;
+                                Handled::None
+                            }
+                            Picked::Open => Handled::None,
+                        }
+                    } else {
+                        local.keys.handle(event)
+                    };
+                    match handled {
                         Handled::Queue(item) => {
                             if matches!(item, Item::Action(_)) {
                                 local.message = None;
@@ -388,6 +416,7 @@ struct Local {
     sidebar: Sidebar,
     keys: Keys,
     mouse: Mouse,
+    menu: Option<Menu>,
     input: Option<mpsc::UnboundedSender<InputFrame>>,
     message: Option<String>,
 }
@@ -401,6 +430,7 @@ struct Scene<'a> {
     selected: Option<IdOf<Pane>>,
     screens: &'a HashMap<IdOf<Pane>, Arc<Screen>>,
     sidebar: &'a Sidebar,
+    menus: &'a Menus,
 }
 
 impl Local {
@@ -417,6 +447,7 @@ impl Local {
                 .map(|pane| pane.id),
             screens: &self.observer.screens,
             sidebar: &self.sidebar,
+            menus: &self.keys.keymap.menus,
         }
     }
 
@@ -437,15 +468,21 @@ impl Local {
                 self.sidebar.nudge(direction, amount.unwrap_or(1), cols);
                 Ok(())
             }
-            ClientAction::Config(ConfigAction::Reload {}) => reload(
-                &mut self.keys,
-                &mut self.sidebar,
-                guard,
-                &mut self.mouse,
-                config,
-            ),
+            ClientAction::Config(ConfigAction::Reload {}) => self.reload(guard, config),
             _ => unreachable!("Keys only returns press-time actions"),
         }
+    }
+
+    /// A bad reload keeps the running settings; a valid one closes overlays
+    /// and drops presses whose releases may now go to the outer terminal.
+    fn reload(&mut self, guard: &mut TerminalGuard, config: &Path) -> Result<()> {
+        let settings = ClientSettings::load(config)?;
+        guard.set_mouse(settings.mouse)?;
+        self.mouse = Mouse::default();
+        self.menu = None;
+        self.sidebar.configure(settings.sidebar_width);
+        self.keys.replace(settings.keymap);
+        Ok(())
     }
 
     fn turn<'a>(&mut self, client: &'a Client, item: Item) -> Turn<'a> {
@@ -718,24 +755,6 @@ fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
             .map(|mode| mode.hints().collect())
             .unwrap_or_default(),
     }
-}
-
-/// Loads `config` into `keys`, the sidebar and mouse capture. A bad file
-/// keeps the running settings. A press held across the reload is dropped,
-/// since its release may go to the outer terminal.
-fn reload(
-    keys: &mut Keys,
-    sidebar: &mut Sidebar,
-    guard: &mut TerminalGuard,
-    mouse: &mut Mouse,
-    config: &Path,
-) -> Result<()> {
-    let settings = ClientSettings::load(config)?;
-    guard.set_mouse(settings.mouse)?;
-    *mouse = Mouse::default();
-    sidebar.configure(settings.sidebar_width);
-    keys.replace(settings.keymap);
-    Ok(())
 }
 
 fn unavailable(action: &str) -> Result<()> {

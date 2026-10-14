@@ -24,6 +24,38 @@ pub struct ClientSettings {
 
 pub struct Keymap {
     pub modes: HashMap<ModeName, Mode>,
+    pub menus: Menus,
+}
+
+#[derive(Clone, Default)]
+pub struct Menus {
+    pub pane: Vec<MenuItem>,
+    pub tab: Vec<MenuItem>,
+    pub global: Vec<MenuItem>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MenuItem {
+    pub action: Action,
+    #[serde(default)]
+    label: Option<String>,
+}
+
+impl MenuItem {
+    pub fn label(&self) -> Cow<'_, str> {
+        self.label
+            .as_deref()
+            .map_or_else(|| self.action.label(), Cow::Borrowed)
+    }
+}
+
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MenusFile {
+    pane: Option<Vec<MenuItem>>,
+    tab: Option<Vec<MenuItem>>,
+    global: Option<Vec<MenuItem>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
@@ -59,9 +91,9 @@ pub enum ModeKind {
 pub struct Binding {
     #[serde(default)]
     pub action: Option<Action>,
-    /// Completed with its chord and the action's fallback word on load.
+    /// Completed into a `chord label` hint with the action's fallback on load.
     #[serde(default)]
-    hint: Option<String>,
+    label: Option<String>,
 }
 
 impl Mode {
@@ -70,7 +102,7 @@ impl Mode {
         self.keys
             .values()
             .filter(|binding| binding.action.is_some())
-            .filter_map(|binding| binding.hint.as_deref())
+            .filter_map(|binding| binding.label.as_deref())
     }
 }
 
@@ -83,7 +115,7 @@ pub enum Action {
 
 impl Action {
     /// The mode, direction or sent chord, otherwise the action's config name.
-    pub fn hint(&self) -> Cow<'static, str> {
+    pub fn label(&self) -> Cow<'static, str> {
         let name: &'static str = match self {
             Self::Server(Command::Tab(action)) => action.into(),
             Self::Server(Command::Pane(PaneCommand::Resize(action))) => (&action.direction).into(),
@@ -193,6 +225,8 @@ struct Client {
     mouse: Option<bool>,
     sidebar_width: Option<u16>,
     #[serde(default)]
+    menus: MenusFile,
+    #[serde(default)]
     modes: HashMap<ModeName, ModeFile>,
 }
 
@@ -218,11 +252,11 @@ fn normalized<'de, D: Deserializer<'de>>(
         .map(|(spelling, mut binding)| {
             let chord: KeyCombination = spelling.parse().map_err(D::Error::custom)?;
             if let Some(action) = &binding.action {
-                let hint = binding
-                    .hint
+                let label = binding
+                    .label
                     .take()
-                    .map_or_else(|| action.hint(), Cow::Owned);
-                binding.hint = Some(format!("{spelling} {hint}"));
+                    .map_or_else(|| action.label(), Cow::Owned);
+                binding.label = Some(format!("{spelling} {label}"));
             }
             Ok((chord.normalized(), binding))
         })
@@ -264,7 +298,29 @@ impl ClientSettings {
             .map(|(name, mode)| (name, mode.into()))
             .collect();
         Self {
-            keymap: Keymap { modes },
+            keymap: Keymap {
+                modes,
+                menus: Menus {
+                    pane: file
+                        .client
+                        .menus
+                        .pane
+                        .or(defaults.client.menus.pane)
+                        .unwrap_or_default(),
+                    tab: file
+                        .client
+                        .menus
+                        .tab
+                        .or(defaults.client.menus.tab)
+                        .unwrap_or_default(),
+                    global: file
+                        .client
+                        .menus
+                        .global
+                        .or(defaults.client.menus.global)
+                        .unwrap_or_default(),
+                },
+            },
             sidebar_width: file.client.sidebar_width.unwrap_or(26),
             mouse: file.client.mouse.unwrap_or(true),
         }

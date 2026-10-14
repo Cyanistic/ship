@@ -83,7 +83,7 @@ A tab's area SHALL follow the smallest reported viewing-client area in each dime
 ### Requirement: Status line
 The status line SHALL be a one-row overlay drawn over the bottom row of the pane area, the area right of the sidebar, never over the sidebar. It SHALL NOT change the reported area or any pane's geometry, and SHALL hide the pane cells beneath it only while it is shown. It SHALL be shown only while it has content: outside normal mode, while reconnecting, while the selected pane's program has exited, and while an error is pending. It SHALL NOT show tab labels, pane labels or a session.
 
-Outside normal mode it SHALL show the active mode's name and key hints for that mode: each bound chord in the config file's order, labeled by its binding's `hint` when set, else by a word from its action: the mode's name, the direction, the key sent, else the action's name. Hints that don't fit SHALL be cut from the end. It SHALL show a disconnected indicator while reconnecting, and the selected pane's exit status once its program has exited. It SHALL show the latest config error, a key action's failure or "not available yet" until the next key action.
+Outside normal mode it SHALL show the active mode's name and key hints for that mode: each bound chord in the config file's order, labeled by its binding's `label` when set, else by a word from its action: the mode's name, the direction, the key sent, else the action's name. Hints that don't fit SHALL be cut from the end. It SHALL show a disconnected indicator while reconnecting, and the selected pane's exit status once its program has exited. It SHALL show the latest config error, a key action's failure or "not available yet" until the next key action.
 
 #### Scenario: Hidden in normal mode
 - **WHEN** a connected client in normal mode selects a running pane with no pending error
@@ -109,8 +109,8 @@ Outside normal mode it SHALL show the active mode's name and key hints for that 
 - **WHEN** the file binds `"f" = { action = { server.pane.zoom = {} } }` in `resize` mode and the user enters it
 - **THEN** the hints include `f zoom`
 
-#### Scenario: Set hint
-- **WHEN** the file binds `"f" = { action = { server.pane.zoom = {} }, hint = "fill" }` in `resize` mode and the user enters it
+#### Scenario: Set label
+- **WHEN** the file binds `"f" = { action = { server.pane.zoom = {} }, label = "fill" }` in `resize` mode and the user enters it
 - **THEN** the hints include `f fill` and not `f zoom`
 
 ### Requirement: Derived labels
