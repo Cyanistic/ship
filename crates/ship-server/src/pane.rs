@@ -29,7 +29,7 @@ use ship_core::{
     prelude::*,
     protocol::{MouseInput, ReadPane, ScrollDirection, ScrollPane},
     relay::{Publish, RelayBus},
-    screen::{Attr, Cell, Color, Cursor, CursorShape, Screen, Scrolled, Size},
+    screen::{Attr, Color, Cursor, CursorShape, Multi, Row, Run, Screen, Scrolled, Size},
 };
 use tokio::{
     sync::{Notify, mpsc, oneshot, watch},
@@ -628,7 +628,11 @@ fn capture(session: &SessionHandle, buffer: &mut Buffer) -> Option<Screen> {
             history: value.history,
         }),
         size: Size { cols, rows },
-        cells: buffer.content.iter().map(cell).collect(),
+        rows: buffer
+            .content
+            .chunks(usize::from(cols.max(1)))
+            .map(row)
+            .collect(),
         cursor: cursor.position.map(|position| Cursor {
             x: position.x,
             y: position.y,
@@ -655,11 +659,47 @@ const ATTRS: [(Modifier, Attr); 9] = [
     (Modifier::CROSSED_OUT, Attr::CrossedOut),
 ];
 
-fn cell(cell: &buffer::Cell) -> Cell {
-    Cell {
-        symbol: cell.symbol().to_owned(),
+/// One buffer row: text through its last non-blank cell, adjacent cells with
+/// equal styles merged into one run, and no trailing default-style run.
+fn row(cells: &[buffer::Cell]) -> Row {
+    let end = cells
+        .iter()
+        .rposition(|cell| cell.symbol() != " " || cell.style() != buffer::Cell::EMPTY.style())
+        .map_or(0, |last| last + 1);
+    let mut row = Row::default();
+    let mut previous = None;
+    for (col, cell) in (0..).zip(&cells[..end]) {
+        let mut chars = cell.symbol().chars();
+        match (chars.next(), chars.next()) {
+            (Some(only), None) => row.text.push(only),
+            _ => {
+                row.text.push(' ');
+                row.multi.push(Multi {
+                    col,
+                    symbol: cell.symbol().to_owned(),
+                });
+            }
+        }
+        let style = cell.style();
+        match row.runs.last_mut() {
+            Some(run) if previous == Some(style) => run.cells += 1,
+            _ => row.runs.push(run_of(cell)),
+        }
+        previous = Some(style);
+    }
+    if row.runs.last().is_some_and(Run::is_default) {
+        row.runs.pop();
+    }
+    row
+}
+
+/// A one-cell run with `cell`'s style.
+fn run_of(cell: &buffer::Cell) -> Run {
+    Run {
+        cells: 1,
         fg: color(cell.fg),
         bg: color(cell.bg),
+        underline_color: color(cell.underline_color),
         attrs: ATTRS
             .iter()
             .filter(|(modifier, _)| cell.modifier.contains(*modifier))
