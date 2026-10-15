@@ -47,6 +47,15 @@ pub(crate) const FRAME: Duration = Duration::from_millis(4);
 /// program that draws twice in a row (nvim's scroll) lands in one screen.
 const SETTLE: Duration = Duration::from_millis(1);
 
+/// How long after a keypress the pane's changes publish at once, so the echo
+/// and the redraws it causes skip `SETTLE` and `FRAME`.
+const TYPED: Duration = Duration::from_millis(32);
+
+/// At most `BURST` immediate publishes per `BURST_WINDOW`, so a flood right
+/// after a keypress still paces.
+const BURST: u32 = 16;
+const BURST_WINDOW: Duration = Duration::from_millis(16);
+
 /// Owned by the state actor. Dropping it cancels the pane task, which runs
 /// teardown in the background. `stop` does the same and waits for it.
 pub(crate) struct PaneRuntime {
@@ -339,6 +348,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         buffer,
         screen,
         bus,
+        pacing: Pacing::default(),
     };
     tokio::spawn(task.run(commands_rx, cancel.clone(), done_tx));
     Ok(Spawned {
@@ -382,6 +392,39 @@ struct PaneTask {
     buffer: Buffer,
     screen: watch::Sender<Arc<Screen>>,
     bus: ActorRef<RelayBus>,
+    pacing: Pacing,
+}
+
+/// When a change publishes: after `SETTLE` and at least `FRAME` after the
+/// last publish, or at once within `TYPED` of a keypress.
+#[derive(Default)]
+struct Pacing {
+    typed: Option<Instant>,
+    /// When the current burst window opened, and its immediate publishes.
+    burst: Option<(Instant, u32)>,
+}
+
+impl Pacing {
+    fn typed(&mut self) {
+        self.typed = Some(Instant::now());
+    }
+
+    /// When a change arriving now publishes, given the paced time `next`.
+    fn due(&mut self, next: Instant) -> Instant {
+        let now = Instant::now();
+        if self.typed.is_some_and(|at| now - at < TYPED) {
+            let (opened, used) = self.burst.get_or_insert((now, 0));
+            if now - *opened >= BURST_WINDOW {
+                *opened = now;
+                *used = 0;
+            }
+            if *used < BURST {
+                *used += 1;
+                return now;
+            }
+        }
+        next.max(now + SETTLE)
+    }
 }
 
 impl PaneTask {
@@ -392,23 +435,26 @@ impl PaneTask {
         done: oneshot::Sender<()>,
     ) {
         // Waiting for the frame happens in its own arm, so commands keep
-        // reaching the program meanwhile. A change after a quiet frame
-        // publishes after `SETTLE`, since `next` has passed.
+        // reaching the program meanwhile. `pacing` picks when a change
+        // publishes; the check runs here rather than in the timer arm since
+        // a timer, even one already due, waits for tokio's next 1 ms tick.
         let mut pending = false;
         let mut next = Instant::now();
         loop {
+            if pending && Instant::now() >= next {
+                pending = false;
+                self.publish().await;
+                next = Instant::now() + FRAME;
+                continue;
+            }
             tokio::select! {
                 () = cancel.cancelled() => break,
                 Some(command) = commands.recv() => self.command(command),
                 () = self.dirty.notified(), if !pending => {
                     pending = true;
-                    next = next.max(Instant::now() + SETTLE);
+                    next = self.pacing.due(next);
                 }
-                () = sleep_until(next), if pending => {
-                    pending = false;
-                    self.publish().await;
-                    next = Instant::now() + FRAME;
-                }
+                () = sleep_until(next), if pending => {}
                 status = &mut self.exit.status, if !self.exit.reaped => {
                     self.exit.reaped = true;
                     self.publish().await;
@@ -481,7 +527,10 @@ impl PaneTask {
                     y: input.y,
                 });
             }
-            PaneCommand::Key(key) => self.session.send_key(key),
+            PaneCommand::Key(key) => {
+                self.pacing.typed();
+                self.session.send_key(key);
+            }
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),
             PaneCommand::Resize(size) => {
                 let size = terminal_size(size);
