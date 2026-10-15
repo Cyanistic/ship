@@ -2,11 +2,11 @@
 
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
 use ratatui::{
-    Frame,
+    buffer::Buffer,
     layout::{Position, Rect},
     style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, Clear, List, ListItem, ListState},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, StatefulWidget, Widget},
 };
 use ship_core::{
     id::IdOf,
@@ -127,7 +127,7 @@ impl Menu {
         Picked::Open
     }
 
-    pub fn draw(&mut self, frame: &mut Frame) {
+    pub fn draw(&mut self, buf: &mut Buffer) {
         let items = self
             .items
             .iter()
@@ -140,7 +140,7 @@ impl Menu {
             )
             .style(Style::new().fg(Color::Reset).bg(Color::Reset))
             .highlight_style(Style::new().fg(Color::Black).bg(Color::Cyan).bold());
-        frame.render_widget(Clear, self.area);
-        frame.render_stateful_widget(list, self.area, &mut self.state);
+        Clear.render(self.area, buf);
+        StatefulWidget::render(list, self.area, buf, &mut self.state);
     }
 }

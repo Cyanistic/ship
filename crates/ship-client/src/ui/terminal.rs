@@ -13,7 +13,8 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{Terminal, TerminalOptions, Viewport, backend::CrosstermBackend, layout::Rect};
+use ratatui::{backend::CrosstermBackend, layout::Rect};
+use ratatui_retained::Compositor;
 use ship_core::{
     prelude::*,
     screen::{Cursor, CursorShape},
@@ -25,9 +26,9 @@ const FRAME_BUFFER: usize = 256 * 1024;
 /// Restores the terminal on drop. `enter` also installs a panic hook that
 /// restores it before the panic message prints.
 pub(super) struct TerminalGuard {
-    /// Buffered so a frame reaches the terminal in one write when ratatui
-    /// flushes; `Stdout` alone flushes about every kilobyte.
-    pub terminal: Terminal<CrosstermBackend<BufWriter<Stdout>>>,
+    /// Buffered so a frame reaches the terminal in one write when the
+    /// compositor flushes; `Stdout` alone flushes about every kilobyte.
+    pub frame: Compositor<CrosstermBackend<BufWriter<Stdout>>>,
     /// The cursor shape last set, so it's only written when it changes.
     cursor: Option<(CursorShape, bool)>,
     /// Whether mouse capture is on.
@@ -42,18 +43,13 @@ impl TerminalGuard {
             previous(info);
         }));
         enable_raw_mode().map_err(|error| err!(Io, "cannot enter raw mode", @external: error))?;
-        // From here on, the guard restores whatever succeeded.
-        // Fixed, so drawing doesn't reopen `/dev/tty` for the size every
-        // frame; `drive` sizes it from resize events.
-        let terminal = Terminal::with_options(
-            CrosstermBackend::new(BufWriter::with_capacity(FRAME_BUFFER, io::stdout())),
-            TerminalOptions {
-                viewport: Viewport::Fixed(Rect::default()),
-            },
-        )
-        .map_err(|error| err!(Io, "cannot open the terminal", @external: error));
+        // From here on, the guard restores whatever succeeded. Sized by
+        // `drive` from resize events.
         let guard = Self {
-            terminal: terminal.inspect_err(|_| restore())?,
+            frame: Compositor::new(
+                CrosstermBackend::new(BufWriter::with_capacity(FRAME_BUFFER, io::stdout())),
+                Rect::default(),
+            ),
             cursor: None,
             mouse: false,
         };
@@ -64,7 +60,7 @@ impl TerminalGuard {
 
     /// Draw at `cols` by `rows` from now on.
     pub fn resize(&mut self, (cols, rows): (u16, u16)) -> Result<()> {
-        self.terminal
+        self.frame
             .resize(Rect::new(0, 0, cols, rows))
             .map_err(|error| err!(Io, "cannot resize the terminal", @external: error))
     }

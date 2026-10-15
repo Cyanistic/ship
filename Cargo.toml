@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core", "crates/ship-macros", "vendor/ratatui-ghostty"]
+members = ["crates/ship", "crates/ship-client", "crates/ship-server", "crates/ship-core", "crates/ship-macros", "vendor/ratatui-ghostty", "vendor/ratatui-retained"]
 resolver = "3"
 
 [workspace.package]
@@ -14,6 +14,7 @@ ship-server = { path = "crates/ship-server" }
 ship-core = { path = "crates/ship-core" }
 ship-macros = { path = "crates/ship-macros" }
 ratatui-ghostty = { path = "vendor/ratatui-ghostty" }
+ratatui-retained = { path = "vendor/ratatui-retained" }
 axum = { version = "0.8", features = ["http2"] }
 clap = { version = "4", features = ["derive", "env"] }
 crokey = "1.5"

@@ -3,6 +3,11 @@
 //! popup menu and a style-only tint (like a selection highlight).
 #![allow(dead_code)]
 
+use std::cell::RefCell;
+use std::io::{self, Write};
+use std::mem;
+use std::rc::Rc;
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -203,20 +208,20 @@ impl Model {
 
 /// A writer whose bytes the caller can take out while a backend owns it.
 #[derive(Clone, Default)]
-pub struct Sink(pub std::rc::Rc<std::cell::RefCell<Vec<u8>>>);
+pub struct Sink(pub Rc<RefCell<Vec<u8>>>);
 
 impl Sink {
     pub fn take(&self) -> Vec<u8> {
-        std::mem::take(&mut self.0.borrow_mut())
+        mem::take(&mut self.0.borrow_mut())
     }
 }
 
-impl std::io::Write for Sink {
-    fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+impl Write for Sink {
+    fn write(&mut self, b: &[u8]) -> io::Result<usize> {
         self.0.borrow_mut().extend_from_slice(b);
         Ok(b.len())
     }
-    fn flush(&mut self) -> std::io::Result<()> {
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }

@@ -8,6 +8,9 @@
 
 mod common;
 
+use std::panic::{self, AssertUnwindSafe};
+use std::{env, process};
+
 use common::{Model, Popup, Sink};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
@@ -245,9 +248,9 @@ fn run(seed: u64, steps: usize) -> Result<(usize, usize, bool), String> {
         full += size.area() as usize;
 
         let mut reference = Buffer::empty(size);
-        ui.compositor().render_full(&mut reference);
-        if ui.compositor().buffer() != &reference {
-            let (ours_buf, theirs_buf) = (ui.compositor().buffer(), &reference);
+        ui.render_full(&mut reference);
+        if ui.buffer() != &reference {
+            let (ours_buf, theirs_buf) = (ui.buffer(), &reference);
             let at = ours_buf
                 .content
                 .iter()
@@ -266,10 +269,7 @@ fn run(seed: u64, steps: usize) -> Result<(usize, usize, bool), String> {
         })
         .unwrap();
         let (a, b) = (sink_ours.take(), sink_theirs.take());
-        if std::env::args()
-            .nth(3)
-            .is_some_and(|s| s.parse() == Ok(seed))
-        {
+        if env::args().nth(3).is_some_and(|s| s.parse() == Ok(seed)) {
             eprintln!(
                 "step {i} ours {:?}\nstep {i} theirs {:?}",
                 String::from_utf8_lossy(&a),
@@ -279,7 +279,7 @@ fn run(seed: u64, steps: usize) -> Result<(usize, usize, bool), String> {
         // vt100 panics on some valid input (plain ratatui's too). When the
         // oracle can't parse ratatui's bytes, stop this seed and count it.
         let parse = |p: &mut vt100::Parser, bytes: &[u8]| {
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| p.process(bytes))).is_ok()
+            panic::catch_unwind(AssertUnwindSafe(|| p.process(bytes))).is_ok()
         };
         if !parse(&mut theirs, &b) {
             return Ok((repainted, full, true));
@@ -296,10 +296,10 @@ fn run(seed: u64, steps: usize) -> Result<(usize, usize, bool), String> {
 }
 
 fn main() {
-    let mut args = std::env::args().skip(1);
+    let mut args = env::args().skip(1);
     let seeds: u64 = args.next().map_or(200, |s| s.parse().unwrap());
     let steps: usize = args.next().map_or(500, |s| s.parse().unwrap());
-    std::panic::set_hook(Box::new(|_| {}));
+    panic::set_hook(Box::new(|_| {}));
     let (mut failures, mut repainted, mut full, mut cut) = (0, 0, 0, 0);
     for seed in 0..seeds {
         // Each run gets a fresh reactive graph's worth of signals; scopes are
@@ -327,6 +327,6 @@ fn main() {
         100.0 * repainted as f64 / full.max(1) as f64
     );
     if failures > 0 {
-        std::process::exit(1);
+        process::exit(1);
     }
 }

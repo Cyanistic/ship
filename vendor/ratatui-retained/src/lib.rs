@@ -4,10 +4,13 @@
 //! are reset, replayed through every layer above and below them, and diffed.
 
 mod compositor;
+#[cfg(feature = "reactive")]
 mod reactive;
 mod region;
 
-pub use compositor::{Compositor, Layer, Stats};
+pub use compositor::{Compositor, Layer, Stack, Stats, footprint, render_full};
+#[cfg(feature = "reactive")]
 pub use reactive::{Ui, View, rows, widget};
+#[cfg(feature = "reactive")]
 pub use reactive_scope;
 pub use region::Region;

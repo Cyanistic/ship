@@ -1,37 +1,79 @@
+use std::mem;
+
 use ratatui::backend::Backend;
 use ratatui::buffer::{Buffer, Cell};
 use ratatui::layout::{Position, Rect};
 
 use crate::region::Region;
 
-/// One independently changing piece of the screen, painted bottom to top.
+/// A frame's layers, bottom to top, addressed by index. An index must name
+/// the same layer from one draw to the next, since damage is tracked per
+/// index.
 ///
 /// The contract that makes partial repaint match a full repaint:
-/// - `damage` reports every cell whose painted value may differ from the last
-///   time it reported, and nothing else needs to be reported. Moving or
-///   hiding the layer is the compositor's job.
+/// - `damage` reports every cell of the layer whose painted value may differ
+///   from the last time it reported. Moving or hiding the layer is the
+///   compositor's job.
 /// - `paint` is deterministic, writes only inside `extent(area, want)`, and
 ///   each cell it writes depends only on the layer's state and that cell's
 ///   previous value. All ratatui widgets behave this way.
-pub trait Layer {
+pub trait Stack {
+    /// How many layers there are.
+    fn layers(&self) -> usize;
     /// Where the layer sits, or `None` while hidden.
-    fn area(&self) -> Option<Rect>;
+    fn area(&self, layer: usize) -> Option<Rect>;
     /// Adds the cells that changed since the last call to `out`.
-    fn damage(&mut self, area: Rect, out: &mut Region);
+    fn damage(&mut self, layer: usize, area: Rect, out: &mut Region);
     /// The rect `paint` may write when asked for `want`. Most widgets can't
     /// paint less than their whole area.
-    fn extent(&self, area: Rect, want: Rect) -> Rect {
-        let _ = want;
+    fn extent(&self, layer: usize, area: Rect, want: Rect) -> Rect {
+        let _ = (layer, want);
         area
     }
     /// Whether painting could change any cell of `damage`. Answering true
     /// is always safe; false lets the compositor skip the layer.
-    fn touches(&self, area: Rect, damage: &Region) -> bool {
-        let _ = (area, damage);
+    fn touches(&mut self, layer: usize, area: Rect, damage: &Region) -> bool {
+        let _ = (layer, area, damage);
         true
     }
     /// Paints at least the cells of `want`, which lies inside `area`.
-    fn paint(&self, area: Rect, want: &Region, buf: &mut Buffer);
+    fn paint(&mut self, layer: usize, area: Rect, want: &Region, buf: &mut Buffer);
+}
+
+/// One layer that owns its state, for stacks built once and kept.
+pub trait Layer {
+    fn area(&self) -> Option<Rect>;
+    fn damage(&mut self, area: Rect, out: &mut Region);
+    fn extent(&self, area: Rect, want: Rect) -> Rect {
+        let _ = want;
+        area
+    }
+    fn touches(&mut self, area: Rect, damage: &Region) -> bool {
+        let _ = (area, damage);
+        true
+    }
+    fn paint(&mut self, area: Rect, want: &Region, buf: &mut Buffer);
+}
+
+impl Stack for [Box<dyn Layer>] {
+    fn layers(&self) -> usize {
+        <[_]>::len(self)
+    }
+    fn area(&self, layer: usize) -> Option<Rect> {
+        self[layer].area()
+    }
+    fn damage(&mut self, layer: usize, area: Rect, out: &mut Region) {
+        self[layer].damage(area, out);
+    }
+    fn extent(&self, layer: usize, area: Rect, want: Rect) -> Rect {
+        self[layer].extent(area, want)
+    }
+    fn touches(&mut self, layer: usize, area: Rect, damage: &Region) -> bool {
+        self[layer].touches(area, damage)
+    }
+    fn paint(&mut self, layer: usize, area: Rect, want: &Region, buf: &mut Buffer) {
+        self[layer].paint(area, want, buf);
+    }
 }
 
 /// What one `draw` did, to compare against a full ratatui frame.
@@ -45,16 +87,12 @@ pub struct Stats {
     pub written: usize,
 }
 
-struct Slot {
-    layer: Box<dyn Layer>,
-    painted: Option<Rect>,
-}
-
 /// Keeps the last frame and repaints only damaged cells, then writes only
 /// the damaged rows' changes.
 pub struct Compositor<B: Backend> {
     backend: B,
-    slots: Vec<Slot>,
+    /// Each layer's area as last painted.
+    painted: Vec<Option<Rect>>,
     /// The frame being built, kept between draws.
     back: Buffer,
     /// What the terminal shows.
@@ -72,16 +110,10 @@ pub struct Compositor<B: Backend> {
 }
 
 impl<B: Backend> Compositor<B> {
-    pub fn new(backend: B, size: Rect, layers: Vec<Box<dyn Layer>>) -> Self {
+    pub fn new(backend: B, size: Rect) -> Self {
         Self {
             backend,
-            slots: layers
-                .into_iter()
-                .map(|layer| Slot {
-                    layer,
-                    painted: None,
-                })
-                .collect(),
+            painted: Vec::new(),
             back: Buffer::empty(size),
             front: Buffer::empty(size),
             scratch: Buffer::empty(Rect::default()),
@@ -103,6 +135,10 @@ impl<B: Backend> Compositor<B> {
         if self.stale { &self.front } else { &self.back }
     }
 
+    pub fn area(&self) -> Rect {
+        self.back.area
+    }
+
     /// Starts over at a new size, as ratatui does: clear the terminal and
     /// repaint everything on the next draw.
     pub fn resize(&mut self, size: Rect) -> Result<(), B::Error> {
@@ -113,29 +149,33 @@ impl<B: Backend> Compositor<B> {
         self.backend.clear()
     }
 
-    pub fn draw(&mut self, cursor: Option<Position>) -> Result<Stats, B::Error> {
+    pub fn draw<S: Stack + ?Sized>(
+        &mut self,
+        stack: &mut S,
+        cursor: Option<Position>,
+    ) -> Result<Stats, B::Error> {
         let screen = self.back.area;
         self.damage.clear();
         if self.full {
             self.damage.add(screen);
             self.full = false;
         }
-        for slot in &mut self.slots {
-            let area = slot
-                .layer
-                .area()
+        self.painted.resize(stack.layers(), None);
+        for (layer, painted) in self.painted.iter_mut().enumerate() {
+            let area = stack
+                .area(layer)
                 .map(|a| a.intersection(screen))
                 .filter(|a| !a.is_empty());
-            if area != slot.painted {
+            if area != *painted {
                 // The old area may lie outside a screen that shrank.
                 self.damage
-                    .add(slot.painted.unwrap_or_default().intersection(screen));
+                    .add(painted.unwrap_or_default().intersection(screen));
                 self.damage.add(area.unwrap_or_default());
-                slot.painted = area;
+                *painted = area;
             }
             if let Some(area) = area {
                 self.reported.clear();
-                slot.layer.damage(area, &mut self.reported);
+                stack.damage(layer, area, &mut self.reported);
                 for r in self.reported.rects() {
                     self.damage.add(r.intersection(area));
                 }
@@ -147,13 +187,13 @@ impl<B: Backend> Compositor<B> {
         if damaged * 2 >= screen.area() {
             // Most of the screen changed: tracking which cells to keep costs
             // more than it saves, so draw a plain ratatui frame instead.
-            stats = self.draw_whole()?;
+            stats = self.draw_whole(stack)?;
         } else if !self.damage.is_empty() {
             if self.stale {
                 self.back.content.clone_from_slice(&self.front.content);
                 self.stale = false;
             }
-            stats.repainted = self.repaint();
+            stats.repainted = self.repaint(stack);
             (stats.compared, stats.written) = self.flush_rows()?;
         }
         let moved = self.cursor != Some(cursor);
@@ -180,15 +220,15 @@ impl<B: Backend> Compositor<B> {
 
     /// What `Terminal::draw` does: paint everything into an empty buffer,
     /// diff the whole screen, and swap buffers rather than copy.
-    fn draw_whole(&mut self) -> Result<Stats, B::Error> {
+    fn draw_whole<S: Stack + ?Sized>(&mut self, stack: &mut S) -> Result<Stats, B::Error> {
         self.back.reset();
-        self.render_into_back();
+        render_full(stack, &mut self.back);
         let updates = self.front.diff(&self.back);
         let written = updates.len();
         if !updates.is_empty() {
             self.backend.draw(updates.into_iter())?;
         }
-        std::mem::swap(&mut self.front, &mut self.back);
+        mem::swap(&mut self.front, &mut self.back);
         self.stale = true;
         let cells = self.front.area.area() as usize;
         Ok(Stats {
@@ -198,15 +238,9 @@ impl<B: Backend> Compositor<B> {
         })
     }
 
-    fn render_into_back(&mut self) {
-        let mut back = std::mem::take(&mut self.back);
-        self.render_full(&mut back);
-        self.back = back;
-    }
-
     /// Resets the damaged cells, then replays every layer over them bottom to
     /// top, so each damaged cell ends as a full repaint would leave it.
-    fn repaint(&mut self) -> usize {
+    fn repaint<S: Stack + ?Sized>(&mut self, stack: &mut S) -> usize {
         let mut repainted = 0;
         for r in self.damage.rects() {
             repainted += r.area() as usize;
@@ -215,21 +249,20 @@ impl<B: Backend> Compositor<B> {
                 self.back.content[i..i + r.width as usize].fill(Cell::EMPTY);
             }
         }
-        for slot in &self.slots {
-            let Some(area) = slot.painted else { continue };
+        for (layer, painted) in self.painted.iter().enumerate() {
+            let Some(area) = *painted else { continue };
             self.damage.clip_into(area, &mut self.want);
             if self.want.is_empty()
-                || !self.want.covers(area) && !slot.layer.touches(area, &self.want)
+                || !self.want.covers(area) && !stack.touches(layer, area, &self.want)
             {
                 continue;
             }
-            let extent = slot
-                .layer
-                .extent(area, self.want.bounds())
+            let extent = stack
+                .extent(layer, area, self.want.bounds())
                 .union(self.want.bounds())
                 .intersection(area);
             if self.want.covers(extent) {
-                slot.layer.paint(area, &self.want, &mut self.back);
+                stack.paint(layer, area, &self.want, &mut self.back);
                 continue;
             }
             // The layer would paint cells outside the damage, which must keep
@@ -237,7 +270,7 @@ impl<B: Backend> Compositor<B> {
             // back only the damaged cells.
             self.scratch.resize(extent);
             copy(&self.back, &mut self.scratch, &self.want);
-            slot.layer.paint(area, &self.want, &mut self.scratch);
+            stack.paint(layer, area, &self.want, &mut self.scratch);
             copy(&self.scratch, &mut self.back, &self.want);
         }
         repainted
@@ -296,24 +329,100 @@ impl<B: Backend> Compositor<B> {
         Ok((touched.min(screen.area() as usize), written))
     }
 
-    /// Paints every visible layer from scratch, the way a plain ratatui frame
-    /// would. The reference partial repaints must match.
-    pub fn render_full(&self, buf: &mut Buffer) {
-        let screen = buf.area;
-        for slot in &self.slots {
-            let Some(area) = slot
-                .layer
-                .area()
-                .map(|a| a.intersection(screen))
-                .filter(|a| !a.is_empty())
-            else {
+    /// The first cell where the current frame differs from a from-scratch
+    /// paint of `stack`, or `None` when they match. A mismatch means some
+    /// layer broke the [`Stack`] contract.
+    pub fn check<S: Stack + ?Sized>(&self, stack: &mut S) -> Option<Position> {
+        let current = self.buffer();
+        let mut reference = Buffer::empty(current.area);
+        render_full(stack, &mut reference);
+        let i = current
+            .content
+            .iter()
+            .zip(&reference.content)
+            .position(|(a, b)| a != b)?;
+        Some(current.pos_of(i).into())
+    }
+}
+
+/// Paints every visible layer from scratch, the way a plain ratatui frame
+/// would. The reference partial repaints must match.
+pub fn render_full<S: Stack + ?Sized>(stack: &mut S, buf: &mut Buffer) {
+    let screen = buf.area;
+    for layer in 0..stack.layers() {
+        let Some(area) = stack
+            .area(layer)
+            .map(|a| a.intersection(screen))
+            .filter(|a| !a.is_empty())
+        else {
+            continue;
+        };
+        let mut want = Region::default();
+        want.add(area);
+        stack.paint(layer, area, &want, buf);
+    }
+}
+
+/// The cells `paint` writes in `area`, found by painting over two
+/// backgrounds that differ in every field. Any write of a field changes at
+/// least one of them, so a cell both leave alone is one `paint` never
+/// touches. Answers [`Stack::touches`] for a layer whose writes aren't known
+/// up front.
+pub fn footprint(area: Rect, mut paint: impl FnMut(&mut Buffer)) -> Region {
+    use ratatui::buffer::CellDiffOption;
+    use ratatui::style::{Color, Modifier};
+    let sentinel = |symbol, fg, bg, modifier, diff_option, skip| {
+        let mut cell = Cell::new(symbol);
+        cell.fg = fg;
+        cell.bg = bg;
+        cell.underline_color = fg;
+        cell.modifier = modifier;
+        cell.diff_option = diff_option;
+        #[allow(deprecated)]
+        {
+            cell.skip = skip;
+        }
+        cell
+    };
+    let a = sentinel(
+        "\u{E000}",
+        Color::Rgb(1, 2, 3),
+        Color::Rgb(4, 5, 6),
+        Modifier::all(),
+        CellDiffOption::None,
+        false,
+    );
+    let b = sentinel(
+        "\u{E001}",
+        Color::Indexed(77),
+        Color::Indexed(78),
+        Modifier::empty(),
+        CellDiffOption::AlwaysUpdate,
+        true,
+    );
+    let (mut buf_a, mut buf_b) = (
+        Buffer::filled(area, a.clone()),
+        Buffer::filled(area, b.clone()),
+    );
+    paint(&mut buf_a);
+    paint(&mut buf_b);
+    let mut cells = Region::default();
+    for y in area.top()..area.bottom() {
+        let mut x = area.left();
+        while x < area.right() {
+            let written = |x| buf_a[(x, y)] != a || buf_b[(x, y)] != b;
+            if !written(x) {
+                x += 1;
                 continue;
-            };
-            let mut want = Region::default();
-            want.add(area);
-            slot.layer.paint(area, &want, buf);
+            }
+            let start = x;
+            while x < area.right() && written(x) {
+                x += 1;
+            }
+            cells.add(Rect::new(start, y, x - start, 1));
         }
     }
+    cells
 }
 
 fn copy(from: &Buffer, to: &mut Buffer, region: &Region) {

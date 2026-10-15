@@ -8,6 +8,7 @@
 
 mod common;
 
+use std::env;
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
@@ -111,7 +112,7 @@ fn setup(workload: Workload) -> (Ui<CrosstermBackend<Sink>>, Model, Sink) {
 }
 
 fn main() {
-    let frames: usize = std::env::args().nth(1).map_or(5000, |s| s.parse().unwrap());
+    let frames: usize = env::args().nth(1).map_or(5000, |s| s.parse().unwrap());
     println!(
         "{:<20} {:>22} {:>22} {:>16}",
         "workload", "plain ratatui", "retained", "bytes/frame"
@@ -120,7 +121,7 @@ fn main() {
         "{:<20} {:>22} {:>22} {:>16}",
         "", "median / mean", "median / mean", "plain / retained"
     );
-    let only = std::env::args().nth(2);
+    let only = env::args().nth(2);
     for workload in [
         Workload::Typing,
         Workload::TypingUnderPopup,
@@ -149,9 +150,8 @@ fn main() {
                     workload.step(m, i);
                     reactive_scope::flush();
                     let cursor = ui.cursor();
-                    let compositor = ui.compositor();
                     term.draw(|f| {
-                        compositor.render_full(f.buffer_mut());
+                        ui.render_full(f.buffer_mut());
                         if let Some(c) = cursor {
                             f.set_cursor_position(c);
                         }

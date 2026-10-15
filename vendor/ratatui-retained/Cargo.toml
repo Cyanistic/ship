@@ -3,15 +3,25 @@ name = "ratatui-retained"
 version = "0.0.0"
 edition = "2024"
 description = "Retained ratatui rendering: repaint and write only the cells whose inputs changed."
+publish = false
 
-[workspace]
+[features]
+reactive = ["dep:reactive-scope"]
 
 [dependencies]
 ratatui = { version = "0.30", features = ["underline-color"] }
-reactive-scope = "0.1"
+reactive-scope = { version = "0.1", optional = true }
 
 [dev-dependencies]
 vt100 = "0.16"
 
-[profile.release]
-debug = true
+[[example]]
+name = "check"
+required-features = ["reactive"]
+
+[[example]]
+name = "bench"
+required-features = ["reactive"]
+
+[lints]
+workspace = true

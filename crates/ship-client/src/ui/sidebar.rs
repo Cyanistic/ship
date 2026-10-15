@@ -3,11 +3,11 @@
 use std::collections::HashSet;
 
 use ratatui::{
-    Frame,
+    buffer::Buffer,
     layout::{Position, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 use ship_core::{
     id::IdOf,
@@ -270,7 +270,7 @@ impl Sidebar {
 
     pub fn draw(
         &mut self,
-        frame: &mut Frame,
+        buf: &mut Buffer,
         area: Rect,
         tabs: &Tabs,
         selection: Option<NodeId>,
@@ -288,17 +288,17 @@ impl Sidebar {
             .borders(Borders::RIGHT)
             .border_style(Style::new().dark_gray());
         let content = divider.inner(area);
-        frame.render_widget(divider, area);
-        frame.render_widget(
-            Paragraph::new(" tabs").dark_gray().bold(),
+        divider.render(area, buf);
+        Paragraph::new(" tabs").dark_gray().bold().render(
             Rect {
                 height: 1,
                 ..content
             },
+            buf,
         );
-        frame.render_widget(
-            Paragraph::new(BUTTON).dark_gray(),
+        Paragraph::new(BUTTON).dark_gray().render(
             Rect::new(content.right().saturating_sub(1), content.y, 1, 1).intersection(content),
+            buf,
         );
         let mut state = TreeState::default();
         let items = self.items(tabs, &mut Vec::new(), &mut state);
@@ -326,7 +326,7 @@ impl Sidebar {
             height: content.height.saturating_sub(2),
             ..content
         };
-        frame.render_stateful_widget(widget, self.tree, &mut state);
+        StatefulWidget::render(widget, self.tree, buf, &mut state);
         self.rendered = state;
         self.drawn = (self.tree.y..self.tree.bottom())
             .filter_map(|y| {
@@ -349,7 +349,7 @@ impl Sidebar {
             )
             .intersection(content);
             for at in line.positions() {
-                frame.buffer_mut()[at].set_style(Style::new().underlined());
+                buf[at].set_style(Style::new().underlined());
             }
         }
     }

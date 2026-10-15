@@ -15,6 +15,7 @@ futures-util.workspace = true
 indexmap.workspace = true
 notify-debouncer-mini.workspace = true
 ratatui.workspace = true
+ratatui-retained.workspace = true
 reqwest = { workspace = true, features = ["query"] }
 serde.workspace = true
 strum.workspace = true

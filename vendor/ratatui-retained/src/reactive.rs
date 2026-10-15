@@ -7,7 +7,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::widgets::Widget;
 use reactive_scope::{ReadSignal, Scope, Signal, create_effect, create_scope, create_signal};
 
-use crate::compositor::{Compositor, Layer, Stats};
+use crate::compositor::{self, Compositor, Layer, Stats, footprint};
 use crate::region::Region;
 
 /// What an app hands the renderer: its layers bottom to top, and where the
@@ -22,6 +22,7 @@ pub struct View {
 /// nothing.
 pub struct Ui<B: Backend> {
     compositor: Compositor<B>,
+    layers: Vec<Box<dyn Layer>>,
     size: Signal<Rect>,
     cursor: Memo<Option<Position>>,
     _scope: Scope,
@@ -36,7 +37,8 @@ impl<B: Backend> Ui<B> {
             (size_signal, layers, Memo::new(cursor))
         });
         Self {
-            compositor: Compositor::new(backend, size, layers),
+            compositor: Compositor::new(backend, size),
+            layers,
             size: size_signal,
             cursor,
             _scope: scope,
@@ -53,11 +55,17 @@ impl<B: Backend> Ui<B> {
     pub fn draw(&mut self) -> Result<Stats, B::Error> {
         reactive_scope::flush();
         let cursor = *self.cursor.get();
-        self.compositor.draw(cursor)
+        self.compositor.draw(self.layers.as_mut_slice(), cursor)
     }
 
-    pub fn compositor(&mut self) -> &mut Compositor<B> {
-        &mut self.compositor
+    /// The current frame.
+    pub fn buffer(&self) -> &Buffer {
+        self.compositor.buffer()
+    }
+
+    /// Paints every layer from scratch into `buf`, as a plain frame would.
+    pub fn render_full(&mut self, buf: &mut Buffer) {
+        compositor::render_full(self.layers.as_mut_slice(), buf);
     }
 
     pub fn cursor(&self) -> Option<Position> {
@@ -83,7 +91,7 @@ impl<T: 'static> Memo<T> {
         let value: Rc<RefCell<Option<T>>> = Rc::default();
         let changes = Rc::new(Cell::new(0));
         create_effect({
-            let (value, changes) = (value.clone(), changes.clone());
+            let (value, changes) = (Rc::clone(&value), Rc::clone(&changes));
             move || {
                 let new = f();
                 let mut value = value.borrow_mut();
@@ -119,7 +127,7 @@ where
         area: Memo::new(area),
         view: Memo::new(view),
         painted: 0,
-        footprint: RefCell::default(),
+        footprint: None,
     })
 }
 
@@ -129,7 +137,7 @@ struct WidgetLayer<W> {
     painted: u64,
     /// Cells the current value writes, with the value's change count and
     /// area it was measured for.
-    footprint: RefCell<Option<(u64, Rect, Region)>>,
+    footprint: Option<(u64, Rect, Region)>,
 }
 
 impl<W> Layer for WidgetLayer<W>
@@ -149,21 +157,23 @@ where
         }
     }
 
-    fn touches(&self, area: Rect, damage: &Region) -> bool {
+    fn touches(&mut self, area: Rect, damage: &Region) -> bool {
         let changes = self.view.changes.get();
-        let mut footprint = self.footprint.borrow_mut();
-        if !footprint
+        if !self
+            .footprint
             .as_ref()
             .is_some_and(|(c, a, _)| (*c, *a) == (changes, area))
         {
-            *footprint = Some((changes, area, measure(&*self.view.get(), area)));
+            let view = self.view.get();
+            let cells = footprint(area, |buf| (&*view).render(area, buf));
+            self.footprint = Some((changes, area, cells));
         }
-        footprint
+        self.footprint
             .as_ref()
             .is_some_and(|(_, _, cells)| cells.overlaps(damage))
     }
 
-    fn paint(&self, area: Rect, _want: &Region, buf: &mut Buffer) {
+    fn paint(&mut self, area: Rect, _want: &Region, buf: &mut Buffer) {
         (&*self.view.get()).render(area, buf);
     }
 }
@@ -182,7 +192,7 @@ where
 {
     let changes = Rc::new(Cell::new(0));
     create_effect({
-        let changes = changes.clone();
+        let changes = Rc::clone(&changes);
         move || {
             rows.track();
             changes.set(changes.get() + 1);
@@ -240,7 +250,7 @@ impl<T: PartialEq + Clone + 'static> Layer for RowsLayer<T> {
         Rect::new(area.x, want.y, area.width, want.height)
     }
 
-    fn paint(&self, area: Rect, want: &Region, buf: &mut Buffer) {
+    fn paint(&mut self, area: Rect, want: &Region, buf: &mut Buffer) {
         self.rows.with_untracked(|rows| {
             for (i, row) in rows.iter().enumerate().take(area.height as usize) {
                 let y = area.y + i as u16;
@@ -256,67 +266,4 @@ fn damage_row(area: Rect, i: usize, out: &mut Region) {
     if i < area.height as usize {
         out.add(Rect::new(area.x, area.y + i as u16, area.width, 1));
     }
-}
-
-/// The cells a widget writes, found by rendering it over two backgrounds
-/// that differ in every field. Any write of a field changes at least one of
-/// them, so a cell both leave alone is one the widget never touches.
-fn measure<W>(view: &W, area: Rect) -> Region
-where
-    for<'a> &'a W: Widget,
-{
-    let sentinel = |symbol, fg, bg, modifier, diff_option, skip| {
-        let mut cell = ratatui::buffer::Cell::new(symbol);
-        cell.fg = fg;
-        cell.bg = bg;
-        cell.underline_color = fg;
-        cell.modifier = modifier;
-        cell.diff_option = diff_option;
-        #[allow(deprecated)]
-        {
-            cell.skip = skip;
-        }
-        cell
-    };
-    use ratatui::buffer::CellDiffOption;
-    use ratatui::style::{Color, Modifier};
-    let a = sentinel(
-        "\u{E000}",
-        Color::Rgb(1, 2, 3),
-        Color::Rgb(4, 5, 6),
-        Modifier::all(),
-        CellDiffOption::None,
-        false,
-    );
-    let b = sentinel(
-        "\u{E001}",
-        Color::Indexed(77),
-        Color::Indexed(78),
-        Modifier::empty(),
-        CellDiffOption::AlwaysUpdate,
-        true,
-    );
-    let (mut buf_a, mut buf_b) = (
-        Buffer::filled(area, a.clone()),
-        Buffer::filled(area, b.clone()),
-    );
-    view.render(area, &mut buf_a);
-    view.render(area, &mut buf_b);
-    let mut cells = Region::default();
-    for y in area.top()..area.bottom() {
-        let mut x = area.left();
-        while x < area.right() {
-            let written = |x| buf_a[(x, y)] != a || buf_b[(x, y)] != b;
-            if !written(x) {
-                x += 1;
-                continue;
-            }
-            let start = x;
-            while x < area.right() && written(x) {
-                x += 1;
-            }
-            cells.add(Rect::new(start, y, x - start, 1));
-        }
-    }
-    cells
 }

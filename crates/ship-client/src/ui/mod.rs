@@ -51,7 +51,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use self::{
-    draw::Status,
+    draw::{Drawn, Layers, Status},
     keys::{Handled, Keys},
     lane::{Item, Lane, Turn},
     memory::Memory,
@@ -175,6 +175,7 @@ async fn drive(
         menu: None,
         input: None,
         message,
+        drawn: Drawn::default(),
     };
     let mut saves: Option<Saves> = match watch::changes(config) {
         Ok(saves) => Some(Box::pin(saves)),
@@ -193,6 +194,7 @@ async fn drive(
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     redraw(guard, &mut local)?;
     loop {
+        let mut screens = false;
         let mut visible = tokio::select! {
             event = next(&mut events) => match event {
                 Some(Ok(SseEvent::Ended(Ended { reason }))) => {
@@ -212,6 +214,7 @@ async fn drive(
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));
+                    screens = screen;
                     let previous = local.observer.record().and_then(|record| record.selection);
                     let visible = local.observer.apply(event);
                     if !screen && let Some(replica) = &local.observer.replica {
@@ -376,13 +379,17 @@ async fn drive(
             }
             () = &mut signaled => return Ok(Exit::Signaled),
         };
+        // Whatever else is visible may change more than pane screens.
+        let mut chrome = visible && !screens;
         while let Some(item) = lane.next(&local.observer, client.written()) {
             // Input frames change only the server's screen; redraw on its
             // publication, not on each keystroke or mouse frame.
-            visible |= matches!(
+            let shows = matches!(
                 item,
                 Item::Action(_) | Item::Select(_) | Item::Fold(_) | Item::Move(_)
             );
+            visible |= shows;
+            chrome |= shows;
             match local.turn(client, item) {
                 Turn::Done => {}
                 Turn::Wait(request) => lane.wait(request),
@@ -405,6 +412,7 @@ async fn drive(
             local.sidebar.reconcile(&replica.tabs);
             local.mouse.reconcile(&replica.tabs);
         }
+        local.drawn.chrome |= chrome;
         if visible {
             redraw(guard, &mut local)?;
         }
@@ -421,6 +429,7 @@ struct Local {
     menu: Option<Menu>,
     input: Option<mpsc::UnboundedSender<InputFrame>>,
     message: Option<String>,
+    drawn: Drawn,
 }
 
 /// Published geometry shared by the router and pane painter.
@@ -738,13 +747,25 @@ fn typing_pane(observer: &Observer, memory: &Memory) -> Option<IdOf<Pane>> {
     }
 }
 
+/// Repaint and write only what changed since the last frame. Debug builds
+/// check every frame against a full repaint.
 fn redraw(guard: &mut TerminalGuard, local: &mut Local) -> Result<()> {
-    let mut cursor = None;
+    let mut layers = Layers {
+        local,
+        area: guard.frame.area(),
+    };
+    layers.prepare();
+    let cursor = layers.cursor();
     guard
-        .terminal
-        .draw(|frame| cursor = draw::draw(frame, local))
+        .frame
+        .draw(&mut layers, cursor.map(|(at, _)| at))
         .map_err(|error| err!(Io, "cannot draw", @external: error))?;
-    guard.set_cursor(cursor)
+    #[cfg(debug_assertions)]
+    if let Some(at) = guard.frame.check(&mut layers) {
+        panic!("the retained frame differs from a full repaint at {at:?}");
+    }
+    layers.local.drawn.chrome = false;
+    guard.set_cursor(cursor.map(|(_, cursor)| cursor))
 }
 
 fn status<'a>(keys: &'a Keys, message: Option<&'a str>) -> Status<'a> {
