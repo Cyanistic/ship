@@ -77,6 +77,13 @@ Made for Ship's row screens on 2026-10-14:
 
 All 80 wrapper tests pass after change 18, run in place with `cargo test -p ratatui-ghostty`; the pre-existing crash-reproduction test remains ignored.
 
+Made for Ship's pane render cost on 2026-10-14:
+
+19. `SessionConfig::render_on_request` (default `false`) and `SessionHandle::render(reply)`. With it set, the session thread renders only when asked: changes mark the terminal stale and call `wake`, and a `Render` request renders if stale, then calls `reply`, after which `take_if_dirty` takes the result. Draining queued output stops early while a request waits. Ship renders once per published frame; during a flood the session had rendered every pass, about 47% of server CPU on macOS, and all but one render per frame were overwritten unseen. The loop now has one render site: output that arrives while waiting in `select!` and the changes commands make render on the next pass instead of inside the `select!`. Without the setting, rendering behaves as before, so the examples are unchanged.
+20. `widget.rs` reuses one `Vec<char>` and one `String` across cells for the grapheme and symbol, instead of allocating both per cell.
+
+All 80 wrapper tests pass after changes 19 and 20, run in place with `cargo test -p ratatui-ghostty`; the pre-existing crash-reproduction test remains ignored.
+
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 
 ## License

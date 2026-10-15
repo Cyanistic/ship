@@ -81,6 +81,9 @@ pub struct SessionConfig {
     pub focused: bool,
     /// Size of the buffer used to read PTY output, in bytes.
     pub read_buffer_size: usize,
+    /// Render only for [`SessionHandle::render`], so `wake` means the terminal
+    /// changed rather than that a render landed. Defaults to `false`.
+    pub render_on_request: bool,
 }
 
 impl Default for SessionConfig {
@@ -91,6 +94,7 @@ impl Default for SessionConfig {
             scroll_delta: 3,
             focused: true,
             read_buffer_size: 4096,
+            render_on_request: false,
         }
     }
 }
@@ -208,6 +212,12 @@ impl<W: Fn() + Send + 'static> SessionBuilder<W> {
         self
     }
 
+    /// Render only when asked through [`SessionHandle::render`].
+    pub fn render_on_request(mut self, on_request: bool) -> Self {
+        self.config.render_on_request = on_request;
+        self
+    }
+
     /// Spawn the session with the given I/O handles.
     ///
     /// Consumes the builder and returns a running [`SessionHandle`].
@@ -286,6 +296,7 @@ impl SessionHandle {
             scroll_delta,
             focused,
             read_buffer_size,
+            render_on_request,
         } = config;
         let SessionIo {
             reader,
@@ -309,6 +320,7 @@ impl SessionHandle {
                             scroll_delta,
                             focused,
                             read_buffer_size,
+                            render_on_request,
                         },
                         writer,
                         &mut resizer,
@@ -396,6 +408,13 @@ impl SessionHandle {
     /// A failed read or stopped session drops `reply` without calling it.
     pub fn read(&self, read: Read, reply: Box<dyn FnOnce(String) + Send>) {
         self.cmd_tx.send(SessionCommand::Read(read, reply)).ok();
+    }
+
+    /// Render what changed since the last render, then call `reply`; take the
+    /// result with [`Self::take_if_dirty`]. A stopped session drops `reply`
+    /// without calling it.
+    pub fn render(&self, reply: Box<dyn FnOnce() + Send>) {
+        self.cmd_tx.send(SessionCommand::Render(reply)).ok();
     }
 
     /// Paste data into the terminal, wrapping in bracketed paste sequences when enabled.
@@ -553,6 +572,7 @@ enum SessionCommand {
     Resize { cols: u16, rows: u16 },
     Scroll(Scroll),
     Read(Read, Box<dyn FnOnce(String) + Send>),
+    Render(Box<dyn FnOnce() + Send>),
     Paste(Vec<u8>),
     Raw(Vec<u8>),
     Shutdown,
@@ -601,6 +621,8 @@ struct SessionState<'a> {
     scroll_delta: isize,
     events: Rc<RefCell<Vec<SessionEvent>>>,
     selecting: Selecting,
+    /// Callers waiting on [`SessionHandle::render`], answered after the next render.
+    renders: Vec<Box<dyn FnOnce() + Send>>,
 }
 
 /// Left-button text selection through Ghostty's gesture state.
@@ -917,6 +939,7 @@ impl<'a> SessionState<'a> {
                     reply(text);
                 }
             }
+            SessionCommand::Render(reply) => self.renders.push(reply),
             SessionCommand::Paste(data) => {
                 self.input_bottom(needs_render);
                 let encoded = input::encode_paste(&data, &self.terminal);
@@ -951,6 +974,7 @@ struct ThreadConfig {
     scroll_delta: isize,
     focused: bool,
     read_buffer_size: usize,
+    render_on_request: bool,
 }
 
 fn session_thread(
@@ -969,6 +993,7 @@ fn session_thread(
         scroll_delta,
         focused,
         read_buffer_size,
+        render_on_request,
     } = cfg;
 
     let SessionContext {
@@ -1095,10 +1120,14 @@ fn session_thread(
         scroll_delta,
         events: Rc::clone(&events_local),
         selecting: Selecting::new()?,
+        renders: Vec::new(),
     };
 
+    // Set by changes that arrive while waiting, rendered on the next pass.
+    let mut needs_render = false;
+    // With `render_on_request`, the terminal changed since the last render.
+    let mut stale = false;
     loop {
-        let mut needs_render = false;
         let mut shutdown = false;
 
         while let Ok(cmd) = cmd_rx.try_recv() {
@@ -1122,42 +1151,52 @@ fn session_thread(
                     break;
                 }
             }
-            if shutdown || drain_start.elapsed() >= DRAIN_BUDGET {
+            // A waiting caller gets the output so far rather than the budget's.
+            if shutdown || !state.renders.is_empty() || drain_start.elapsed() >= DRAIN_BUDGET {
                 break;
             }
         }
         if shutdown {
             break;
         }
-        if had_pty {
-            needs_render = true;
-        }
 
         let mut should_wake = false;
-        if needs_render {
-            render_to_shared(&mut state, &mut render_state);
+        if had_pty || needs_render {
+            needs_render = false;
             should_wake = true;
+            if render_on_request {
+                stale = true;
+            } else {
+                render_to_shared(&mut state, &mut render_state);
+            }
         }
-
         for ev in events_local.borrow_mut().drain(..) {
             let _ = event_tx.send(ev);
             should_wake = true;
+        }
+
+        // Events first, so a caller woken by the reply sees them.
+        if !state.renders.is_empty() {
+            if stale {
+                stale = false;
+                render_to_shared(&mut state, &mut render_state);
+            }
+            state.renders.drain(..).for_each(|reply| reply());
         }
 
         if should_wake {
             wake();
         }
 
-        let mut cmd_needs_render = false;
         let autoscroll = if state.autoscrolling() {
             crossbeam_channel::after(AUTOSCROLL)
         } else {
             crossbeam_channel::never()
         };
         crossbeam_channel::select! {
-            recv(autoscroll) -> _ => state.autoscroll(&mut cmd_needs_render),
+            recv(autoscroll) -> _ => state.autoscroll(&mut needs_render),
             recv(cmd_rx) -> msg => {
-                if let Ok(cmd) = msg && state.handle_command(cmd, &mut cmd_needs_render) {
+                if let Ok(cmd) = msg && state.handle_command(cmd, &mut needs_render) {
                     break;
                 }
             },
@@ -1165,8 +1204,7 @@ fn session_thread(
                 match msg {
                     Ok(data) => {
                         state.terminal.vt_write(&data);
-                        render_to_shared(&mut state, &mut render_state);
-                        wake();
+                        needs_render = true;
                     }
                     Err(_) => {
                         pty_rx = crossbeam_channel::never();
@@ -1175,10 +1213,6 @@ fn session_thread(
                     }
                 }
             },
-        }
-        if cmd_needs_render {
-            render_to_shared(&mut state, &mut render_state);
-            wake();
         }
     }
 

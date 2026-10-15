@@ -257,6 +257,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     let session = SessionHandle::spawn(
         SessionConfig {
             scrollback_bytes: Some(settings.scrollback_bytes),
+            render_on_request: true,
             ..Default::default()
         },
         SessionIo {
@@ -363,7 +364,8 @@ struct PaneTask {
     master: Master,
     program: Program,
     exit: Exit,
-    /// The wrapper's wake callback calls `notify_one`.
+    /// The wrapper's wake callback calls `notify_one` when the terminal
+    /// changed; it renders only when `publish` asks, once per frame.
     dirty: Arc<Notify>,
     /// Latest title seen this frame; the tree keeps the lasting copy.
     title: Option<String>,
@@ -496,6 +498,11 @@ impl PaneTask {
     /// zsh under oh-my-zsh with SSH variables set, has its working directory
     /// read instead; its prompt after a `cd` is output, so it lands here.
     async fn publish(&mut self) {
+        let (rendered, render) = oneshot::channel();
+        self.session.render(Box::new(move || {
+            rendered.send(()).ok();
+        }));
+        render.await.ok();
         let mut changed = false;
         let mut dir = None;
         let mut copies = Vec::new();
