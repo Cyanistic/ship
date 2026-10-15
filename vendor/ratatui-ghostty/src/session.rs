@@ -841,9 +841,13 @@ impl<'a> SessionState<'a> {
         }
     }
     fn input_bottom(&mut self, needs_render: &mut bool) {
+        // Usually the view is already at the bottom with nothing selected,
+        // so nothing changes and a render would only delay the echo.
+        let scrolled = !self.terminal.viewport_active().unwrap_or(false);
+        let selected = self.terminal.selection().map_or(true, |s| s.is_some());
         self.terminal.scroll_viewport(ScrollViewport::Bottom);
         self.terminal.set_selection(None).ok();
-        *needs_render = true;
+        *needs_render |= scrolled || selected;
     }
 
     fn read(&self, read: Read) -> Result<String, libghostty_vt::Error> {

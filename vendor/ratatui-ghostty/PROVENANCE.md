@@ -88,6 +88,8 @@ All 80 wrapper tests pass after changes 19 and 20, run in place with `cargo test
 
 All 80 wrapper tests pass after change 21, run in place with `cargo test -p ratatui-ghostty`; the pre-existing crash-reproduction test remains ignored.
 
+22. A key or paste marks the terminal changed only when it scrolled the view back to the bottom or cleared a selection. It had marked it changed every time, so with `render_on_request` every keystroke woke Ship's pane task for a render that showed nothing new, and the echo arriving moments later waited behind that render.
+
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 
 ## License
