@@ -187,6 +187,7 @@ async fn drive(
     let mut terminal_events = EventStream::new();
     let mut sending: Option<Request> = None;
     let mut terminal = terminal_size()?;
+    guard.resize(terminal)?;
     let mut putting: Option<Request> = None;
     let mut tick = time::interval(FRAME);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -283,6 +284,7 @@ async fn drive(
             event = terminal_events.next() => match event {
                 Some(Ok(Event::Resize(cols, rows))) => {
                     terminal = (cols, rows);
+                    guard.resize(terminal)?;
                     local.menu = None;
                     true
                 }
