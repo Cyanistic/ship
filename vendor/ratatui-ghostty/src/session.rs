@@ -1113,7 +1113,6 @@ fn session_thread(
                 let text = String::from_utf8_lossy(text.data).into_owned();
                 events.borrow_mut().push(SessionEvent::ClipboardWrite(text));
             }
-            Ok(())
         }
     })?;
 

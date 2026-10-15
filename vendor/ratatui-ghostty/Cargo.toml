@@ -12,7 +12,7 @@ repository = "https://codeberg.org/jint/ratatui-ghostty"
 [dependencies]
 crossbeam-channel = "0.5.15"
 crossterm = "0.29.0"
-libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "8953a740bc378cec3e07e1f6ca949f0595eab19b" }
+libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "d2036baeb605d31d09a9e2ba6d0c923e04c34d54" }
 libc = "0.2"
 ratatui = "0.30.0"
 

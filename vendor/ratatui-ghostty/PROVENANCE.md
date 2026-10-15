@@ -24,9 +24,10 @@ The experiment made five changes:
 This copy keeps all five. Two edits differ from the experiment copy:
 
 - `Cargo.toml` names libghostty-rs by git rev instead of `"0.2.1"` plus the experiment's workspace `[patch.crates-io]`: `libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "8953a740bc378cec3e07e1f6ca949f0595eab19b" }`. That's the checkout the experiment built against, and the tip of upstream `master` on 2026-10-06.
+- On 2026-10-15 the rev moved to `d2036baeb605d31d09a9e2ba6d0c923e04c34d54` (upstream `master` on 2026-10-09). Its Ghostty no longer links Zig's `std.Io.Threaded`, whose 256 KiB per-thread signal stack cost every Ship thread about 270 KB. The clipboard-write callback in `src/session.rs` now returns `()` instead of a `Result`, matching the new API.
 - rustfmt reformatted `tests/terminal_move_after_callback.rs` and `tests/widget_render.rs`, both adapted by change 5. No test logic changed.
 
-All 80 wrapper tests pass against that rev.
+All 80 wrapper tests pass against both revs.
 
 ## Ship changes
 
@@ -99,4 +100,4 @@ The published manifest declares **MIT**, but neither the package nor the recorde
 
 ## Native Ghostty
 
-`libghostty-vt-sys`'s build script at `8953a740` clones Ghostty commit `22d13172cde98a0a4dda05d3d6a3fcb0dd8ed018` into Cargo's `OUT_DIR` and builds it with whatever `zig` is on `PATH`. That commit declares `minimum_zig_version = "0.16.0"`, and `requireZig` also needs the same major.minor version, so 0.15 and 0.17 are rejected. Building `ship-server` therefore needs Zig 0.16 and network access.
+`libghostty-vt-sys`'s build script at `d2036bae` clones Ghostty commit `3425025e585a3403340d4dc6d65132f42e05e605` into Cargo's `OUT_DIR` and builds it with whatever `zig` is on `PATH`. That commit declares `minimum_zig_version = "0.16.0"`, and `requireZig` also needs the same major.minor version, so 0.15 and 0.17 are rejected. Building `ship-server` therefore needs Zig 0.16 and network access.
