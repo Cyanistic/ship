@@ -13,7 +13,7 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{Terminal, backend::CrosstermBackend};
+use ratatui::{Terminal, TerminalOptions, Viewport, backend::CrosstermBackend, layout::Rect};
 use ship_core::{
     prelude::*,
     screen::{Cursor, CursorShape},
@@ -43,10 +43,14 @@ impl TerminalGuard {
         }));
         enable_raw_mode().map_err(|error| err!(Io, "cannot enter raw mode", @external: error))?;
         // From here on, the guard restores whatever succeeded.
-        let terminal = Terminal::new(CrosstermBackend::new(BufWriter::with_capacity(
-            FRAME_BUFFER,
-            io::stdout(),
-        )))
+        // Fixed, so drawing doesn't reopen `/dev/tty` for the size every
+        // frame; `drive` sizes it from resize events.
+        let terminal = Terminal::with_options(
+            CrosstermBackend::new(BufWriter::with_capacity(FRAME_BUFFER, io::stdout())),
+            TerminalOptions {
+                viewport: Viewport::Fixed(Rect::default()),
+            },
+        )
         .map_err(|error| err!(Io, "cannot open the terminal", @external: error));
         let guard = Self {
             terminal: terminal.inspect_err(|_| restore())?,
@@ -56,6 +60,13 @@ impl TerminalGuard {
         execute!(io::stdout(), EnterAlternateScreen, EnableBracketedPaste)
             .map_err(|error| err!(Io, "cannot enter the alternate screen", @external: error))?;
         Ok(guard)
+    }
+
+    /// Draw at `cols` by `rows` from now on.
+    pub fn resize(&mut self, (cols, rows): (u16, u16)) -> Result<()> {
+        self.terminal
+            .resize(Rect::new(0, 0, cols, rows))
+            .map_err(|error| err!(Io, "cannot resize the terminal", @external: error))
     }
 
     pub fn mouse(&self) -> bool {

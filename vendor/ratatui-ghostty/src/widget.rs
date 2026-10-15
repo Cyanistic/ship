@@ -128,6 +128,9 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
             let _ = snapshot.set_dirty(Dirty::Clean);
         }
 
+        // Reused across cells, so filling the buffer doesn't allocate per cell.
+        let mut chars = Vec::new();
+        let mut symbol = String::new();
         let mut row_idx: u16 = 0;
         while let Some(row) = row_iteration.next() {
             if row_idx >= area.height {
@@ -156,13 +159,16 @@ impl Widget for &mut TerminalWidget<'_, '_, '_> {
                     break;
                 }
 
-                let symbol = match cell.graphemes_len() {
-                    Ok(0) | Err(_) => " ".to_string(),
-                    Ok(_) => match cell.graphemes() {
-                        Ok(chars) => chars.into_iter().collect::<String>(),
-                        Err(_) => " ".to_string(),
-                    },
-                };
+                symbol.clear();
+                if let Ok(len @ 1..) = cell.graphemes_len() {
+                    chars.resize(len, '\0');
+                    if cell.graphemes_buf(&mut chars).is_ok() {
+                        symbol.extend(&chars);
+                    }
+                }
+                if symbol.is_empty() {
+                    symbol.push(' ');
+                }
 
                 // Unset colors stay `Reset`, so the host terminal's defaults
                 // show. A background from erasing with a color set lives in

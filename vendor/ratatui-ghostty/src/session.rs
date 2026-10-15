@@ -13,10 +13,10 @@ use std::error::Error;
 use std::io::{self, Read as IoRead, Write};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
-use std::{fmt, panic};
+use std::{fmt, mem, panic};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
@@ -41,9 +41,8 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::Widget;
 
-/// Longest the session thread drains queued output before rendering. Without
-/// it, sustained output keeps the queue full and nothing renders until it stops.
-const DRAIN_BUDGET: Duration = Duration::from_millis(8);
+/// Most output the reader holds before waiting for the session thread to take it.
+const PENDING_CAP: usize = 1 << 20;
 
 /// How often a selection dragged past the top or bottom scrolls one row.
 const AUTOSCROLL: Duration = Duration::from_millis(50);
@@ -81,6 +80,9 @@ pub struct SessionConfig {
     pub focused: bool,
     /// Size of the buffer used to read PTY output, in bytes.
     pub read_buffer_size: usize,
+    /// Render only for [`SessionHandle::render`], so `wake` means the terminal
+    /// changed rather than that a render landed. Defaults to `false`.
+    pub render_on_request: bool,
 }
 
 impl Default for SessionConfig {
@@ -91,6 +93,7 @@ impl Default for SessionConfig {
             scroll_delta: 3,
             focused: true,
             read_buffer_size: 4096,
+            render_on_request: false,
         }
     }
 }
@@ -208,6 +211,12 @@ impl<W: Fn() + Send + 'static> SessionBuilder<W> {
         self
     }
 
+    /// Render only when asked through [`SessionHandle::render`].
+    pub fn render_on_request(mut self, on_request: bool) -> Self {
+        self.config.render_on_request = on_request;
+        self
+    }
+
     /// Spawn the session with the given I/O handles.
     ///
     /// Consumes the builder and returns a running [`SessionHandle`].
@@ -286,6 +295,7 @@ impl SessionHandle {
             scroll_delta,
             focused,
             read_buffer_size,
+            render_on_request,
         } = config;
         let SessionIo {
             reader,
@@ -309,6 +319,7 @@ impl SessionHandle {
                             scroll_delta,
                             focused,
                             read_buffer_size,
+                            render_on_request,
                         },
                         writer,
                         &mut resizer,
@@ -396,6 +407,13 @@ impl SessionHandle {
     /// A failed read or stopped session drops `reply` without calling it.
     pub fn read(&self, read: Read, reply: Box<dyn FnOnce(String) + Send>) {
         self.cmd_tx.send(SessionCommand::Read(read, reply)).ok();
+    }
+
+    /// Render what changed since the last render, then call `reply`; take the
+    /// result with [`Self::take_if_dirty`]. A stopped session drops `reply`
+    /// without calling it.
+    pub fn render(&self, reply: Box<dyn FnOnce() + Send>) {
+        self.cmd_tx.send(SessionCommand::Render(reply)).ok();
     }
 
     /// Paste data into the terminal, wrapping in bracketed paste sequences when enabled.
@@ -553,6 +571,7 @@ enum SessionCommand {
     Resize { cols: u16, rows: u16 },
     Scroll(Scroll),
     Read(Read, Box<dyn FnOnce(String) + Send>),
+    Render(Box<dyn FnOnce() + Send>),
     Paste(Vec<u8>),
     Raw(Vec<u8>),
     Shutdown,
@@ -581,6 +600,60 @@ impl RenderSnapshot {
     }
 }
 
+/// Output the reader thread has read and the session thread hasn't written to
+/// the terminal yet. Reads append to one buffer, so a flood of small PTY reads
+/// wakes the session thread once per batch rather than once per read.
+#[derive(Default)]
+struct Pending {
+    queue: Mutex<Queue>,
+    /// Signaled when the session thread takes the bytes or stops.
+    taken: Condvar,
+}
+
+#[derive(Default)]
+struct Queue {
+    bytes: Vec<u8>,
+    /// The session thread stopped; the reader exits.
+    closed: bool,
+}
+
+impl Pending {
+    fn lock(&self) -> MutexGuard<'_, Queue> {
+        self.queue.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    fn len(&self) -> usize {
+        self.lock().bytes.len()
+    }
+
+    /// Swaps the waiting bytes into `batch`, which is empty, so the two
+    /// buffers trade places and neither reallocates.
+    fn take(&self, batch: &mut Vec<u8>) {
+        mem::swap(&mut self.lock().bytes, batch);
+        self.taken.notify_one();
+    }
+}
+
+/// Closes the reader's queue when the session thread ends, however it ends,
+/// so a reader waiting at the cap exits.
+struct ClosePending(Arc<Pending>);
+
+impl Drop for ClosePending {
+    fn drop(&mut self) {
+        self.0.lock().closed = true;
+        self.0.taken.notify_one();
+    }
+}
+
+/// What ended the session thread's wait.
+enum Woke {
+    Output,
+    Command(SessionCommand),
+    Autoscroll,
+    /// The reader stopped: the PTY reached EOF or failed.
+    Eof,
+}
+
 struct SharedBuffer {
     render: Mutex<RenderSnapshot>,
     dirty: AtomicBool,
@@ -601,6 +674,8 @@ struct SessionState<'a> {
     scroll_delta: isize,
     events: Rc<RefCell<Vec<SessionEvent>>>,
     selecting: Selecting,
+    /// Callers waiting on [`SessionHandle::render`], answered after the next render.
+    renders: Vec<Box<dyn FnOnce() + Send>>,
 }
 
 /// Left-button text selection through Ghostty's gesture state.
@@ -766,9 +841,13 @@ impl<'a> SessionState<'a> {
         }
     }
     fn input_bottom(&mut self, needs_render: &mut bool) {
+        // Usually the view is already at the bottom with nothing selected,
+        // so nothing changes and a render would only delay the echo.
+        let scrolled = !self.terminal.viewport_active().unwrap_or(false);
+        let selected = self.terminal.selection().map_or(true, |s| s.is_some());
         self.terminal.scroll_viewport(ScrollViewport::Bottom);
         self.terminal.set_selection(None).ok();
-        *needs_render = true;
+        *needs_render |= scrolled || selected;
     }
 
     fn read(&self, read: Read) -> Result<String, libghostty_vt::Error> {
@@ -917,6 +996,7 @@ impl<'a> SessionState<'a> {
                     reply(text);
                 }
             }
+            SessionCommand::Render(reply) => self.renders.push(reply),
             SessionCommand::Paste(data) => {
                 self.input_bottom(needs_render);
                 let encoded = input::encode_paste(&data, &self.terminal);
@@ -951,6 +1031,7 @@ struct ThreadConfig {
     scroll_delta: isize,
     focused: bool,
     read_buffer_size: usize,
+    render_on_request: bool,
 }
 
 fn session_thread(
@@ -969,6 +1050,7 @@ fn session_thread(
         scroll_delta,
         focused,
         read_buffer_size,
+        render_on_request,
     } = cfg;
 
     let SessionContext {
@@ -1062,19 +1144,36 @@ fn session_thread(
         init_colors(&mut terminal, colors);
     }
 
-    let (pty_tx, mut pty_rx) = crossbeam_channel::bounded::<Vec<u8>>(64);
+    let pending = Arc::new(Pending::default());
+    let _close = ClosePending(Arc::clone(&pending));
+    // Carries no data: a token means bytes are waiting, sent when the queue
+    // was empty or reaches the cap. Dropped with the reader at EOF.
+    let (pty_tx, mut pty_rx) = crossbeam_channel::bounded::<()>(1);
 
     thread::Builder::new()
         .name("session-reader".into())
-        .spawn(move || {
-            let mut buf = vec![0u8; read_buffer_size];
-            let mut reader = reader;
-            loop {
-                match reader.read(&mut buf) {
-                    Ok(0) | Err(_) => break,
-                    Ok(n) => {
-                        if pty_tx.send(buf[..n].to_vec()).is_err() {
-                            break;
+        .spawn({
+            let pending = Arc::clone(&pending);
+            move || {
+                let mut buf = vec![0u8; read_buffer_size];
+                let mut reader = reader;
+                loop {
+                    match reader.read(&mut buf) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => {
+                            let mut queue = pending.lock();
+                            if queue.closed {
+                                break;
+                            }
+                            let was_empty = queue.bytes.is_empty();
+                            queue.bytes.extend_from_slice(&buf[..n]);
+                            if was_empty || queue.bytes.len() >= PENDING_CAP {
+                                pty_tx.try_send(()).ok();
+                            }
+                            while queue.bytes.len() >= PENDING_CAP && !queue.closed {
+                                queue =
+                                    pending.taken.wait(queue).unwrap_or_else(|e| e.into_inner());
+                            }
                         }
                     }
                 }
@@ -1095,91 +1194,102 @@ fn session_thread(
         scroll_delta,
         events: Rc::clone(&events_local),
         selecting: Selecting::new()?,
+        renders: Vec::new(),
     };
 
+    // Set by changes that arrive while waiting, rendered on the next pass.
+    let mut needs_render = false;
+    // With `render_on_request`, the terminal changed, or has output waiting,
+    // since the last render.
+    let mut stale = false;
+    let mut batch = Vec::new();
+    let mut woke = None;
     loop {
-        let mut needs_render = false;
-        let mut shutdown = false;
-
-        while let Ok(cmd) = cmd_rx.try_recv() {
-            if state.handle_command(cmd, &mut needs_render) {
-                shutdown = true;
-                break;
-            }
-        }
-        if shutdown {
-            break;
-        }
-
-        let mut had_pty = false;
-        let drain_start = Instant::now();
-        while let Ok(data) = pty_rx.try_recv() {
-            state.terminal.vt_write(&data);
-            had_pty = true;
-            while let Ok(cmd) = cmd_rx.try_recv() {
-                if state.handle_command(cmd, &mut needs_render) {
-                    shutdown = true;
-                    break;
-                }
-            }
-            if shutdown || drain_start.elapsed() >= DRAIN_BUDGET {
-                break;
-            }
-        }
-        if shutdown {
-            break;
-        }
-        if had_pty {
+        // Every pass writes the waiting output first, so a command sees all
+        // output read before it, like the modes that change how keys encode.
+        pending.take(&mut batch);
+        if !batch.is_empty() {
+            state.terminal.vt_write(&batch);
+            batch.clear();
             needs_render = true;
         }
 
+        let mut shutdown = false;
         let mut should_wake = false;
-        if needs_render {
-            render_to_shared(&mut state, &mut render_state);
-            should_wake = true;
+        match woke.take() {
+            Some(Woke::Command(cmd)) => shutdown = state.handle_command(cmd, &mut needs_render),
+            Some(Woke::Autoscroll) => state.autoscroll(&mut needs_render),
+            Some(Woke::Eof) => {
+                pty_rx = crossbeam_channel::never();
+                event_tx.send(SessionEvent::Exited).ok();
+                should_wake = true;
+            }
+            Some(Woke::Output) | None => {}
+        }
+        while !shutdown && let Ok(cmd) = cmd_rx.try_recv() {
+            shutdown = state.handle_command(cmd, &mut needs_render);
+        }
+        if shutdown {
+            break;
         }
 
+        if needs_render {
+            needs_render = false;
+            if render_on_request {
+                stale = true;
+            } else {
+                render_to_shared(&mut state, &mut render_state);
+            }
+            // A render request answered below in this pass already shows the change.
+            should_wake |= !(render_on_request && !state.renders.is_empty());
+        }
         for ev in events_local.borrow_mut().drain(..) {
             let _ = event_tx.send(ev);
             should_wake = true;
+        }
+
+        // Events first, so a caller woken by the reply sees them.
+        if !state.renders.is_empty() {
+            if stale {
+                stale = false;
+                render_to_shared(&mut state, &mut render_state);
+            }
+            state.renders.drain(..).for_each(|reply| reply());
         }
 
         if should_wake {
             wake();
         }
 
-        let mut cmd_needs_render = false;
-        let autoscroll = if state.autoscrolling() {
-            crossbeam_channel::after(AUTOSCROLL)
-        } else {
-            crossbeam_channel::never()
-        };
-        crossbeam_channel::select! {
-            recv(autoscroll) -> _ => state.autoscroll(&mut cmd_needs_render),
-            recv(cmd_rx) -> msg => {
-                if let Ok(cmd) = msg && state.handle_command(cmd, &mut cmd_needs_render) {
-                    break;
-                }
-            },
-            recv(pty_rx) -> msg => {
-                match msg {
-                    Ok(data) => {
-                        state.terminal.vt_write(&data);
-                        render_to_shared(&mut state, &mut render_state);
+        // With `render_on_request`, output alone only marks the terminal
+        // stale and keeps waiting; the render request writes it.
+        woke = Some(loop {
+            let autoscroll = if state.autoscrolling() {
+                crossbeam_channel::after(AUTOSCROLL)
+            } else {
+                crossbeam_channel::never()
+            };
+            crossbeam_channel::select! {
+                recv(autoscroll) -> _ => break Woke::Autoscroll,
+                recv(cmd_rx) -> msg => match msg {
+                    Ok(cmd) => break Woke::Command(cmd),
+                    Err(_) => break Woke::Command(SessionCommand::Shutdown),
+                },
+                recv(pty_rx) -> msg => {
+                    if msg.is_err() {
+                        break Woke::Eof;
+                    }
+                    let waiting = pending.len();
+                    if !render_on_request || waiting >= PENDING_CAP {
+                        break Woke::Output;
+                    }
+                    if waiting > 0 && !stale {
+                        stale = true;
                         wake();
                     }
-                    Err(_) => {
-                        pty_rx = crossbeam_channel::never();
-                        event_tx.send(SessionEvent::Exited).ok();
-                        wake();
-                    }
-                }
-            },
-        }
-        if cmd_needs_render {
-            render_to_shared(&mut state, &mut render_state);
-            wake();
-        }
+                },
+            }
+        });
     }
 
     Ok(())
