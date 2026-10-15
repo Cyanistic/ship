@@ -1235,12 +1235,13 @@ fn session_thread(
 
         if needs_render {
             needs_render = false;
-            should_wake = true;
             if render_on_request {
                 stale = true;
             } else {
                 render_to_shared(&mut state, &mut render_state);
             }
+            // A render request answered below in this pass already shows the change.
+            should_wake |= !(render_on_request && !state.renders.is_empty());
         }
         for ev in events_local.borrow_mut().drain(..) {
             let _ = event_tx.send(ev);
