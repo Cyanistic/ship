@@ -71,6 +71,12 @@ Made for Ship on 2026-10-11:
 
 All 80 wrapper tests pass after change 17, run in place with `cargo test -p ratatui-ghostty`; the pre-existing crash-reproduction test remains ignored.
 
+Made for Ship's row screens on 2026-10-14:
+
+18. `convert/to_ratatui.rs` sets the ratatui style's underline color from Ghostty's `underline_color` (SGR 58), resolved like the foreground and background. The style had dropped it, so Ship couldn't forward a program's colored underlines, such as Neovim's diagnostics. Underline kinds (curly, dotted and so on) and overline still collapse or drop, since ratatui's `Modifier` has no flags for them.
+
+All 80 wrapper tests pass after change 18, run in place with `cargo test -p ratatui-ghostty`; the pre-existing crash-reproduction test remains ignored.
+
 No crates.io release works yet. `libghostty-vt` 0.2.1 and 0.2.2 come from the `release/0.2.x` branch, which lacks `Terminal::new(cols, rows)` and builds Ghostty `a887df42`, which needs Zig 0.15.2. When a release ships Ghostty `22d13172` or later, swap the git dependency for that version.
 
 ## License

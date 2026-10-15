@@ -7,7 +7,7 @@ Let users exercise Ship through a real, observable health request with predictab
 ## Requirements
 
 ### Requirement: Health contract and result
-A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing `service` equal to `ship`, `protocolVersion` equal to 11, and informational string `version`. Health response JSON field names SHALL use camelCase; Rust fields retain snake_case. The current client SHALL validate service/protocol compatibility before any other request, including ordinary commands with `--server-url` or `SHIP_SERVER_URL` and `server stop`. Explicit targets, status and stop SHALL NOT start a server. Endpoint methods SHALL remain policy-free; application dispatch owns this validation. `ship server status` SHALL print one health JSON line on stdout only on success, and SHALL never start a server.
+A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing `service` equal to `ship`, `protocolVersion` equal to 12, and informational string `version`. Health response JSON field names SHALL use camelCase; Rust fields retain snake_case. The current client SHALL validate service/protocol compatibility before any other request, including ordinary commands with `--server-url` or `SHIP_SERVER_URL` and `server stop`. Explicit targets, status and stop SHALL NOT start a server. Endpoint methods SHALL remain policy-free; application dispatch owns this validation. `ship server status` SHALL print one health JSON line on stdout only on success, and SHALL never start a server.
 
 #### Scenario: Compatible health
 - **WHEN** `ship server status` contacts a compatible server
@@ -22,7 +22,7 @@ A compatible server SHALL answer GET `/health` with HTTP 200 and JSON containing
 - **THEN** the client reports contextual failure, emits no success result and exits 1
 
 #### Scenario: Client from an earlier protocol
-- **WHEN** a client built for protocol version 1 to 10 validates health from a server reporting protocol version 11
+- **WHEN** a client built for protocol version 1 to 11 validates health from a server reporting protocol version 12
 - **THEN** the client reports the incompatible protocol version and exits 1 without attaching
 
 #### Scenario: Already-built protocol-7 explicit ordinary command

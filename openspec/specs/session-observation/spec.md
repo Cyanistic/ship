@@ -244,6 +244,20 @@ Selecting a pane hidden by its tab's zoom, through the views route or `ship view
 - **WHEN** A is zoomed in a tab with B, two clients view the tab, and a script selects B for one of them
 - **THEN** both clients see the tab unzoomed, and the script's client has B selected
 
+### Requirement: Published screen rows
+Each published pane screen SHALL carry `rows`, top to bottom. A row's `text` SHALL hold one char per cell from the left through the last cell that isn't a default-style blank; later cells SHALL be such blanks. A wide character's trailing cell SHALL be a blank of its own. A cell whose grapheme is more than one char SHALL have a space in `text` and appear in `multi` as `{col, symbol}`. Empty text and lists SHALL be omitted. Clients SHALL place cells as described, not by character width.
+
+#### Scenario: Multi-char graphemes keep their cells
+- **WHEN** a pane shows a combining accent, a ZWJ emoji and a wide CJK character in one row
+- **THEN** the combining and emoji graphemes appear in `multi` at their columns, the CJK character stays in `text` followed by its blank, and the client shows every later cell in that row at its original column
+
+### Requirement: Published screen styles
+A row's `runs` SHALL give its cells' styles from the left, each run covering `cells` adjacent cells with one style made of `fg`, `bg`, `underlineColor` and `attrs`. Cells past the last run SHALL have the default style, and a row SHALL NOT end with a default-style run. A run's default-valued fields SHALL be omitted.
+
+#### Scenario: Colored underlines reach the client
+- **WHEN** a pane's program writes text with a colored underline, as Neovim does for diagnostics
+- **THEN** the screen's run for that text carries `underlineColor`, and the client draws the underline in that color
+
 ### Requirement: Published mouse tracking
 Each published pane screen SHALL carry `mouse: true` while the pane's program has asked for mouse input, and SHALL omit `mouse` otherwise. The flag SHALL follow the program's mouse mode as of its latest output and SHALL be terminal state, not shared tab or pane state: a change to it SHALL NOT change the shared state's revision. Clients SHALL use it to decide where a right-click goes, as mouse-input's Right-click passthrough describes.
 

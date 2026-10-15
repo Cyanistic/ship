@@ -23,6 +23,9 @@ pub fn style(s: &style::Style, palette: &[style::RgbColor; 256]) -> Style {
     if let Some(bg) = resolve_color(&s.bg_color, palette) {
         result = result.bg(bg);
     }
+    if let Some(underline) = resolve_color(&s.underline_color, palette) {
+        result = result.underline_color(underline);
+    }
 
     let mut mods = Modifier::empty();
     if s.bold {

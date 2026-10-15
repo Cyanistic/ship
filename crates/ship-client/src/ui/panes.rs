@@ -11,7 +11,7 @@ use ratatui::{
 };
 use ship_core::{
     layout::Axis,
-    screen::{Attr, Cell, Color, Cursor, Screen},
+    screen::{Attr, Color, Cursor, Run, Screen},
 };
 
 use super::{Scene, draw::pane_label, lane::Edge};
@@ -170,21 +170,28 @@ fn fill(buf: &mut Buffer, area: Rect, shown: Rect) {
     }
 }
 
-/// The screen's cells into `area`, which is no larger than the screen.
+/// The screen's rows into `area`, which is no larger than the screen.
 fn paint(screen: &Screen, area: Rect, buf: &mut Buffer) {
-    if area.is_empty() || screen.size.cols == 0 {
-        return;
-    }
-    let cols = usize::from(screen.size.cols);
-    for (index, cell) in screen.cells.iter().enumerate() {
-        let (x, y) = (index % cols, index / cols);
-        let (Ok(x), Ok(y)) = (u16::try_from(x), u16::try_from(y)) else {
-            break;
-        };
-        if x < area.width && y < area.height {
-            buf[(area.x + x, area.y + y)]
-                .set_symbol(&cell.symbol)
-                .set_style(style(cell));
+    let mut utf8 = [0; 4];
+    for (y, row) in (area.top()..area.bottom()).zip(&screen.rows) {
+        let cols = area.left()..area.right();
+        for x in cols.clone() {
+            buf[(x, y)].reset();
+        }
+        for (x, symbol) in cols.clone().zip(row.text.chars()) {
+            buf[(x, y)].set_symbol(symbol.encode_utf8(&mut utf8));
+        }
+        let mut unstyled = cols;
+        for run in &row.runs {
+            let style = style(run);
+            for x in unstyled.by_ref().take(usize::from(run.cells)) {
+                buf[(x, y)].set_style(style);
+            }
+        }
+        for multi in &row.multi {
+            if multi.col < area.width {
+                buf[(area.x + multi.col, y)].set_symbol(&multi.symbol);
+            }
         }
     }
 }
@@ -201,14 +208,15 @@ const MODIFIERS: [(Attr, Modifier); 9] = [
     (Attr::CrossedOut, Modifier::CROSSED_OUT),
 ];
 
-fn style(cell: &Cell) -> Style {
+fn style(run: &Run) -> Style {
     let modifier = MODIFIERS
         .iter()
-        .filter(|(attr, _)| cell.attrs.contains(attr))
+        .filter(|(attr, _)| run.attrs.contains(attr))
         .fold(Modifier::empty(), |modifier, (_, add)| modifier | *add);
     Style::new()
-        .fg(color(cell.fg))
-        .bg(color(cell.bg))
+        .fg(color(run.fg))
+        .bg(color(run.bg))
+        .underline_color(color(run.underline_color))
         .add_modifier(modifier)
 }
 

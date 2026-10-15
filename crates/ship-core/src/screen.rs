@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-/// A pane's visible grid at one moment, row-major. Full snapshot; zstd on the
-/// stream supplies the savings between frames.
+/// A pane's visible grid at one moment. Full snapshot; zstd on the stream
+/// supplies the savings between frames.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Screen {
     pub size: Size,
-    /// `size.cols * size.rows` cells.
-    pub cells: Vec<Cell>,
+    /// `size.rows` rows, top to bottom.
+    pub rows: Vec<Row>,
     /// Absent when the cursor is hidden.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor: Option<Cursor>,
@@ -32,27 +32,54 @@ pub struct Scrolled {
     pub history: u32,
 }
 
-/// Default-valued fields are omitted on the wire, so a blank cell is `{}`.
+/// One row of cells as text plus style runs. Cells past `text` are blank,
+/// with the default style; an empty field is omitted on the wire.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Row {
+    /// One char per cell, through the last cell that isn't a default blank. A
+    /// wide character's trailing cell is its own blank.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub text: String,
+    /// Cell styles from the left; cells past the last run have the default style.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub runs: Vec<Run>,
+    /// Cells whose grapheme isn't one char, with a space in `text`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub multi: Vec<Multi>,
+}
+
+/// Adjacent cells sharing a style. Default-valued fields are omitted.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Cell {
-    /// Grapheme; " " when omitted. A wide character's trailing cell is blank.
-    #[serde(default = "space", skip_serializing_if = "is_space")]
-    pub symbol: String,
+pub struct Run {
+    pub cells: u16,
     #[serde(default, skip_serializing_if = "Color::is_default")]
     pub fg: Color,
     #[serde(default, skip_serializing_if = "Color::is_default")]
     pub bg: Color,
+    #[serde(default, skip_serializing_if = "Color::is_default")]
+    pub underline_color: Color,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub attrs: Vec<Attr>,
 }
 
-fn space() -> String {
-    " ".into()
+impl Run {
+    pub fn is_default(&self) -> bool {
+        self.fg.is_default()
+            && self.bg.is_default()
+            && self.underline_color.is_default()
+            && self.attrs.is_empty()
+    }
 }
 
-fn is_space(symbol: &str) -> bool {
-    symbol == " "
+/// A cell's grapheme of more than one char, like a combining mark or a ZWJ
+/// emoji piece.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Multi {
+    pub col: u16,
+    pub symbol: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
