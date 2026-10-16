@@ -22,7 +22,7 @@ use ship_core::{
     },
     screen::Size,
 };
-use ship_macros::Actor;
+use ship_macros::{Actor, named};
 use tokio::sync::watch;
 use uuid::Uuid;
 
@@ -353,6 +353,7 @@ pub struct SetView {
     pub view: ViewInput,
 }
 
+#[named]
 impl Message<ListTabs> for ServerState {
     type Reply = Result<Tabs>;
 
@@ -370,6 +371,7 @@ fn select_created(viewers: &mut Viewers, attachment: IdOf<Attachment>, node: Nod
     Ok(())
 }
 
+#[named]
 impl Message<CreateTab> for ServerState {
     type Reply = Result<Tab>;
 
@@ -412,6 +414,7 @@ impl Message<CreateTab> for ServerState {
     }
 }
 
+#[named]
 impl Message<Get<Tab>> for ServerState {
     type Reply = Result<Tab>;
 
@@ -424,6 +427,7 @@ impl Message<Get<Tab>> for ServerState {
     }
 }
 
+#[named]
 impl Message<Set<Tab, SetTab>> for ServerState {
     type Reply = Result<Tab>;
 
@@ -444,6 +448,7 @@ impl Message<Set<Tab, SetTab>> for ServerState {
     }
 }
 
+#[named]
 impl Message<Remove<Tab>> for ServerState {
     type Reply = Result<()>;
 
@@ -457,6 +462,7 @@ impl Message<Remove<Tab>> for ServerState {
     }
 }
 
+#[named]
 impl Message<Move> for ServerState {
     type Reply = Result<Tab>;
 
@@ -495,6 +501,7 @@ impl Message<Move> for ServerState {
     }
 }
 
+#[named]
 impl Message<CreatePane> for ServerState {
     type Reply = Result<Pane>;
 
@@ -561,6 +568,7 @@ impl Message<CreatePane> for ServerState {
     }
 }
 
+#[named]
 impl Message<Get<Pane>> for ServerState {
     type Reply = Result<Pane>;
 
@@ -573,6 +581,7 @@ impl Message<Get<Pane>> for ServerState {
     }
 }
 
+#[named]
 impl Message<Set<Pane, SetPane>> for ServerState {
     type Reply = Result<Pane>;
 
@@ -604,6 +613,7 @@ impl Message<Set<Pane, SetPane>> for ServerState {
     }
 }
 
+#[named]
 impl Message<Remove<Pane>> for ServerState {
     type Reply = Result<()>;
 
@@ -621,6 +631,7 @@ impl Message<Remove<Pane>> for ServerState {
     }
 }
 
+#[named]
 impl Message<Zoom> for ServerState {
     type Reply = Result<Tab>;
 
@@ -648,6 +659,7 @@ impl Message<Zoom> for ServerState {
     }
 }
 
+#[named]
 impl Message<Swap> for ServerState {
     type Reply = Result<Tab>;
 
@@ -666,6 +678,7 @@ impl Message<Swap> for ServerState {
     }
 }
 
+#[named]
 impl Message<Resize> for ServerState {
     type Reply = Result<Tab>;
 
@@ -705,6 +718,7 @@ impl Message<Resize> for ServerState {
     }
 }
 
+#[named]
 impl Message<Attach> for ServerState {
     type Reply = Result<Attached>;
 
@@ -740,6 +754,7 @@ impl Message<Attach> for ServerState {
     }
 }
 
+#[named]
 impl Message<Detach> for ServerState {
     type Reply = Result<()>;
 
@@ -760,6 +775,7 @@ impl Message<Detach> for ServerState {
     }
 }
 
+#[named]
 impl Message<CheckAttachment> for ServerState {
     type Reply = Result<u64>;
 
@@ -777,6 +793,7 @@ impl Message<CheckAttachment> for ServerState {
     }
 }
 
+#[named]
 impl Message<ListViews> for ServerState {
     type Reply = Result<Viewers>;
 
@@ -785,6 +802,7 @@ impl Message<ListViews> for ServerState {
     }
 }
 
+#[named]
 impl Message<GetView> for ServerState {
     type Reply = Result<ViewingRecord>;
 
@@ -800,6 +818,7 @@ impl Message<GetView> for ServerState {
     }
 }
 
+#[named]
 impl Message<Select> for ServerState {
     type Reply = Result<ViewingRecord>;
 
@@ -837,6 +856,7 @@ impl Message<Select> for ServerState {
     }
 }
 
+#[named]
 impl Message<SetView> for ServerState {
     type Reply = Result<ViewingRecord>;
 
@@ -857,6 +877,7 @@ impl Message<SetView> for ServerState {
     }
 }
 
+#[named]
 impl Message<PaneEvent> for ServerState {
     type Reply = Result<()>;
 

@@ -66,7 +66,7 @@ tracing.workspace = true     # slice 2
 ship-macros.workspace = true # slice 2
 
 # crates/ship-core/Cargo.toml
-tokio = { version = "1", features = ["sync", "rt"], optional = true }   # slice 2, for spawn_traced
+tokio = { version = "1", features = ["rt"] }   # slice 2, for spawn_traced; kameo enables tokio/sync
 ```
 
 The fixed values live as constants in `runlog.rs` and `diagnostics.rs`: 50 MB per part, 200 MB per directory, and the timeline filter `warn,ship=debug,ratatui_ghostty=debug,kameo=info`. None of them are settings (product non-goal).
@@ -346,8 +346,9 @@ impl Client {
 ```rust
 /// `tracing::instrument` with Ship's defaults (architecture decision 8):
 /// `level = "debug"`, `skip_all`, and on functions returning `Result`,
-/// `err(level = "warn", Debug)`. Takes `level`, `name`, `fields(...)`, `ret`
-/// and `no_err`. The deriving crate must depend on `tracing`.
+/// `err(level = "warn", Debug)`. Handles `no_err` and the default level;
+/// all remaining options pass through unchanged to `tracing::instrument`.
+/// The using crate must depend on `tracing`.
 #[proc_macro_attribute]
 pub fn traced(attr: TokenStream, item: TokenStream) -> TokenStream;
 
@@ -364,7 +365,6 @@ pub fn named(attr: TokenStream, item: TokenStream) -> TokenStream;
 ```rust
 /// Spawns `future` inside the caller's span, for short tasks tied to their
 /// caller. Long-lived tasks get their own root spans instead (decision 9).
-#[cfg(feature = "kameo")]
 pub fn spawn_traced<F>(future: F) -> tokio::task::JoinHandle<F::Output>
 where F: Future + Send + 'static, F::Output: Send + 'static;
 ```
@@ -381,7 +381,7 @@ where F: Future + Send + 'static, F::Output: Send + 'static;
 | `ship-client/src/ui/observer.rs` | `#[traced]` on `Observer::apply` |
 | Other non-trivial functions | `#[traced]` where an error or a step is worth seeing, at `trace` for anything per cell or per row, such as `capture` and `row` |
 
-Fields name IDs, sizes and counts only, never pane output, input, clipboard text, arguments or environment (FR-010).
+Fields name IDs, sizes and counts only; arguments are skipped by default, with no automatic recording of pane output, input, clipboard text, full argument lists or environments (FR-010). Explicit errors may retain useful program names and dependency details, as Cyan approved during slice 2.
 
 ### Moved
 
@@ -404,7 +404,7 @@ None.
    - `SHIP_LOG=debug` shows Ship's debug lines and kameo's info spans; `SHIP_LOG=nope` fails naming the levels (G5).
    - The client draws with nothing on stderr.
 2. **Spans.** Files: `ship-macros/src/lib.rs`, `ship-core/src/lib.rs` and its manifest, `ship-client`'s manifest, and the annotations listed above. Delivers FR-010 and FR-016. Checks:
-   - `ship pane create -- /nonexistent` logs one warn line whose span chain runs from the request through `CreatePane` to `spawn`.
+   - `ship pane create -- /nonexistent` logs one warn line whose span chain runs from `CreatePane` to `spawn` when debug spans are enabled. Kameo's message span is a new root, as the architecture paper specifies; the sending HTTP request is not part of that chain.
    - With `SHIP_LOG=debug`, actor spans read `CreatePane` and `Resize`, not type paths.
    - Type a marker string into a pane and paste another at `SHIP_LOG=trace`; neither appears in any log file.
    - `cargo expand` of one `#[traced]` function shows the expected `instrument` arguments.
@@ -430,3 +430,13 @@ None.
 - Both formatters emit new-span events so enabled kameo message spans are visible even when their bodies emit no events.
 - The `Diagnostics` holder and reload handle are left for slice 3, when they gain their consumer. In slice 1 the installed subscriber owns the run writer; there is no exit-flush guard until slice 4.
 - Auto mode initially blocked temporary probe edits. Cyan explicitly authorized their path scopes before verification resumed. The bench default port, reduced limits and forced panic sites were all restored after the probes; no permanent test or probe code was added.
+
+### Slice 2: spans
+
+- Cyan requested that `spawn_traced` be available without `kameo`, since it has no actor dependency. Tokio’s `rt` feature is unconditional; `kameo` enables `tokio/sync` for the relay.
+- Cyan requested that `traced` forward options it does not consume to `tracing::instrument`, rather than keep an allowlist. `no_err` is consumed and `level` suppresses the default; the inner macro validates remaining options. A temporary compile/expansion probe verified `target`, `parent` and `follows_from` forwarding while preserving defaults. The probe was removed. Upstream tracing-attributes 0.1.31 rejects `parent`/`follows_from` after `target` (its parser checks the target field); the probe placed `target` last, without adding a Ship workaround.
+
+- Cyan approved keeping useful failure diagnostics rather than treating FR-010 as a promise that no sensitive information can reach logs. FR-010 and its summaries/delta now prohibit automatic recording of terminal payloads, full argument lists and environments, but permit useful program names and dependency error details in explicit failures. Existing detailed spawn errors remain intact.
+- The checklist and spec delta claimed a request-through-actor chain, contradicting the controlling architecture's explicit actor-boundary limit. They now describe the implemented `CreatePane -> spawn` chain with debug spans enabled. No cross-actor context propagation was added.
+- `Progress::next` uses `no_err`: its Result reports normal stream shutdown, not an operation failure. This avoids a warning on normal detach/shutdown.
+- Temporary helper probes and cargo expansion verified macro behavior, generic message names and short-task span inheritance. Real debug/release PTY workflows verified the annotations and payload boundary. No permanent tests were added.

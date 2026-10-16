@@ -53,6 +53,7 @@ use tower_http::{
     },
     trace::TraceLayer,
 };
+use tracing::Instrument;
 use utoipa::{OpenApi, openapi::OpenApi as OpenApiDoc};
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -241,13 +242,16 @@ async fn forward_pane_events(
     })
     .await
     .map_err(|error| err!(Internal, "cannot subscribe pane events", @external: error))?;
-    tokio::spawn(async move {
-        while let Some(event) = events.recv().await {
-            if state.tell(event).await.is_err() {
-                break;
+    tokio::spawn(
+        async move {
+            while let Some(event) = events.recv().await {
+                if state.tell(event).await.is_err() {
+                    break;
+                }
             }
         }
-    });
+        .instrument(tracing::info_span!(parent: None, "pane_events")),
+    );
     Ok(())
 }
 

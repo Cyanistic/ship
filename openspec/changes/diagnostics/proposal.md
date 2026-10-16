@@ -26,9 +26,9 @@ A background server logs to a random temp file nobody sees, the client logs to s
   - `--reset` returns to the startup filter.
   - A change lasts until the server stops. An invalid one fails and changes nothing.
 - **`ship server status`** includes the current log part's path.
-- **Error chains.** An error logged inside traced operations shows the chain of operations it happened in, including work inside actors.
+- **Error chains.** An error logged inside traced operations shows the chain of operations it happened in, including work inside actors. Actor message spans start new chains; they do not retain the sending HTTP request's span.
 - **Timelines.** `SHIP_TRACE=<dir>` makes a server or client write `<dir>/<role>-<pid>.json` on a clean exit, openable in ui.perfetto.dev. It records Ship at debug detail whatever the log level. Without `SHIP_TRACE`, nothing is recorded.
-- **Privacy.** Logs and timelines never contain pane output, typed or pasted input, clipboard contents, program arguments or environment values.
+- **Privacy.** Logs and timelines do not automatically record terminal payloads, full program argument lists or environments. Failure diagnostics keep useful program names and dependency error details, so logs may contain sensitive information.
 - `GET /api/v0/server/log` returns the filter. `PUT /api/v0/server/log` takes `{"set": "<filter>"}` or `"reset"` and answers 422 on an invalid filter.
 - **BREAKING**: protocol version 12 goes to 13, and the health response gains `log`. Server and client upgrade together.
 

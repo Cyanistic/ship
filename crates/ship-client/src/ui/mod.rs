@@ -44,6 +44,7 @@ use ship_core::{
     screen::{Screen, Size},
     tree::{self, Tabs},
 };
+use ship_macros::traced;
 use tokio::{
     sync::mpsc,
     time::{self, MissedTickBehavior},
@@ -487,6 +488,7 @@ impl Local {
         Ok(())
     }
 
+    #[traced]
     fn turn<'a>(&mut self, client: &'a Client, item: Item) -> Turn<'a> {
         match item {
             Item::Action(action) => self.act(client, action),
@@ -588,6 +590,7 @@ impl Local {
         }
     }
 
+    #[traced]
     fn send(&mut self, frame: InputFrame) {
         if let Some(input) = &self.input {
             input.send(frame).ok();
@@ -738,6 +741,7 @@ fn typing_pane(observer: &Observer, memory: &Memory) -> Option<IdOf<Pane>> {
     }
 }
 
+#[traced]
 fn redraw(guard: &mut TerminalGuard, local: &mut Local) -> Result<()> {
     let mut cursor = None;
     guard

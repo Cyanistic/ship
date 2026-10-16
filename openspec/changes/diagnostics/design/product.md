@@ -78,7 +78,7 @@ Tested independently: record a short session, open both files in Perfetto, and f
 - FR-007: Anything a launched server prints before its log is set up, and any panic, SHALL land in that run's file. A failed launch SHALL name the file. The random temp file SHALL no longer be created.
 - FR-008: `ship server status` SHALL print the server's current log file path.
 - FR-009: Log files and directories SHALL be readable only by their owner.
-- FR-010: Logs and timelines SHALL NOT contain pane output, typed or pasted input, clipboard contents, program arguments or environment values.
+- FR-010: Ship SHALL NOT automatically record pane output, typed or pasted input, clipboard contents, full program argument lists or environment values. Explicit failure diagnostics MAY include useful program names and dependency error details; logs are not guaranteed to contain no sensitive information. This boundary applies to logs and timelines. Revised with Cyan's approval during slice 2: useful failure details stay.
 
 ### Levels
 

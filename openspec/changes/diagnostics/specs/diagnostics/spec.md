@@ -71,8 +71,12 @@ Log files SHALL be readable only by their owner, and log directories SHALL be ac
 - **WHEN** a server creates a run file on Linux or macOS
 - **THEN** the file's mode is 0600 and its directories' modes are 0700
 
-### Requirement: Nothing private in logs
-Logs and timelines SHALL NOT contain pane output, typed or pasted input, clipboard contents, program arguments or environment values, at any level.
+### Requirement: No automatic payload recording
+Ship SHALL NOT automatically record pane output, typed or pasted input, clipboard contents, full program argument lists or environment values. Explicit failure diagnostics MAY include useful program names and dependency error details; logs are not guaranteed to contain no sensitive information. This boundary applies to logs and timelines at every level.
+
+#### Scenario: Helpful failure details
+- **WHEN** a pane's program fails to start
+- **THEN** the failure log may name the program and include the dependency's error details, without automatically dumping the full argument list or environment
 
 #### Scenario: Typed and pasted text at trace
 - **WHEN** a server and client run with `SHIP_LOG=trace` and a user types one marker string into a pane and pastes another
@@ -115,11 +119,11 @@ An invalid level or filter SHALL fail and leave the active filter unchanged. `PU
 - **THEN** the command fails with the filter's error, and `ship server log` shows the same `active` as before
 
 ### Requirement: Error chains
-An error logged from inside traced operations SHALL show the chain of operations it happened in, from the request that caused it through actor message handling to where it failed.
+An error logged from inside traced operations SHALL show the chain of operations it happened in, within each task or actor message to where it failed. Actor messages start new root spans and do not include the sending HTTP request's chain.
 
 #### Scenario: Failed pane program
 - **WHEN** a user runs `ship pane create -- /nonexistent`
-- **THEN** the server log has one warning line whose chain runs from the request through the create message to the pane spawn
+- **THEN** the server log has one warning line whose chain runs from the `CreatePane` actor message to `spawn`, when debug spans are enabled
 
 ### Requirement: Timelines
 When a server or client starts with `SHIP_TRACE=<dir>`, it SHALL write a timeline of its traced operations to `<dir>/<role>-<pid>.json`, where role is `server` or `client`, when it exits cleanly. A timeline SHALL open in ui.perfetto.dev, SHALL record Ship's operations at debug detail and actor message handling whatever the log level, and SHALL be available in normal builds.

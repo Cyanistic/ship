@@ -48,14 +48,25 @@ Verified on macOS with temporary `XDG_STATE_HOME` directories and owned servers 
 
 ## 2. Spans
 
-- [ ] 2.1 Add `#[traced]` and `#[named]` to `ship-macros`, and `spawn_traced` to `ship-core` with tokio's `rt` feature. Give `ship-client` its tracing and `ship-macros` dependencies. Verify:
+- [x] 2.1 Add `#[traced]` and `#[named]` to `ship-macros`, and `spawn_traced` to `ship-core` with tokio's `rt` feature. Give `ship-client` its tracing and `ship-macros` dependencies. Verify:
   - `cargo expand` of one `#[traced]` function returning `Result` shows `level = "debug"`, `skip_all` and `err(level = "warn", Debug)`, and one with `no_err` shows no `err`.
   - A `#[named]` message's `name()` returns its type as written, such as `"CreatePane"`.
-- [ ] 2.2 Apply the annotations in the program paper's span table: `#[named]` on all 21 `ServerState` messages, root spans for the pane task, `pane_exit` and `pane_events`, the detach through `spawn_traced`, and `#[traced]` on the keystroke path in server and client. Verify:
-  - `ship pane create -- /nonexistent` logs one warn line whose chain runs from the request through `CreatePane` to `spawn`.
+- [x] 2.2 Apply the annotations in the program paper's span table: `#[named]` on all 21 `ServerState` messages, root spans for the pane task, `pane_exit` and `pane_events`, the detach through `spawn_traced`, and `#[traced]` on the keystroke path in server and client. Verify:
+  - `ship pane create -- /nonexistent` logs one warn line whose chain runs from the actor's `CreatePane` message to `spawn`. Kameo starts message spans as roots; the HTTP request is not part of that chain (architecture decision 9 and its actor-boundary risk).
   - With `SHIP_LOG=debug`, actor spans read `CreatePane` and `Resize`, not type paths.
   - At `SHIP_LOG=trace`, a marker string typed into a pane and another pasted appear in no log file.
   - The guide describes reading an error's chain.
+
+### Slice 2 evidence
+
+Verified on macOS with debug and release binaries, isolated state directories and owned servers on ports 43311 and 43312. The existing server on 43179 was not touched.
+
+- A temporary `ship-server` example exercised `#[traced]` on sync/async functions and a non-Debug argument: default debug spans, skipped arguments, one warn event using Debug, no error event with `no_err`, and forwarding of `level`, `name`, `fields` and `ret`. A generic named message returned `Ping<u8>`. A `spawn_traced` child yielded before emitting an event, which still appeared inside its caller's span.
+- `cargo expand` output in `/tmp/ship-diagnostics-helper-expanded.rs` confirmed those defaults, no argument fields and no error event for `no_err`. Expanded state code in `/tmp/ship-diagnostics-state-expanded.rs` contained all 21 short message names, including `CreatePane`, `Resize` and `Get<Tab>`. The temporary example and its temporary dev dependency were removed afterward.
+- `python3 /tmp/ship-diagnostics-slice2.py target/debug/ship` and the same exercise with `target/release/ship` passed. A real CLI launch of `/nonexistent` produced exactly one warning with `CreatePane -> spawn`, including the useful program/dependency failure details. Resize messages used the short name; pane and pane-exit roots had no actor/spawn parents.
+- The exercise drove a real PTY client: selected a pane, typed a marker, pasted another using bracketed paste, and verified both in the server's screen through `pane read`. A program emitted output and an OSC 52 clipboard marker; the client forwarded the clipboard payload to its outer terminal. No input, output, clipboard, full-argument or environment marker appeared in any process's log at trace. The client/server logs contained `turn`, `send`, `apply`, `redraw`, `route`, `command`, `publish`, `capture`, `row` and `pane_events`. Detach removed the viewing record. Client stderr stayed quiet while drawing.
+- Gates passed: formatting, workspace/all-target Clippy with warnings denied, debug/release builds, core without optional features and with `clap` or `kameo`, strict OpenSpec validation and `git diff --check`. The normal slice-1 PTY exercise was rerun successfully.
+- All owned probe processes were stopped. No permanent authored tests, temporary source probes or extra dev dependencies remain. Linux and Windows remain unverified; performance comparison remains slice 5.
 
 ## 3. Live level change
 

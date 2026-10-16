@@ -321,6 +321,16 @@ At `debug` and `trace`, this also enables actor message spans. A background serv
 
 `RUST_LOG` replaces the whole filter, including `SHIP_LOG`. For example, `RUST_LOG=warn,ship=debug,ratatui_ghostty=debug,kameo=info` sets Ship and its terminal widget to debug and enables actor spans. Invalid filter syntax fails startup.
 
+At debug detail, a warning inside an operation shows the nested operations it came from. For example, a failed pane launch has a chain like:
+
+```text
+WARN actor.handle_message{actor.name="ServerState" ... CreatePane}:spawn{pane=pane:...}: ... error=...
+```
+
+Read this as "the state actor was handling CreatePane, and spawn failed." Actor messages start new chains, so the sending HTTP request is not included. Long-running pane tasks have their own `pane` roots; the client and server each log their own steps.
+
+Ship does not automatically record terminal contents, typed or pasted input, clipboard data, full program argument lists or environments. Failure messages keep useful program names and dependency error details, which can contain sensitive information. Check logs before sharing them.
+
 ## Upgrading
 
 If an older config uses `hint` on a key binding, rename it to `label`. `hint` is no longer accepted. The label still appears after the chord in the status line.
