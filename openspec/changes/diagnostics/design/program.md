@@ -423,4 +423,10 @@ None.
 
 ## Deviation log
 
-Empty.
+### Slice 1: run files and levels
+
+- `etcetera::choose_base_strategy()` selects Apple's strategy on macOS, whose `state_dir()` is `None` and whose data directory is `~/Library/Application Support`. The proposed call therefore would not satisfy FR-001. `runlog::logs_dir` uses etcetera's `Xdg` strategy explicitly outside Windows, retaining the planned Windows fallback.
+- Run stems include nanoseconds to distinguish starts within the same second. File creation is exclusive and never appends to an earlier run.
+- Both formatters emit new-span events so enabled kameo message spans are visible even when their bodies emit no events.
+- The `Diagnostics` holder and reload handle are left for slice 3, when they gain their consumer. In slice 1 the installed subscriber owns the run writer; there is no exit-flush guard until slice 4.
+- Auto mode initially blocked temporary probe edits. Cyan explicitly authorized their path scopes before verification resumed. The bench default port, reduced limits and forced panic sites were all restored after the probes; no permanent test or probe code was added.

@@ -9,6 +9,7 @@ How Ship behaves once you're past the [README](../README.md). Every example assu
 - [Scrolling and reading output](#scrolling-and-reading-output)
 - [Mouse and clipboard](#mouse-and-clipboard)
 - [Configuration](#configuration)
+- [Logs and levels](#logs-and-levels)
 - [Upgrading](#upgrading)
 
 ## The server and clients
@@ -294,6 +295,31 @@ The four default create keys select what they make. In your own binding, set `se
 ### The status line
 
 There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `label` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
+
+## Logs and levels
+
+Server logs live in `$XDG_STATE_HOME/ship/logs/<port>/`, or `~/.local/state/ship/logs/<port>/` when `XDG_STATE_HOME` is unset, on Linux and macOS. Every run starts a new file named with its local start time, including subseconds. `current.log` links to the part being written:
+
+```sh
+tail -f "${XDG_STATE_HOME:-$HOME/.local/state}/ship/logs/43179/current.log"
+```
+
+Background startup failures name their run file. Foreground servers write the same files and also print to stderr. Logs survive a server crash; restarting creates a new file instead of overwriting the crashed run's log. Each line has local time with its UTC offset.
+
+A full-screen client writes `logs/client/<start-time>-<pid>.log` under the same state directory, with `current.log` pointing at the newest client's file. It does not log to stderr while drawing. One-shot commands use stderr and create no log file.
+
+Files continue in numbered parts (`<start-time>.2.log`, and so on) at 50 MiB, without splitting a log event. `current.log` follows each new part. At startup and rollover, Ship removes the oldest log files to keep each port's directory, and the client directory separately, at about 200 MiB. The current part is never removed. Files are owner-only (0600), and newly created log directories are owner-only (0700) on Linux and macOS. Where symbolic links are unavailable, open the run file directly. Raw process output from a background server stays in its first part after rollover; logged panics go to the current part.
+
+By default, Ship logs at `info` and dependencies at `warn`. Set `SHIP_LOG` to `error`, `warn`, `info`, `debug` or `trace` before starting a process:
+
+```sh
+SHIP_LOG=debug ship server --port 43180
+SHIP_LOG=debug ship
+```
+
+At `debug` and `trace`, this also enables actor message spans. A background server inherits the launching command's environment. Changing that environment does not change an already-running server's level. An invalid level fails startup.
+
+`RUST_LOG` replaces the whole filter, including `SHIP_LOG`. For example, `RUST_LOG=warn,ship=debug,ratatui_ghostty=debug,kameo=info` sets Ship and its terminal widget to debug and enables actor spans. Invalid filter syntax fails startup.
 
 ## Upgrading
 

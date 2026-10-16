@@ -2898,6 +2898,7 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 name = "ship"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "clap",
  "etcetera",
  "nix 0.31.3",
@@ -2907,7 +2908,6 @@ dependencies = [
  "ship-client",
  "ship-core",
  "ship-server",
- "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3637,6 +3637,7 @@ version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
 dependencies = [
+ "chrono",
  "matchers",
  "nu-ansi-term",
  "once_cell",

@@ -15,7 +15,7 @@ Each slice documents its own user-visible behavior in `docs/guide.md`, in one se
 
 ## 1. Run files and levels
 
-- [ ] 1.1 Add `runlog.rs` and the launcher's part 1:
+- [x] 1.1 Add `runlog.rs` and the launcher's part 1:
   - `RunLog` with start-time names, 50 MB parts, `current.log`, 200 MB retention per directory, and the `#[cfg(unix)]` module for modes and the link.
   - `local.rs` opens part 1 with `RunLog::start`, hands it to the child as stdout and stderr, and passes its path with the hidden `--log-file`. `tempfile` leaves the manifest.
 
@@ -23,16 +23,28 @@ Each slice documents its own user-visible behavior in `docs/guide.md`, in one se
   - The run file holds the launch line, and `logs/<port>/current.log` resolves to it.
   - The file is 0600 and its directories 0700.
   - A launch made to fail names the run file.
-- [ ] 1.2 Rewrite `diagnostics::init` for `Role::Server`, `Role::Client` and `Role::Command`, with `startup_filter`, `level_filter`, the `ChronoLocal::rfc_3339()` timer and the panic hook. Wire `role` in `main.rs`. Verify:
+- [x] 1.2 Rewrite `diagnostics::init` for `Role::Server`, `Role::Client` and `Role::Command`, with `startup_filter`, `level_filter`, the `ChronoLocal::rfc_3339()` timer and the panic hook. Wire `role` in `main.rs`. Verify:
   - SIGKILL the server and start another on the same port: two files, the killed run's last line in its own file (SC-002).
   - A foreground `ship server --port <bench port>` prints to the terminal and writes a file.
   - The client draws with nothing on stderr and writes `logs/client/<start>-<pid>.log`. `ship tab list` logs to stderr and writes no file.
   - A forced panic in a temporary debug build lands in the run file, after the client restores the terminal.
   - Lines carry local time with the offset.
-- [ ] 1.3 Verify levels and retention:
+- [x] 1.3 Verify levels and retention:
   - `SHIP_LOG=debug` shows Ship's debug lines and kameo's actor spans. `SHIP_LOG=nope` exits 1 listing the levels. `RUST_LOG` replaces the filter.
   - A temporary probe with `PART_BYTES` and `DIR_BYTES` lowered shows a `.2.log` part, `current.log` following it, and the oldest file pruned while the current part stays. The probe isn't committed.
   - The guide says where server and client logs live, how `current.log` and parts work, and what `SHIP_LOG` and `RUST_LOG` do.
+
+### Slice 1 evidence
+
+Verified on macOS with temporary `XDG_STATE_HOME` directories and owned servers on ports 43311 to 43317. Existing server work on 43179 was not touched.
+
+- Restored-source gates passed: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo build`, `cargo build --release`, `cargo check -p ship-core --no-default-features`, `cargo check -p ship-core --no-default-features --features clap`, and `openspec validate diagnostics --strict`.
+- A temporary Python PTY exercise (`/tmp/ship-diagnostics-check.py`) verified foreground file/stderr output, 0600 files and 0700 newly created directories, local timestamps with offsets, SIGKILL preserving the killed run's last bytes, distinct restart files and the current link. The full-screen client created its PID-named file with no stderr while drawing; its existing `detached` notice appeared after terminal restoration. A one-shot command created no client file and dependency tracing reached stderr.
+- `SHIP_LOG=debug` produced Ship debug events and `actor.handle_message` spans. Invalid `SHIP_LOG` and `RUST_LOG` exited 1 with accepted-level guidance. `RUST_LOG=error` overrode even an invalid `SHIP_LOG`; `RUST_LOG=ship=info` suppressed debug despite `SHIP_LOG=debug`.
+- A temporary debug binary (`/tmp/ship-diagnostics-probe`) used default port 43315, part limit 2048 bytes and directory limit 4096 bytes. Bare `ship` launched its background server and the run file held `server listening`. A forced child panic made launch fail with the retained run path; that private file contained the panic.
+- The reduced-limit probe produced `.2.log`, moved `current.log`, preserved complete newline-terminated events and pruned the oldest file while retaining the current part. A separate startup with oversized old history also pruned it and retained the new part.
+- Forced server and client panics logged their message and source location. The client emitted the alternate-screen restoration sequence and restored termios settings (ignoring macOS's kernel-managed PENDIN flag). Its existing hook restores the terminal before invoking the diagnostics hook.
+- All probe source changes were removed, default port 43179 and 50/200 MiB limits restored, and the normal PTY exercise rerun successfully. Owned probe servers were stopped. No permanent authored tests were added. Linux and Windows remain unverified.
 
 ## 2. Spans
 

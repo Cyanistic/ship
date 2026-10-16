@@ -2,6 +2,7 @@ mod cli;
 mod commands;
 mod diagnostics;
 mod local;
+mod runlog;
 
 use std::{process::ExitCode, time::Duration};
 
@@ -36,12 +37,23 @@ fn run(cli: Cli, source: Option<ValueSource>) -> Result<()> {
     ) {
         detach()?;
     }
-    diagnostics::init()?;
+    diagnostics::init(role(&cli))?;
     let runtime = Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| err!(Internal, "cannot create runtime", @external: error))?;
     runtime.block_on(dispatch(cli, source))
+}
+
+fn role(cli: &Cli) -> diagnostics::Role {
+    match &cli.command {
+        Some(Command::Server(args)) if args.command.is_none() => diagnostics::Role::Server {
+            port: args.port,
+            log_file: args.log_file.clone(),
+        },
+        None => diagnostics::Role::Client,
+        _ => diagnostics::Role::Command,
+    }
 }
 
 /// Leave the launching terminal's session so the background server outlives it.

@@ -110,6 +110,9 @@ pub struct ServerArgs {
     pub starter: bool,
     #[arg(long, hide = true)]
     pub background_child: bool,
+    /// The launcher's first log part
+    #[arg(long, hide = true, requires = "background_child")]
+    pub log_file: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
