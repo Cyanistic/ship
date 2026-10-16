@@ -100,11 +100,22 @@ Verified on macOS with isolated state directories and owned servers on ports 433
 
 ## 4. Timelines
 
-- [ ] 4.1 Add `tracing-chrome` and the chrome layer in `init` with its fixed filter, keeping the `FlushGuard` in `Diagnostics`. Verify:
+- [x] 4.1 Add `tracing-chrome` and the chrome layer in `init` with its fixed filter, keeping the `FlushGuard` in `Diagnostics`. Verify:
   - `SHIP_TRACE=<dir>` on a bench server and a client, a few keystrokes and clean exits leave `<dir>/server-<pid>.json` and `<dir>/client-<pid>.json`, and both parse as JSON.
   - Between them they hold `turn`, `send`, `route`, `command`, `publish`, `apply` and `redraw` (SC-004). Cyan opens one in ui.perfetto.dev to confirm the view.
   - At default `SHIP_LOG` the timeline still holds debug spans. Without `SHIP_TRACE` no file appears.
   - The guide documents `SHIP_TRACE` and opening a timeline in Perfetto.
+
+### Slice 4 evidence
+
+Implemented `SHIP_TRACE` for server and full-screen client roles using tracing-chrome 0.7.2, threaded spans with arguments, a fixed independent debug filter and a guard held until after runtime shutdown. One-shot commands ignore the variable. The guide documents recording, clean exits, separate process files and unbounded timeline size.
+
+- `python3 /tmp/ship-diagnostics-slice4.py target/debug/ship <mode>` and the release equivalent passed for `default`, `off` and `unset`. Each exercise used isolated state and an owned server on 43312, drove a real PTY client, typed and pasted marker strings, observed output and OSC 52 forwarding, muted the live server log filter, then detached and stopped the server cleanly.
+- With recording enabled, the only timeline files were `server-<pid>.json` and `client-<pid>.json`; both parsed as JSON. Client spans included `turn`, `send`, `apply` and `redraw`; server spans included `route`, `command` and `publish`, plus actor message fields naming `CreatePane`. Thread IDs and span arguments were present. Client spans intentionally skip argument fields; the initial probe assertion requiring nonempty fields in both files was corrected to require them only on the server.
+- Default-level logs contained no debug output while timelines retained debug spans. With `RUST_LOG=off`, process logs stayed empty but both timelines still contained the required steps and actor messages. Without `SHIP_TRACE`, no timeline directory or JSON file was created. One-shot requests created no extra timelines. Typed, pasted, pane-output, clipboard, full-argument and environment markers appeared in no log or timeline. Client stderr stayed quiet during drawing.
+- An invalid trace directory failed server startup with a contextual error and exit 1, not a dependency panic; a one-shot config check ignored the same invalid `SHIP_TRACE` and succeeded. All owned processes were stopped; existing work on 43179 was untouched.
+- Formatting, workspace/all-target Clippy with warnings denied, debug/release builds, core checks without default features and with clap, strict OpenSpec validation and diff whitespace checks passed. The slice-3 debug HTTP/CLI workflow passed again.
+- Release/default artifacts were copied to `/tmp/ship-diagnostics-slice4-server.json` and `/tmp/ship-diagnostics-slice4-client.json` for Cyan to open in ui.perfetto.dev. Cyan opened the artifacts in Perfetto and confirmed the view works. The short automated recording covers about 175 ms; longer sessions record until clean exit. Task 4.1 is complete. No coding subagents or permanent authored tests were used. Linux and Windows remain unverified; slice 5 was not started.
 
 ## 5. Bench and size
 

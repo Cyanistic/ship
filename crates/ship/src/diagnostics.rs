@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     future::Future,
     io::{self, IsTerminal},
     panic,
@@ -32,6 +32,8 @@ pub struct Diagnostics {
     log: Option<Arc<RunLog>>,
     filter: reload::Handle<EnvFilter, Registry>,
     startup: String,
+    // Dropped after the runtime shuts down to finish the timeline's JSON.
+    _timeline: Option<tracing_chrome::FlushGuard>,
 }
 
 impl Diagnostics {
@@ -72,6 +74,11 @@ impl Diagnostics {
 pub fn init(role: Role) -> Result<Diagnostics> {
     let filter = EnvFilter::try_new(startup_filter()?)
         .map_err(|error| err!(Configuration, "invalid RUST_LOG filter; expected comma-separated target=level directives (error, warn, info, debug, trace, off)", @external: error))?;
+    let trace_role = match &role {
+        Role::Server { .. } => Some("server"),
+        Role::Client => Some("client"),
+        Role::Command => None,
+    };
     let stderr = matches!(role, Role::Command | Role::Server { log_file: None, .. });
     let log = match role {
         Role::Server { port, log_file } => Some(match log_file {
@@ -104,8 +111,28 @@ pub fn init(role: Role) -> Result<Diagnostics> {
             .with_ansi(io::stderr().is_terminal())
             .with_writer(io::stderr)
     });
+    let (timeline, guard) = if let (Some(dir), Some(role)) = (env::var_os("SHIP_TRACE"), trace_role)
+    {
+        let dir = PathBuf::from(dir);
+        fs::create_dir_all(&dir).map_err(|error| {
+                err!(Io, "cannot create timeline directory {}", dir.display(), @external: error)
+            })?;
+        let path = dir.join(format!("{role}-{}.json", process::id()));
+        let writer = fs::File::create(&path).map_err(
+            |error| err!(Io, "cannot create timeline {}", path.display(), @external: error),
+        )?;
+        let (layer, guard) = tracing_chrome::ChromeLayerBuilder::new()
+            .writer(writer)
+            .include_args(true)
+            .build();
+        let filter = EnvFilter::new("warn,ship=debug,ratatui_ghostty=debug,kameo=info");
+        (Some(layer.with_filter(filter)), Some(guard))
+    } else {
+        (None, None)
+    };
     tracing_subscriber::registry()
         .with(Layer::and_then(file, terminal).with_filter(filter))
+        .with(timeline)
         .try_init()
         .map_err(|error| err!(Internal, "cannot initialize diagnostics", @external: error))?;
     panic_hook();
@@ -113,6 +140,7 @@ pub fn init(role: Role) -> Result<Diagnostics> {
         log,
         filter: handle,
         startup,
+        _timeline: guard,
     })
 }
 

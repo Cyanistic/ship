@@ -333,6 +333,17 @@ ship server log --reset              # Restore the startup filter
 
 Each log command prints one JSON line with `active`, `startup` and `file`. Use only one of a level, `--filter` or `--reset`. Invalid changes fail and leave the filter unchanged. Changes take effect immediately without affecting panes and last until reset or server exit. Neither `server log` nor `server status` starts a missing server. Use `--server-url` or `SHIP_SERVER_URL` to select another server.
 
+To record a timeline, set `SHIP_TRACE` before starting a server or client. For example, in separate terminals:
+
+```sh
+SHIP_TRACE=/tmp/ship-trace ship server --port 43180
+SHIP_TRACE=/tmp/ship-trace ship --server-url http://127.0.0.1:43180
+```
+
+Type a few keys, detach the client with `alt-q`, then stop that server with `ship --server-url http://127.0.0.1:43180 server stop`. Clean exits finish `/tmp/ship-trace/server-<pid>.json` and `client-<pid>.json`. Open each file in [Perfetto](https://ui.perfetto.dev) to inspect operations such as `turn`, `send`, `route`, `command`, `publish`, `apply` and `redraw`. Client and server timelines are separate, not joined.
+
+Timelines record debug-level Ship operations and actor messages regardless of `SHIP_LOG`, `RUST_LOG` or live log-filter changes. Setting `SHIP_TRACE` on a client does not enable it on an already-running server. The directory is created if needed; one-shot commands record no timeline. Without `SHIP_TRACE`, no timeline layer or file is created. Recording works in debug and release builds. Timeline files are not size-limited or pruned, and crashes may leave them incomplete; use recording for a bounded session. The payload-recording boundary below also applies to timelines.
+
 At debug detail, a warning inside an operation shows the nested operations it came from. For example, a failed pane launch has a chain like:
 
 ```text
