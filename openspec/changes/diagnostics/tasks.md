@@ -119,11 +119,51 @@ Implemented `SHIP_TRACE` for server and full-screen client roles using tracing-c
 
 ## 5. Bench and size
 
-- [ ] 5.1 Run the bench on ports 43311 to 43317 at default settings against `fc2b5a7`. Verify typing latency and flood throughput are within run-to-run noise (SC-001), and record the numbers below.
-- [ ] 5.2 Finish the docs. Verify:
+- [x] 5.1 Run the bench on ports 43311 to 43317 at default settings against `fc2b5a7`. Verify typing latency and flood throughput are within run-to-run noise (SC-001), and record the numbers below.
+- [x] 5.2 Finish the docs. Verify:
   - The guide's section reads end to end, and following it finds a background server's current log, raises its level and records a timeline.
   - The README changes only if "What works today", "Not built yet", keys or install steps changed.
-- [ ] 5.3 Measure size with `cloc` against `fc2b5a7`. Verify implementation Rust and tests are reported as separate counts (SC-005), against the 440-line estimate.
+- [x] 5.3 Measure size with `cloc` against `fc2b5a7`. Verify implementation Rust and tests are reported as separate counts (SC-005), against the 440-line estimate.
+
+### Slice 5 evidence
+
+Size at `3fc17e7`, measured on macOS with cloc 2.10 (`cloc --include-lang=Rust --json crates/`) and the same command on a `git archive fc2b5a7` source snapshot:
+
+| Scope | `fc2b5a7` | `3fc17e7` | Change |
+| --- | ---: | ---: | ---: |
+| Implementation Rust in `crates/` | 8,707 | 9,335 | +628 |
+| Authored tests in `crates/` | 0 | 0 | 0 |
+
+The count excludes blank/comment lines, dependencies, `vendor/` and experiments, matching the plan's baseline scope. Inspection found no test files, test modules or test attributes in either source tree; all counted Rust is implementation. No permanent tests were added. The net increase exceeds the 440-line estimate by 188 lines (43%). `runlog.rs` is 187 code lines against about 90 estimated; `diagnostics.rs` grew by 159 against about 75 estimated. The subsequently approved request middleware adds another 40 code lines. This is a measured estimate overrun, not an expanded implementation budget or a reason to obscure the source. Per-file cloc output and the baseline source snapshot are in `/tmp/ship-diagnostics-slice5-3fc17e7/`.
+
+Performance compared release binaries from `fc2b5a7` and `3fc17e7` on macOS arm64. The baseline was built from an archived source snapshot in its own target directory; an initial shared-target build attempt failed and was discarded. The existing `/tmp/ship-muxbench/bench.py` harness and workloads were copied into the slice-5 scratch directory, with unique binary paths, isolated HOME/XDG state/config, default logging, no `SHIP_TRACE`, and owned servers on 43311 and 43312. Port checks refused existing listeners. A pilot port check incorrectly rejected TCP TIME_WAIT; it was corrected to test for a live listener, and the pilot results were excluded.
+
+The comparison completed 70 runs: seven workloads, two versions, five repetitions, with randomized version order. Each typing run measured 150 keystrokes through the real client in a 130x52 PTY, from input to the echoed glyph in terminal output. There were no failed runs or missed echoes (7,500 measured keystrokes total). No additional benchmarks were launched after Cyan requested the existing results.
+
+| Typing workload | Baseline p50 / p95 (ms) | Diagnostics p50 / p95 (ms) |
+| --- | ---: | ---: |
+| Idle | 1.214 / 2.613 | 1.166 / 1.828 |
+| During agent output | 1.313 / 2.978 | 1.337 / 3.432 |
+| Beside two floods | 0.365 / 0.490 | 0.369 / 0.546 |
+| Beside two agents | 1.202 / 2.407 | 1.256 / 2.185 |
+| Hidden floods in another tab | 0.424 / 0.500 | 0.418 / 0.499 |
+
+Typing percentiles pool the 750 samples per workload/version. Per-run medians overlap between versions for every typing workload. These measure bytes reaching the host PTY, not physical display latency.
+
+| Flood workload | Baseline median MiB/s (run range) | Diagnostics median MiB/s (run range) |
+| --- | ---: | ---: |
+| Three ANSI log-file passes | 125.8 (112.4–150.4) | 121.6 (111.9–145.7) |
+| Ten Unicode-file passes | 47.9 (41.7–49.1) | 44.3 (40.1–51.1) |
+| Two visible floods while typing, combined | 257.0 (254.1–282.1) | 257.7 (257.5–258.8) |
+| Two hidden floods while typing, combined | 257.6 (256.7–259.6) | 260.9 (257.6–285.5) |
+
+Finite-flood rates use input bytes divided by time to the completion marker reaching the host PTY. Those short runs lasted about 55–76 ms; their medians were 3–7% lower with diagnostics, inside the observed run-to-run spread. Sustained rates count completed file passes during the typing measurement. Taken together, the default-setting measurements show no clear regression beyond run-to-run noise (SC-001); they are not a claim about debug or timeline overhead. Raw results, harness, binary snapshots, source baseline and summary are retained under `/tmp/ship-diagnostics-slice5-3fc17e7/`.
+
+Guide verification used the production release binary with isolated state and an owned background process on 43316 (`guide-timeline.py` in the same scratch directory). `server status` and `server log` identified the file linked by `current.log`; `server log debug` enabled debug events and `--reset` restored startup detail. A real PTY client typed and pasted, stayed quiet on stderr while drawing, detached cleanly, and the server stopped cleanly. Server/client timelines parsed and contained the documented operation names independently of the live filter. Payload/privacy checks passed. Automatic background launch itself was already exercised in slice 1; no temporary port-only build was needed here.
+
+The guide now uses `tail -F` to follow `current.log` across replacement, verified with an isolated macOS symlink-replacement probe. Upgrade instructions now stop the old server with its matching client before replacing the binary; a new incompatible client cannot stop it. The logs/levels/timelines section was reviewed end to end. README lists, keys and installation did not change, so README is untouched.
+
+Final gates passed: formatting, workspace/all-target Clippy with warnings denied, debug/release builds, core checks without default features and with clap, strict OpenSpec validation, and diff whitespace checks. All owned bench/guide servers were stopped; the existing server on 43179 was untouched. No production Rust changes, coding subagents or permanent authored tests were added for slice 5. Linux and Windows remain unverified.
 
 ## Workflow follow-up
 

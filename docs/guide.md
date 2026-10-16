@@ -301,8 +301,10 @@ There's no permanent status bar. A one-row overlay appears at the bottom of the 
 Server logs live in `$XDG_STATE_HOME/ship/logs/<port>/`, or `~/.local/state/ship/logs/<port>/` when `XDG_STATE_HOME` is unset, on Linux and macOS. Every run starts a new file named with its local start time, including subseconds. `current.log` links to the part being written:
 
 ```sh
-tail -f "${XDG_STATE_HOME:-$HOME/.local/state}/ship/logs/43179/current.log"
+tail -F "${XDG_STATE_HOME:-$HOME/.local/state}/ship/logs/43179/current.log"
 ```
+
+`tail -F` follows the path when `current.log` moves to a new run or part. Replace `43179` with your server's port, or use the `log` path from `ship server status` to open one specific part.
 
 Background startup failures name their run file. Foreground servers write the same files and also print to stderr. Logs survive a server crash; restarting creates a new file instead of overwriting the crashed run's log. Each line has local time with its UTC offset.
 
@@ -364,4 +366,4 @@ The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship 
 
 Diagnostics moves protocol 12 to 13, adds live log-filter control and includes the current log part in health/status.
 
-Update the client and server together. `ship` checks the server's protocol version and refuses to talk to one that doesn't match, so after rebuilding, run `ship server stop` and start again. Stopping the server ends every program in it, so finish or save running work first.
+Update the client and server together. Before replacing the binary, finish or save running work and run `ship server stop` with the client that matches the running server. Stopping the server ends every program in it. Then rebuild or install the new version and start again. The new client refuses to talk to an older server with a different protocol version, including to stop it; keep the old client available until that server is stopped.
