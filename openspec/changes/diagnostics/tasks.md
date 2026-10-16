@@ -1,0 +1,87 @@
+# Tasks
+
+These are checkpoints for implementing the locked plan, one slice at a time. Cyan locked the papers in `design/` on 2026-10-15, and they are the contract. `design/program.md` holds the file map, signatures and checks for each slice. Complete and verify one slice, then stop for Cyan's review before starting the next. Record surprises in the program paper's deviation log.
+
+Verification uses real workflows and temporary probes, not permanent authored tests. For each slice, run these checks:
+- `cargo fmt --all -- --check`;
+- `cargo clippy --workspace --all-targets -- -D warnings`;
+- debug and release builds;
+- `ship-core` checks with and without `clap`;
+- `openspec validate diagnostics --strict`.
+
+Use owned temporary servers on ports 43311 to 43317, with `XDG_STATE_HOME` pointed at a temporary directory so real logs are untouched. Don't restart existing user work, including the server on 43179, and clean up only what the exercise created. Checks run on macOS. Linux counts only when run there and is otherwise reported unverified.
+
+Each slice documents its own user-visible behavior in `docs/guide.md`, in one section on logs, levels and timelines that grows slice by slice.
+
+## 1. Run files and levels
+
+- [ ] 1.1 Add `runlog.rs` and the launcher's part 1:
+  - `RunLog` with start-time names, 50 MB parts, `current.log`, 200 MB retention per directory, and the `#[cfg(unix)]` module for modes and the link.
+  - `local.rs` opens part 1 with `RunLog::start`, hands it to the child as stdout and stderr, and passes its path with the hidden `--log-file`. `tempfile` leaves the manifest.
+
+  Verify with `XDG_STATE_HOME` set to a temporary directory and bare `ship` on a bench port:
+  - The run file holds the launch line, and `logs/<port>/current.log` resolves to it.
+  - The file is 0600 and its directories 0700.
+  - A launch made to fail names the run file.
+- [ ] 1.2 Rewrite `diagnostics::init` for `Role::Server`, `Role::Client` and `Role::Command`, with `startup_filter`, `level_filter`, the `ChronoLocal::rfc_3339()` timer and the panic hook. Wire `role` in `main.rs`. Verify:
+  - SIGKILL the server and start another on the same port: two files, the killed run's last line in its own file (SC-002).
+  - A foreground `ship server --port <bench port>` prints to the terminal and writes a file.
+  - The client draws with nothing on stderr and writes `logs/client/<start>-<pid>.log`. `ship tab list` logs to stderr and writes no file.
+  - A forced panic in a temporary debug build lands in the run file, after the client restores the terminal.
+  - Lines carry local time with the offset.
+- [ ] 1.3 Verify levels and retention:
+  - `SHIP_LOG=debug` shows Ship's debug lines and kameo's actor spans. `SHIP_LOG=nope` exits 1 listing the levels. `RUST_LOG` replaces the filter.
+  - A temporary probe with `PART_BYTES` and `DIR_BYTES` lowered shows a `.2.log` part, `current.log` following it, and the oldest file pruned while the current part stays. The probe isn't committed.
+  - The guide says where server and client logs live, how `current.log` and parts work, and what `SHIP_LOG` and `RUST_LOG` do.
+
+## 2. Spans
+
+- [ ] 2.1 Add `#[traced]` and `#[named]` to `ship-macros`, and `spawn_traced` to `ship-core` with tokio's `rt` feature. Give `ship-client` its tracing and `ship-macros` dependencies. Verify:
+  - `cargo expand` of one `#[traced]` function returning `Result` shows `level = "debug"`, `skip_all` and `err(level = "warn", Debug)`, and one with `no_err` shows no `err`.
+  - A `#[named]` message's `name()` returns its type as written, such as `"CreatePane"`.
+- [ ] 2.2 Apply the annotations in the program paper's span table: `#[named]` on all 21 `ServerState` messages, root spans for the pane task, `pane_exit` and `pane_events`, the detach through `spawn_traced`, and `#[traced]` on the keystroke path in server and client. Verify:
+  - `ship pane create -- /nonexistent` logs one warn line whose chain runs from the request through `CreatePane` to `spawn`.
+  - With `SHIP_LOG=debug`, actor spans read `CreatePane` and `Resize`, not type paths.
+  - At `SHIP_LOG=trace`, a marker string typed into a pane and another pasted appear in no log file.
+  - The guide describes reading an error's chain.
+
+## 3. Live level change
+
+- [ ] 3.1 Add the protocol and server side:
+  - `ship-core`: protocol 13, `LogChange`, `LogFilter`, `HealthResponse.log`.
+  - `ship-server`: the `ServerLog` alias, `serve`'s closure parameter, `AppState.log`, `health` reading the file, and the `get_server_log` and `set_server_log` routes, 422 on an invalid filter.
+  - `ship`: `Diagnostics::server_log`, passed to `serve` in `dispatch`.
+
+  Verify against a bench server:
+  - `curl` on `GET /api/v0/server/log` returns `active`, `startup` and `file`.
+  - A `PUT` with `{"set": "ship=["}` answers 422 and a following `GET` shows the filter unchanged.
+  - `ship server status` reports protocol 13 and the current part in `log`, also after a rollover with the slice 1 probe.
+  - The OpenAPI document lists both routes.
+- [ ] 3.2 Add `ship server log` to the CLI, `commands.rs` and the API client. Verify:
+  - `ship server log` prints the filter as one JSON line and starts no server when none is running.
+  - `ship server log debug` makes debug lines appear within a second while a pane keeps printing, unaffected (SC-003).
+  - `--reset` brings `active` back to `startup`. `--filter 'ship=['` fails and `ship server log` shows nothing changed.
+  - `ship server log debug --reset` exits 2.
+  - The guide documents `ship server log` and its options.
+
+## 4. Timelines
+
+- [ ] 4.1 Add `tracing-chrome` and the chrome layer in `init` with its fixed filter, keeping the `FlushGuard` in `Diagnostics`. Verify:
+  - `SHIP_TRACE=<dir>` on a bench server and a client, a few keystrokes and clean exits leave `<dir>/server-<pid>.json` and `<dir>/client-<pid>.json`, and both parse as JSON.
+  - Between them they hold `turn`, `send`, `route`, `command`, `publish`, `apply` and `redraw` (SC-004). Cyan opens one in ui.perfetto.dev to confirm the view.
+  - At default `SHIP_LOG` the timeline still holds debug spans. Without `SHIP_TRACE` no file appears.
+  - The guide documents `SHIP_TRACE` and opening a timeline in Perfetto.
+
+## 5. Bench and size
+
+- [ ] 5.1 Run the bench on ports 43311 to 43317 at default settings against `fc2b5a7`. Verify typing latency and flood throughput are within run-to-run noise (SC-001), and record the numbers below.
+- [ ] 5.2 Finish the docs. Verify:
+  - The guide's section reads end to end, and following it finds a background server's current log, raises its level and records a timeline.
+  - The README changes only if "What works today", "Not built yet", keys or install steps changed.
+- [ ] 5.3 Measure size with `cloc` against `fc2b5a7`. Verify implementation Rust and tests are reported as separate counts (SC-005), against the 440-line estimate.
+
+## Workflow follow-up
+
+- File tracking issues for the deferred items when the pull request lands: tokio-console behind a cargo feature, and joined client and server timelines.
+- The session-restore paper's U-1 can point at `logs/<port>/current.log`. It's edited from that change, not this one.
+- Archive the change after merge, which applies the deltas to `openspec/specs/`.
