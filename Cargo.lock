@@ -2990,6 +2990,7 @@ dependencies = [
  "serde_json",
  "ship-core",
  "ship-macros",
+ "tempfile",
  "tokio",
  "tokio-stream",
  "tokio-util",

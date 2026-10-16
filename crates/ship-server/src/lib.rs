@@ -190,7 +190,7 @@ pub async fn serve(
         saved,
     );
     let (replica_tx, replicas) = watch::channel(state.replica());
-    // The saver's baseline in slice 2 (decision 5).
+    // The starter is a saved change, so take the baseline before creating it.
     let baseline = saver::project(&replicas.borrow().tabs);
     let restored = !baseline.is_empty();
     let revision = state.written();
@@ -216,6 +216,11 @@ pub async fn serve(
         stop_actors(&state, &bus).await;
         return Err(AppError::from(error).context("cannot create the starter tab"));
     }
+    let saver = tokio::spawn(
+        saver::Saver::new(save, baseline)
+            .run(replicas.clone())
+            .instrument(tracing::info_span!(parent: None, "saver")),
+    );
     let actors = (state.clone(), bus.clone());
     let stop = CancellationToken::new();
     let app = AppState {
@@ -240,6 +245,11 @@ pub async fn serve(
             };
             result_tx.send_replace(Some(result));
             stop_actors(&state, &bus).await;
+            if let Err(error) = saver.await {
+                result_tx.send_replace(Some(Err(
+                    err!(Internal, "saver task failed", @external: error),
+                )));
+            }
         })
         .into_future();
     tokio::pin!(serving);

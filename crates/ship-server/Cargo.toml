@@ -20,6 +20,7 @@ ratatui.workspace = true
 ratatui-ghostty.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+tempfile.workspace = true
 tokio.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true

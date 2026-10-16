@@ -42,8 +42,8 @@ Probe: `/tmp/ship-restore-slice1.py`; latest output: `/tmp/ship-restore-slice1.o
 
 ## 2. Save as things change
 
-- [ ] 2.1 Add `Saver` (`new`, `run`, `save`) and `replace` to `saver.rs`, and `tempfile` to `ship-server`'s manifest.
-- [ ] 2.2 Wire the saver in `serve`: compute the baseline from the first replica, spawn `Saver::run` under a root `saver` span after the starter check, and await it after `stop_actors`.
+- [x] 2.1 Add `Saver` (`new`, `run`, `save`) and `replace` to `saver.rs`, and `tempfile` to `ship-server`'s manifest.
+- [x] 2.2 Wire the saver in `serve`: compute the baseline from the first replica, spawn `Saver::run` under a root `saver` span after the starter check, and await it after `stop_actors`.
 - [ ] 2.3 Verify:
   - A split, a rename, a passthrough toggle and a `cd` each reach the file within 5 seconds, and a `cd` every second still saves within 5 seconds.
   - SIGKILL 5 seconds after a change restores it, 20 out of 20 (SC-002).
