@@ -16,7 +16,7 @@ const PART_BYTES: u64 = 5 * 1024 * 1024;
 const DIR_BYTES: u64 = 200 * 1024 * 1024;
 const CURRENT: &str = "current.log";
 
-pub fn logs_dir() -> Result<PathBuf> {
+pub fn state_dir() -> Result<PathBuf> {
     // Ship uses XDG state paths on macOS too, not Apple's Application Support.
     #[cfg(not(windows))]
     let strategy = Xdg::new();
@@ -26,8 +26,22 @@ pub fn logs_dir() -> Result<PathBuf> {
         |error| err!(Configuration, "cannot find the state directory", @external: error),
     )?;
     let directory = strategy.state_dir().unwrap_or_else(|| strategy.data_dir());
-    path::absolute(directory.join("ship/logs"))
-        .map_err(|error| err!(Io, "cannot resolve log directory", @external: error))
+    path::absolute(directory.join("ship"))
+        .map_err(|error| err!(Io, "cannot resolve the state directory", @external: error))
+}
+
+pub fn logs_dir() -> Result<PathBuf> {
+    state_dir().map(|directory| directory.join("logs"))
+}
+
+/// Create the directory and its missing parents privately on Unix.
+pub fn create_private_dir(dir: &Path) -> Result<()> {
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    platform::private_dir(&mut builder);
+    builder.create(dir).map_err(
+        |error| err!(Io, "cannot create private directory {}", dir.display(), @external: error),
+    )
 }
 
 pub fn stem(now: &chrono::DateTime<chrono::Local>) -> String {
@@ -49,11 +63,7 @@ struct Part {
 
 impl RunLog {
     pub fn start(dir: &Path, stem: String) -> Result<Self> {
-        let mut builder = fs::DirBuilder::new();
-        builder.recursive(true);
-        platform::private_dir(&mut builder);
-        builder.create(dir)
-            .map_err(|error| err!(Io, "cannot create private log directory {}; no file was created", dir.display(), @external: error))?;
+        create_private_dir(dir).context("no log file was created")?;
         let path = dir.join(format!("{stem}.log"));
         let file = create(&path).map_err(
             |error| err!(Io, "cannot create private log in {}", dir.display(), @external: error),

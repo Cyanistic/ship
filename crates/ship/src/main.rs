@@ -119,10 +119,14 @@ async fn dispatch(
             "--server-url selects a server for clients; ship server does not take it"
         )),
         Some(Command::Server(args)) => {
+            let tabs = runlog::state_dir()?.join("tabs");
+            runlog::create_private_dir(&tabs)?;
             ship_server::serve(
                 ship_server::loopback_addr(args.port)?,
                 args.starter,
                 cli.config_path()?,
+                tabs.join(format!("{}.json", args.port)),
+                !args.no_restore,
                 diagnostics::shutdown()?,
                 diagnostics.server_log(),
             )
@@ -145,7 +149,8 @@ async fn dispatch(
         None => {
             let client = client(&cli.server_url)?;
             // A full-screen client must not misread another protocol. Only a
-            // server this call launched holds a starter tab to open.
+            // server this call launched opens on its first tab, restored or
+            // the starter.
             let open_first = if explicit_target {
                 health(&client).await?;
                 false

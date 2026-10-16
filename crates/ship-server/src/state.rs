@@ -17,12 +17,13 @@ use ship_core::{
     model::*,
     prelude::*,
     protocol::{
-        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, Replica,
-        ResizePane, SetPane, SetTab, Starter, SwapPane, ViewInput, ViewingRecord, ZoomPane,
+        AttachRequest, Attached, CreatePane, CreateTab, MoveTab, PaneAt, PaneInput, PaneSpec,
+        Replica, ResizePane, SetPane, SetTab, Starter, SwapPane, ViewInput, ViewingRecord,
+        ZoomPane,
     },
     screen::Size,
 };
-use ship_macros::{Actor, named};
+use ship_macros::{Actor, named, traced};
 use tokio::sync::watch;
 use uuid::Uuid;
 
@@ -31,6 +32,7 @@ use ship_core::relay::{Publish, RelayBus};
 use crate::pane::{
     self, Launch, LivePanes, PaneChange, PaneCommand, PaneEnv, PaneEvent, PaneRuntime, Spawned,
 };
+use crate::saver::Saved;
 
 mod geometry;
 mod layout;
@@ -69,8 +71,9 @@ impl ServerState {
         bus: ActorRef<RelayBus>,
         live: watch::Sender<LivePanes>,
         pane_env: PaneEnv,
+        saved: Saved,
     ) -> Self {
-        Self {
+        let mut state = Self {
             incarnation: Uuid::now_v7(),
             revision: 0,
             written: Arc::default(),
@@ -80,7 +83,50 @@ impl ServerState {
             live,
             pane_env,
             bus,
+        };
+        state.tabs = state.restore(saved.into_tabs());
+        // Drops nothing here; publishes the restored runtimes' handles.
+        state.retain_runtimes();
+        state
+    }
+
+    /// Build the tree before the actor runs, keeping each saved pane's ID.
+    #[traced]
+    fn restore(&mut self, saved: Tabs) -> Tabs {
+        saved
+            .into_iter()
+            .map(|(id, tab)| (id, Arc::new(self.restore_tab(Arc::unwrap_or_clone(tab)))))
+            .collect()
+    }
+
+    fn restore_tab(&mut self, mut tab: Tab) -> Tab {
+        tab.tabs = self.restore(tab.tabs);
+        tab.geometry = None;
+        let zoomed = tab.zoomed;
+        let panes: Vec<_> = tab.panes().cloned().collect();
+        for saved in panes {
+            let cwd = match Self::pane_cwd(Some(saved.cwd.clone())) {
+                Ok(_) => Some(saved.cwd.clone()),
+                Err(error) => {
+                    tracing::warn!(pane = %saved.id, directory = %saved.cwd, %error, "saved directory unavailable; starting in home");
+                    None
+                }
+            };
+            let input = PaneInput {
+                name: saved.name,
+                right_click_passthrough: saved.right_click_passthrough,
+                spec: PaneSpec { command: None, cwd },
+            };
+            match self.start_pane(saved.id, Size::FALLBACK, input) {
+                Ok(pane) => *tab.pane_mut(saved.id).expect("saved pane belongs to tab") = pane,
+                Err(error) => {
+                    tracing::warn!(pane = %saved.id, directory = %saved.cwd, %error, "cannot start restored pane");
+                    layout::close(&mut tab, saved.id).expect("saved pane belongs to tab");
+                }
+            }
         }
+        tab.zoomed = zoomed.filter(|id| tab.pane(*id).is_some());
+        tab
     }
 
     /// Clone `tabs` and `viewers`, run `edit` on the clones, repair every
@@ -245,9 +291,10 @@ impl ServerState {
         }
     }
 
-    /// Start before insertion; commit cleanup owns failed-edit teardown.
-    fn start_pane(&mut self, size: Size, input: PaneInput) -> Result<Pane> {
-        let cwd = match input.spec.cwd {
+    /// Resolve and validate separately so restore handles only directory errors
+    /// with a home fallback, never shell-spawn errors.
+    fn pane_cwd(cwd: Option<String>) -> Result<PathBuf> {
+        let cwd = match cwd {
             Some(cwd) => PathBuf::from(cwd),
             None => env::home_dir()
                 .ok_or_else(|| err!(Configuration, "the server has no home directory"))?,
@@ -259,7 +306,12 @@ impl ServerState {
                 cwd.display()
             ));
         }
-        let id = Id::new();
+        Ok(cwd)
+    }
+
+    /// Start before insertion; commit cleanup owns failed-edit teardown.
+    fn start_pane(&mut self, id: IdOf<Pane>, size: Size, input: PaneInput) -> Result<Pane> {
+        let cwd = Self::pane_cwd(input.spec.cwd)?;
         let Spawned { runtime, command } = pane::spawn(
             Launch {
                 pane: id,
@@ -385,9 +437,11 @@ impl Message<CreateTab> for ServerState {
     ) -> Self::Reply {
         let id = Id::new();
         let layout = if let Some(Starter::Shell) = create.starter {
-            Some(Layout::Pane(
-                self.start_pane(Size::FALLBACK, PaneInput::default())?,
-            ))
+            Some(Layout::Pane(self.start_pane(
+                Id::new(),
+                Size::FALLBACK,
+                PaneInput::default(),
+            )?))
         } else {
             None
         };
@@ -551,7 +605,7 @@ impl Message<CreatePane> for ServerState {
                 .and_then(|anchor| tab.pane(anchor))
                 .map(|anchor| anchor.dir.clone().unwrap_or_else(|| anchor.cwd.clone()));
         }
-        let pane = self.start_pane(start, input)?;
+        let pane = self.start_pane(Id::new(), start, input)?;
         self.commit(|tabs, viewers| {
             if let Some(attachment) = create.select {
                 select_created(viewers, attachment, NodeId::Pane(pane.id))?;

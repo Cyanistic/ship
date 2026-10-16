@@ -7,6 +7,7 @@ mod input;
 mod middleware;
 mod pane;
 mod routes;
+mod saver;
 mod settings;
 mod state;
 mod views;
@@ -139,13 +140,15 @@ pub fn router(app: AppState) -> Router {
         .with_state(app)
 }
 
-/// Binds, spawns the actors, creates the starter tab when `starter` is set,
-/// then serves. A failed starter stops the actors and returns its error
+/// Binds, restores the saved tabs, spawns the actors, and creates the starter
+/// tab when `starter` is set and nothing was restored, then serves. A failed starter stops the actors and returns its error
 /// before any connection is accepted.
 pub async fn serve(
     address: SocketAddr,
     starter: bool,
     config: PathBuf,
+    save: PathBuf,
+    restore: bool,
     shutdown: impl Future<Output = Result<()>> + Send + 'static,
     log: impl Fn(Option<LogChange>) -> Result<LogFilter> + Send + Sync + 'static,
 ) -> Result<()> {
@@ -172,9 +175,24 @@ pub async fn serve(
     // the outer task can propagate errors and bound draining after signal receipt.
     let (result_tx, mut result_rx) = watch::channel(None);
     let bus = relay::RelayBus::spawn_with_mailbox(relay::RelayBus::default(), mailbox::bounded(64));
+    let events = subscribe_pane_events(&bus).await?;
+    let saved = if restore {
+        saver::load(&save)
+    } else {
+        tracing::info!("not restoring, --no-restore");
+        saver::Saved::default()
+    };
     let (live_tx, live) = watch::channel(pane::LivePanes::new());
-    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address, config)?);
+    let state = state::ServerState::new(
+        bus.clone(),
+        live_tx,
+        pane::PaneEnv::new(address, config)?,
+        saved,
+    );
     let (replica_tx, replicas) = watch::channel(state.replica());
+    // The saver's baseline in slice 2 (decision 5).
+    let baseline = saver::project(&replicas.borrow().tabs);
+    let restored = !baseline.is_empty();
     let revision = state.written();
     bus.ask(relay::Subscribe::<Arc<Replica>> {
         sink: Box::new(replica_tx),
@@ -182,7 +200,7 @@ pub async fn serve(
     .await
     .map_err(|error| err!(Internal, "cannot subscribe replica stream", @external: error))?;
     let state = state::ServerState::spawn(state);
-    forward_pane_events(&bus, state.clone()).await?;
+    forward_pane_events(events, state.clone());
     // Bound but not accepting: a health probe waits in the backlog until the
     // starter tab exists.
     let starter_tab = CreateTab {
@@ -191,7 +209,10 @@ pub async fn serve(
         starter: Some(Starter::Shell),
         select: None,
     };
-    if starter && let Err(error) = state.ask(starter_tab).await {
+    if starter
+        && !restored
+        && let Err(error) = state.ask(starter_tab).await
+    {
         stop_actors(&state, &bus).await;
         return Err(AppError::from(error).context("cannot create the starter tab"));
     }
@@ -235,18 +256,24 @@ pub async fn serve(
     result_rx.borrow().clone().unwrap_or(Ok(()))
 }
 
-/// Pane titles and exits reach the state actor through an unbounded sink and
-/// an awaited `tell`, so an exit status waits rather than drops.
-async fn forward_pane_events(
+/// Subscribe before constructing the state so restored panes' early events wait.
+async fn subscribe_pane_events(
     bus: &ActorRef<relay::RelayBus>,
-    state: ActorRef<state::ServerState>,
-) -> Result<()> {
-    let (events_tx, mut events) = mpsc::unbounded_channel::<pane::PaneEvent>();
+) -> Result<mpsc::UnboundedReceiver<pane::PaneEvent>> {
+    let (events_tx, events) = mpsc::unbounded_channel::<pane::PaneEvent>();
     bus.ask(relay::Subscribe {
         sink: Box::new(events_tx),
     })
     .await
     .map_err(|error| err!(Internal, "cannot subscribe pane events", @external: error))?;
+    Ok(events)
+}
+
+/// Pane events await delivery rather than dropping.
+fn forward_pane_events(
+    mut events: mpsc::UnboundedReceiver<pane::PaneEvent>,
+    state: ActorRef<state::ServerState>,
+) {
     tokio::spawn(
         async move {
             while let Some(event) = events.recv().await {
@@ -257,7 +284,6 @@ async fn forward_pane_events(
         }
         .instrument(tracing::info_span!(parent: None, "pane_events")),
     );
-    Ok(())
 }
 
 /// Resolves when either actor stops on its own, such as after a panic. A

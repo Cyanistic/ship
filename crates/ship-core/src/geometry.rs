@@ -10,7 +10,7 @@ use utoipa::{
 
 use crate::{command::Direction, id::IdOf, model::Pane, screen::Size};
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TabGeometry {
     pub size: Size,

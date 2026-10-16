@@ -287,20 +287,31 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     .map_err(|error| err!(Io, "cannot start the terminal", @external: error))?;
 
     let mut builder = match &command {
-        None => {
-            let mut builder = CommandBuilder::new_default_prog();
-            if let Some(shell) = settings.shell {
+        None => match settings.shell {
+            Some(shell) => {
+                // An explicit shell must fail rather than silently fall back
+                // through portable-pty's default-program resolution.
+                let mut builder = CommandBuilder::new(&shell);
                 builder.env("SHELL", shell);
+                builder
             }
-            builder
-        }
+            None => CommandBuilder::new_default_prog(),
+        },
         Some(argv) => CommandBuilder::from_argv(argv.iter().map(Into::into).collect()),
     };
     builder.cwd(&cwd);
     // portable-pty leaves PWD as the server's; programs that read it see that.
     builder.env("PWD", &cwd);
     env.apply(&mut builder, pane);
-    let argv = command.unwrap_or_else(|| vec![builder.get_shell()]);
+    let argv = if builder.is_default_prog() {
+        vec![builder.get_shell()]
+    } else {
+        builder
+            .get_argv()
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect()
+    };
     let mut child = pty
         .slave
         .spawn_command(builder)
