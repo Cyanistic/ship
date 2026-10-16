@@ -110,6 +110,9 @@ pub struct ServerArgs {
     pub starter: bool,
     #[arg(long, hide = true)]
     pub background_child: bool,
+    /// The launcher's first log part
+    #[arg(long, hide = true, requires = "background_child")]
+    pub log_file: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
@@ -118,4 +121,19 @@ pub enum ServerCommand {
     Stop,
     /// Print the server's health as JSON; never starts a server
     Status,
+    /// Show or change the running server's log filter; never starts a server
+    Log(LogArgs),
+}
+
+#[derive(Args)]
+#[group(multiple = false)]
+pub struct LogArgs {
+    /// Ship's level: error, warn, info, debug or trace
+    pub level: Option<tracing::Level>,
+    /// A full filter, as RUST_LOG sets it
+    #[arg(long)]
+    pub filter: Option<String>,
+    /// Return to the filter the server started with
+    #[arg(long)]
+    pub reset: bool,
 }

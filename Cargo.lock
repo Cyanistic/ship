@@ -2898,6 +2898,7 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 name = "ship"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "clap",
  "etcetera",
  "nix 0.31.3",
@@ -2907,9 +2908,9 @@ dependencies = [
  "ship-client",
  "ship-core",
  "ship-server",
- "tempfile",
  "tokio",
  "tracing",
+ "tracing-chrome",
  "tracing-subscriber",
  "url",
 ]
@@ -2928,11 +2929,13 @@ dependencies = [
  "serde",
  "serde_json",
  "ship-core",
+ "ship-macros",
  "sse-stream",
  "strum 0.27.2",
  "tokio",
  "tokio-stream",
  "toml",
+ "tracing",
  "tui-tree-widget",
  "url",
 ]
@@ -3572,7 +3575,7 @@ dependencies = [
  "tokio-util",
  "tower-layer",
  "tower-service",
- "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -3611,6 +3614,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-chrome"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf0a738ed5d6450a9fb96e86a23ad808de2b727fd1394585da5cdd6788ffe724"
+dependencies = [
+ "serde_json",
+ "tracing-core",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "tracing-core"
 version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3637,6 +3651,7 @@ version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
 dependencies = [
+ "chrono",
  "matchers",
  "nu-ansi-term",
  "once_cell",

@@ -8,6 +8,8 @@ use ship_core::{
     tree,
 };
 
+use ship_macros::traced;
+
 /// The client's copy of server-owned state: the replica and the latest screen
 /// of each pane it has been sent.
 #[derive(Default)]
@@ -31,6 +33,7 @@ impl Observer {
     /// replica, `State` applies only for the same incarnation and a higher
     /// revision, and `Screen` replaces that pane's screen. Returns whether
     /// anything visible changed.
+    #[traced]
     pub fn apply(&mut self, event: SseEvent) -> bool {
         match event {
             SseEvent::Attached(attached) => {

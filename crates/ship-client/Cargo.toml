@@ -8,6 +8,8 @@ description = "HTTP client library and full-screen client for Ship"
 
 [dependencies]
 ship-core.workspace = true
+ship-macros.workspace = true
+tracing.workspace = true
 
 crokey.workspace = true
 crossterm = { workspace = true, features = ["bracketed-paste", "event-stream", "osc52"] }

@@ -15,6 +15,7 @@ use ship_core::{
     id::{Attachment, IdOf},
     protocol::*,
 };
+use ship_macros::traced;
 use tokio_util::{
     codec::{FramedRead, LinesCodec},
     io::StreamReader,
@@ -94,6 +95,7 @@ fn frame(line: &str) -> Result<Option<InputFrame>> {
         .map_err(|error| err!(Validation, "malformed input frame", @external: error))
 }
 
+#[traced]
 fn route(live: &LivePanes, frame: InputFrame, from: IdOf<Attachment>) {
     let (pane, command) = match frame {
         InputFrame::Key(KeyInput { pane, key }) => (pane, PaneCommand::Key(key)),

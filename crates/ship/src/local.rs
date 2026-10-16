@@ -1,10 +1,12 @@
 use std::{
     env,
+    fs::OpenOptions,
     path::Path,
     process::{Command, Stdio},
     time::Duration,
 };
 
+use crate::runlog::{self, RunLog};
 use ship_client::Client;
 use ship_core::{DEFAULT_PORT, prelude::*};
 use tokio::time::{Instant, sleep, timeout_at};
@@ -21,14 +23,15 @@ pub async fn default_health(client: &Client, config: &Path) -> Result<bool> {
 
     let executable = env::current_exe()
         .map_err(|error| err!(Io, "cannot resolve current executable", @external: error))?;
-    let directory = env::temp_dir();
-    let temporary = tempfile::Builder::new().prefix("ship-server-").suffix(".log")
-        .tempfile_in(&directory)
-        .map_err(|error| err!(Io, "cannot create private server log in {}; no file was created", directory.display(), @external: error))?;
-    // NamedTempFile uses exclusive creation and mode 0600 on Unix. Keep it even on failure.
-    let (file, log) = temporary.keep().map_err(
-        |error| err!(Io, "cannot retain server log in {}", directory.display(), @external: error),
+    let run = RunLog::start(
+        &runlog::logs_dir()?.join(DEFAULT_PORT.to_string()),
+        runlog::stem(&chrono::Local::now()),
     )?;
+    let log = run.path();
+    let file = OpenOptions::new()
+        .append(true)
+        .open(&log)
+        .map_err(|error| err!(Io, "cannot open launch log {}", log.display(), @external: error))?;
     let stderr = file
         .try_clone()
         .map_err(|error| err!(Io, "cannot clone server log handle", @external: error))
@@ -41,6 +44,8 @@ pub async fn default_health(client: &Client, config: &Path) -> Result<bool> {
             "--starter",
             "--background-child",
         ])
+        .arg("--log-file")
+        .arg(&log)
         .arg("--config")
         .arg(config)
         .stdin(Stdio::null())

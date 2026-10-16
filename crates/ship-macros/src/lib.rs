@@ -1,9 +1,87 @@
-//! Ship's own derives. Generated code names its dependencies by absolute
-//! path, so the deriving crate must depend on each crate a derive uses.
+//! Ship's procedural macros. Generated code names dependencies by absolute
+//! path, so the using crate must depend on each crate a macro uses.
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{DeriveInput, LitStr, Path, parse_macro_input};
+use syn::{
+    DeriveInput, GenericArgument, ImplItem, ItemFn, ItemImpl, LitStr, Meta, Path, PathArguments,
+    ReturnType, Token, Type, parse_macro_input, punctuated::Punctuated,
+};
+
+/// Instruments an operation at debug with arguments skipped. Functions returning
+/// `Result` log errors at warn using Debug. `no_err` disables error logging;
+/// other options pass through to `tracing::instrument`, which validates them.
+/// The emitting crate must depend on `tracing`.
+#[proc_macro_attribute]
+pub fn traced(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr with Punctuated::<Meta, Token![,]>::parse_terminated);
+    let function = parse_macro_input!(item as ItemFn);
+    traced_function(args, function).into()
+}
+
+fn traced_function(
+    args: Punctuated<Meta, Token![,]>,
+    function: ItemFn,
+) -> proc_macro2::TokenStream {
+    let mut options = Vec::new();
+    let mut level = false;
+    let mut no_err = false;
+    for arg in args {
+        if arg.path().is_ident("no_err") && matches!(arg, Meta::Path(_)) {
+            no_err = true;
+        } else {
+            level |= arg.path().is_ident("level");
+            options.push(arg);
+        }
+    }
+    let default_level = (!level).then(|| quote!(level = "debug",));
+    let result = matches!(&function.sig.output,
+        ReturnType::Type(_, ty) if matches!(ty.as_ref(), Type::Path(path)
+            if path.path.segments.last().is_some_and(|segment| segment.ident == "Result")));
+    let error = (result && !no_err).then(|| quote!(err(level = "warn", Debug),));
+    quote! {
+        #[::tracing::instrument(#default_level skip_all, #error #(#options),*)]
+        #function
+    }
+}
+
+/// Gives `impl Message<X>` the short message name `X`, including its type
+/// arguments, instead of Kameo's fully qualified default name.
+#[proc_macro_attribute]
+pub fn named(attr: TokenStream, item: TokenStream) -> TokenStream {
+    if !attr.is_empty() {
+        return syn::Error::new(proc_macro2::Span::call_site(), "`named` takes no arguments")
+            .into_compile_error()
+            .into();
+    }
+    let implementation = parse_macro_input!(item as ItemImpl);
+    named_message(implementation)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+fn named_message(mut implementation: ItemImpl) -> syn::Result<proc_macro2::TokenStream> {
+    let message = implementation
+        .trait_
+        .as_ref()
+        .and_then(|(_, path, _)| path.segments.last())
+        .filter(|segment| segment.ident == "Message")
+        .and_then(|segment| match &segment.arguments {
+            PathArguments::AngleBracketed(args) => args.args.first(),
+            _ => None,
+        })
+        .and_then(|arg| match arg {
+            GenericArgument::Type(ty) => Some(ty),
+            _ => None,
+        })
+        .ok_or_else(|| syn::Error::new_spanned(&implementation, "expected `impl Message<X>`"))?;
+    let name = quote!(#message).to_string().replace(' ', "");
+    let method: ImplItem = syn::parse_quote! {
+        fn name() -> &'static str { #name }
+    };
+    implementation.items.push(method);
+    Ok(quote!(#implementation))
+}
 
 /// Kameo's `#[derive(Actor)]` with Ship's defaults: `Args = Self`,
 /// `Error = Infallible` and an `on_start` that returns the state, plus an

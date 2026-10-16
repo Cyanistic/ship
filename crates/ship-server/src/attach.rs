@@ -14,6 +14,7 @@ use kameo::actor::ActorRef;
 use ship_core::{
     AppError, Result, err, id::*, model::Pane, protocol::*, relay::Subscribe, screen::Screen,
 };
+use ship_macros::traced;
 use tokio::{
     runtime::Handle,
     sync::{mpsc, watch},
@@ -36,11 +37,11 @@ struct AttachmentGuard {
 
 impl Drop for AttachmentGuard {
     fn drop(&mut self) {
-        let Ok(runtime) = Handle::try_current() else {
+        if Handle::try_current().is_err() {
             return;
-        };
+        }
         let (attachment, state) = (self.attachment, self.state.clone());
-        runtime.spawn(async move {
+        ship_core::spawn_traced(async move {
             state.tell(Detach(attachment)).await.ok();
         });
     }
@@ -133,6 +134,7 @@ struct Progress {
 impl Progress {
     /// Waits for a newer replica or a watched screen. Replicas no newer than
     /// the one sent are skipped. A closed channel means shutdown.
+    #[traced(no_err)]
     async fn next(&mut self) -> Result<SseEvent, EndReason> {
         loop {
             tokio::select! {

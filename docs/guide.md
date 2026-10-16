@@ -9,6 +9,7 @@ How Ship behaves once you're past the [README](../README.md). Every example assu
 - [Scrolling and reading output](#scrolling-and-reading-output)
 - [Mouse and clipboard](#mouse-and-clipboard)
 - [Configuration](#configuration)
+- [Logs and levels](#logs-and-levels)
 - [Upgrading](#upgrading)
 
 ## The server and clients
@@ -295,10 +296,74 @@ The four default create keys select what they make. In your own binding, set `se
 
 There's no permanent status bar. A one-row overlay appears at the bottom of the pane area only when there's something to say: you're outside normal mode, the client is reconnecting, the selected pane's program has exited, or an action failed. It shows the mode, any status, and hints for the mode's keys. A binding's optional `label` overrides the word derived from its action: the mode name, a direction, the chord sent, or the action name. For example, the `f` binding above shows `f fill` instead of `f zoom`. Unbound chords don't appear in the hints.
 
+## Logs and levels
+
+Server logs live in `$XDG_STATE_HOME/ship/logs/<port>/`, or `~/.local/state/ship/logs/<port>/` when `XDG_STATE_HOME` is unset, on Linux and macOS. Every run starts a new file named with its local start time, including subseconds. `current.log` links to the part being written:
+
+```sh
+tail -F "${XDG_STATE_HOME:-$HOME/.local/state}/ship/logs/43179/current.log"
+```
+
+`tail -F` follows the path when `current.log` moves to a new run or part. Replace `43179` with your server's port, or use the `log` path from `ship server status` to open one specific part.
+
+Background startup failures name their run file. Foreground servers write the same files and also print to stderr. Logs survive a server crash; restarting creates a new file instead of overwriting the crashed run's log. Each line has local time with its UTC offset.
+
+A full-screen client writes `logs/client/<start-time>-<pid>.log` under the same state directory, with `current.log` pointing at the newest client's file. It does not log to stderr while drawing. One-shot commands use stderr and create no log file.
+
+Files continue in numbered parts (`<start-time>.2.log`, and so on) at 5 MiB, without splitting a log event. `current.log` follows each new part. At startup and rollover, Ship removes the oldest log files to keep each port's directory, and the client directory separately, at about 200 MiB. The current part is never removed. Files are owner-only (0600), and newly created log directories are owner-only (0700) on Linux and macOS. Where symbolic links are unavailable, open the run file directly. Raw process output from a background server stays in its first part after rollover; logged panics go to the current part.
+
+HTTP responses carry an `x-request-id` for correlation: Ship preserves a supplied ID or generates a UUID. Request spans and completion summaries are logged at debug; 5xx completions are warnings, while success and 4xx remain debug. Summaries include the request ID, method, path, status and duration, even when debug spans are disabled. The explicit header allowlist also records a valid request `x-ship-attachment-id` as `attachment_id` on spans and summaries, and the response's numeric `x-ship-revision` as `revision` on summaries. Missing or malformed values are omitted from diagnostics without changing request handling. Query strings, bodies and all other headers, including other `x-ship-*` headers, are not recorded by this middleware. Duration measures time until the response is ready, not the lifetime of a streaming body.
+
+By default, Ship logs at `info` and dependencies at `warn`. Set `SHIP_LOG` to `error`, `warn`, `info`, `debug` or `trace` before starting a process:
+
+```sh
+SHIP_LOG=debug ship server --port 43180
+SHIP_LOG=debug ship
+```
+
+At `debug` and `trace`, this also enables actor message spans. A background server inherits the launching command's environment. Changing that environment does not change an already-running server's level. An invalid level fails startup.
+
+`RUST_LOG` replaces the whole filter, including `SHIP_LOG`. For example, `RUST_LOG=warn,ship=debug,ratatui_ghostty=debug,kameo=info` sets Ship and its terminal widget to debug and enables actor spans. Invalid filter syntax fails startup.
+
+To inspect or change a running server without restarting it:
+
+```sh
+ship server status                  # Health JSON, including the current log part
+ship server log                     # Active/startup filters and current file as JSON
+ship server log debug               # Same level mapping as SHIP_LOG=debug
+ship server log --filter 'warn,ship=trace'
+ship server log --reset              # Restore the startup filter
+```
+
+Each log command prints one JSON line with `active`, `startup` and `file`. Use only one of a level, `--filter` or `--reset`. Invalid changes fail and leave the filter unchanged. Changes take effect immediately without affecting panes and last until reset or server exit. Neither `server log` nor `server status` starts a missing server. Use `--server-url` or `SHIP_SERVER_URL` to select another server.
+
+To record a timeline, set `SHIP_TRACE` before starting a server or client. For example, in separate terminals:
+
+```sh
+SHIP_TRACE=/tmp/ship-trace ship server --port 43180
+SHIP_TRACE=/tmp/ship-trace ship --server-url http://127.0.0.1:43180
+```
+
+Type a few keys, detach the client with `alt-q`, then stop that server with `ship --server-url http://127.0.0.1:43180 server stop`. Clean exits finish `/tmp/ship-trace/server-<pid>.json` and `client-<pid>.json`. Open each file in [Perfetto](https://ui.perfetto.dev) to inspect operations such as `turn`, `send`, `route`, `command`, `publish`, `apply` and `redraw`. Client and server timelines are separate, not joined.
+
+Timelines record debug-level Ship operations and actor messages regardless of `SHIP_LOG`, `RUST_LOG` or live log-filter changes. Setting `SHIP_TRACE` on a client does not enable it on an already-running server. The directory is created if needed; one-shot commands record no timeline. Without `SHIP_TRACE`, no timeline layer or file is created. Recording works in debug and release builds. Timeline files are not size-limited or pruned, and crashes may leave them incomplete; use recording for a bounded session. The payload-recording boundary below also applies to timelines.
+
+At debug detail, a warning inside an operation shows the nested operations it came from. For example, a failed pane launch has a chain like:
+
+```text
+WARN actor.handle_message{actor.name="ServerState" ... CreatePane}:spawn{pane=pane:...}: ... error=...
+```
+
+Read this as "the state actor was handling CreatePane, and spawn failed." Actor messages start new chains, so the sending HTTP request is not included. Long-running pane tasks have their own `pane` roots; the client and server each log their own steps.
+
+Ship does not automatically record terminal contents, typed or pasted input, clipboard data, full program argument lists or environments. Failure messages keep useful program names and dependency error details, which can contain sensitive information. Check logs before sharing them.
+
 ## Upgrading
 
 If an older config uses `hint` on a key binding, rename it to `label`. `hint` is no longer accepted. The label still appears after the chord in the status line.
 
 The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship pane rename` and their bindings with `set`. Use `--name ""` to clear a name; omitting `name` leaves it unchanged.
 
-Update the client and server together. `ship` checks the server's protocol version and refuses to talk to one that doesn't match, so after rebuilding, run `ship server stop` and start again. Stopping the server ends every program in it, so finish or save running work first.
+Diagnostics moves protocol 12 to 13, adds live log-filter control and includes the current log part in health/status.
+
+Update the client and server together. Before replacing the binary, finish or save running work and run `ship server stop` with the client that matches the running server. Stopping the server ends every program in it. Then rebuild or install the new version and start again. The new client refuses to talk to an older server with a different protocol version, including to stop it; keep the old client available until that server is stopped.

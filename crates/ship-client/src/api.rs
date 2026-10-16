@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use reqwest::{Method, StatusCode};
 use serde::de::DeserializeOwned;
 use ship_core::{
-    HEALTH_PATH, HealthResponse,
+    HEALTH_PATH, HealthResponse, LogChange, LogFilter,
     id::{Attachment, Id, IdOf, Identified, Prefixed},
     model::{Pane, Tab},
     prelude::*,
@@ -71,6 +71,17 @@ impl Client {
 
     pub async fn health(&self) -> Result<HealthResponse> {
         self.request(Method::GET, HEALTH_PATH, NO_BODY, None, StatusCode::OK)
+            .await
+    }
+
+    /// GET when showing the filter, PUT when changing it.
+    pub async fn server_log(&self, change: Option<&LogChange>) -> Result<LogFilter> {
+        let method = if change.is_some() {
+            Method::PUT
+        } else {
+            Method::GET
+        };
+        self.request(method, "/api/v0/server/log", change, None, StatusCode::OK)
             .await
     }
 

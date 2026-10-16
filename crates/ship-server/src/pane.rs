@@ -31,11 +31,13 @@ use ship_core::{
     relay::{Publish, RelayBus},
     screen::{Attr, Color, Cursor, CursorShape, Multi, Row, Run, Screen, Scrolled, Size},
 };
+use ship_macros::traced;
 use tokio::{
     sync::{Notify, mpsc, oneshot, watch},
     time::{Instant, sleep_until},
 };
 use tokio_util::sync::{CancellationToken, DropGuard};
+use tracing::Instrument;
 use url::Url;
 
 use crate::settings::ServerSettings;
@@ -221,6 +223,7 @@ pub(crate) struct Spawned {
 /// pane task.
 ///
 /// Any failure returns `Err`, and nothing is left running.
+#[traced(fields(pane = %launch.pane))]
 pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> Result<Spawned> {
     let Launch {
         pane,
@@ -310,9 +313,11 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     })?;
 
     let (exit_tx, status) = oneshot::channel();
+    let exit_span = tracing::debug_span!(parent: None, "pane_exit", pane = %pane);
     thread::Builder::new()
         .name("pane-exit".into())
         .spawn(move || {
+            let _entered = exit_span.enter();
             if let Some(status) = program::wait(child) {
                 exit_tx.send(status).ok();
             }
@@ -350,7 +355,10 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         bus,
         pacing: Pacing::default(),
     };
-    tokio::spawn(task.run(commands_rx, cancel.clone(), done_tx));
+    tokio::spawn(
+        task.run(commands_rx, cancel.clone(), done_tx)
+            .instrument(tracing::info_span!(parent: None, "pane", pane = %pane)),
+    );
     Ok(Spawned {
         runtime: PaneRuntime {
             handle: PaneHandle {
@@ -469,6 +477,7 @@ impl PaneTask {
     }
 
     /// Exited programs ignore keys, pastes and resizes, but keep history input.
+    #[traced]
     fn command(&mut self, command: PaneCommand) {
         if self.exit.reaped
             && !matches!(
@@ -546,6 +555,7 @@ impl PaneTask {
     /// directory if they changed. A shell that hasn't reported OSC 7, such as
     /// zsh under oh-my-zsh with SSH variables set, has its working directory
     /// read instead; its prompt after a `cd` is output, so it lands here.
+    #[traced]
     async fn publish(&mut self) {
         let (rendered, render) = oneshot::channel();
         self.session.render(Box::new(move || {
@@ -607,6 +617,7 @@ impl PaneTask {
         self.bus.tell(Publish(event)).await.ok();
     }
 
+    #[traced]
     async fn teardown(mut self) {
         self.program.end(&self.master, &mut self.exit).await;
         drop(self.session);
@@ -669,6 +680,7 @@ fn process_cwd(_pid: u32) -> Option<String> {
 /// The wrapper's rendered buffer and cursor as an owned `Screen`, or `None`
 /// when nothing was rendered since the last capture. `buffer` is replaced
 /// when the size changed, so no cell outlives a resize.
+#[traced(level = "trace")]
 fn capture(session: &SessionHandle, buffer: &mut Buffer) -> Option<Screen> {
     let (cols, rows) = session.size();
     let area = Rect::new(0, 0, cols, rows);
@@ -717,6 +729,7 @@ const ATTRS: [(Modifier, Attr); 9] = [
 
 /// One buffer row: text through its last non-blank cell, adjacent cells with
 /// equal styles merged into one run, and no trailing default-style run.
+#[traced(level = "trace")]
 fn row(cells: &[buffer::Cell]) -> Row {
     let end = cells
         .iter()

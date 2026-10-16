@@ -28,6 +28,7 @@ pub struct AppState {
     pub(crate) live: watch::Receiver<LivePanes>,
     /// Cancelled by `POST /api/v0/server/stop`; shuts down like SIGTERM.
     pub(crate) stop: CancellationToken,
+    pub(crate) log: crate::ServerLog,
     /// The state actor's revision, set by each commit before it replies.
     pub(crate) revision: Arc<AtomicU64>,
 }
