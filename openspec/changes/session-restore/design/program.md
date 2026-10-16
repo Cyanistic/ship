@@ -9,7 +9,7 @@ Gates:
 Settled at lock, as recommended (Cyan's approval carried no notes on either):
 
 - **G2, the starter tab counts as a change.** Architecture decision 5 makes the restored tree the saver's baseline, and the starter tab is added after it. So a first run writes a file holding the starter tab 5 seconds after start, and `ship server --no-restore --starter` replaces the saved tabs 5 seconds after start even if the user does nothing (the old file survives as `.prev`). Accepted: it follows decision 5 and `.prev` covers the mistake. Rejected: taking the baseline after the starter, which reopens decision 5.
-- **G3, two sibling tabs with the same ID in a hand-edited file.** `Tabs` is an `IndexMap`, and serde keeps the last of two equal keys in one JSON object, so `check` never sees the first one and that tab is dropped without a warning. Duplicates anywhere else (a pane ID twice, the same tab ID under two parents, a key that isn't its tab's `id`) are caught as decision 9 says. Accepted: no command can produce it. Rejected: a custom `Tabs` deserializer that rejects repeated keys, about 20 lines kept by hand.
+- **G3, two sibling tabs with the same ID in a hand-edited file.** Moot after the decision 9 amendment: `load` no longer checks structure, so serde's last-key-wins is just one more way a hand-edited file restores as written.
 
 ## Rationale
 
@@ -17,18 +17,19 @@ This is a document-only plan. Nothing below exists as source yet, and none of it
 
 The skeleton follows the architecture's structure box by box:
 
-- **`saver.rs`** is the only code that touches the file: `load` at startup, `project` for the change check, and the `Saver` task, which owns what it last wrote and whether it has kept `.prev`.
+- **`saver.rs`** is the only code that touches the file: the `Saved` type, `load` at startup, `project` for the change check, and the `Saver` task, which owns what it last wrote and whether it has kept `.prev`.
 - **`state.rs`** gives `start_pane` an ID parameter and makes `ServerState::new` take the saved tabs and build its tree from them. `commit` is unchanged.
 - **`lib.rs`** loads before building the state unless `restore` is false, subscribes pane events before the constructor, starts the starter only when the restored tree is empty, starts the saver, and awaits it after the actors stop.
 - **`crates/ship`** adds `--no-restore`, creates `<state>/ship/tabs/` with mode `0700` and passes `<port>.json` inside it.
-- **`ship-core`** derives `PartialEq` on `Tab`, `Pane`, `Layout`, `Split` and `TabGeometry`.
+- **`ship-core`** derives `PartialEq` on `Tab`, `Pane`, `Layout`, `Split` and `TabGeometry`, and gains `panes_mut` on `Tab` and `Layout` beside `panes`.
 
 Choices made here, inside what the architecture fixed:
 
-- **The change check compares `Tabs`.** `project` returns the projected tree, and the saver compares it with `==` against the tree it last wrote; serializing happens only in a write. Every field type already derives `PartialEq` except the five named above, so it costs one word on each derive line. `Ratio` is `PartialEq` without `Eq`, so none of them get `Eq`.
+- **The saved tree is its own type.** `Saved` wraps `Tabs`; only `load` and `project` make one, and `ServerState::new` and the saver take one, so a live tree can't be restored or written unprojected.
+- **The change check compares `Saved`.** `project` returns the projected tree, and the saver compares it with `==` against the tree it last wrote; serializing happens only in a write. Every field type already derives `PartialEq` except the five named above, so it costs one word on each derive line. `Ratio` is `PartialEq` without `Eq`, so none of them get `Eq`.
 - **The saver's state is a struct.** `Saver` holds the path, the last written projection and whether `.prev` has been kept this run, so `save` takes no flag and `run` takes `self`.
 - **Restored panes start at `Size::FALLBACK`**, like the starter pane. The first attach resizes them through `apply_sizes`, as it does for every pane today.
-- **Restore builds the tree, then the constructor sets it** (amended decision 2). `restore` starts every pane through `start_pane`, which records each runtime, and returns the finished tree; a pane that fails never gets a runtime, so tree and runtimes match without `retain_runtimes`. `new` stays infallible, since every restore problem is a warning.
+- **Restore builds the tree, then the constructor sets it** (amended decision 2). `restore` starts every pane through `start_pane`, which records each runtime, and returns the finished tree; a pane that fails never gets a runtime. `new` then calls `retain_runtimes`, which drops nothing here but publishes the restored handles to `live`, the same sync `commit` does. `new` stays infallible, since every restore problem is a warning.
 - **`start_pane` takes its ID.** `CreateTab` and `CreatePane` pass `Id::new()`, restore passes the saved one. No `Option` standing for "make one up".
 - **The saver task gets its own root span**, `saver`, like `pane_events`. `spawn_traced` is for short work inside the caller's span; long-lived tasks get a root span (`ship_core::spawn_traced`'s doc).
 - **The final flush runs inside the graceful-shutdown future**, right after `stop_actors`, so it's covered by the existing 5-second bound without a second timeout.
@@ -40,7 +41,7 @@ Estimated change: about 205 lines of implementation Rust, unmeasured. No test co
 
 | Area | Lines |
 | --- | --- |
-| `saver.rs`: load, check, project, `Saver` | about +125 |
+| `saver.rs`: `Saved`, load, project, `Saver` | about +125 |
 | `state.rs`: `new` with restore, `start_pane` ID | about +35 |
 | `lib.rs`: event subscription split, load, starter check, saver spawn and await | about +20 |
 | `main.rs`, `cli.rs`, `runlog.rs`: flag, help, directory | about +25 |
@@ -117,25 +118,31 @@ const RETRY: Duration = Duration::from_secs(5);
 
 // Slice 1
 
-/// The tabs to restore, else empty. Never fails startup. A missing file is a
-/// first run (info). An unreadable, unparsable or `check`-failing file is a
-/// warning naming the file and its `.prev` path, and is left in place (FR-013).
-#[traced]
-pub(crate) fn load(path: &Path) -> Tabs;
+/// A tree with its live fields blanked: what the file holds, and the only
+/// input `ServerState::new` restores from. Made only by `load` and `project`.
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub(crate) struct Saved(Tabs);
 
-/// What a hand-edited file can break and no command can (decision 9): a tab
-/// or pane ID used twice anywhere in the tree, a map key that isn't its tab's
-/// `id`, a zoom on a pane outside its tab. Sibling keys repeated in one JSON
-/// object never reach here (G3).
-fn check(tabs: &Tabs) -> Result<()>;
+impl Saved {
+    pub(crate) fn is_empty(&self) -> bool;
+    pub(crate) fn into_tabs(self) -> Tabs;
+}
+
+/// The tabs to restore, else empty. Never fails startup. A missing file is a
+/// first run (info). An unreadable or unparsable file is a warning naming the
+/// file and its `.prev` path, and is left in place (FR-013). A file that
+/// parses is trusted as written (decision 9).
+#[traced]
+pub(crate) fn load(path: &Path) -> Saved;
 
 /// The saved form of a published tree (decision 4): per pane `cwd` = `dir`
 /// else `cwd`; `dir`, `title` cleared; `command` empty; `status` running; per
-/// tab `geometry` cleared. Recursive over child tabs.
-pub(crate) fn project(tabs: &Tabs) -> Tabs;
+/// tab `geometry` cleared. Clones the tree and blanks it in place.
+pub(crate) fn project(tabs: &Tabs) -> Saved;
 
-fn project_tab(tab: &Tab) -> Tab;
-fn project_pane(pane: &Pane) -> Pane;
+/// The blanking, recursive over child tabs, through `Tab::panes_mut`.
+fn blank(tabs: &mut Tabs);
 
 /// `<port>.json.prev` beside `path`, the one kept copy (FR-009).
 fn prev(path: &Path) -> PathBuf;
@@ -147,13 +154,13 @@ pub(crate) struct Saver {
     path: PathBuf,
     /// The projection last written, else the restored one, so a server that
     /// changes nothing never writes (decision 5, FR-007).
-    written: Tabs,
+    written: Saved,
     /// Whether this run has copied the old file to `.prev` (FR-009).
     kept_prev: bool,
 }
 
 impl Saver {
-    pub(crate) fn new(path: PathBuf, baseline: Tabs) -> Self;
+    pub(crate) fn new(path: PathBuf, baseline: Saved) -> Self;
 
     /// On a replica whose projection differs from `written`, sets the deadline
     /// if unset (never pushed back, decision 5); on one that matches again,
@@ -167,7 +174,7 @@ impl Saver {
     /// `written` and `kept_prev` only on success. `no_err`, because `run` logs
     /// a failure as an error (decision 11) and `#[traced]` would also warn.
     #[traced(no_err)]
-    async fn save(&mut self, tabs: Tabs) -> Result<()>;
+    async fn save(&mut self, tabs: Saved) -> Result<()>;
 }
 
 /// A `tempfile` in `target`'s directory (mode 0600 on Unix, FR-003),
@@ -193,13 +200,13 @@ fn replace(target: &Path, bytes: &[u8]) -> Result<()>;
 +        bus: ActorRef<RelayBus>,
 +        live: watch::Sender<LivePanes>,
 +        pane_env: PaneEnv,
-+        saved: Tabs,
++        saved: Saved,
 +    ) -> Self
 
 +    /// `saved` with every pane started under its saved ID and directory.
-+    /// A `Validation` error from `start_pane` warns with the pane and
-+    /// directory and retries in home (FR-012). Any other failure warns and
-+    /// leaves the pane out with `layout::close`, putting the tab's zoom back
++    /// A saved directory `pane_cwd` rejects warns with the pane and
++    /// directory and starts in home (FR-012); the rule stays in `pane_cwd`.
++    /// Any `start_pane` failure warns and leaves the pane out with `layout::close`, putting the tab's zoom back
 +    /// if the zoomed pane is still there (FR-015).
 +    #[traced]
 +    fn restore(&mut self, saved: Tabs) -> Tabs
@@ -248,7 +255,7 @@ PaneInput {
 +        saver::load(&save)
 +    } else {
 +        tracing::info!("not restoring, --no-restore");
-+        Tabs::new()
++        saver::Saved::default()
 +    };
      let (live_tx, live) = watch::channel(pane::LivePanes::new());
 -    let state = state::ServerState::new(bus.clone(), live_tx, pane::PaneEnv::new(address, config)?);
@@ -396,10 +403,17 @@ None.
 
 ## Build order
 
-1. **Restore from a file.** Files: `saver.rs` (`load`, `check`, `project`, `prev`), `state.rs`, `lib.rs` (event split, load, starter check), `cli.rs`, `main.rs`, `runlog.rs`, and the `ship-core` derives (`model.rs`, `layout.rs`, `geometry.rs`). Delivers FR-004, FR-010 to FR-015, FR-016's restore half, FR-019, FR-020 and P4. No saving yet, so the file is written by hand: `ship tab list` output is a valid saved file, because load ignores the live fields. Checks, on a spare port: build a tree with nested tabs, a three-way split with custom ratios, a zoom, names and passthrough on one pane; `ship tab list > <state>/ship/tabs/<port>.json`; stop and start `ship server --port <port>`; `ship tab list` matches except command, title, status and geometry, and each pane's `cwd` is its old directory (SC-001 by hand). An open client reconnects to the same pane. A deleted directory starts in home and the log names the pane and directory. A pane whose shell can't start (a configured shell that doesn't exist) is left out with a warning, and its tab's zoom survives if the zoomed pane did. Garbage, a duplicated pane ID and a zoom on a foreign pane each start empty with a warning naming the file and `.prev`, and leave the file untouched. `--no-restore` starts empty. `--starter` adds a tab only when nothing was restored, including the empty-file and `--no-restore` cases. Bare `ship` opens on the first restored tab's first pane. `ship server --help` shows both help texts. Without a file, every existing workflow behaves as before.
+1. **Restore from a file.** Files: `saver.rs` (`Saved`, `load`, `project`, `prev`), `state.rs`, `lib.rs` (event split, load, starter check), `cli.rs`, `main.rs`, `runlog.rs`, and the `ship-core` derives (`model.rs`, `layout.rs`, `geometry.rs`). Delivers FR-004, FR-010 to FR-015, FR-016's restore half, FR-019, FR-020 and P4. No saving yet, so the file is written by hand: `ship tab list` output is a valid saved file, because load ignores the live fields. Checks, on a spare port: build a tree with nested tabs, a three-way split with custom ratios, a zoom, names and passthrough on one pane; `ship tab list > <state>/ship/tabs/<port>.json`; stop and start `ship server --port <port>`; `ship tab list` matches except command, title, status and geometry, and each pane's `cwd` is its old directory (SC-001 by hand). An open client reconnects to the same pane. A deleted directory starts in home and the log names the pane and directory. A pane whose shell can't start (a configured shell that doesn't exist) is left out with a warning, and its tab's zoom survives if the zoomed pane did. Garbage starts empty with a warning naming the file and `.prev`, and leaves the file untouched; a duplicated pane ID or a foreign zoom restores as written without crashing (decision 9, amended). `--no-restore` starts empty. `--starter` adds a tab only when nothing was restored, including the empty-file and `--no-restore` cases. Bare `ship` opens on the first restored tab's first pane. `ship server --help` shows both help texts. Without a file, every existing workflow behaves as before.
 2. **Save as things change.** Files: `saver.rs` (`Saver`, `replace`), `lib.rs` (spawn, await), `crates/ship-server/Cargo.toml`. Delivers FR-001 to FR-003, FR-005, FR-007 to FR-009, FR-016 and P2, P3's first two stories as far as they're observable before #16, and P5. Checks: a split, a rename, a passthrough toggle and a `cd` each reach the file within 5 seconds, and a stream of `cd`s every second still saves within 5 seconds. SIGKILL 5 seconds after a change restores it, 20 out of 20 (SC-002). Killing the server during saves in a loop of 200 or more iterations never leaves a file the next start rejects (SC-003). Start and stop with no change leaves the file's mtime alone (FR-007); a change then `ship server stop` within 5 seconds is saved. The first save of a run writes `.prev` with the old bytes, including a garbage file's, and later saves leave `.prev` alone. The file is `0600` and `tabs/` is `0700` (`stat`). `grep` finds no pane arguments in the file after running `sleep 1234` in a pane (SC-006). A read-only `tabs/` logs an error every 5 seconds and the server keeps working. Ten restarts through bare `ship` keep the top-level tab count (SC-007).
 3. **Docs, specs and size.** Files: `docs/guide.md` (saved tabs, `--no-restore`, `.prev` recovery, where warnings go), `README.md` "What works today", `GLOSSARY.md` "Saved tabs" (FR-018), the product brief's milestone 2 (FR-017), this change's spec deltas and `proposal.md`/`tasks.md`, and a `design.md` pointing at the three papers. When the PR opens, record the exit-window requirement on #16 (decision 12) and file issues for anything left open. Checks: `openspec validate session-restore`, every link resolves, the guide's commands run as written. Cyan's feel check for SC-005 with 10 tabs and 30 panes. Report implementation Rust and tests separately against today's count.
 
 ## Deviation log
 
-Empty.
+### Slice 1 checkpoint, 2026-10-16
+
+- The constructor publishes restored runtimes' handles to `live` before its first replica. `start_pane` records runtimes but does not publish handles; without this step, restored screens are unavailable until a later commit. A real client and `ship pane read` verified screen access after restore.
+- **Blocked, awaiting Cyan's approval:** the existing `pane::spawn` sets the configured shell through `CommandBuilder::new_default_prog` and `SHELL`. On Unix, portable-pty 0.9.0's `get_shell` checks executability and falls back to the password-database shell when the configured path is missing. The real nonexistent-shell probe therefore retained panes rather than omitting them. Meeting the planned behavior needs a change in `pane.rs`, outside the skeleton's file list.
+- The skeleton also assumes a `Validation` error from `start_pane` means a directory failure, but `pane::spawn` returns `Validation` for spawn failures too. Directory fallback must distinguish those failures before retrying in home. No broader spawn change has been made pending approval.
+- Bare-launch verification on default port 43179 was not run because existing user work there must remain untouched. Linux checks were not run on this macOS host.
+- Decision 9 amended at Cyan's direction: `check` is gone, and `load` trusts any file that parses. `Saved` wraps the loaded and projected tree, and `new` publishes restored handles through `retain_runtimes` instead of its own copy of that sync. Restore resolves a saved directory with `pane_cwd`, the same function `start_pane` uses, and passes home on rejection. That's how it tells a missing directory from a shell that won't start without adding a client-visible error code. This settles the second blocked bullet above.
+- At Cyan's request, `project`, `project_tabs`, `project_tab` and `project_pane` became `project` plus one in-place `blank`, using a new `panes_mut` on `Tab` and `Layout` in `ship-core`. A temporary probe projected a live `ship tab list` tree with nested tabs and split panes: `dir` moved to `cwd`, titles and every argv were cleared, and geometry was absent.

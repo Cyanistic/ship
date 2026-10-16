@@ -14,10 +14,10 @@ Use owned temporary servers on ports 43321 to 43327, with `XDG_STATE_HOME` point
 ## 1. Restore from a file
 
 - [ ] 1.1 Add loading and restore:
-  - `saver.rs` with `load`, `check`, `project`, `project_tab`, `project_pane` and `prev`.
+  - `saver.rs` with `Saved`, `load`, `project`, `blank` and `prev`.
   - `ServerState::new` takes the saved tabs and builds its tree through `restore` and `restore_tab`; `start_pane` takes the pane's ID, and `CreateTab` and `CreatePane` pass `Id::new()`.
-  - `PartialEq` on `Tab`, `Pane`, `Layout`, `Split` and `TabGeometry`.
-- [ ] 1.2 Wire startup:
+  - `PartialEq` on `Tab`, `Pane`, `Layout`, `Split` and `TabGeometry`, and `panes_mut` on `Tab` and `Layout`.
+- [x] 1.2 Wire startup:
   - `serve` takes `save` and `restore`, subscribes pane events before the constructor, loads unless `restore` is false, and creates the starter only when nothing was restored.
   - `--no-restore` and the new `--starter` help in `cli.rs`.
   - `runlog::state_dir` and `runlog::create_private_dir`, with `RunLog::start` using the latter; `main.rs` creates `tabs/` and passes `tabs/<port>.json`.
@@ -31,6 +31,14 @@ Use owned temporary servers on ports 43321 to 43327, with `XDG_STATE_HOME` point
   - `--no-restore` starts empty. `--starter` adds a tab only when nothing was restored, including the empty-file and `--no-restore` cases.
   - Bare `ship` opens on the first restored tab's first pane. `ship server --help` shows both help texts.
   - Without a file, existing workflows behave as before.
+
+### Slice 1 verification checkpoint
+
+Implementation paused on 2026-10-16 pending approval to extend the planned file list to `crates/ship-server/src/pane.rs`; see the program paper's deviation log. Task 1.1 remains unchecked because configured-shell failure behavior is not complete. Task 1.3 remains unchecked.
+
+Passed on macOS: formatting, workspace/all-target Clippy with warnings denied, debug and release builds, `ship-core` checks without default features and with `clap`, and strict OpenSpec validation. A temporary real-CLI/PTY probe verified nested tabs, three-way splits with custom ratios, names, zoom, passthrough, saved cwd rather than live `dir`, fresh shells rather than old commands, starter suppression, a full-screen client reconnecting to its selected pane after SIGKILL, restored screen access, missing-directory fallback with warnings, and failed-pane removal retaining a surviving zoom. Graceful shutdown closes the client as before; reconnect was exercised after SIGKILL. The configured nonexistent-shell check failed because the dependency falls back to the login shell. Remaining malformed-file/startup checks and bare-launch verification have not completed. Linux is unverified. No existing server, including port 43179, was changed; probe servers used port 43321 with temporary state.
+
+Probe: `/tmp/ship-restore-slice1.py`; latest output: `/tmp/ship-restore-slice1.out`. No permanent tests were added.
 
 ## 2. Save as things change
 

@@ -54,7 +54,7 @@ Not in this change (the product paper lists them all):
 ## Impact
 
 - `ship-server`:
-  - A new `saver` module loads, checks, projects and writes the saved tabs.
+  - A new `saver` module loads, projects and writes the saved tabs.
   - `ServerState::new` takes the saved tabs and starts restored panes, and `start_pane` takes the pane's ID.
   - `serve` takes the save path and a restore flag, subscribes pane events before building the state, skips the starter after a restore, and runs and awaits the saver.
   - `tempfile` becomes a dependency.
