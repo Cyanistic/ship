@@ -8,12 +8,13 @@ use std::{
     sync::Arc,
 };
 
-use ship_core::prelude::*;
+use ship_core::{LogChange, LogFilter, prelude::*};
 use tracing::Level;
 use tracing_subscriber::{
-    EnvFilter, Layer,
+    EnvFilter, Layer, Registry,
     fmt::{self, format::FmtSpan, time::ChronoLocal},
     prelude::*,
+    reload,
 };
 
 use crate::runlog::{self, RunLog};
@@ -27,7 +28,48 @@ pub enum Role {
     Command,
 }
 
-pub fn init(role: Role) -> Result<()> {
+pub struct Diagnostics {
+    log: Option<Arc<RunLog>>,
+    filter: reload::Handle<EnvFilter, Registry>,
+    startup: String,
+}
+
+impl Diagnostics {
+    pub fn server_log(
+        &self,
+    ) -> impl Fn(Option<LogChange>) -> Result<LogFilter> + Send + Sync + 'static {
+        let log = self.log.clone();
+        let filter = self.filter.clone();
+        let startup = self.startup.clone();
+        move |change| {
+            if let Some(change) = change {
+                let next = match change {
+                    LogChange::Set(value) => value,
+                    LogChange::Reset => startup.clone(),
+                };
+                let next = EnvFilter::try_new(next)
+                    .map_err(|error| err!(Validation, "invalid log filter", @external: error))?;
+                filter.reload(next).map_err(
+                    |error| err!(Internal, "cannot reload log filter", @external: error),
+                )?;
+            }
+            Ok(LogFilter {
+                active: filter
+                    .with_current(ToString::to_string)
+                    .map_err(|error| err!(Internal, "cannot read log filter", @external: error))?,
+                startup: startup.clone(),
+                file: log
+                    .as_ref()
+                    .ok_or_else(|| err!(Internal, "server has no run log"))?
+                    .path()
+                    .to_string_lossy()
+                    .into_owned(),
+            })
+        }
+    }
+}
+
+pub fn init(role: Role) -> Result<Diagnostics> {
     let filter = EnvFilter::try_new(startup_filter()?)
         .map_err(|error| err!(Configuration, "invalid RUST_LOG filter; expected comma-separated target=level directives (error, warn, info, debug, trace, off)", @external: error))?;
     let stderr = matches!(role, Role::Command | Role::Server { log_file: None, .. });
@@ -45,12 +87,15 @@ pub fn init(role: Role) -> Result<()> {
         )?),
         Role::Command => None,
     };
-    let file = log.map(|log| {
+    let startup = filter.to_string();
+    let (filter, handle) = reload::Layer::new(filter);
+    let log = log.map(Arc::new);
+    let file = log.clone().map(|log| {
         fmt::layer()
             .with_timer(ChronoLocal::rfc_3339())
             .with_span_events(FmtSpan::NEW)
             .with_ansi(false)
-            .with_writer(Arc::new(log))
+            .with_writer(log)
     });
     let terminal = stderr.then(|| {
         fmt::layer()
@@ -64,7 +109,11 @@ pub fn init(role: Role) -> Result<()> {
         .try_init()
         .map_err(|error| err!(Internal, "cannot initialize diagnostics", @external: error))?;
     panic_hook();
-    Ok(())
+    Ok(Diagnostics {
+        log,
+        filter: handle,
+        startup,
+    })
 }
 
 fn startup_filter() -> Result<String> {

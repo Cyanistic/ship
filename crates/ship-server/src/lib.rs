@@ -34,6 +34,7 @@ use kameo::{
 };
 pub use settings::ServerSettings;
 use ship_core::{
+    LogChange, LogFilter,
     geometry::{PaneGeometry, TabGeometry},
     model::OptionalName,
     prelude::*,
@@ -56,6 +57,9 @@ use tower_http::{
 use tracing::Instrument;
 use utoipa::{OpenApi, openapi::OpenApi as OpenApiDoc};
 use utoipa_axum::{router::OpenApiRouter, routes};
+
+/// The runner's control over its log filter and current file.
+pub type ServerLog = Arc<dyn Fn(Option<LogChange>) -> Result<LogFilter> + Send + Sync>;
 
 pub fn loopback_addr(port: u16) -> Result<SocketAddr> {
     if port == 0 {
@@ -107,6 +111,8 @@ fn api_router() -> OpenApiRouter<AppState> {
         views::get_view,
         views::select,
         routes::stop_server,
+        routes::get_server_log,
+        routes::set_server_log,
     )
 }
 
@@ -144,6 +150,7 @@ pub async fn serve(
     starter: bool,
     config: PathBuf,
     shutdown: impl Future<Output = Result<()>> + Send + 'static,
+    log: impl Fn(Option<LogChange>) -> Result<LogFilter> + Send + Sync + 'static,
 ) -> Result<()> {
     if !address.ip().is_loopback() || address.port() == 0 {
         return Err(err!(
@@ -200,6 +207,7 @@ pub async fn serve(
         live,
         stop: stop.clone(),
         revision,
+        log: Arc::new(log),
     };
     let serving = axum::serve(listener, router(app))
         .with_graceful_shutdown(async move {

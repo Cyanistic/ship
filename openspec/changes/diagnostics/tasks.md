@@ -16,7 +16,7 @@ Each slice documents its own user-visible behavior in `docs/guide.md`, in one se
 ## 1. Run files and levels
 
 - [x] 1.1 Add `runlog.rs` and the launcher's part 1:
-  - `RunLog` with start-time names, 50 MB parts, `current.log`, 200 MB retention per directory, and the `#[cfg(unix)]` module for modes and the link.
+  - `RunLog` with start-time names, 5 MiB parts, `current.log`, 200 MB retention per directory, and the `#[cfg(unix)]` module for modes and the link.
   - `local.rs` opens part 1 with `RunLog::start`, hands it to the child as stdout and stderr, and passes its path with the hidden `--log-file`. `tempfile` leaves the manifest.
 
   Verify with `XDG_STATE_HOME` set to a temporary directory and bare `ship` on a bench port:
@@ -70,7 +70,7 @@ Verified on macOS with debug and release binaries, isolated state directories an
 
 ## 3. Live level change
 
-- [ ] 3.1 Add the protocol and server side:
+- [x] 3.1 Add the protocol and server side:
   - `ship-core`: protocol 13, `LogChange`, `LogFilter`, `HealthResponse.log`.
   - `ship-server`: the `ServerLog` alias, `serve`'s closure parameter, `AppState.log`, `health` reading the file, and the `get_server_log` and `set_server_log` routes, 422 on an invalid filter.
   - `ship`: `Diagnostics::server_log`, passed to `serve` in `dispatch`.
@@ -80,12 +80,23 @@ Verified on macOS with debug and release binaries, isolated state directories an
   - A `PUT` with `{"set": "ship=["}` answers 422 and a following `GET` shows the filter unchanged.
   - `ship server status` reports protocol 13 and the current part in `log`, also after a rollover with the slice 1 probe.
   - The OpenAPI document lists both routes.
-- [ ] 3.2 Add `ship server log` to the CLI, `commands.rs` and the API client. Verify:
+- [x] 3.2 Add `ship server log` to the CLI, `commands.rs` and the API client. Verify:
   - `ship server log` prints the filter as one JSON line and starts no server when none is running.
   - `ship server log debug` makes debug lines appear within a second while a pane keeps printing, unaffected (SC-003).
   - `--reset` brings `active` back to `startup`. `--filter 'ship=['` fails and `ship server log` shows nothing changed.
   - `ship server log debug --reset` exits 2.
   - The guide documents `ship server log` and its options.
+
+### Slice 3 evidence
+
+Verified on macOS with isolated state directories and owned servers on ports 43311 and 43312. Existing work on 43179 was not touched. All owned probe servers were stopped.
+
+- `python3 /tmp/ship-diagnostics-slice3.py target/debug/ship` and the release equivalent passed. Real CLI and HTTP requests verified protocol 13, current-part paths in status and filter responses, one-line JSON, all five level mappings, custom filters, CLI and HTTP reset, HTTP 422 with the parse error for invalid filters, and unchanged active/startup filters after rejection. Conflicting options and invalid levels exited 2. Querying a stopped server failed without starting one or creating logs.
+- Debug output appeared within one second of the CLI level change while the same pane kept printing. Its pane ID and running server remained unchanged, and later screen reads showed advancing output.
+- With Cyan's explicit authorization, `PART_BYTES` was temporarily reduced to 2048 and a debug probe copied to `/tmp/ship-diagnostics-slice3-rollover`. The exercise produced numbered parts through `.21.log`; after rollover, health, the filter response and `current.log` identified the same current part. Logging was lowered before the final comparison to avoid rotating between observations. Probe assertions were corrected to compare active/startup independently of the moving file and to resolve both sides of macOS's `/var` versus `/private/var` alias. The production 50 MiB limit was restored; `git diff --exit-code -- crates/ship/src/runlog.rs` passed.
+- A temporary Rust consumer called `ship_server::openapi()` and wrote `/tmp/ship-diagnostics-slice3-openapi.json`. It verified GET/PUT operation IDs, the 422 response, LogChange/LogFilter/HealthResponse schemas, and required log/filter fields in the generated document. No repository example or permanent test was added.
+- After restoration, formatting, workspace/all-target Clippy with warnings denied, debug/release builds, core checks without default features and with clap, strict OpenSpec validation and whitespace checks passed. Both normal-limit slice-3 workflows were rerun successfully. The slice-2 debug PTY exercise also passed, including typing/paste, span names and the payload boundary.
+- No coding subagents or permanent authored tests were used. Linux and Windows remain unverified. Slice 4 was not started.
 
 ## 4. Timelines
 

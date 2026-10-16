@@ -29,10 +29,10 @@ Each port's directory SHALL hold `current.log`, a link to the file the running s
 - **THEN** `logs/43179/current.log` resolves to that run's file, and `tail -f` on it shows the server's lines
 
 ### Requirement: Parts and retention
-When a run's file reaches 50 MB, the run SHALL continue in a numbered next part, such as `2026-10-15T18-40-07.2.log`, without splitting a line. At start and at each new part, the oldest files in that directory SHALL be deleted until it totals at most 200 MB. The part being written SHALL never be deleted.
+When a run's file reaches 5 MiB, the run SHALL continue in a numbered next part, such as `2026-10-15T18-40-07.2.log`, without splitting a line. At start and at each new part, the oldest files in that directory SHALL be deleted until it totals at most 200 MB. The part being written SHALL never be deleted.
 
 #### Scenario: Rollover
-- **WHEN** a run's file passes 50 MB
+- **WHEN** a run's file passes 5 MiB
 - **THEN** later lines go to `<start>.2.log` and `current.log` follows it
 
 #### Scenario: Long debug run

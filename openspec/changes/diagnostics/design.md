@@ -23,7 +23,7 @@ A background server's log goes to a random temp file, the client logs to stderr 
 ## Decisions
 
 - **The runner owns the subscriber** (architecture decision 1). The `ship` binary sets up logging for every role; library crates only emit. `serve` takes one closure that shows, sets and resets the filter, used by the `/api/v0/server/log` route and `/health`.
-- **A Ship-owned `RunLog`, written synchronously** (decision 2), so lines survive SIGKILL and aborting panics. It owns start-time names, 50 MB parts, `current.log` and 200 MB retention per directory.
+- **A Ship-owned `RunLog`, written synchronously** (decision 2), so lines survive SIGKILL and aborting panics. It owns start-time names, 5 MiB parts, `current.log` and 200 MB retention per directory.
 - **The launcher opens part 1** (decision 3), so output from before setup lands in the run's file. The temp file is gone.
 - **`SHIP_LOG` sets Ship's crates and actor detail together; `RUST_LOG` replaces it** (decision 7).
 - **`#[traced]` wraps `tracing::instrument`** with debug, `skip_all` and error logging by default (decision 8). Actor messages get short names from `#[named]` (decision 10).

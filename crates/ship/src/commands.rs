@@ -8,7 +8,10 @@ use serde::Serialize;
 use ship_client::{Client, Outcome, Scope, keymap::ClientSettings};
 use ship_core::{command::Command, prelude::*, protocol::SelectView};
 
-use crate::cli::ViewCommand;
+use crate::{
+    cli::{LogArgs, ViewCommand},
+    diagnostics,
+};
 use ship_server::ServerSettings;
 
 use tokio::time::{Instant, sleep};
@@ -72,6 +75,22 @@ pub async fn stop_server(client: &Client) -> Result<()> {
             _ => sleep(Duration::from_millis(50)).await,
         }
     }
+}
+
+/// Show or change the live filter, printing one JSON line.
+pub async fn server_log(client: &Client, args: LogArgs) -> Result<()> {
+    use ship_core::LogChange;
+
+    let change = if let Some(level) = args.level {
+        Some(LogChange::Set(diagnostics::level_filter(level)))
+    } else if let Some(filter) = args.filter {
+        Some(LogChange::Set(filter))
+    } else if args.reset {
+        Some(LogChange::Reset)
+    } else {
+        None
+    };
+    print(&client.server_log(change.as_ref()).await?)
 }
 
 pub(crate) fn print(value: &impl Serialize) -> Result<()> {

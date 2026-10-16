@@ -308,7 +308,7 @@ Background startup failures name their run file. Foreground servers write the sa
 
 A full-screen client writes `logs/client/<start-time>-<pid>.log` under the same state directory, with `current.log` pointing at the newest client's file. It does not log to stderr while drawing. One-shot commands use stderr and create no log file.
 
-Files continue in numbered parts (`<start-time>.2.log`, and so on) at 50 MiB, without splitting a log event. `current.log` follows each new part. At startup and rollover, Ship removes the oldest log files to keep each port's directory, and the client directory separately, at about 200 MiB. The current part is never removed. Files are owner-only (0600), and newly created log directories are owner-only (0700) on Linux and macOS. Where symbolic links are unavailable, open the run file directly. Raw process output from a background server stays in its first part after rollover; logged panics go to the current part.
+Files continue in numbered parts (`<start-time>.2.log`, and so on) at 5 MiB, without splitting a log event. `current.log` follows each new part. At startup and rollover, Ship removes the oldest log files to keep each port's directory, and the client directory separately, at about 200 MiB. The current part is never removed. Files are owner-only (0600), and newly created log directories are owner-only (0700) on Linux and macOS. Where symbolic links are unavailable, open the run file directly. Raw process output from a background server stays in its first part after rollover; logged panics go to the current part.
 
 By default, Ship logs at `info` and dependencies at `warn`. Set `SHIP_LOG` to `error`, `warn`, `info`, `debug` or `trace` before starting a process:
 
@@ -320,6 +320,18 @@ SHIP_LOG=debug ship
 At `debug` and `trace`, this also enables actor message spans. A background server inherits the launching command's environment. Changing that environment does not change an already-running server's level. An invalid level fails startup.
 
 `RUST_LOG` replaces the whole filter, including `SHIP_LOG`. For example, `RUST_LOG=warn,ship=debug,ratatui_ghostty=debug,kameo=info` sets Ship and its terminal widget to debug and enables actor spans. Invalid filter syntax fails startup.
+
+To inspect or change a running server without restarting it:
+
+```sh
+ship server status                  # Health JSON, including the current log part
+ship server log                     # Active/startup filters and current file as JSON
+ship server log debug               # Same level mapping as SHIP_LOG=debug
+ship server log --filter 'warn,ship=trace'
+ship server log --reset              # Restore the startup filter
+```
+
+Each log command prints one JSON line with `active`, `startup` and `file`. Use only one of a level, `--filter` or `--reset`. Invalid changes fail and leave the filter unchanged. Changes take effect immediately without affecting panes and last until reset or server exit. Neither `server log` nor `server status` starts a missing server. Use `--server-url` or `SHIP_SERVER_URL` to select another server.
 
 At debug detail, a warning inside an operation shows the nested operations it came from. For example, a failed pane launch has a chain like:
 
@@ -336,5 +348,7 @@ Ship does not automatically record terminal contents, typed or pasted input, cli
 If an older config uses `hint` on a key binding, rename it to `label`. `hint` is no longer accepted. The label still appears after the chord in the status line.
 
 The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship pane rename` and their bindings with `set`. Use `--name ""` to clear a name; omitting `name` leaves it unchanged.
+
+Diagnostics moves protocol 12 to 13, adds live log-filter control and includes the current log part in health/status.
 
 Update the client and server together. `ship` checks the server's protocol version and refuses to talk to one that doesn't match, so after rebuilding, run `ship server stop` and start again. Stopping the server ends every program in it, so finish or save running work first.

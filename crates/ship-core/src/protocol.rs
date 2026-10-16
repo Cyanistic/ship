@@ -20,7 +20,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 12;
+pub const PROTOCOL_VERSION: u32 = 13;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -37,6 +37,25 @@ pub struct HealthResponse {
     pub service: String,
     pub protocol_version: u32,
     pub version: String,
+    /// The log part the server is writing.
+    pub log: String,
+}
+
+/// PUT /api/v0/server/log: {"set": "<filter>"} or "reset".
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum LogChange {
+    Set(String),
+    Reset,
+}
+
+/// The running server's filters and current log part.
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LogFilter {
+    pub active: String,
+    pub startup: String,
+    pub file: String,
 }
 
 /// POST /tabs body, e.g. `{"at": {"after": "tab:…"}, "starter": "shell"}`.

@@ -97,7 +97,7 @@ flowchart TB
 
 | Box | Owns |
 | --- | --- |
-| `diagnostics` | Building the subscriber per role. The `SHIP_LOG` to filter mapping and `RUST_LOG` override. The reloadable filter and the closure over it. `RunLog`: 0600 files and directories, start-time names, `.2.log` parts at 50 MB, `current.log`, 200 MB retention per directory. The timeline layer and its flush at clean exit. The panic hook. |
+| `diagnostics` | Building the subscriber per role. The `SHIP_LOG` to filter mapping and `RUST_LOG` override. The reloadable filter and the closure over it. `RunLog`: 0600 files and directories, start-time names, `.2.log` parts at 5 MiB, `current.log`, 200 MB retention per directory. The timeline layer and its flush at clean exit. The panic hook. |
 | `local` | Opening the background server's run file through `RunLog` before launch, pointing the child's stdout and stderr at it, passing its path, and naming it when the launch fails. No temp file. |
 | `cli` | `ship server log [level \| --filter F \| --reset]`, turning a level into a filter string with the same mapping as `SHIP_LOG`. `ship server status` printing the log path. |
 | ship-server routes | `/api/v0/server/log` showing or applying a change through the closure. `/health` filling in the log path from it. Nothing else about logging. |

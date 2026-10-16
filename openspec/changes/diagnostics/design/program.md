@@ -69,7 +69,7 @@ ship-macros.workspace = true # slice 2
 tokio = { version = "1", features = ["rt"] }   # slice 2, for spawn_traced; kameo enables tokio/sync
 ```
 
-The fixed values live as constants in `runlog.rs` and `diagnostics.rs`: 50 MB per part, 200 MB per directory, and the timeline filter `warn,ship=debug,ratatui_ghostty=debug,kameo=info`. None of them are settings (product non-goal).
+The fixed values live as constants in `runlog.rs` and `diagnostics.rs`: 5 MiB per part, 200 MB per directory, and the timeline filter `warn,ship=debug,ratatui_ghostty=debug,kameo=info`. None of them are settings (product non-goal).
 
 `PROTOCOL_VERSION` goes from 12 to 13 in slice 3.
 
@@ -85,7 +85,7 @@ The fixed values live as constants in `runlog.rs` and `diagnostics.rs`: 50 MB pe
 use std::{fs::File, io, path::{Path, PathBuf}, sync::Mutex};
 use ship_core::prelude::*;
 
-const PART_BYTES: u64 = 50 * 1024 * 1024;     // FR-003
+const PART_BYTES: u64 = 5 * 1024 * 1024;     // FR-003
 const DIR_BYTES: u64 = 200 * 1024 * 1024;     // FR-004
 const CURRENT: &str = "current.log";
 
@@ -422,6 +422,10 @@ None.
    - Linux reported unverified.
 
 ## Deviation log
+
+### Approved retention adjustment after slice 3
+
+Cyan approved reducing the part limit from 50 MiB to 5 MiB after slice 3. The 200 MiB per-directory retention budget is unchanged. Runs still use one timestamp with numbered parts; smaller parts allow finer-grained pruning. Historical slice evidence below records the limits used at the time.
 
 ### Slice 1: run files and levels
 

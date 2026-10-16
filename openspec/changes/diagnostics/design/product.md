@@ -71,7 +71,7 @@ Tested independently: record a short session, open both files in Perfetto, and f
 
 - FR-001: A server SHALL write its log under `$XDG_STATE_HOME/ship/logs/<port>/`, defaulting to `~/.local/state/ship/logs/<port>/`, on Linux and macOS, starting a new file each run named for its start time in local time, such as `logs/43179/2026-10-15T18-40-07.log`. A run SHALL never append to an earlier run's file. A Windows fallback location is best effort.
 - FR-002: Each port's directory SHALL hold `current.log`, a link to the running server's file and not a log of its own, moved at each start. Where links can't be created, it SHALL be skipped.
-- FR-003: When a run's file reaches 50 MB, the run SHALL continue in a numbered next part, such as `2026-10-15T18-40-07.2.log`, and `current.log` SHALL follow.
+- FR-003: When a run's file reaches 5 MiB, the run SHALL continue in a numbered next part, such as `2026-10-15T18-40-07.2.log`, and `current.log` SHALL follow.
 - FR-004: At start and at each new part, the oldest files in that port's directory SHALL be deleted until it totals at most 200 MB. The current part SHALL never be deleted.
 - FR-005: Both a background server and a foreground `ship server` SHALL write the file. A foreground server SHALL also print to its terminal.
 - FR-006: A client drawing the screen SHALL write its own file in `logs/client/`, named for its start time and process ID, such as `2026-10-15T18-40-09-48812.log`, under the same rules, with `current.log` pointing at the newest client's file and the directory's own 200 MB budget. It SHALL NOT log to stderr while drawing. One-shot CLI commands SHALL log to stderr.

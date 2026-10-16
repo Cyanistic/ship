@@ -37,12 +37,12 @@ fn run(cli: Cli, source: Option<ValueSource>) -> Result<()> {
     ) {
         detach()?;
     }
-    diagnostics::init(role(&cli))?;
+    let diagnostics = diagnostics::init(role(&cli))?;
     let runtime = Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(|error| err!(Internal, "cannot create runtime", @external: error))?;
-    runtime.block_on(dispatch(cli, source))
+    runtime.block_on(dispatch(cli, source, &diagnostics))
 }
 
 fn role(cli: &Cli) -> diagnostics::Role {
@@ -83,7 +83,11 @@ async fn health(client: &Client) -> Result<HealthResponse> {
 /// `--server-url` or `SHIP_SERVER_URL` makes the target explicit for client
 /// commands. `ship server` refuses only the flag, so an exported variable
 /// doesn't stop a terminal from running a server.
-async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
+async fn dispatch(
+    mut cli: Cli,
+    source: Option<ValueSource>,
+    diagnostics: &diagnostics::Diagnostics,
+) -> Result<()> {
     let explicit_target = matches!(
         source,
         Some(ValueSource::CommandLine | ValueSource::EnvVariable)
@@ -102,6 +106,14 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
             command: Some(cli::ServerCommand::Status),
             ..
         })) => commands::print(&health(&client(&cli.server_url)?).await?),
+        Some(Command::Server(cli::ServerArgs {
+            command: Some(cli::ServerCommand::Log(args)),
+            ..
+        })) => {
+            let client = client(&cli.server_url)?;
+            health(&client).await?;
+            commands::server_log(&client, args).await
+        }
         Some(Command::Server(_)) if source == Some(ValueSource::CommandLine) => Err(err!(
             Configuration,
             "--server-url selects a server for clients; ship server does not take it"
@@ -112,6 +124,7 @@ async fn dispatch(mut cli: Cli, source: Option<ValueSource>) -> Result<()> {
                 args.starter,
                 cli.config_path()?,
                 diagnostics::shutdown()?,
+                diagnostics.server_log(),
             )
             .await
         }

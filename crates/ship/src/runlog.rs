@@ -12,7 +12,7 @@ use etcetera::BaseStrategy;
 use etcetera::base_strategy::Xdg;
 use ship_core::prelude::*;
 
-const PART_BYTES: u64 = 50 * 1024 * 1024;
+const PART_BYTES: u64 = 5 * 1024 * 1024;
 const DIR_BYTES: u64 = 200 * 1024 * 1024;
 const CURRENT: &str = "current.log";
 

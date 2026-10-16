@@ -10,7 +10,7 @@ A background server logs to a random temp file nobody sees, the client logs to s
 
 - **Run files.** A server writes its log under `~/.local/state/ship/logs/<port>/`, or `$XDG_STATE_HOME/ship/logs/<port>/`, one file per run named for its start time, such as `2026-10-15T18-40-07.log`.
   - `current.log` in the same directory links to the running server's file.
-  - A run continues in a numbered part, such as `2026-10-15T18-40-07.2.log`, after 50 MB.
+  - A run continues in a numbered part, such as `2026-10-15T18-40-07.2.log`, after 5 MiB.
   - Each directory is pruned, oldest first, to about 200 MB, never deleting the current part.
   - Files are 0600 and directories 0700.
 - **Launch output.** The launcher opens the run's first part, so anything printed before logging starts, and any panic, lands in that run's file. A failed launch names the file. The random temp file is gone.

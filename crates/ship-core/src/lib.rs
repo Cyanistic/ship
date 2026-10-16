@@ -34,5 +34,6 @@ where
 
 pub mod protocol;
 pub use protocol::{
-    DEFAULT_PORT, DEFAULT_SERVER_URL, HEALTH_PATH, HealthResponse, PROTOCOL_VERSION,
+    DEFAULT_PORT, DEFAULT_SERVER_URL, HEALTH_PATH, HealthResponse, LogChange, LogFilter,
+    PROTOCOL_VERSION,
 };

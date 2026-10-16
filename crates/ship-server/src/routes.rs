@@ -14,6 +14,37 @@ type App = State<AppState>;
 
 #[utoipa::path(
     get,
+    path = "/api/v0/server/log",
+    operation_id = "get_server_log",
+    responses((status = 200, body = LogFilter), (status = 500, body = AppError)),
+)]
+pub(crate) async fn get_server_log(State(app): App) -> Result<Json<LogFilter>> {
+    Ok(Json((app.log)(None)?))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v0/server/log",
+    operation_id = "set_server_log",
+    request_body = LogChange,
+    responses(
+        (status = 200, body = LogFilter),
+        (status = 422, description = "Invalid filter", body = AppError),
+        (status = 500, body = AppError),
+    ),
+)]
+pub(crate) async fn set_server_log(State(app): App, Json(change): Json<LogChange>) -> Response {
+    match (app.log)(Some(change)) {
+        Ok(filter) => Json(filter).into_response(),
+        Err(error) if *error.code() == ship_core::ErrorCode::Validation => {
+            (StatusCode::UNPROCESSABLE_ENTITY, Json(error)).into_response()
+        }
+        Err(error) => error.into_response(),
+    }
+}
+
+#[utoipa::path(
+    get,
     path = "/api/v0/tabs",
     operation_id = "list_tabs",
     responses(
