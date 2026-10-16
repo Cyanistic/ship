@@ -66,7 +66,7 @@ Probe: `/tmp/ship-restore-slice1.py`; latest output: `/tmp/ship-restore-slice1.o
   - `openspec validate session-restore --type change --strict`, every link resolves, and the guide's commands run as written.
   - Cyan's feel check of bare `ship` with 10 tabs and 30 panes against a single starter tab (SC-005).
   - Implementation Rust and test lines reported separately against the count before this change.
-- [ ] 3.3 When the PR opens, record the 60-second exit-window requirement on #16 (architecture decision 12), and file issues for anything left open.
+- [x] 3.3 When the PR opens, record the 60-second exit-window requirement on #16 (architecture decision 12), and file issues for anything left open.
 
 ### Slice 3 checkpoint
 
@@ -85,6 +85,10 @@ Probe: `/tmp/ship-restore-slice3-guide.py`. State and logs: `/var/folders/n8/y68
 Cyan reported, "i tested it and it works! the session restore actually works!" This confirms a manual restore workflow. The report did not specify ten default-server restarts, the 10-tab/30-pane feel comparison or its platform, so it does not complete those checks. Tasks 1.3, 2.3 and 3.2 remain unchecked for that narrower outstanding evidence.
 
 Synced the deltas into the main `session-restore`, `health-exchange` and `session-structure` specs before opening the PR. The structure delta also removes the obsolete "held in memory only" sentence, without changing the other tree rules. The change remains active; syncing is not archiving. Main-spec validation passes with long-requirement warnings on existing capabilities.
+
+### PR follow-up, 2026-10-16
+
+Opened [PR #31](https://github.com/Cyanistic/ship/pull/31) after syncing and validating the main specs. Recorded the 60-second exit-only save window and its acceptance checks on [#16](https://github.com/Cyanistic/ship/issues/16#issuecomment-6224983818). Filed [#32](https://github.com/Cyanistic/ship/issues/32) for the exact bare-launch checks, 10-tab/30-pane subjective startup comparison and Linux coverage. These follow-ups complete task 3.3, not the outstanding verification itself. Progress is 6/9 complete; tasks 1.3, 2.3 and 3.2 remain unchecked. The change remains active and unarchived.
 
 ### Automated verification follow-up, 2026-10-16
 
