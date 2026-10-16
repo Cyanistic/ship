@@ -11,7 +11,7 @@ use crate::{
     tree::Tabs,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Tab {
     pub id: IdOf<Tab>,
@@ -29,7 +29,7 @@ pub struct Tab {
 }
 
 /// A leaf running one program in its own terminal. Owns no layout or children.
-#[derive(Clone, Debug, Serialize, Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Pane {
     pub id: IdOf<Pane>,
@@ -83,6 +83,10 @@ pub(crate) fn tabs_schema() -> Object {
 impl Tab {
     pub fn panes(&self) -> impl Iterator<Item = &Pane> {
         self.layout.iter().flat_map(Layout::panes)
+    }
+
+    pub fn panes_mut(&mut self) -> impl Iterator<Item = &mut Pane> {
+        self.layout.iter_mut().flat_map(Layout::panes_mut)
     }
 
     pub fn pane(&self, id: IdOf<Pane>) -> Option<&Pane> {

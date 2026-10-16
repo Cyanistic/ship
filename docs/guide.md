@@ -3,6 +3,7 @@
 How Ship behaves once you're past the [README](../README.md). Every example assumes `ship` is on your `PATH` and `jq` is installed. Run `ship --help`, or `--help` on any subcommand, for the full list of options.
 
 - [The server and clients](#the-server-and-clients)
+- [Saved tabs](#saved-tabs)
 - [Reading and steering a client](#reading-and-steering-a-client)
 - [Tabs](#tabs)
 - [Panes and splits](#panes-and-splits)
@@ -16,7 +17,7 @@ How Ship behaves once you're past the [README](../README.md). Every example assu
 
 Ship is split in two. The server owns your tabs, panes and the programs running in them. A client is the full-screen view you get from running `ship`. Closing a client doesn't touch the server, so your programs keep running.
 
-Bare `ship`, and any `tab` or `pane` command, reuses the local server or starts one in the background. A server started this way begins with one tab holding a shell in your home directory. `ship server status` prints the server's health as JSON, and `ship server stop` stops it, ending every program inside. Neither one ever starts a server.
+Bare `ship`, and any `tab` or `pane` command, reuses the local server or starts one in the background. A new server restores its saved tabs; if there are none, it creates one tab holding a shell in your home directory. When bare `ship` launches the server, its client opens on the first tab's first pane. Attaching to an already-running server starts with nothing selected. `ship server status` prints the server's health as JSON, and `ship server stop` stops it, ending every program inside. Neither one ever starts a server.
 
 You can attach several clients at once, from different terminals. They share the work itself: tabs, panes, what each program prints, zoom, and each pane's scroll position. The server holds a separate selection for each attached client. Sidebar folds, whether the sidebar is shown, and which pane a client last used in each tab stay local to that client. If a client loses its connection, it reconnects on its own.
 
@@ -25,6 +26,54 @@ Keys, pastes, actions and clicks run in input order. On a slow link, typing righ
 Typing with a tab selected reaches its zoomed pane, otherwise the pane you last selected there, otherwise its first pane. The tab itself stays selected. Resizing the terminal does not overwrite a selection set by a script.
 
 Panes are sized for the smallest client viewing the tab. A larger client draws the same layout in its top-left corner and dots the leftover space.
+
+## Saved tabs
+
+After a server restart or reboot, Ship rebuilds the saved tabs with fresh shells in each pane's last directory. Tab order and nesting, tab and pane IDs and names, splits and their proportions, zoom, and right-click passthrough come back. Programs and their arguments, titles, exit status, screens and scrollback do not. A pane that was running an editor or agent returns to a shell, not that program or its conversation. Client-local folds, modes and sidebar settings are not restored.
+
+Ship starts a save five seconds after the first unsaved change. Later changes, including repeated directory changes, do not push that timer back. Writing takes additional time; a crash can lose changes that have not reached disk yet. `ship server stop`, SIGTERM and SIGINT flush pending changes without waiting for that timer. Live-only changes, such as a title or exit status, do not trigger saves, and restoring and stopping without a saved change leaves the file alone.
+
+Each port has its own file under `$XDG_STATE_HOME/ship/tabs/`, defaulting to `~/.local/state/ship/tabs/` on Linux and macOS. For the default server it is `43179.json`. The file is readable only by its owner (0600), in an owner-only directory (0700). Saves replace it atomically. On a run's first save, Ship also keeps the old file as `<port>.json.prev`; later saves in that run leave the copy alone. A failed save is logged and retried five seconds later.
+
+### Starting fresh
+
+`ship server --no-restore` skips loading the saved file. Without `--starter`, it starts empty. Adding `--starter` creates a shell tab only when nothing was restored, and that new tab counts as an unsaved change. The first save replaces the saved tabs and keeps the earlier file as `.prev`. Starting empty and making no changes leaves the saved file untouched. Automatically launched background servers always restore.
+
+For example, use a separate port to avoid your default server. Run this in one terminal, then use a second terminal for commands against it:
+
+```sh
+ship server --port 43326 --starter
+```
+
+```sh
+ship --server-url http://127.0.0.1:43326 tab list
+ship --server-url http://127.0.0.1:43326 server stop
+```
+
+To start that port empty instead, run:
+
+```sh
+ship server --port 43326 --no-restore
+```
+
+### Recovering the previous file
+
+Ship never restores `.prev` automatically. Stop the server before copying it back, then restart without `--no-restore`. For the example port above:
+
+```sh
+ship --server-url http://127.0.0.1:43326 server stop
+SAVED="${XDG_STATE_HOME:-$HOME/.local/state}/ship/tabs/43326.json"
+cp "$SAVED.prev" "$SAVED"
+ship server --port 43326
+```
+
+Replace the port in both the commands and the file path for another server. The next run's first save replaces `.prev` again, so copy it elsewhere first if you need to keep it longer.
+
+### Restore problems
+
+A missing directory falls back to your home directory. A shell that cannot start leaves its pane out. An unreadable file or invalid JSON starts with no restored tabs, without deleting the file; the first later save keeps its bytes in `.prev` if they can be read. A file that parses is trusted, so take care when editing it by hand.
+
+Warnings name the affected pane or file in the [server log](#logs-and-levels), including the `.prev` path for a bad file. They do not appear in the client or `ship server status`. For the default port, read `~/.local/state/ship/logs/43179/current.log`, or the equivalent under `$XDG_STATE_HOME`.
 
 ## Reading and steering a client
 
@@ -97,7 +146,7 @@ ship pane create --tab "$TAB" --right-click-passthrough -- sh
 ship tab close --tab "$TAB"
 ```
 
-`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and resets with the server. When it is on and the program has asked for mouse input, right-clicks on the pane's contents reach the program without opening a menu or changing selection. The following drag and release stay with that program, even outside the pane. Labels and borders still open the menu, as do contents when the program isn't tracking the mouse, such as a shell prompt. The pane menu can toggle the setting for every client. `--right-click-passthrough` on pane create starts it on.
+`right_click_passthrough` is a shared pane attribute accepting `true`, `false` or `toggle`. It defaults to off, including on a tab's starter pane, and survives a server restart with the saved tabs. When it is on and the program has asked for mouse input, right-clicks on the pane's contents reach the program without opening a menu or changing selection. The following drag and release stay with that program, even outside the pane. Labels and borders still open the menu, as do contents when the program isn't tracking the mouse, such as a shell prompt. The pane menu can toggle the setting for every client. `--right-click-passthrough` on pane create starts it on.
 
 Bindings use the same fields under `server.tab.set` and `server.pane.set`:
 ```toml

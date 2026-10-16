@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 
 use crate::{id::IdOf, model::Pane, prelude::*};
 
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Layout {
     Pane(Pane),
@@ -15,7 +15,7 @@ pub enum Layout {
 }
 
 /// First is left or above second, and receives `ratio` of the split area.
-#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Split {
     pub axis: Axis,
@@ -70,6 +70,13 @@ impl Layout {
         match self {
             Self::Pane(pane) => Box::new(iter::once(pane)),
             Self::Split(split) => Box::new(split.first.panes().chain(split.second.panes())),
+        }
+    }
+
+    pub fn panes_mut(&mut self) -> Box<dyn Iterator<Item = &mut Pane> + '_> {
+        match self {
+            Self::Pane(pane) => Box::new(iter::once(pane)),
+            Self::Split(split) => Box::new(split.first.panes_mut().chain(split.second.panes_mut())),
         }
     }
 

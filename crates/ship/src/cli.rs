@@ -105,9 +105,14 @@ pub struct ServerArgs {
     pub command: Option<ServerCommand>,
     #[arg(long, default_value_t = DEFAULT_PORT, value_parser = clap::value_parser!(u16).range(1..))]
     pub port: u16,
-    /// Start with one tab holding a shell in your home directory
+    /// Start with one tab holding a shell in your home directory, only when
+    /// there are no tabs after restoring
     #[arg(long)]
     pub starter: bool,
+    /// Start without restoring this port's saved tabs. The first save
+    /// replaces them and keeps the old file beside it as <port>.json.prev
+    #[arg(long)]
+    pub no_restore: bool,
     #[arg(long, hide = true)]
     pub background_child: bool,
     /// The launcher's first log part
