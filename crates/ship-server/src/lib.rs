@@ -4,6 +4,7 @@ mod app;
 mod attach;
 mod health;
 mod input;
+mod middleware;
 mod pane;
 mod routes;
 mod settings;
@@ -23,9 +24,7 @@ use std::{
 pub use app::AppState;
 use axum::{
     Router,
-    body::Body,
-    http::{Request, Response},
-    middleware::from_fn_with_state,
+    middleware::{from_fn, from_fn_with_state},
     serve::ListenerExt,
 };
 use kameo::{
@@ -52,7 +51,7 @@ use tower_http::{
         CompressionLayer, Predicate,
         predicate::{NotForContentType, SizeAbove},
     },
-    trace::TraceLayer,
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
 };
 use tracing::Instrument;
 use utoipa::{OpenApi, openapi::OpenApi as OpenApiDoc};
@@ -129,16 +128,14 @@ pub fn router(app: AppState) -> Router {
             .and(NotForContentType::GRPC)
             .and(NotForContentType::IMAGES),
     );
-    api_router().layer(compression).layer(
-        TraceLayer::new_for_http()
-            .make_span_with(|request: &Request<Body>| {
-                tracing::info_span!("request", method = %request.method(), path = request.uri().path())
-            })
-            .on_response(|response: &Response<Body>, duration: Duration, _span: &tracing::Span| {
-                tracing::info!(status = response.status().as_u16(), duration_ms = duration.as_secs_f64() * 1000.0, "request completed");
-            }),
-    ).split_for_parts().0
+    api_router()
+        .layer(compression)
+        .split_for_parts()
+        .0
         .layer(from_fn_with_state(app.clone(), app::stamp))
+        .layer(from_fn(middleware::trace_request))
+        .layer(PropagateRequestIdLayer::x_request_id())
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .with_state(app)
 }
 

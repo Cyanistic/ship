@@ -41,12 +41,44 @@ This legacy exception is Cyan's approved slice-1 acceptance adjustment. It does 
 - **THEN** it reports incompatibility before attempting any other request or attach and does not replace the running server
 
 ### Requirement: Observable startup and private daemon logs
-Server diagnostics SHALL identify startup address, PID and protocol version, and health-request method/path, status and duration. Automatically launched servers SHALL write to that run's private mode-0600 file under the port's log directory, as the `diagnostics` capability describes, and no temporary log SHALL be created. Launch diagnostics SHALL expose the run file's path and PID; log-creation failures SHALL name the attempted directory without claiming a file exists.
+Server diagnostics SHALL identify startup address, PID and protocol version, and, at debug detail, health-request method/path, status and duration. Automatically launched servers SHALL write to that run's private mode-0600 file under the port's log directory, as the `diagnostics` capability describes, and no temporary log SHALL be created. Launch diagnostics SHALL expose the run file's path and PID; log-creation failures SHALL name the attempted directory without claiming a file exists.
 
 #### Scenario: Observe request outcome
-- **WHEN** a health request completes under the default diagnostic filter
+- **WHEN** a health request completes with Ship debug logging enabled
 - **THEN** server diagnostics show GET `/health`, status and duration without obscuring client stdout or exposing arbitrary bodies/headers
 
 #### Scenario: Private launch log
 - **WHEN** automatic launch succeeds
 - **THEN** diagnostics identify the daemon PID and its run file under `logs/<port>/`, which remains available after client exit and is linked from `current.log`
+
+## ADDED Requirements
+
+### Requirement: Request correlation
+Every HTTP response SHALL carry `x-request-id`, preserving a caller-supplied request ID or generating a UUID when absent. Request IDs SHALL be correlation labels, not authentication credentials.
+
+#### Scenario: Caller correlation
+- **WHEN** a request supplies `x-request-id`
+- **THEN** the same value appears in the response and, when enabled, the completion summary
+
+### Requirement: Status-aware completion diagnostics
+Request spans SHALL be debug-level. Each request SHALL emit one completion summary at debug for success and 4xx responses, or warn for 5xx responses. Summaries SHALL include request ID, method, path, status and duration even when debug spans are disabled.
+
+#### Scenario: Unexpected server response at default detail
+- **WHEN** a request returns 5xx with debug logging disabled
+- **THEN** exactly one middleware completion warning includes its request ID, method, path, status and duration
+
+#### Scenario: Routine client rejection
+- **WHEN** a request returns 4xx
+- **THEN** its middleware completion summary is debug, not warn or error
+
+### Requirement: Request diagnostic scope
+Middleware request duration SHALL measure time until the response is ready, not streaming-body lifetime. Request spans and summaries SHALL include a valid request `x-ship-attachment-id` as `attachment_id`; summaries SHALL include the response's numeric `x-ship-revision` as `revision`. Missing or malformed values SHALL be omitted without changing request handling. Request middleware SHALL NOT record query strings, bodies or headers outside this allowlist and `x-request-id`.
+
+#### Scenario: Sensitive request metadata
+- **WHEN** a request includes a query string, body, authorization header or cookies
+- **THEN** the request middleware records none of those values
+
+#### Scenario: Explicit diagnostic headers
+- **WHEN** a request has a valid attachment ID and its response carries a numeric revision
+- **THEN** enabled summaries include `attachment_id` and `revision`, and the request span includes `attachment_id`
+- **AND** an unrelated `x-ship-*` header is not recorded

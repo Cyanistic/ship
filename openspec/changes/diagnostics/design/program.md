@@ -423,6 +423,12 @@ None.
 
 ## Deviation log
 
+### Approved request diagnostics adjustment after slice 4
+
+Cyan requested request correlation middleware and status-aware completion levels: successful and 4xx responses at debug, 5xx at warn, with serious failures logged explicitly rather than treating every 5xx as error. This supersedes default-info health-request summaries. Macro defaults are unchanged.
+
+`ship-server/src/middleware.rs` adds a debug request span and one completion event with request ID, method, path, status and duration. Completion events carry their own context because a warning must remain useful when its debug span is disabled. Existing tower-http request-ID layers generate UUIDs, preserve supplied IDs and propagate them to responses. They wrap tracing and revision stamping so handlers and error responses share correlation. The previous HTTP TraceLayer is replaced, avoiding duplicate 5xx failure callbacks and info-level request-start records. Compression and streaming behavior are unchanged; duration ends when response headers are ready. Cyan subsequently approved an explicit header allowlist: a parsed request attachment ID appears as `attachment_id` on request spans and completion events, and a numeric response revision appears as `revision` on completion events. Missing or malformed values are omitted without changing request handling; other `x-ship-*` headers are not automatically included. No body, query string or unrelated header is logged. Request IDs are correlation labels, not authentication or cross-actor context propagation.
+
 ### Approved retention adjustment after slice 3
 
 Cyan approved reducing the part limit from 50 MiB to 5 MiB after slice 3. The 200 MiB per-directory retention budget is unchanged. Runs still use one timestamp with numbered parts; smaller parts allow finer-grained pruning. Historical slice evidence below records the limits used at the time.

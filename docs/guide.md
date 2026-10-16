@@ -310,6 +310,8 @@ A full-screen client writes `logs/client/<start-time>-<pid>.log` under the same 
 
 Files continue in numbered parts (`<start-time>.2.log`, and so on) at 5 MiB, without splitting a log event. `current.log` follows each new part. At startup and rollover, Ship removes the oldest log files to keep each port's directory, and the client directory separately, at about 200 MiB. The current part is never removed. Files are owner-only (0600), and newly created log directories are owner-only (0700) on Linux and macOS. Where symbolic links are unavailable, open the run file directly. Raw process output from a background server stays in its first part after rollover; logged panics go to the current part.
 
+HTTP responses carry an `x-request-id` for correlation: Ship preserves a supplied ID or generates a UUID. Request spans and completion summaries are logged at debug; 5xx completions are warnings, while success and 4xx remain debug. Summaries include the request ID, method, path, status and duration, even when debug spans are disabled. The explicit header allowlist also records a valid request `x-ship-attachment-id` as `attachment_id` on spans and summaries, and the response's numeric `x-ship-revision` as `revision` on summaries. Missing or malformed values are omitted from diagnostics without changing request handling. Query strings, bodies and all other headers, including other `x-ship-*` headers, are not recorded by this middleware. Duration measures time until the response is ready, not the lifetime of a streaming body.
+
 By default, Ship logs at `info` and dependencies at `warn`. Set `SHIP_LOG` to `error`, `warn`, `info`, `debug` or `trace` before starting a process:
 
 ```sh
