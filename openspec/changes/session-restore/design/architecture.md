@@ -6,9 +6,11 @@ Amended on 2026-10-16 during program review, and accepted by Cyan without a seco
 
 Amended again on 2026-10-16 during slice 1, at Cyan's direction ("if a user does that, and the program itself doesn't, why should i give a shit?"; then "let's go for that!"): decision 9 no longer checks the file's structure. A file that parses is restored as written, the way `commit` trusts a command's edit. Hand-edited duplicates or a foreign zoom are the editor's problem, the same as deleting their own files. Decision 8 now resolves the saved directory through `start_pane`'s own `pane_cwd` before starting, since `start_pane`'s `Validation` error can't tell a bad directory from a shell that won't start. The loaded and projected tree is a `Saved` newtype, so only `load` and `project` make one and only `ServerState::new` restores from one.
 
+Timing clarified during slice 3 on 2026-10-16 after Cyan accepted keeping the planned five-second trigger. Decision 5 schedules the write; serialization and disk I/O take additional time. The exact-five-second SIGKILL probe exposed a wording mismatch, not evidence of a non-atomic write. See the program paper's deviation log.
+
 ## Summary
 
-A new saver task watches the replica the server already publishes after every change. It strips each replica down to the saved tabs, and writes the file at most 5 seconds after the first unsaved change, plus once more when the server stops. Restore happens when the state actor is built: `serve()` reads and parses the file, and `ServerState::new` builds the state with the restored tree, starting each saved pane with its saved ID before the actor ever runs. Restore can't happen into an existing tree. The saved file is Ship's existing `Tabs` type serialized as JSON with the live fields blanked. The 60-second exit window (FR-006) is left to #16, because today a program exiting doesn't change anything that gets saved.
+A new saver task watches the replica the server already publishes after every change. It strips each replica down to the saved tabs, and schedules a save 5 seconds after the first unsaved change, plus a final flush when the server stops. Serialization and disk I/O add time after the deadline. Restore happens when the state actor is built: `serve()` reads and parses the file, and `ServerState::new` builds the state with the restored tree, starting each saved pane with its saved ID before the actor ever runs. Restore can't happen into an existing tree. The saved file is Ship's existing `Tabs` type serialized as JSON with the live fields blanked. The 60-second exit window (FR-006) is left to #16, because today a program exiting doesn't change anything that gets saved.
 
 About 200 lines of implementation Rust. Depends on the diagnostics change for the state directory lookup and the log path.
 
@@ -77,7 +79,7 @@ ship-server
     bind
     spawn RelayBus
     events = subscribe pane events                    # moved before the constructor
-    saved  = saver::load(file)                        # unless --no-restore; parse + check; problems → warn!
+    saved  = saver::load(file)                        # unless --no-restore; parse; problems → warn!
     state  = ServerState::new(…, saved)               # restored tree set directly: saved IDs, failed panes closed
     replicas = watch(state.replica())
     spawn ServerState; forward(events, state)
@@ -110,7 +112,7 @@ ship-server
 
 4. **The file is the existing `Tabs`, projected.** `project` clones the tree and, for each pane, sets `cwd` to `dir` else `cwd`, clears `dir`, `title` and `geometry`, empties `command` and sets `status` to `running`. Then `serde_json` writes it pretty-printed so it can be fixed by hand. Any field added to `Tab` or `Pane` later is saved without touching the saver, which is FR-002's default. The placeholders `"command": []` and `"status": {"state": "running"}` stay in the file and are ignored on load. Rejected: hand-written `SavedTab` and `SavedPane` mirror types, which can silently miss a new field, and making `Layout` generic over its leaf, which touches every layout call site for a file format.
 
-5. **A deadline counted from the first unsaved change.** When a projection differs from the last one written and no deadline is set, the deadline becomes now plus 5 seconds. New changes never push it back, so a stream of directory changes still saves within 5 seconds (FR-005). The baseline at startup is the restored projection, so a server that restores and changes nothing never writes (FR-007). The comparison is against the last projection written, not the file. Rejected: a trailing debounce, which a busy shell could postpone forever.
+5. **A deadline counted from the first unsaved change.** When a projection differs from the last one written and no deadline is set, the deadline becomes now plus 5 seconds. New changes never push it back, so a stream of directory changes still triggers the save at that deadline (FR-005). Serialization and disk I/O take additional time; this is not a guarantee that the write completes before an exact-five-second SIGKILL. The baseline at startup is the restored projection, so a server that restores and changes nothing never writes (FR-007). The comparison is against the last projection written, not the file. Rejected: a trailing debounce, which a busy shell could postpone forever.
 
 6. **Final flush when the replica stream closes.** The saver's loop ends when the `watch` sender drops, which happens when `stop_actors` stops the bus after the state actor. By then the bus has delivered every queued commit. If a deadline is set, the saver writes the latest projection, and `serve()` awaits it inside the existing 5-second shutdown bound. This covers `ship server stop`, SIGTERM, SIGINT and an actor stopping on its own. Rejected: an explicit flush call between stopping the state actor and stopping the bus, which can run before the bus delivers the last commit.
 

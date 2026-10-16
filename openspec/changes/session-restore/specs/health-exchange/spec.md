@@ -53,7 +53,7 @@ Without an explicit target, bare `ship` and the tab and pane commands SHALL use 
 
 #### Scenario: Starter with --no-restore
 - **WHEN** the port has saved tabs and a user runs `ship server --starter --no-restore`
-- **THEN** `ship tab list` shows one tab with one pane, and within 5 seconds the saved file holds that tab and `<port>.json.prev` holds the earlier saved tabs
+- **THEN** `ship tab list` shows one tab with one pane, and the new tab schedules a save 5 seconds later; after that save completes, the saved file holds that tab and `<port>.json.prev` holds the earlier saved tabs
 
 #### Scenario: Broken starter
 - **WHEN** nothing is saved for the port and a user runs `HOME=/nonexistent ship server --starter`

@@ -30,6 +30,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 ## What works today
 
 - **Work that keeps running.** A background server owns your terminals. Close the window or press `alt-q` to detach, and everything keeps running until you come back.
+- **Saved tabs.** After a server restart or reboot, your tabs, splits and directories come back with fresh shells. Programs, agent conversations and scrollback do not resume.
 - **Tabs inside tabs.** Tabs can nest, so a big task can hold its own smaller ones. A sidebar shows the tree; fold the parts you aren't looking at, or drag rows to reorder and nest tabs.
 - **Split panes.** Split, zoom, swap and resize from the keyboard, or drag shared borders to resize. New splits open in the directory you were working in.
 - **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
@@ -44,7 +45,6 @@ Linux and macOS are the priority platforms. Windows is best effort.
 - Agent status: seeing which agents are working, blocked, idle or done.
 - An agent list and notifications to jump to whichever one needs you.
 - Sending input to a pane, or waiting for another agent to finish, from the CLI.
-- Restoring tabs and panes after the server or machine restarts. For now, stopping the server ends everything in it.
 - Releases and packages.
 
 ## Installation
@@ -62,7 +62,7 @@ cd ship
 cargo install --path crates/ship
 ```
 
-Run `ship`. It starts a server in the background if one isn't running, then opens on a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back. `ship server stop` shuts the server down and ends every program in it.
+Run `ship`. It starts a server in the background if one isn't running, restores its saved tabs, and opens on the first tab's first pane. With nothing to restore, it creates a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back. `ship server stop` shuts the server down and ends every program in it.
 
 On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or Ship's keys will type special characters instead.
 

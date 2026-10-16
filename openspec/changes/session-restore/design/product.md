@@ -2,6 +2,8 @@
 
 Status: Locked on 2026-10-15, approved by Cyan after Plannotator review ("LGTM"). Written on 2026-10-14 from a design conversation with Cyan and revised on 2026-10-15 with Cyan's answers to the three open unknowns. The approval doesn't authorize implementation; Cyan requests that separately.
 
+Amended during slice 3 on 2026-10-16 after Cyan accepted the slice 2 timing clarification: keep the planned five-second trigger, rather than shortening it to pass an exact-five-second SIGKILL test. FR-005 and SC-002 distinguish the timer from completion of the disk write. No implementation timing changed.
+
 ## Goal
 
 When Ship's server stops, whether through `ship server stop`, a crash or a reboot, every tab, split and directory is lost, and the user rebuilds the workspace by hand. This change saves the workspace's structure as it changes and rebuilds it when the server starts again, so that after a reboot bare `ship` opens the same tabs and splits, with a shell in each pane's last directory. It covers the save-and-restore half of milestone 2 in the product brief. Agent conversation resume, the other half, is deferred (see Non-goals).
@@ -88,7 +90,7 @@ Tested independently with `--no-restore`, with a hand-corrupted file, and by res
 
 ### When it is saved
 
-- **FR-005** A change made by a user or a script (any tab or pane command, key, mouse action or menu item) or reported by a shell (a directory change) MUST be saved within 5 seconds while the server keeps running.
+- **FR-005** A change made by a user or a script (any tab or pane command, key, mouse action or menu item) or reported by a shell (a directory change) MUST schedule a save 5 seconds after the first unsaved change while the server keeps running. Later changes MUST NOT postpone the deadline. Serialization and disk I/O take additional time; this is a save trigger, not a completion guarantee.
 - **FR-006** A change caused only by a program ending MUST NOT be saved until the server has kept running for 60 seconds after it, unless a save under FR-005 happens first. If the server stops before then, the change MUST NOT be saved.
 - **FR-007** When the server stops through `ship server stop`, SIGTERM or SIGINT, it MUST save any FR-005 change not yet saved, and MUST NOT save a change still waiting under FR-006. With nothing waiting under FR-005, it MUST NOT write the file.
 - **FR-008** A save interrupted at any point, including by SIGKILL or a crash, MUST leave the file holding either the previous saved tabs or the new ones.
@@ -117,7 +119,7 @@ Tested independently with `--no-restore`, with a hand-corrupted file, and by res
 ## Success criteria
 
 - **SC-001** After `ship server stop` and a fresh start, `ship tab list` and each `ship pane get` match their earlier output except for program, title, status and starting directory, on Linux and macOS.
-- **SC-002** A change killed with SIGKILL 5 seconds after it was made is restored, in 20 out of 20 tries.
+- **SC-002** A change is restored after SIGKILL following its completed scheduled save, in 20 out of 20 tries.
 - **SC-003** Killing the server during saves in a loop of at least 200 iterations never leaves a file the next start can't read.
 - **SC-004** With every pane's program killed and SIGTERM sent 20 seconds later, the next start restores every pane.
 - **SC-005** Restoring 10 tabs and 30 panes makes bare `ship` no slower to show a usable screen than starting with one starter tab, judged by feel.

@@ -24,11 +24,11 @@ When Ship's server stops, through `ship server stop`, a crash or a reboot, every
 
 ## Decisions
 
-- **A saver task watches the replica** (architecture decision 1). It projects each replica, compares it with the last projection written, and writes at most 5 seconds after the first unsaved change, never postponed (decision 5). It flushes once more when the replica stream closes at shutdown (decision 6).
+- **A saver task watches the replica** (architecture decision 1). It projects each replica, compares it with the last projection written, and schedules a save 5 seconds after the first unsaved change, never postponed (decision 5). Serialization and disk I/O take additional time; five seconds is the trigger, not a completion guarantee. It flushes once more when the replica stream closes at shutdown (decision 6).
 - **Restore is constructor input** (decision 2, amended). `ServerState::new` takes the saved tabs and starts each pane with its saved ID before the actor runs. Pane events are subscribed before the constructor (decision 3).
 - **The file is the existing `Tabs`, projected** (decision 4): pretty JSON in `ship tab list`'s shape, with the pane's directory in `cwd` and live fields blanked.
 - **Atomic writes and one `.prev` copy** per run (decision 7).
-- **Restore problems are warnings** (decisions 8 and 9). A bad directory falls back to home, a failed shell leaves its pane out, and an unreadable or inconsistent file starts empty and stays on disk.
+- **Restore problems are warnings** (decisions 8 and 9). A bad directory falls back to home, a failed shell leaves its pane out, and an unreadable or unparsable file starts empty and stays on disk. A file that parses is trusted without structural validation (decision 9, amended).
 - **`--starter` only when nothing was restored** (decision 10).
 - **The 60-second exit window waits for #16** (decision 12). No exit changes the saved tabs today.
 - **Settled program gates:** G1, build on merged diagnostics. G2, the starter tab is a saved change, so `--no-restore --starter` replaces the saved tabs 5 seconds after start, with `.prev` keeping the old file. G3, sibling tabs repeated in one JSON object keep the last.

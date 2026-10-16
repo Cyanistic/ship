@@ -81,26 +81,28 @@ Include:
 
 - A background server that owns terminals and processes independently of the UI.
 - Detach and reattach without interrupting running work.
-- Save and restore session/tab/pane identities, layout and working directories.
-- Supported agent conversation resume after restart.
-- Clear recovery behavior when a directory or resume target is unavailable.
+- Save and restore tab and pane identities, layout and working directories.
+- Log panes whose saved directory was unavailable, and start them in home.
+- Recover the previous saved tabs by hand when needed.
+
+Agent conversation resume moves to a later change. Restored panes start fresh shells; they do not resume agents or rerun their earlier programs.
 
 Keep the promises distinct:
 
 | Situation | Expected behavior |
 | --- | --- |
 | The UI closes while the server remains alive | Existing processes continue; the client can reconnect. |
-| The server or machine restarts | Restore saved structure and recreate supported sessions. Original processes do not survive. |
-| An agent supports conversation resume | Use its saved session identity and supported resume mechanism. |
+| The server or machine restarts | Restore saved tabs and start fresh shells in their saved directories. Original processes do not survive. |
+| An agent supports conversation resume | Deferred to a later change; Ship does not resume the conversation. |
 
-Persist reconstructible session descriptions, not process handles, PTYs or connections. Safe saves and a policy for saved-format changes belong here. Exact screen-history replay is a follow-on capability, not a prerequisite for basic persistence.
+Persist reconstructible tab and pane descriptions, not process handles, PTYs or connections. Safe saves and a policy for saved-format changes belong here. Exact screen-history replay is a follow-on capability, not a prerequisite for basic persistence.
 
 Completion evidence:
 
 - Closing and reopening the client preserves running work.
-- Restarting the server reconstructs the saved structure and distinguishes resumed work from unavailable work.
-- An interrupted save does not destroy the last usable saved state.
-- Representative missing-directory and unsupported-resume cases produce understandable results.
+- Restarting the server reconstructs the saved tabs with fresh shells and logs panes whose directory was unavailable.
+- An interrupted save leaves either the previous saved tabs or the new ones.
+- A missing directory falls back to home with a warning in the server log; an unreadable file starts empty without being deleted.
 
 ### 3. Know which agent needs attention
 

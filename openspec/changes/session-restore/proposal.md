@@ -12,13 +12,13 @@ When the server stops, through `ship server stop`, a crash or a reboot, every ta
   - Saved: tab order and nesting, tab and pane IDs and names, split proportions, zoom, `right_click_passthrough`, and each pane's current directory.
   - Not saved: a pane's program and arguments, title, exit status, screen and scrollback.
   - The file is pretty JSON in `ship tab list`'s shape, mode 0600 in a 0700 directory, one per port.
-- **Saving.** A change is on disk within 5 seconds of the first unsaved change, and once more when the server stops through `ship server stop`, SIGTERM or SIGINT. A server that changes nothing never writes. Saves are atomic. A failed save is logged as an error and retried.
+- **Saving.** The first unsaved change schedules a save 5 seconds later; writing takes additional time and later changes do not postpone the timer. Pending changes are also saved when the server stops through `ship server stop`, SIGTERM or SIGINT. A server that changes nothing never writes. Saves are atomic. A failed save is logged as an error and retried.
 - **`.prev` copy.** A run's first save keeps the old file as `<port>.json.prev`. Recovery from it is by hand.
 - **Restore.** On startup, before accepting connections, the server rebuilds the saved tabs with the same IDs, so open clients keep their selection. Every restored pane runs a fresh shell in its saved directory and never reruns its old program.
 - **Restore problems** go to the server log only.
   - A missing directory starts the shell in home.
   - A shell that can't start leaves its pane out.
-  - An unreadable or inconsistent file starts empty and stays on disk.
+  - An unreadable or unparsable file starts empty and stays on disk. A file that parses is trusted without structural validation.
 - **`ship server --no-restore`** starts without restoring. Bare `ship` and every launched background server always restore.
 - **`--starter`** creates its tab only when nothing was restored. A client opened by the bare `ship` that launched the server opens on the first tab's first pane, restored or the starter.
 - `right_click_passthrough` now survives a restart.

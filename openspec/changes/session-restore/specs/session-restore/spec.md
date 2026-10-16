@@ -42,15 +42,15 @@ The saved file SHALL hold pretty-printed JSON in the shape `ship tab list` print
 - **THEN** the server restores those tabs, each pane running a shell in that pane's `cwd`
 
 ### Requirement: Saving changes
-A change made by a user or a script, through any tab or pane command, key, mouse action or menu item, or reported by a shell as a directory change, SHALL be saved within 5 seconds of the first unsaved change while the server keeps running. Later changes SHALL NOT postpone that save. A change that leaves the saved tabs as last written SHALL NOT cause a write.
+A change made by a user or a script, through any tab or pane command, key, mouse action or menu item, or reported by a shell as a directory change, SHALL schedule a save for 5 seconds after the first unsaved change while the server keeps running. Later changes SHALL NOT postpone that deadline. The save SHALL write the latest projection at that deadline; serialization and disk I/O take additional time. A change that leaves the saved tabs as last written SHALL NOT cause a write.
 
 #### Scenario: Killed after an edit
-- **WHEN** a user splits a pane and the server is killed with SIGKILL 5 seconds later
+- **WHEN** a user splits a pane, its scheduled save completes, and the server is killed with SIGKILL
 - **THEN** the next start restores the split
 
 #### Scenario: Steady directory changes
 - **WHEN** a shell changes directory every second for 20 seconds
-- **THEN** the saved file is written within 5 seconds of the first change, and again within 5 seconds of each later unsaved change
+- **THEN** each first unsaved change schedules a save 5 seconds later, without later changes postponing it
 
 ### Requirement: Program exits wait
 A change caused only by a program ending SHALL NOT be saved until the server has kept running for 60 seconds after it, unless a save of another change happens first.
@@ -136,7 +136,7 @@ A restored pane whose shell fails to start SHALL be left out of the restored tab
 - **THEN** the server starts without the restored panes and logs a warning for each
 
 ### Requirement: Unusable saved file
-If the saved file can't be read or parsed, uses one tab or pane ID twice, keys a tab under an ID other than its own, or zooms a tab on a pane outside it, the server SHALL start with no restored tabs and log a warning naming the file and the `.prev` path. It SHALL NOT delete or change the file before its first save. When one JSON object repeats a tab key, the last entry SHALL be restored.
+If the saved file can't be read or parsed, the server SHALL start with no restored tabs and log a warning naming the file and the `.prev` path. It SHALL NOT delete or change the file before its first save. A file that parses SHALL be trusted without structural validation, including duplicated IDs, mismatched tab keys or a zoom on a foreign pane. When one JSON object repeats a tab key, the last entry SHALL be restored.
 
 #### Scenario: Unreadable file
 - **WHEN** the saved file holds invalid JSON at startup
@@ -144,7 +144,7 @@ If the saved file can't be read or parsed, uses one tab or pane ID twice, keys a
 
 #### Scenario: Duplicate pane ID
 - **WHEN** a hand-edited saved file uses one pane ID in two tabs
-- **THEN** the server starts with no restored tabs, logs a warning naming the file and the `.prev` path, and leaves the file as it was
+- **THEN** the loader accepts the parsed file without rejecting its duplicated IDs; behavior of the hand-edited structure is not guaranteed
 
 ### Requirement: Where restore problems go
 Restore problems SHALL be reported only in the server log, not to clients or in `ship server status`.
