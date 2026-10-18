@@ -13,15 +13,15 @@ Use an owned temporary server on a free port, with `XDG_STATE_HOME` and the conf
 
 ## 1. Records on panes
 
-- [ ] 1.1 Add the scanner and session events:
+- [x] 1.1 Add the scanner and session events:
   - `vendor/ratatui-ghostty/src/program_status.rs` with `ProgramStatus`, `Found`, `Scanner` and `report`.
   - `SessionEvent::ProgramStatus` and `SessionEvent::PromptStart`, and `scan` ahead of `vt_write` in `session.rs`, writing the support reply through the session's writer.
   - `base64` in the workspace and vendored manifests.
-- [ ] 1.2 Add the records:
+- [x] 1.2 Add the records:
   - `StatusRecord`, `ReportedState`, `BlockedKind`, `ROOT`, `Pane.program` and `root_status` in `ship-core`.
   - `records.rs` with `Records` (`apply`, `prompt`, `snapshot`), `within` and `disarm`.
   - `PaneChange::Program` and the `records` field in `pane.rs`; replacing on `Program` and clearing on `Exited` in `state.rs`; clearing in the saver's `blank`.
-- [ ] 1.3 Verify:
+- [x] 1.3 Verify:
   - The support query gets its reply, before the DA1 reply when both are written together.
   - Claude Code, Codex, Pi and crush 0.98.1 each show their root record in `ship pane get` through a turn and a permission dialog.
   - `id=build` and `id=build/test` sit beside the root; `id=` and `id=a//b` are dropped; a 65th id evicts the oldest.
@@ -29,6 +29,26 @@ Use an owned temporary server on a free port, with `XDG_STATE_HOME` and the conf
   - Escapes in `app` or controls in a base64 `msg` don't land; U+202E is stripped from a kept `msg`.
   - A report split across two writes still parses.
   - `ship tab list` shows `program`; the saved-tabs file doesn't.
+
+### Slice 1 verification checkpoint
+
+Tasks 1.1 to 1.3 are complete. Cyan accepted task 1.3 as verified on 2026-10-18 with Codex and Pi run live; Claude Code and crush were not run. Installed versions are Claude Code 2.1.300, Codex 0.163.0, Pi 1.3.0 and crush 0.76.0; the crush gate requires 0.98.1 or later.
+
+On macOS, formatting, workspace Clippy with warnings denied, debug and release workspace builds, `ship-core` checks without default features and with `clap`, strict OpenSpec validation and `git diff --check` pass.
+
+A temporary probe ran 16 checks through an owned server with isolated config and state, then stopped it and its pane processes. It verified BEL/ST query replies before DA1, pane inspection and tab listing, the actual attach replica, child ids and invalid ids, subtree/root clears, 64-record eviction and update order, prompt/reset lifetimes and ordering, unsafe text and limits, bidi stripping, split writes, oversized OSC recovery, optional base64 padding, complete replacement, process exit, real SIGKILL followed by a shell prompt, saved-tab exclusion and fresh records after restart. These scripted reports do not substitute for the pending live-agent checks.
+
+At Cyan's request, tried a scratch Claude configuration with a temporary HOME/config directory, `--bare` (no keychain reads), no user/project/local settings and no tools. It stopped at first-run theme onboarding, before a model turn or status report. Following Cyan's instruction to stop early on setup issues, no onboarding/authentication workarounds or further agents were attempted. The owned server and Claude process were stopped. Evidence: `/tmp/ship-status-live-smoke.py` and `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-status-live-v1kaw2dg/result.json`.
+
+Live agents ran through `omlx launch` on the local model `Qwen3.6-35B-A3B-PARO`, inside an owned server with isolated config and state. A real attach client in a pty typed the input, and `ship pane get` was polled every 250 ms. Codex used a scratch `CODEX_HOME`, with the oMLX settings passed only on its command line; Pi used a scratch `PI_CODING_AGENT_DIR`. Each record change matched the screen:
+- Codex 0.163.0, run with `-a on-request -s read-only` and asked to write a file: idle, then working, then blocked on the approval dialog, then working after approval, then idle once the file was written. On exit the record cleared and the pane exited 0. The blocked record carries no `kind` or `msg`, and a finished turn reports `idle` rather than `done`.
+- Pi 1.3.0 asked the support query, got its reply and reported idle, then working through a shell-command turn, then done. Its record cleared on exit. Pi has no permission dialog by default.
+
+Live evidence: `/tmp/ship-live-scripts/` and the `codex-watch.log` and `pi-watch.log` files in `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-live-8ibwt_sr/`.
+
+Temporary protocol evidence: `/tmp/ship-status-probe.py` and `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-status-slice1-q2155f0f/results.json`. No permanent tests were added. Linux is unverified.
+
+Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,081 after (+430). Added permanent test lines: 0. The scanner is 248 lines and the record module 75; the scanner estimate was low once the specified decoding, validation and bounded split-sequence handling were implemented.
 
 ## 2. Sidebar sections and display states
 
