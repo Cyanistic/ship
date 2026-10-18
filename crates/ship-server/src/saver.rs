@@ -81,6 +81,7 @@ fn blank(tabs: &mut Tabs) {
             }
             pane.title = None;
             pane.command.clear();
+            pane.program.clear();
             pane.status = PaneStatus::Running;
         }
     }

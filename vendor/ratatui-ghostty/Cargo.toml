@@ -10,6 +10,7 @@ categories = ["command-line-interface"]
 repository = "https://codeberg.org/jint/ratatui-ghostty"
 
 [dependencies]
+base64.workspace = true
 crossbeam-channel = "0.5.15"
 crossterm = "0.29.0"
 libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "d2036baeb605d31d09a9e2ba6d0c923e04c34d54" }

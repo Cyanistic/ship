@@ -1,5 +1,6 @@
 use std::{fmt, str::FromStr};
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use utoipa::openapi::{Object, ObjectBuilder, Ref};
 
@@ -50,6 +51,52 @@ pub struct Pane {
     #[serde(default)]
     pub right_click_passthrough: bool,
     pub status: PaneStatus,
+    /// OSC 7501 records keyed by id, oldest update first; ROOT is the root.
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub program: IndexMap<String, StatusRecord>,
+}
+
+/// The root record's id, which an explicit protocol id cannot claim.
+pub const ROOT: &str = "";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusRecord {
+    pub state: ReportedState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<BlockedKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress: Option<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub msg: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum ReportedState {
+    Idle,
+    Working,
+    Done,
+    Blocked,
+    Error,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum BlockedKind {
+    Permission,
+    Question,
+    Auth,
+}
+
+impl Pane {
+    pub fn root_status(&self) -> Option<&StatusRecord> {
+        self.program.get(ROOT)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]

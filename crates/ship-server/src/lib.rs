@@ -6,6 +6,7 @@ mod health;
 mod input;
 mod middleware;
 mod pane;
+mod records;
 mod routes;
 mod saver;
 mod settings;

@@ -14,6 +14,7 @@ ship-server = { path = "crates/ship-server" }
 ship-core = { path = "crates/ship-core" }
 ship-macros = { path = "crates/ship-macros" }
 ratatui-ghostty = { path = "vendor/ratatui-ghostty" }
+base64 = "0.23"
 axum = { version = "0.8", features = ["http2"] }
 clap = { version = "4", features = ["derive", "env"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }

@@ -12,6 +12,7 @@ use std::{
 };
 
 use crossterm::event::KeyEvent;
+use indexmap::IndexMap;
 use kameo::actor::ActorRef;
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use ratatui::{
@@ -25,7 +26,7 @@ use ratatui_ghostty::{
 };
 use ship_core::{
     id::{Attachment, IdOf},
-    model::{ExitStatus, Pane},
+    model::{ExitStatus, Pane, StatusRecord},
     prelude::*,
     protocol::{MouseInput, ReadPane, ScrollDirection, ScrollPane},
     relay::{Publish, RelayBus},
@@ -40,7 +41,7 @@ use tokio_util::sync::{CancellationToken, DropGuard};
 use tracing::Instrument;
 use url::Url;
 
-use crate::settings::ServerSettings;
+use crate::{records::Records, settings::ServerSettings};
 
 /// The shortest gap between two published screens of one pane.
 pub(crate) const FRAME: Duration = Duration::from_millis(4);
@@ -196,6 +197,7 @@ pub(crate) enum PaneChange {
     /// From OSC 7, else the program's working directory.
     Dir(String),
     Exited(ExitStatus),
+    Program(IndexMap<String, StatusRecord>),
 }
 
 /// Text for clients' clipboards, on the bus apart from `PaneEvent`, since it
@@ -365,6 +367,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         screen,
         bus,
         pacing: Pacing::default(),
+        records: Records::default(),
     };
     tokio::spawn(
         task.run(commands_rx, cancel.clone(), done_tx)
@@ -385,6 +388,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
 
 /// The pane task's state.
 struct PaneTask {
+    records: Records,
     pane: IdOf<Pane>,
     session: SessionHandle,
     /// The terminal's size as last requested; equal resizes are dropped.
@@ -574,10 +578,15 @@ impl PaneTask {
         }));
         render.await.ok();
         let mut changed = false;
+        let mut program_changed = false;
         let mut dir = None;
         let mut copies = Vec::new();
         while let Some(event) = self.session.poll_event() {
             match event {
+                SessionEvent::ProgramStatus(report) => {
+                    program_changed |= self.records.apply(report)
+                }
+                SessionEvent::PromptStart => program_changed |= self.records.prompt(),
                 SessionEvent::Copied(text) => copies.push((self.pointer, text)),
                 SessionEvent::ClipboardWrite(text) => copies.push((None, text)),
                 SessionEvent::TitleChanged(title) => {
@@ -607,6 +616,10 @@ impl PaneTask {
         }
         if changed {
             self.event(PaneChange::Title(self.title.clone())).await;
+        }
+        if program_changed && !self.exit.reaped {
+            self.event(PaneChange::Program(self.records.snapshot()))
+                .await;
         }
         self.set_dir(dir).await;
     }

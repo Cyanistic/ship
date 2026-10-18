@@ -9,6 +9,10 @@ use crate::{id::IdOf, model::Pane, prelude::*};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, ToSchema)]
 #[serde(tag = "kind", rename_all = "camelCase")]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "keep pane leaves inline; the record map pushes Pane past the size heuristic"
+)]
 pub enum Layout {
     Pane(Pane),
     Split(Split),
