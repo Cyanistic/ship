@@ -15,7 +15,10 @@ use super::{
     Scene,
     lane::{Edge, EdgeAt, TabMove},
     menu::{self, Target},
-    sidebar::{Gap, Hit, Row, movable},
+    sidebar::{
+        Gap, Hit, Scroll, movable,
+        tabs::{self, Row},
+    },
 };
 
 pub(super) enum Clicked {
@@ -25,6 +28,13 @@ pub(super) enum Clicked {
     Resize(Vec<EdgeAt>),
     Move(TabMove),
     Width(u16),
+    /// The divider row between the sidebar's sections, dragged to a row.
+    Split(u16),
+    /// A wheel step over the sidebar.
+    SidebarScroll {
+        at: Position,
+        scroll: Scroll,
+    },
     Menu(Target, Position),
 }
 
@@ -36,10 +46,25 @@ pub(super) struct Mouse {
 }
 
 enum Gesture {
-    Pressed { at: Position, row: Row },
-    Row { tab: IdOf<Tab>, gap: Option<Gap> },
+    Pressed {
+        at: Position,
+        row: Row,
+    },
+    Row {
+        tab: IdOf<Tab>,
+        gap: Option<Gap>,
+    },
     Border(Vec<Grab>),
-    Divider { at: Position, moved: bool },
+    Divider {
+        at: Position,
+        moved: bool,
+    },
+    Split,
+    /// Selects the entry's pane on release, unless the pointer moved.
+    Agent {
+        at: Position,
+        pane: IdOf<Pane>,
+    },
 }
 
 struct Grab {
@@ -98,6 +123,11 @@ impl Mouse {
         ) && let Some(mut gesture) = self.gesture.take()
         {
             let release = matches!(event.kind, MouseEventKind::Up(_));
+            if let Gesture::Agent { at: origin, .. } = &gesture
+                && at != *origin
+            {
+                return None;
+            }
             if let Gesture::Pressed { at: origin, row } = &gesture
                 && at != *origin
             {
@@ -115,7 +145,8 @@ impl Mouse {
                 Gesture::Row { tab, gap } => {
                     *gap = scene
                         .tabs
-                        .and_then(|tabs| scene.sidebar.gap(tabs, *tab, at));
+                        .filter(|_| scene.sidebar.shown)
+                        .and_then(|tabs| scene.sidebar.tabs.gap(tabs, *tab, at));
                     if release {
                         gap.map(|gap| {
                             Clicked::Move(TabMove {
@@ -131,6 +162,10 @@ impl Mouse {
                     *moved |= at != *origin;
                     (*moved && scene.sidebar.shown)
                         .then_some(Clicked::Width(at.x.saturating_add(1)))
+                }
+                Gesture::Split => scene.sidebar.shown.then_some(Clicked::Split(at.y)),
+                Gesture::Agent { pane, .. } => {
+                    release.then_some(Clicked::Select(NodeId::Pane(*pane)))
                 }
                 Gesture::Border(grabs) => {
                     if grabs.iter().any(|grab| {
@@ -185,16 +220,17 @@ impl Mouse {
             MouseEventKind::Down(button) if !scene.panes.contains(at) => {
                 match (button, scene.sidebar.hit(at)?) {
                     (MouseButton::Left, Hit::Button)
-                    | (MouseButton::Right, Hit::Heading | Hit::Button | Hit::Below) => {
-                        (!menu::items(scene.menus, Target::Global).is_empty())
-                            .then_some(Clicked::Menu(Target::Global, at))
-                    }
-                    (MouseButton::Right, Hit::Row(row)) => {
+                    | (
+                        MouseButton::Right,
+                        Hit::Heading | Hit::Button | Hit::Tabs(tabs::Hit::Below),
+                    ) => (!menu::items(scene.menus, Target::Global).is_empty())
+                        .then_some(Clicked::Menu(Target::Global, at)),
+                    (MouseButton::Right, Hit::Tabs(tabs::Hit::Row(row))) => {
                         let target = Target::Tab(row.tab);
                         (!menu::items(scene.menus, target).is_empty())
                             .then_some(Clicked::Menu(target, at))
                     }
-                    (MouseButton::Left, Hit::Row(row)) => {
+                    (MouseButton::Left, Hit::Tabs(tabs::Hit::Row(row))) => {
                         self.gesture = Some(Gesture::Pressed { at, row });
                         None
                     }
@@ -202,8 +238,26 @@ impl Mouse {
                         self.gesture = Some(Gesture::Divider { at, moved: false });
                         None
                     }
+                    (MouseButton::Left, Hit::Split) => {
+                        self.gesture = Some(Gesture::Split);
+                        None
+                    }
+                    (MouseButton::Left, Hit::Agent(pane)) => {
+                        self.gesture = Some(Gesture::Agent { at, pane });
+                        None
+                    }
                     _ => None,
                 }
+            }
+            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown if !scene.panes.contains(at) => {
+                scene.sidebar.hit(at)?;
+                Some(Clicked::SidebarScroll {
+                    at,
+                    scroll: match event.kind {
+                        MouseEventKind::ScrollUp => Scroll::Up,
+                        _ => Scroll::Down,
+                    },
+                })
             }
             _ if !scene.panes.contains(at) => None,
             kind => {

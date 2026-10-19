@@ -1,5 +1,6 @@
 //! The full-screen client, opened by bare `ship`.
 
+mod agents;
 mod draw;
 mod keys;
 mod lane;
@@ -65,8 +66,8 @@ use self::{
 use crate::{
     Client, KeyScope, Scope,
     keymap::{
-        Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction, Menus,
-        Sidebar as SidebarAction,
+        Action, AgentSettings, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction,
+        Menus, Sidebar as SidebarAction,
     },
     watch,
 };
@@ -176,6 +177,7 @@ async fn drive(
         menu: None,
         input: None,
         message,
+        agents: settings.agents,
     };
     let mut saves: Option<Saves> = match watch::changes(config) {
         Ok(saves) => Some(Box::pin(saves)),
@@ -219,7 +221,7 @@ async fn drive(
                         let selection = local.observer.record().and_then(|record| record.selection);
                         local.memory.observe(&replica.tabs, selection);
                         if previous != selection {
-                            local.sidebar.reveal(&replica.tabs, selection);
+                            local.sidebar.tabs.reveal(&replica.tabs, selection);
                         }
                     }
                     visible
@@ -315,6 +317,14 @@ async fn drive(
                                 local.sidebar.set_width(width, terminal.0);
                                 visible = true;
                             }
+                            Clicked::Split(row) => {
+                                local.sidebar.set_split(row);
+                                visible = true;
+                            }
+                            Clicked::SidebarScroll { at, scroll } => {
+                                local.sidebar.scroll(at, scroll);
+                                visible = true;
+                            }
                         }
                     }
                     visible
@@ -403,7 +413,7 @@ async fn drive(
             }
         }
         if let Some(replica) = &local.observer.replica {
-            local.sidebar.reconcile(&replica.tabs);
+            local.sidebar.tabs.reconcile(&replica.tabs);
             local.mouse.reconcile(&replica.tabs);
         }
         if visible {
@@ -422,6 +432,8 @@ struct Local {
     menu: Option<Menu>,
     input: Option<mpsc::UnboundedSender<InputFrame>>,
     message: Option<String>,
+    /// Replaced whole on reload; readers take the piece they need.
+    agents: AgentSettings,
 }
 
 /// Published geometry shared by the router and pane painter.
@@ -468,7 +480,13 @@ impl Local {
                 Ok(())
             }
             ClientAction::Sidebar(SidebarAction::Resize { direction, amount }) => {
-                self.sidebar.nudge(direction, amount.unwrap_or(1), cols);
+                let amount = amount.unwrap_or(1);
+                match direction {
+                    Direction::Left | Direction::Right => {
+                        self.sidebar.nudge(direction, amount, cols);
+                    }
+                    Direction::Up | Direction::Down => self.sidebar.nudge_split(direction, amount),
+                }
                 Ok(())
             }
             ClientAction::Config(ConfigAction::Reload {}) => self.reload(guard, config),
@@ -485,6 +503,7 @@ impl Local {
         self.menu = None;
         self.sidebar.configure(settings.sidebar_width);
         self.keys.replace(settings.keymap);
+        self.agents = settings.agents;
         Ok(())
     }
 
@@ -527,7 +546,7 @@ impl Local {
                     .as_ref()
                     .is_some_and(|replica| tree::tab(&replica.tabs, tab).is_ok())
                 {
-                    self.sidebar.toggle(tab);
+                    self.sidebar.tabs.toggle(tab);
                 }
                 Turn::Done
             }
@@ -545,7 +564,7 @@ impl Local {
                     return Turn::Done;
                 }
                 if let MoveTab::Parent(Some(parent)) = moving.to {
-                    self.sidebar.fold(parent, false);
+                    self.sidebar.tabs.fold(parent, false);
                 }
                 Turn::Wait(Box::pin(async move {
                     match client.move_tab(moving.tab, &moving.to).await {
@@ -704,6 +723,7 @@ impl Local {
                             selection.and_then(|node| tree::viewed_tab(&replica.tabs, node))
                     {
                         self.sidebar
+                            .tabs
                             .fold(tab, matches!(action, ClientTab::Collapse {}));
                     }
                     Ok(())
@@ -791,7 +811,7 @@ fn navigate(
 ) -> Option<NodeId> {
     match step {
         Step::Tab { forward } => {
-            let rows = sidebar.visible(tabs);
+            let rows = sidebar.tabs.visible(tabs);
             let index = match from {
                 Some(node) => {
                     let tab = tree::viewed_tab(tabs, node)?;

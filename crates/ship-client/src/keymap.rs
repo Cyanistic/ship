@@ -20,6 +20,26 @@ pub struct ClientSettings {
     pub mouse: bool,
     pub keymap: Keymap,
     pub sidebar_width: u16,
+    pub agents: AgentSettings,
+}
+
+/// `[client.agents]` with defaults applied.
+pub struct AgentSettings {
+    /// The lines of an agent's entry in the sidebar.
+    pub rows: Vec<Vec<Token>>,
+}
+
+/// One value in an agent's entry.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Token {
+    Icon,
+    App,
+    State,
+    Tab,
+    Pane,
+    Title,
+    Msg,
 }
 
 pub struct Keymap {
@@ -186,18 +206,12 @@ pub enum ClientPane {
 pub enum Sidebar {
     Toggle {},
     Resize {
-        direction: Side,
+        /// Left and right resize the width; up and down move the split
+        /// between the sections.
+        direction: Direction,
         #[serde(default)]
         amount: Option<u16>,
     },
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, strum::IntoStaticStr)]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-pub enum Side {
-    Left,
-    Right,
 }
 
 #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
@@ -228,6 +242,14 @@ struct Client {
     menus: MenusFile,
     #[serde(default)]
     modes: HashMap<ModeName, ModeFile>,
+    #[serde(default)]
+    agents: AgentsFile,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentsFile {
+    rows: Option<Vec<Vec<Token>>>,
 }
 
 #[derive(Default, Deserialize)]
@@ -323,6 +345,14 @@ impl ClientSettings {
             },
             sidebar_width: file.client.sidebar_width.unwrap_or(26),
             mouse: file.client.mouse.unwrap_or(true),
+            agents: AgentSettings {
+                rows: file.client.agents.rows.unwrap_or_else(|| {
+                    vec![
+                        vec![Token::Icon, Token::App, Token::State],
+                        vec![Token::Tab],
+                    ]
+                }),
+            },
         }
     }
 }

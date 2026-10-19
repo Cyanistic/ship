@@ -63,14 +63,12 @@ pub(super) fn tab_area(cols: u16, rows: u16, sidebar_width: u16) -> Size {
 /// over the pane area's last row.
 pub(super) fn draw(frame: &mut Frame, local: &mut Local) -> Option<Cursor> {
     let (sidebar_area, main) = split(frame.area(), local.sidebar.width());
-    if local.sidebar.shown
-        && let Some(replica) = &local.observer.replica
-    {
+    if local.sidebar.shown {
         local.sidebar.draw(
             frame,
             sidebar_area,
-            &replica.tabs,
-            local.observer.record().and_then(|record| record.selection),
+            &local.observer,
+            &local.agents.rows,
             local.mouse.gap(),
         );
     }
