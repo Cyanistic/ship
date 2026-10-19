@@ -18,11 +18,11 @@ A client SHALL derive a display state for each pane with a root record. A root s
 - **THEN** the pane has no row in the agents section and its tab gets no icon from it
 
 ### Requirement: Unseen marks
-A pane SHALL become unseen when a done notification fires for it. It SHALL stop being unseen once it is in view while the client's window has focus. A pane is **in view** when the client draws it in the current tab, which while the tab is zoomed means only the zoomed pane. Until the outer terminal reports focus, the window SHALL count as focused. A client attaching or reattaching SHALL start with no unseen panes.
+A pane SHALL become unseen, without waiting for the delay, when its root state goes from `working` to `idle` or `done` while it isn't in view in a focused window. It SHALL stop being unseen once it is in view while the client's window has focus. A pane is **in view** when the client draws it in the current tab; in a zoomed tab, only the zoomed pane is. Until the outer terminal reports focus, the window SHALL count as focused. A client attaching or reattaching SHALL start with no unseen panes.
 
 #### Scenario: Finished in another tab
-- **WHEN** an agent in a tab the user isn't viewing goes from `working` to `idle` and stays there past the delay
-- **THEN** its row and tab show unseen, and the mark clears once the user views the pane with the window focused
+- **WHEN** an agent in a tab the user isn't viewing goes from `working` to `idle`
+- **THEN** its row and tab show unseen at once, and the mark clears once the user views the pane with the window focused
 
 #### Scenario: In view on another monitor
 - **WHEN** an agent's pane is in view, the client's window is unfocused, and the agent finishes
@@ -33,25 +33,33 @@ A pane SHALL become unseen when a done notification fires for it. It SHALL stop 
 - **THEN** none is marked unseen and nothing plays
 
 ### Requirement: Icons
-Each display state SHALL have an icon distinct in both shape and color: blocked `▲` red, error `✖` magenta, unseen `◆` cyan, working `●` yellow and idle `○` dark gray. Agent rows and tab rows SHALL use the same icons, and an agent row's `state` token SHALL take its icon's color.
+Each display state SHALL have an icon distinct in both shape and color: blocked `▲` red, error `✖` magenta, unseen `◆` cyan, working `●` yellow and idle `○` green. Agent rows and tab rows SHALL use the same icons, and an agent row's `state` token SHALL take its icon's color.
 
 #### Scenario: Blocked agent
 - **WHEN** an agent's root record is `blocked`
 - **THEN** its row's `icon` token and its tab show a red `▲`
 
 ### Requirement: Tab rollup
-A tab row SHALL show the icon of the highest-ranked display state among its own panes and all its descendant tabs, ranking `blocked` and `error` first, then `unseen`, `working` and `idle`. A tab with no display states beneath it SHALL show no icon.
+A tab row SHALL show the icon of the highest-ranked display state among its own panes and all its descendant tabs, ranking `blocked` and `error` first, then `unseen`, `working` and `idle`. A tab with no display states beneath it SHALL show no icon. The icon SHALL sit in a fixed column at the row's left edge, ahead of the indent and fold marker, in line with the agent entries' icons.
 
 #### Scenario: Blocked inside a folded tab
 - **WHEN** a pane two levels down in a folded tab is `blocked` and a sibling pane is `working`
 - **THEN** the folded tab's row shows the blocked icon
 
+#### Scenario: Nested and long labels
+- **WHEN** a top-level tab and a tab two levels down with a long label both show icons
+- **THEN** both icons sit in the same column as the agent entries' icons
+
 ### Requirement: Agent list
-The agents section SHALL list one entry per pane with a display state, ordered by rank as in Tab rollup and by tree order, depth-first through the tabs, within each rank. With no such pane it SHALL show a `no agents` placeholder.
+The agents section SHALL list one entry per pane with a display state, ordered by rank as in Tab rollup and by tree order, depth-first through the tabs, within each rank. With no such pane it SHALL show a `no agents` placeholder. The entry of the attachment's selected pane SHALL be highlighted with full-brightness text on a dark gray band, as Herdr marks its active pane; no other entry SHALL be.
 
 #### Scenario: Order
 - **WHEN** one pane is `working`, a later pane in tree order is `blocked` and another is `idle`
 - **THEN** the list shows the blocked pane, then the working one, then the idle one
+
+#### Scenario: Selected agent
+- **WHEN** a tab holds two agents and the user selects one of their panes
+- **THEN** only that pane's entry is highlighted, and selecting the tab itself highlights none
 
 ### Requirement: Agent rows
 Each entry SHALL be drawn from the configured lines of tokens (see config-file's Agent settings), with the tokens of a line separated by spaces. A token with no value SHALL be left out, and a line left with no tokens SHALL be left out.
@@ -68,14 +76,18 @@ Each entry SHALL be drawn from the configured lines of tokens (see config-file's
 - **THEN** the entry is one line holding the icon and the pane's label
 
 ### Requirement: Jump to what needs the user
-`client.agents.next` SHALL go through the panes that need the user, `blocked` and `error` ones first and then `unseen` ones, in agent list order. It SHALL select the first of them after the selected pane in that order, wrapping to the first when the selected pane is the last or isn't one of them. With none, it SHALL do nothing. It SHALL take its turn in input order like other selection-changing actions.
+`client.agents.next` SHALL go through the panes that need the user, `blocked` and `error` ones first and then `unseen` ones, in agent list order. It SHALL select the first of them after the selected pane in that order, wrapping to the first when the selected pane is the last or isn't one of them. With none, it SHALL go through every listed agent the same way, and with no agents it SHALL do nothing. It SHALL take its turn in input order like other selection-changing actions.
 
 #### Scenario: Blocked, then unseen
 - **WHEN** one agent is blocked in another tab, another finished unseen, and the user presses `alt-a` twice
 - **THEN** the first press selects the blocked pane and the second selects the unseen one
 
 #### Scenario: Nothing needs the user
-- **WHEN** every agent is working or idle and the user presses `alt-a`
+- **WHEN** every agent is working or idle and the user presses `alt-a` repeatedly
+- **THEN** each press selects the next agent in list order, wrapping after the last
+
+#### Scenario: No agents
+- **WHEN** no pane has a root record and the user presses `alt-a`
 - **THEN** the selection doesn't change
 
 ### Requirement: Notifications
@@ -83,7 +95,7 @@ A pane whose root state becomes `blocked` or `error` SHALL trigger an attention 
 
 #### Scenario: Quick flip
 - **WHEN** an agent goes from `working` to `idle` and back to `working` within the delay
-- **THEN** nothing plays and nothing is marked unseen
+- **THEN** nothing plays
 
 #### Scenario: In view and focused
 - **WHEN** the agent's pane is in view in a focused window and the agent asks for approval

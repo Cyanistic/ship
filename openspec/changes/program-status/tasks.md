@@ -60,7 +60,7 @@ Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,
   - `ui/agents.rs` with `Display`, `Agent`, `display`, `rollup` and `list`, without unseen.
   - `ui/sidebar/agents.rs` with `Agents`, `icon` and `row`, and rollup icons on tab rows.
   - `rows` and the `Direction` resize in `keymap.rs`; `shift-j` and `shift-k` in `defaults.toml`; `Local.agents` replaced on reload; the new `draw` call in `draw.rs`.
-- [ ] 2.3 Verify:
+- [x] 2.3 Verify:
   - The four agents' rows and their tabs' icons match their screens within 2 seconds (SC-001's display part).
   - Thirty tabs and twenty reporting panes in a short terminal scroll independently and feel snappy (SC-008).
   - Dragging and `shift-j`/`shift-k` clamp at 10% and 90% with at least 3 rows per section.
@@ -70,7 +70,7 @@ Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,
 
 ### Slice 2 verification checkpoint
 
-Tasks 2.1 and 2.2 are complete. Task 2.3 stays open for Cyan's review: Codex and Pi ran live, and Claude Code and crush did not, as in slice 1.
+Tasks 2.1 to 2.3 are complete. Cyan accepted task 2.3 on 2026-10-18 after daily use through slice 3: Claude Code and Pi showed the right states live, and `rows = [["icon", "app"], ["title"]]` saved to Cyan's config redrew the entries without a restart. Codex ran live only in the scripted runs below. crush was never run. Snappiness is judged by Cyan's use.
 
 On macOS, formatting, workspace Clippy with warnings denied, debug and release workspace builds, `ship-core` checks without default features and with `clap`, and `git diff --check` pass.
 
@@ -89,20 +89,44 @@ Implementation Rust physical lines under crate/vendor `src/`: 14,081 before, 14,
 
 ## 3. Unseen, notifications and the jump key
 
-- [ ] 3.1 Add the notifier:
+- [x] 3.1 Add the notifier:
   - `ui/attention.rs` with `Attention`, `Watched`, `Pending` and `Fired`.
   - `Observer::in_view`, used by `apply`'s `Screen` arm.
   - Focus reporting and `TerminalGuard::notify` in `terminal.rs`.
-- [ ] 3.2 Wire it:
+- [x] 3.2 Wire it:
   - `attached` on attach, `observe` on each replica, `set_focused` on focus events, `viewed` after each redraw, and a `sleep_until` arm that calls `fire` and writes popups.
   - Unseen in `agents::display`, and `agents::next` for `ClientAgents::Next`.
   - `ClientAgents`, `delay_ms` and `popups` in `keymap.rs`; `alt-a` in `defaults.toml`.
-- [ ] 3.3 Verify:
+- [x] 3.3 Verify:
   - Attaching to five finished agents marks nothing unseen (SC-002).
   - A working-to-idle flip shorter than the delay marks nothing in 10 of 10 tries (SC-003's marking part).
   - With the pane in view, focused marks nothing and unfocused marks unseen until focus returns.
   - `alt-a` selects the blocked pane, then the unseen one, and does nothing when nothing needs the user.
   - With `popups = true`, Ghostty shows `<app> needs you · <path>: <msg>`, and escapes in a label or `msg` don't reach it (SC-005).
+
+### Slice 3 verification checkpoint
+
+Tasks 3.1 to 3.3 are complete. Cyan accepted task 3.3 on 2026-10-18 after seeing a popup arrive as a desktop notification in foot on Linux, from a release client running on the Mac over SSH with `popups = true`. Ghostty itself was not tried, and which notice it was isn't recorded; the popup text and escape stripping were checked from the client's output.
+
+On macOS, formatting, workspace Clippy with warnings denied, debug and release workspace builds, `ship-core` checks without default features and with `clap`, strict OpenSpec validation and `git diff --check` pass.
+
+A temporary script ran 12 checks through an owned server with isolated config and state, a real client in a pty, and scripted reporters. It read popups as OSC 9 sequences in the client's output and icons from a pyte replay, then stopped everything it started. All 16 passed. The run was repeated after the unseen mark moved to the moment of the change the selected agent's entry gained its highlight, idle turned green, and tab icons moved to a left gutter:
+- Five agents that went working and then idle or done before the client attached showed `○ idle`, with no unseen mark and no popup (SC-002).
+- Ten working, idle, working flips inside the 1 s delay left no popup, and no `◆` once the pane was working again (SC-003).
+- A pane in an unviewed tab that went working to idle showed a cyan `◆` on its row and tab within 0.4 s, before any popup, and wrote `q finished · quick` about 1.1 s after the report. Selecting the pane cleared both.
+- With the pane in view and focused, a blocked report and a finish fired nothing and marked nothing. After a focus-out sequence, a finish wrote its popup and marked the pane unseen, and a focus-in sequence cleared the mark.
+- From another tab, `alt-a` selected the blocked pane and then the unseen one. With nothing blocked or unseen, it went through all seven agents once, starting with the working one, and wrapped back to it. Cyan confirmed the fallback in a release client.
+- Claude's blocked report in `ship › api` wrote exactly `claude needs you · ship › api: Apply these changes?`.
+- A tab name and a pane name containing ESC and BEL reached the popup without them. A report with ESC in `msg` was dropped by the scanner, as in slice 1.
+- Saving `popups = false` and `delay_ms = 300` reloaded live: the next finish marked unseen in about 0.2 s and wrote no popup.
+- Selecting a pane put its agent entry, and only that entry, on a dark gray band with default-colored text. Selecting its tab or another tab's shell left every entry unbanded. On the band, the idle icon and `state` text drew green on dark gray.
+- Every tab icon and agent icon sat in column 1, whatever the tab's depth or label length. A separate script (`first.py`) showed the icons on a fresh attach with no selection, a click on a row's gutter selecting that tab's pane with the band across the gutter, the fold marker folding and unfolding, and two drags landing where their drop lines pointed.
+- A fresh attach started with no unseen panes.
+- `ship config check` rejected `delay_ms = "soon"` at line 2, column 12, and accepted a custom `alt-y` binding to `client.agents.next`.
+
+Evidence: `/tmp/ship-slice3/` (rig, checks, reporter) and the run directory `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-slice3-z1z9g8f1/`. Not checked: a zoomed tab's hidden panes (in view comes from the server's narrowed geometry, which slice 3 didn't change), and live agents, since Codex's and Pi's transitions were already recorded in slices 1 and 2. No permanent tests were added. Linux is unverified.
+
+Implementation Rust physical lines under crate/vendor `src/`: 14,653 before, 15,055 after (+402). Added permanent test lines: 0.
 
 ## 4. Sounds
 

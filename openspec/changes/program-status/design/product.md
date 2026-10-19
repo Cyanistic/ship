@@ -27,7 +27,7 @@ Tested independently by running each of the four agents in Ship through a turn, 
 - **Given** Codex asks for approval while the user is in another tab, **then** the attention sound plays.
 - **Given** the agent's pane is in view and the client's window has focus, **when** it finishes or asks for approval, **then** nothing plays and no unseen marker appears.
 - **Given** the agent's pane is in view but the window is unfocused (the user is on another monitor), **then** the sound plays and the pane is marked unseen until the window regains focus with the pane in view.
-- **Given** an agent flips from working to idle and back within the delay, **then** nothing plays and no marker appears.
+- **Given** an agent flips from working to idle and back within the delay, **then** nothing plays.
 - **Given** five agents finished while no client was attached, **when** a client attaches, **then** nothing plays and none is marked unseen.
 - **Given** popups are turned on, **then** each notification also appears as an outer-terminal notification such as `claude needs you · ship › api: Apply these changes?`.
 
@@ -93,22 +93,22 @@ A **status record** is what a pane's program last reported about itself through 
 
 Each client derives a **display state** for each pane with a root record: `blocked`, `error`, `working`, `unseen` or `idle`.
 
-- **FR-007** A reported `done` MUST display as `idle`, unless the client itself saw that pane change from `working` to `idle` or `done`. That change MUST make the pane `unseen` if it held for the notification delay and the pane wasn't in view in a focused window.
+- **FR-007** A reported `done` MUST display as `idle`, unless the client itself saw that pane change from `working` to `idle` or `done`. That change MUST make the pane `unseen` at once, without waiting for the notification delay, if the pane wasn't in view in a focused window.
 - **FR-008** A pane is **in view** when the client draws it in the current tab, taking zoom into account. An `unseen` pane MUST become `idle` once it is in view while the client's window has focus. A terminal that never reports focus MUST be treated as focused.
 - **FR-009** A client attaching MUST start with no `unseen` panes.
 - **FR-010** Each display state MUST have its own icon, distinguishable by both shape and color. The same icons MUST be used in agent rows and on tabs.
-- **FR-011** A tab MUST show the icon of the highest-priority display state among its own panes and all its descendant tabs, in the order `blocked` and `error`, `unseen`, `working`, `idle`. A tab with none MUST show no icon.
+- **FR-011** A tab MUST show the icon of the highest-priority display state among its own panes and all its descendant tabs, in the order `blocked` and `error`, `unseen`, `working`, `idle`. A tab with none MUST show no icon. The icon MUST sit in the same column on every tab row, whatever the row's depth or label length.
 
 ### The sidebar
 
 - **FR-012** The sidebar MUST show a tabs section on top and an agents section below, with a divider between them, whenever the sidebar is shown. With no pane reporting, the agents section MUST show a "no agents" placeholder.
 - **FR-013** The split MUST default to half the sidebar's height. Dragging the divider MUST change it, keeping 10–90% and at least 3 rows per section. A dragged split MUST last until the client exits.
 - **FR-014** Each section MUST scroll independently when its content overflows.
-- **FR-015** The agents section MUST list one row per pane with a root record, ordered by display state priority (FR-011), and by tree order (depth-first through the tabs) within each state.
+- **FR-015** The agents section MUST list one row per pane with a root record, ordered by display state priority (FR-011), and by tree order (depth-first through the tabs) within each state. The row of the selected pane MUST be highlighted, and no other.
 - **FR-016** An agent row MUST be laid out from configurable lines of tokens, drawn from `icon`, `app`, `state`, `tab`, `pane`, `title` and `msg`. `tab` MUST show the path of tab labels from the top level, shortened from the left when it doesn't fit. A token with no value MUST disappear, and so MUST a line left empty. The default MUST be `[["icon", "app", "state"], ["tab"]]`.
 - **FR-017** When a record has no `app`, the `app` token MUST show the pane's label as the sidebar and pane borders show it today.
 - **FR-018** Clicking an agent row MUST select its pane.
-- **FR-019** A client action MUST select the next pane that needs the user: `blocked` and `error` panes first, then `unseen`, in agent list order, continuing past the currently selected pane. With nothing that needs the user, it MUST do nothing. It MUST have a default key.
+- **FR-019** A client action MUST select the next pane that needs the user: `blocked` and `error` panes first, then `unseen`, in agent list order, continuing past the currently selected pane. With nothing that needs the user, it MUST go through every listed agent the same way; with no agents, it MUST do nothing. It MUST have a default key.
 
 ### Notifications
 

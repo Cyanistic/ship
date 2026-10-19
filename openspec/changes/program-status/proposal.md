@@ -15,9 +15,9 @@ Someone running several coding agents in Ship has to visit every pane to learn w
   - `ship pane get`, `ship tab list` and the attach replica carry them. The saved tabs don't.
 - **Display states.** Each client derives `blocked`, `error`, `working`, `unseen` or `idle` for every pane with a root record. Each state has its own icon and color. A tab shows the highest-ranked state among its panes and descendant tabs.
 - **The sidebar gets two sections.** Tabs on top, agents below, split 50/50, with a divider the user can drag or move with `shift-j` and `shift-k` in resize mode. Each section scrolls with the wheel on its own. Agent rows are laid out from configurable lines of tokens. Clicking a row selects its pane.
-- **Notifications.** A pane entering `blocked` or `error` notifies for attention. A pane going from `working` to `idle` or `done` notifies as done and marks the pane unseen. A notification fires only after its state holds for the delay (1 second by default), and never while the pane is in view in a focused window. Attaching starts with nothing unseen.
+- **Notifications.** A pane entering `blocked` or `error` notifies for attention. A pane going from `working` to `idle` or `done` notifies as done and marks the pane unseen at once. A notification fires only after its state holds for the delay (1 second by default), and never while the pane is in view in a focused window. Attaching starts with nothing unseen.
 - **Sounds and popups.** Bundled done and attention sounds play on the client's machine. Each can be turned off or replaced by a file, by default or per reported `app`. Optional popups go to the outer terminal as OSC 9.
-- **Jump key.** `alt-a` (`client.agents.next`) selects the next blocked or errored pane, then the next unseen one.
+- **Jump key.** `alt-a` (`client.agents.next`) selects the next blocked or errored pane, then the next unseen one, and cycles every agent when none of those exist.
 - **Config.** `[client.agents]` with `rows`, `delay_ms` and `popups`, and `[client.agents.sounds.default]` and `[client.agents.sounds.apps.<app>]`. `client.sidebar.resize` accepts `up` and `down`.
 
 Ship owns no per-agent knowledge: no detection rules, no hooks and no table of agent names.
