@@ -175,7 +175,7 @@ fn value(agent: &Agent, token: Token) -> Option<Span<'static>> {
     match token {
         Token::Icon => Some(icon(agent.display)),
         Token::App => text(agent.name()),
-        Token::State => text(agent.display.label()).map(|span| span.fg(color(agent.display))),
+        Token::State => text(agent.display.into()).map(|span| span.fg(color(agent.display))),
         Token::Tab => text(&agent.tab()),
         Token::Pane => text(pane_label(agent.pane)),
         Token::Title => text(agent.root.title.as_deref()?),

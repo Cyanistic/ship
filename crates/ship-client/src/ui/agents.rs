@@ -15,7 +15,8 @@ use super::{
 /// Between the tab labels of an agent's path.
 const SEPARATOR: &str = " › ";
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
 pub(super) enum Display {
     Blocked,
     Error,
@@ -25,16 +26,6 @@ pub(super) enum Display {
 }
 
 impl Display {
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Blocked => "blocked",
-            Self::Error => "error",
-            Self::Unseen => "unseen",
-            Self::Working => "working",
-            Self::Idle => "idle",
-        }
-    }
-
     /// Lower ranks first; blocked and error share the top rank.
     fn rank(self) -> u8 {
         match self {
