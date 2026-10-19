@@ -78,7 +78,7 @@ Warnings name the affected pane or file in the [server log](#logs-and-levels), i
 
 ## Reading and steering a client
 
-`ship view list` prints every attached client's view as JSON, keyed by attachment ID in attach order. Each record contains its pane or tab selection, when it has one, and its terminal area. Use an ID from that listing to read or change one client's selection:
+`ship view list` prints every attached client's view as JSON, keyed by attachment ID in attach order. Each record contains its pane or tab selection and terminal area, when it has them. An observer attachment has neither: it receives shared state without screens and does not affect pane sizes. Use an ID from that listing to read or change one client's selection:
 
 ```sh
 ship view list
@@ -489,5 +489,7 @@ If an older config uses `hint` on a key binding, rename it to `label`. `hint` is
 The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship pane rename` and their bindings with `set`. Use `--name ""` to clear a name; omitting `name` leaves it unchanged.
 
 Diagnostics moves protocol 12 to 13, adds live log-filter control and includes the current log part in health/status.
+
+Observer attachments move protocol 13 to 14. Attachments can omit their terminal area; observers have no selection or area and do not affect pane sizes.
 
 Update the client and server together. Before replacing the binary, finish or save running work and run `ship server stop` with the client that matches the running server. Stopping the server ends every program in it. Then rebuild or install the new version and start again. The new client refuses to talk to an older server with a different protocol version, including to stop it; keep the old client available until that server is stopped.

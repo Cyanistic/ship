@@ -13,11 +13,11 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 1. Observer attachments
 
-- [ ] 1.1 Make the attach area optional:
+- [x] 1.1 Make the attach area optional:
   - `AttachRequest.area` and `ViewingRecord.area` become `Option<Size>`, and `PROTOCOL_VERSION` becomes 14 (gate G3).
   - `tab_sizes` skips records without an area, and `SetView` stores `Some(area)`.
   - The full-screen client passes `Some` in `ui/mod.rs` and `ui/observer.rs`.
-- [ ] 1.2 Verify:
+- [x] 1.2 Verify:
   - `POST /api/v0/attach` with `{}` gets `attached` and then `state` events and no `screen` events, and `ship view list` shows its record without an area.
   - With a full-screen client attached, attaching an observer with curl leaves the tab's published `geometry` unchanged and the client draws as before.
   - Reconnecting and resizing the full-screen client still work.
