@@ -101,7 +101,7 @@ Implementation Rust physical lines under crate/vendor `src/`: 14,081 before, 14,
   - Attaching to five finished agents marks nothing unseen (SC-002).
   - A working-to-idle flip shorter than the delay marks nothing in 10 of 10 tries (SC-003's marking part).
   - With the pane in view, focused marks nothing and unfocused marks unseen until focus returns.
-  - `alt-a` selects the blocked pane, then the unseen one, and does nothing when nothing needs the user.
+  - `alt-a` selects the blocked pane, then the unseen one, and cycles every agent when nothing needs the user.
   - With `popups = true`, Ghostty shows `<app> needs you · <path>: <msg>`, and escapes in a label or `msg` don't reach it (SC-005).
 
 ### Slice 3 verification checkpoint
@@ -130,12 +130,12 @@ Implementation Rust physical lines under crate/vendor `src/`: 14,653 before, 15,
 
 ## 4. Sounds
 
-- [ ] 4.1 Add the speaker and clips:
+- [x] 4.1 Add the speaker and clips:
   - `sound.rs` with `Clip`, `Cue` and `Speaker`, and `pub mod sound` in the client's `lib.rs`.
-  - The bundled `done.mp3` and `attention.mp3` with `ATTRIBUTION.md`, and `rodio` in the manifests.
+  - The bundled `done.wav` and `attention.wav` with `ATTRIBUTION.md`, and `rodio` in the manifests.
   - `Notice`, `Sound`, `Sounds`, `NoticeSounds`, `Sounds::load` and `Sounds::resolve` in `keymap.rs`.
-- [ ] 4.2 Wire `Local.speaker` and play each fired notification's resolved clip.
-- [ ] 4.3 Verify:
+- [x] 4.2 Wire `Local.speaker` and play each fired notification's resolved clip.
+- [x] 4.3 Verify:
   - Done and attention play their bundled sounds.
   - A `{ path = ... }` sound plays, including one relative to the config file and one under `~`.
   - A missing or non-audio file logs a warning naming it when the config is saved, and the bundled sound plays in its place.
@@ -143,6 +143,28 @@ Implementation Rust physical lines under crate/vendor `src/`: 14,653 before, 15,
   - SC-003 and SC-004 with sound.
   - With no output device, or a forced open failure, the client attaches, works and logs once (SC-007).
   - The Linux build is reported unverified unless built there.
+
+### Slice 4 verification checkpoint
+
+Tasks 4.1 to 4.3 are complete. Cyan accepted task 4.3 on 2026-10-18 after hearing the sounds play on the Mac while the scripted runs below were going; which clip played at each moment was not confirmed by ear.
+
+On macOS, formatting, workspace Clippy with warnings denied, debug and release workspace builds and strict OpenSpec validation pass. The Linux build, which needs ALSA headers for cpal, is unverified, as is playback on Linux. On Linux, libasound can also print to stderr on its own, outside rodio's `tracing` feature; whether that reaches the client's screen is unchecked.
+
+A temporary script ran 13 checks through the slice 3 rig: an owned server, isolated config and state, a real client in a pty and scripted reporters. It took a sound as played when macOS listed an `audio-out` power assertion created for the client's PID. All 13 passed.
+- An idle client held no audio output, at 0.0% CPU per second over five seconds. A first version that kept the output open held the assertion the whole time, which blocks idle sleep, at 0.6–0.8% CPU; see the deviation log.
+- A finish and a blocked report in an unviewed tab each played, and the output was released afterwards.
+- `done = { path = "sounds/ding.wav" }` beside the config and `{ path = "~/.cache/…" }` each played without a warning.
+- Saving a config with a missing `done` file and a text file as `attention` logged one warning naming each, and the next finish still played.
+- With `apps.droid.done = "off"`, Droid finishing played nothing but still wrote its popup, Droid's blocked report played, and Claude finishing played.
+- Five working, idle, working flips inside the delay played nothing (SC-003), and a blocked report in view and focused played nothing (SC-004).
+- `ship config check` accepted a config whose sound files were missing or not audio and printed nothing, and rejected `{ builtin = "ding" }` at line 2, column 20, naming `done` and `attention`.
+- The slice 3 script's 16 checks still passed.
+
+A second script, with the device open temporarily forced to fail and reverted afterwards, had three finishes write their popups, typing reach the shell, and the client log one `cannot open audio output for sounds` warning in all (SC-007).
+
+Evidence: `/tmp/ship-slice4/` (`s4.py`, `nodev.py`, test sounds) with the run directory `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-slice3-649ksyw7/`. Not checked: which clip played, since the assertion shows only that the client played something; Codex's `idle` turn ends sounding through a live agent; and a device unplugged mid-session.
+
+Implementation Rust physical lines under crate/vendor `src/`: 15,055 before, 15,299 after (+244). Added permanent test lines: 0.
 
 ## 5. Documents and size
 

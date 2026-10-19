@@ -123,7 +123,7 @@ Each client derives a **display state** for each pane with a root record: `block
 
 - **FR-026** The product brief's milestone 3 MUST be amended. The reporting interface becomes OSC 7501. Hooks and screen-based detection move to later, needed only for an agent Cyan uses that never adopts the protocol.
 - **FR-027** The glossary MUST gain **Status record** and **Display state**, defined as above.
-- **FR-028** The bundled sounds are Herdr's `done.mp3` and `request.mp3`, used under Apache-2.0 with attribution. Where they came from MUST be confirmed before a public release, and they MUST be replaced if that can't be confirmed.
+- **FR-028** The bundled sounds are `confirmation_002` for done and `error_007` for attention, from Kenney's Interface Sounds pack, which is dedicated to the public domain under CC0 1.0. An attribution file credits the pack anyway.
 
 ## Success criteria
 
