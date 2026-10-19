@@ -71,6 +71,7 @@ use crate::{
         Action, AgentSettings, ClientAction, ClientAgents, ClientPane, ClientSettings, ClientTab,
         ConfigAction, Menus, Sidebar as SidebarAction,
     },
+    sound::Speaker,
     watch,
 };
 
@@ -180,6 +181,7 @@ async fn drive(
         input: None,
         message,
         attention: Attention::default(),
+        speaker: Speaker::start(),
         agents: settings.agents,
     };
     let mut saves: Option<Saves> = match watch::changes(config) {
@@ -294,9 +296,11 @@ async fn drive(
                 false
             }
             () = until(local.attention.due()) => {
-                let fired = local.attention.fire(&local.observer, Instant::now());
-                if local.agents.popups {
-                    for fired in &fired {
+                for fired in local.attention.fire(&local.observer, Instant::now()) {
+                    if let Some(clip) = local.agents.sounds.resolve(fired.app.as_deref(), fired.notice) {
+                        local.speaker.play(clip);
+                    }
+                    if local.agents.popups {
                         guard.notify(&fired.popup())?;
                     }
                 }
@@ -455,6 +459,7 @@ struct Local {
     input: Option<mpsc::UnboundedSender<InputFrame>>,
     message: Option<String>,
     attention: Attention,
+    speaker: Speaker,
     /// Replaced whole on reload; readers take the piece they need.
     agents: AgentSettings,
 }

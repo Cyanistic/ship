@@ -4,6 +4,7 @@
 mod api;
 mod execute;
 pub mod keymap;
+pub mod sound;
 pub mod ui;
 mod watch;
 

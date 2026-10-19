@@ -21,9 +21,11 @@ struct Pending {
     due: Instant,
 }
 
-/// A fired notification, carrying what the popup needs.
+/// A fired notification, carrying what the popup and sound need.
 pub(super) struct Fired {
     pub notice: Notice,
+    /// The record's `app`, which picks the sound.
+    pub app: Option<String>,
     /// The app, else the pane's label.
     pub name: String,
     pub path: String,
@@ -169,6 +171,7 @@ impl Attention {
                 let agent = agents.iter().find(|agent| agent.pane.id == pane)?;
                 Some(Fired {
                     notice,
+                    app: agent.root.app.clone(),
                     name: agent.name().to_owned(),
                     path: agent.tab(),
                     message: agent.root.msg.clone(),

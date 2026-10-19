@@ -1,6 +1,12 @@
 //! `[client]` in the config file: settings, modes and their bindings.
 
-use std::{borrow::Cow, collections::HashMap, path::Path, time::Duration};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    env,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use crokey::KeyCombination;
 use indexmap::IndexMap;
@@ -13,6 +19,8 @@ use ship_core::{
     config,
     prelude::*,
 };
+
+use crate::sound::{Clip, Cue};
 
 const DEFAULTS: &str = include_str!("keymap/defaults.toml");
 
@@ -31,6 +39,7 @@ pub struct AgentSettings {
     pub delay: Duration,
     /// Whether fired notifications are also written as OSC 9 popups.
     pub popups: bool,
+    pub sounds: Sounds<Cue>,
 }
 
 /// One value in an agent's entry.
@@ -53,6 +62,123 @@ pub enum Token {
 pub enum Notice {
     Done,
     Attention,
+}
+
+/// `"off"`, `{ builtin = "done" }` or `{ path = "~/ding.wav" }`.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Sound {
+    Off,
+    Builtin(Notice),
+    Path(PathBuf),
+}
+
+/// `[client.agents.sounds]`: the defaults and each app's overrides. `S` is
+/// `Sound` as written, `Cue` once loaded.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, bound = "S: Deserialize<'de>")]
+pub struct Sounds<S> {
+    #[serde(default)]
+    pub default: NoticeSounds<S>,
+    /// Keyed by the record's `app`.
+    #[serde(default)]
+    pub apps: HashMap<String, NoticeSounds<S>>,
+}
+
+/// One slot per notice; unset falls through to the next level.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, bound = "S: Deserialize<'de>")]
+pub struct NoticeSounds<S> {
+    pub done: Option<S>,
+    pub attention: Option<S>,
+}
+
+impl<S> Default for Sounds<S> {
+    fn default() -> Self {
+        Self {
+            default: NoticeSounds::default(),
+            apps: HashMap::new(),
+        }
+    }
+}
+
+impl<S> Default for NoticeSounds<S> {
+    fn default() -> Self {
+        Self {
+            done: None,
+            attention: None,
+        }
+    }
+}
+
+impl Sounds<Sound> {
+    /// Each path read into a clip; a bad file becomes the bundled clip for
+    /// its slot's notice, with a warning naming it.
+    fn load(self, base: &Path) -> Sounds<Cue> {
+        Sounds {
+            default: self.default.load(base),
+            apps: self
+                .apps
+                .into_iter()
+                .map(|(app, sounds)| (app, sounds.load(base)))
+                .collect(),
+        }
+    }
+}
+
+impl Sounds<Cue> {
+    /// The app's cue, else the default's, else the notice's bundled clip;
+    /// `None` for `off`.
+    pub fn resolve(&self, app: Option<&str>, notice: Notice) -> Option<Clip> {
+        let cue = app
+            .and_then(|app| self.apps.get(app)?.get(notice))
+            .or_else(|| self.default.get(notice));
+        match cue {
+            Some(Cue::Off) => None,
+            Some(Cue::Play(clip)) => Some(clip.clone()),
+            None => Some(Clip::bundled(notice)),
+        }
+    }
+}
+
+impl NoticeSounds<Sound> {
+    fn load(self, base: &Path) -> NoticeSounds<Cue> {
+        let load = |sound: Option<Sound>, notice| sound.map(|sound| sound.load(base, notice));
+        NoticeSounds {
+            done: load(self.done, Notice::Done),
+            attention: load(self.attention, Notice::Attention),
+        }
+    }
+}
+
+impl<S> NoticeSounds<S> {
+    fn get(&self, notice: Notice) -> Option<&S> {
+        match notice {
+            Notice::Done => self.done.as_ref(),
+            Notice::Attention => self.attention.as_ref(),
+        }
+    }
+}
+
+impl Sound {
+    /// A path resolves against `base`, the config file's directory, with a
+    /// leading `~` taken as the home directory.
+    fn load(self, base: &Path, notice: Notice) -> Cue {
+        match self {
+            Self::Off => Cue::Off,
+            Self::Builtin(builtin) => Cue::Play(Clip::bundled(builtin)),
+            Self::Path(path) => {
+                let path = match (path.strip_prefix("~"), env::home_dir()) {
+                    (Ok(rest), Some(home)) => home.join(rest),
+                    _ => base.join(path),
+                };
+                Cue::Play(Clip::load(&path).unwrap_or_else(|error| {
+                    tracing::warn!("{error}; using the bundled sound instead");
+                    Clip::bundled(notice)
+                }))
+            }
+        }
+    }
 }
 
 pub struct Keymap {
@@ -275,6 +401,8 @@ struct AgentsFile {
     rows: Option<Vec<Vec<Token>>>,
     delay_ms: Option<u64>,
     popups: Option<bool>,
+    #[serde(default)]
+    sounds: Sounds<Sound>,
 }
 
 #[derive(Default, Deserialize)]
@@ -315,14 +443,21 @@ impl ClientSettings {
     /// chord replaces the default on that chord. Used at startup, on reload
     /// and by `ship config check`.
     pub fn load(path: &Path) -> Result<Self> {
-        Ok(Self::over_defaults(config::load(path)?))
+        let base = path.parent().unwrap_or(Path::new(""));
+        Ok(Self::over_defaults(config::load(path)?, base))
+    }
+
+    /// `load` without reading sound files, so a bad one isn't reported.
+    pub fn check(path: &Path) -> Result<()> {
+        config::load::<File>(path).map(drop)
     }
 
     pub fn defaults() -> Self {
-        Self::over_defaults(File::default())
+        Self::over_defaults(File::default(), Path::new(""))
     }
 
-    fn over_defaults(file: File) -> Self {
+    /// Sound paths resolve against `base`.
+    fn over_defaults(file: File, base: &Path) -> Self {
         let defaults: File = match toml::from_str(DEFAULTS) {
             Ok(defaults) => defaults,
             Err(error) => panic!("invalid default keys: {error}"),
@@ -379,6 +514,7 @@ impl ClientSettings {
                 }),
                 delay: Duration::from_millis(file.client.agents.delay_ms.unwrap_or(1000)),
                 popups: file.client.agents.popups.unwrap_or(false),
+                sounds: file.client.agents.sounds.load(base),
             },
         }
     }
