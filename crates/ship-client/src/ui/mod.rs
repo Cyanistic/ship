@@ -52,6 +52,7 @@ use tokio::{
     time::{self, MissedTickBehavior},
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::{Instrument, field};
 
 use self::{
     attention::Attention,
@@ -150,6 +151,8 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
         drive(
             client, &mut guard, request, events, signaled, config, loaded,
         )
+        // Every client line names its connection; each attach records it.
+        .instrument(tracing::info_span!("client", attachment = field::Empty))
         .await
     }?;
     tracing::info!(?exit, "client exiting");
@@ -220,7 +223,9 @@ async fn drive(
                 }
                 Some(Ok(event)) => {
                     if let SseEvent::Attached(attached) = &event {
-                        tracing::info!(attachment = %attached.attachment, "attached");
+                        tracing::Span::current()
+                            .record("attachment", field::display(attached.attachment));
+                        tracing::info!("attached");
                         let (frames, received) = mpsc::unbounded_channel();
                         local.input = Some(frames);
                         sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));

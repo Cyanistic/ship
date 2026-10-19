@@ -169,6 +169,7 @@ pub(crate) struct PaneMouse {
     pub from: IdOf<Attachment>,
 }
 
+#[derive(strum::IntoStaticStr)]
 pub(crate) enum PaneCommand {
     Mouse(PaneMouse),
     /// Encoded by the wrapper against the terminal's live modes.
@@ -495,7 +496,7 @@ impl PaneTask {
     }
 
     /// Exited programs ignore keys, pastes and resizes, but keep history input.
-    #[traced]
+    #[traced(fields(kind = %<&str>::from(&command)))]
     fn command(&mut self, command: PaneCommand) {
         if self.exit.reaped
             && !matches!(
@@ -573,7 +574,7 @@ impl PaneTask {
     /// directory if they changed. A shell that hasn't reported OSC 7, such as
     /// zsh under oh-my-zsh with SSH variables set, has its working directory
     /// read instead; its prompt after a `cd` is output, so it lands here.
-    #[traced]
+    #[traced(fields(screen = false))]
     async fn publish(&mut self) {
         let (rendered, render) = oneshot::channel();
         self.session.render(Box::new(move || {
@@ -607,6 +608,7 @@ impl PaneTask {
             dir = self.pid.and_then(process_cwd);
         }
         if let Some(screen) = capture(&self.session, &mut self.buffer) {
+            tracing::Span::current().record("screen", true);
             tracing::trace!(pane = %self.pane, "screen published");
             self.screen.send_replace(Arc::new(screen));
         }
