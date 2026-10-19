@@ -158,13 +158,16 @@ impl Error for AppError {
 }
 
 /// Status from `ErrorCode::http_status`; body is the serialized `AppError`
-/// so the client can show the original message.
+/// so the client can show the original message. The error also rides in the
+/// response's extensions for the server's request log.
 #[cfg(feature = "axum")]
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = StatusCode::from_u16(self.code().http_status())
             .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-        (status, Json(self)).into_response()
+        let mut response = (status, Json(&self)).into_response();
+        response.extensions_mut().insert(self);
+        response
     }
 }
 

@@ -332,6 +332,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         .spawn(move || {
             let _entered = exit_span.enter();
             if let Some(status) = program::wait(child) {
+                tracing::info!(%pane, pid, code = status.code, signal = status.signal.as_deref(), "pane program exited");
                 exit_tx.send(status).ok();
             }
         })
@@ -373,6 +374,8 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         task.run(commands_rx, cancel.clone(), done_tx)
             .instrument(tracing::info_span!(parent: None, "pane", pane = %pane)),
     );
+    // Only the program, not its arguments, which can carry secrets.
+    tracing::info!(%pane, pid, program = %argv[0], cwd = %cwd.display(), "pane program started");
     Ok(Spawned {
         runtime: PaneRuntime {
             handle: PaneHandle {
@@ -903,7 +906,12 @@ mod program {
                     sleep(POLL).await;
                 }
             };
-            timeout(GRACE, settle).await.ok();
+            if timeout(GRACE, settle).await.is_err() {
+                tracing::info!(
+                    group = self.group.as_raw(),
+                    "pane program outlived SIGHUP; killing"
+                );
+            }
             signal(&groups, Signal::SIGKILL);
             exit.wait().await;
         }
@@ -924,7 +932,10 @@ mod program {
                     signal: Some(signal.as_str().to_owned()),
                 }),
                 Ok(_) | Err(Errno::EINTR) => continue,
-                Err(_) => None,
+                Err(error) => {
+                    tracing::warn!(pid = pid.as_raw(), %error, "cannot wait for pane program");
+                    None
+                }
             };
         }
     }

@@ -98,6 +98,7 @@ enum Step {
 }
 
 /// Why the client stopped.
+#[derive(Debug)]
 enum Exit {
     Detached,
     ServerStopped,
@@ -124,7 +125,10 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
     let signaled = signaled()?;
     let loaded = match ClientSettings::load(config) {
         Ok(settings) => (settings, None),
-        Err(error) => (ClientSettings::defaults(), Some(error.to_string())),
+        Err(error) => {
+            tracing::warn!(config = %config.display(), %error, "config unusable; using defaults");
+            (ClientSettings::defaults(), Some(error.to_string()))
+        }
     };
     let (cols, rows) = terminal_size()?;
     let area = draw::tab_area(cols, rows, loaded.0.sidebar_width);
@@ -148,6 +152,7 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
         )
         .await
     }?;
+    tracing::info!(?exit, "client exiting");
     match exit {
         Exit::Detached => eprintln!("detached"),
         Exit::ServerStopped => eprintln!("server stopped"),
@@ -187,6 +192,7 @@ async fn drive(
     let mut saves: Option<Saves> = match watch::changes(config) {
         Ok(saves) => Some(Box::pin(saves)),
         Err(error) => {
+            tracing::warn!(config = %config.display(), %error, "cannot watch config; live reload off");
             local.message = local.message.or(Some(error.to_string()));
             None
         }
@@ -214,6 +220,7 @@ async fn drive(
                 }
                 Some(Ok(event)) => {
                     if let SseEvent::Attached(attached) = &event {
+                        tracing::info!(attachment = %attached.attachment, "attached");
                         let (frames, received) = mpsc::unbounded_channel();
                         local.input = Some(frames);
                         sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));
@@ -238,7 +245,11 @@ async fn drive(
                     visible
                 }
                 // Keep the screens, but abandon all work from this connection.
-                Some(Err(_)) | None => {
+                lost => {
+                    match lost {
+                        Some(Err(error)) => tracing::warn!(%error, "disconnected; reconnecting"),
+                        _ => tracing::warn!("event stream ended without notice; reconnecting"),
+                    }
                     events = None;
                     local.input = None;
                     sending = None;
@@ -261,14 +272,18 @@ async fn drive(
                     events = Some(stream);
                     false
                 }
-                Err(_) => {
+                Err(error) => {
+                    tracing::debug!(%error, ?backoff, "reconnect failed");
                     backoff = (backoff * 2).min(MAX_BACKOFF);
                     request.area = view_area(terminal, &local.sidebar);
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
                     false
                 }
             },
-            _ = finish(&mut sending) => {
+            result = finish(&mut sending) => {
+                if let Err(error) = result {
+                    tracing::warn!(%error, "input stream failed");
+                }
                 sending = None;
                 local.input = None;
                 false
@@ -282,7 +297,10 @@ async fn drive(
             save = next(&mut saves) => {
                 match save {
                     Some(()) => {
-                        local.message = local.reload(guard, config).err().map(|error| error.to_string());
+                        local.message = local.reload(guard, config).err().map(|error| {
+                            tracing::warn!(config = %config.display(), %error, "config reload failed");
+                            error.to_string()
+                        });
                     }
                     None => saves = None,
                 }

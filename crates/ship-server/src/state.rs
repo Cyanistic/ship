@@ -87,6 +87,13 @@ impl ServerState {
         state.tabs = state.restore(saved.into_tabs());
         // Drops nothing here; publishes the restored runtimes' handles.
         state.retain_runtimes();
+        if !state.tabs.is_empty() {
+            tracing::info!(
+                tabs = state.tabs.len(),
+                panes = state.runtimes.len(),
+                "restored tabs"
+            );
+        }
         state
     }
 
@@ -156,7 +163,14 @@ impl ServerState {
         };
         self.viewers = viewers
             .into_iter()
-            .map(|(attachment, record)| (attachment, Self::repair(&self.tabs, &tabs, record)))
+            .map(|(attachment, record)| {
+                let before = record.selection;
+                let record = Self::repair(&self.tabs, &tabs, record);
+                if record.selection != before {
+                    tracing::debug!(%attachment, from = ?before, to = ?record.selection, "selection repaired");
+                }
+                (attachment, record)
+            })
             .collect();
         self.tabs = tabs;
         self.retain_runtimes();
@@ -802,6 +816,7 @@ impl Message<Attach> for ServerState {
             Ok(())
         })
         .await?;
+        tracing::info!(%attachment, viewers = self.viewers.len(), "client attached");
         Ok(Attached {
             attachment,
             replica: self.replica(),
@@ -826,7 +841,9 @@ impl Message<Detach> for ServerState {
             viewers.shift_remove(&attachment);
             Ok(())
         })
-        .await
+        .await?;
+        tracing::info!(%attachment, viewers = self.viewers.len(), "client detached");
+        Ok(())
     }
 }
 

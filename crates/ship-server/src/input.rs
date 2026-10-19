@@ -65,6 +65,8 @@ pub(crate) async fn input(
                     Ok(Some(frame)) => route(&app.live.borrow(), frame, attachment),
                     Ok(None) => {}
                     Err(error) => {
+                        // Never the line itself: a paste can hold secrets.
+                        tracing::warn!(%attachment, %error, "input stream stopped at a bad line");
                         return Ok((StatusCode::UNPROCESSABLE_ENTITY, Json(error)).into_response());
                     }
                 }
@@ -95,14 +97,17 @@ fn frame(line: &str) -> Result<Option<InputFrame>> {
         .map_err(|error| err!(Validation, "malformed input frame", @external: error))
 }
 
-#[traced]
+#[traced(fields(attachment = %from))]
 fn route(live: &LivePanes, frame: InputFrame, from: IdOf<Attachment>) {
     let (pane, command) = match frame {
         InputFrame::Key(KeyInput { pane, key }) => (pane, PaneCommand::Key(key)),
         InputFrame::Paste(PasteInput { pane, text }) => (pane, PaneCommand::Paste(text)),
         InputFrame::Mouse(input) => (input.pane, PaneCommand::Mouse(PaneMouse { input, from })),
     };
-    if let Some(handle) = live.get(&pane) {
-        handle.commands.send(command).ok();
+    match live.get(&pane) {
+        Some(handle) => {
+            handle.commands.send(command).ok();
+        }
+        None => tracing::debug!(%pane, "input for a removed pane dropped"),
     }
 }

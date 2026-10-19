@@ -155,6 +155,7 @@ impl Saver {
             .map_err(|error| err!(Internal, "cannot serialize saved tabs", @external: error))?;
         let path = self.path.clone();
         let kept_prev = self.kept_prev;
+        let size = bytes.len();
         spawn_blocking(move || {
             if !kept_prev {
                 match fs::read(&path) {
@@ -169,6 +170,7 @@ impl Saver {
         })
         .await
         .map_err(|error| err!(Internal, "save task failed", @external: error))??;
+        tracing::debug!(path = %self.path.display(), bytes = size, "tabs saved");
         self.written = tabs;
         self.kept_prev = true;
         Ok(())

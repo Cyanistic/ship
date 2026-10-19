@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use axum::{extract::Request, middleware::Next, response::Response};
 use ship_core::{
+    AppError,
     id::{Attachment, IdOf},
     protocol::{ATTACHMENT_HEADER, REVISION_HEADER},
 };
@@ -36,11 +37,15 @@ pub(crate) async fn trace_request(request: Request, next: Next) -> Response {
         .and_then(|value| value.parse::<u64>().ok());
     let status = response.status().as_u16();
     let duration_ms = start.elapsed().as_secs_f64() * 1000.0;
+    let error = response
+        .extensions()
+        .get::<AppError>()
+        .map(ToString::to_string);
     // Include context on the event itself: the debug span may be disabled.
     if response.status().is_server_error() {
-        tracing::warn!(request_id = %id, attachment_id = attachment.as_deref(), revision, %method, %path, status, duration_ms, "request completed");
+        tracing::warn!(request_id = %id, attachment_id = attachment.as_deref(), revision, %method, %path, status, duration_ms, error = error.as_deref(), "request completed");
     } else {
-        tracing::debug!(request_id = %id, attachment_id = attachment.as_deref(), revision, %method, %path, status, duration_ms, "request completed");
+        tracing::debug!(request_id = %id, attachment_id = attachment.as_deref(), revision, %method, %path, status, duration_ms, error = error.as_deref(), "request completed");
     }
     response
 }

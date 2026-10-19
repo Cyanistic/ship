@@ -131,6 +131,9 @@ async fn dispatch(
                 diagnostics.server_log(),
             )
             .await
+            // stderr is gone for a background server, so the run log is the only record.
+            .inspect(|()| tracing::info!("server stopped"))
+            .inspect_err(|error| tracing::error!(%error, "server failed"))
         }
         Some(Command::Config(cli::ConfigCommand::Check { file })) => {
             commands::check_config(&match file {
@@ -157,7 +160,10 @@ async fn dispatch(
             } else {
                 local::default_health(&client, &cli.config_path()?).await?
             };
-            ui::run(&client, open_first, &cli.config_path()?).await
+            ui::run(&client, open_first, &cli.config_path()?)
+                .await
+                // The client log has no stderr layer, so this doesn't repeat main's message.
+                .inspect_err(|error| tracing::error!(%error, "client failed"))
         }
     }
 }

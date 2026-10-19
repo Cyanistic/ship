@@ -51,6 +51,8 @@ impl Diagnostics {
                 };
                 let next = EnvFilter::try_new(next)
                     .map_err(|error| err!(Validation, "invalid log filter", @external: error))?;
+                // Before the reload, so a quieter filter can't hide it.
+                tracing::info!(filter = %next, "log filter changed");
                 filter.reload(next).map_err(
                     |error| err!(Internal, "cannot reload log filter", @external: error),
                 )?;
