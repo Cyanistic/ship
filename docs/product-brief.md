@@ -112,11 +112,9 @@ Include:
 - An unseen-completion indicator distinct from an agent being actively busy.
 - An agent list and jump-to-agent action.
 - Desktop and audio notifications with simple configuration.
-- A shared reporting interface for agent hooks.
-- Pi integration first, then the agents Cyan actually uses.
-- Screen-based detection where explicit reporting is unavailable and the behavior can be validated.
+- OSC 7501, the [Program Status Protocol](https://www.superlogical.com/rex/docs/build/program-status), as the reporting interface. Claude Code, Codex, Pi and crush already emit it, so Ship keeps no per-agent knowledge and an agent that adopts it needs no Ship change.
 
-An integration should be a small adapter to shared behavior, not require a plugin framework. Prefer explicit reports where available; do not make a broad catalog of screen heuristics an initial deliverable.
+Hooks and screen-based detection move to later, needed only for an agent Cyan uses that never adopts the protocol. Even then, an integration should be a small adapter that reports through the same records, not a plugin framework or a broad catalog of screen heuristics. The program-status change amended this milestone.
 
 Completion evidence:
 
@@ -124,7 +122,7 @@ Completion evidence:
 - An agent requesting input or finishing unseen work is discoverable without visiting every pane.
 - Unknown state is shown honestly rather than treated as completion.
 - Notifications respect configuration, and unavailable optional notification/audio facilities do not break terminal work.
-- Pi lifecycle reporting is demonstrated against real sessions.
+- Agents' own reports are shown against real sessions.
 
 ### 4. Let agents operate the workspace
 
@@ -169,7 +167,7 @@ Completion evidence: clients do not fight over their local focus or corrupt shar
 | Plugin framework and marketplace | Defer until a concrete extension need exists; no first-slice runtime, manifests or registry. Herdr/Zellij ownership research is context, not an adopted plugin model. |
 | Built-in worktree management | Use Git or Worktrunk in ordinary panes. |
 | Self-update and release channels | Use normal installation/distribution tooling initially. |
-| Every agent integration | Expand from actual use through the shared reporting interface. |
+| Agent hooks and screen-based detection | Only for an agent Cyan uses that never adopts OSC 7501, reporting into the same status records. |
 | Advanced terminal graphics and inline images | Separate compatibility work; not an initial requirement. |
 | Exact saved-screen replay | Follow basic persistence if useful. |
 | Live server upgrades and process handoff | Defer; distinguish ordinary restart/restore from process survival. |
@@ -186,7 +184,6 @@ Resolve these during slice design and dependency experiments, not by silently tr
 - Proposed metadata checkpoint scope, actor ownership topology, creation responses and attachment lifetime.
 - Detailed shared-state fields and per-client view state. Focus is client-local but reportable as presence; concurrent terminal input is allowed. Tab geometry follows the minimum available width and height among clients currently viewing that tab; behavior with no viewers remains to be specified.
 - Saved-state format evolution, recovery policy and agent resume descriptions.
-- Agent reporting protocol and the next integrations after Pi.
 - Minimal fixed interaction/exit bindings for the first slice. Configuration format, storage, configurable key matching/reload and plugin ownership are deferred to later slices; see [ownership research](research/config-plugin-ownership.md).
 - Remote authentication, command delivery/retry behavior and transport, before remote implementation.
 - Repository location, project license and package/distribution identifiers.

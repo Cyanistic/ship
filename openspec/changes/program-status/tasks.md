@@ -48,7 +48,7 @@ Live evidence: `/tmp/ship-live-scripts/` and the `codex-watch.log` and `pi-watch
 
 Temporary protocol evidence: `/tmp/ship-status-probe.py` and `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-status-slice1-q2155f0f/results.json`. No permanent tests were added. Linux is unverified.
 
-Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,081 after (+430). Added permanent test lines: 0. The scanner is 248 lines and the record module 75; the scanner estimate was low once the specified decoding, validation and bounded split-sequence handling were implemented.
+Implementation Rust under `crates/*/src/`, counted by cloc as code lines and leaving out `vendor/`: 9,614 before this change, 10,730 now (+1,116, after slice 5 replaced `Display::label` with strum's `IntoStaticStr`). The vendored widget gained another 259. The physical-line count used by earlier slices, crates and vendor together, is 13,651 before and 15,295 now. Test lines: none under `crates/`, 988 code lines under `vendor/`, unchanged; this change added none.
 
 ## 2. Sidebar sections and display states
 
@@ -168,12 +168,29 @@ Implementation Rust physical lines under crate/vendor `src/`: 15,055 before, 15,
 
 ## 5. Documents and size
 
-- [ ] 5.1 Document the user-visible behavior:
+- [x] 5.1 Document the user-visible behavior:
   - `docs/guide.md`: the agents section, display states, the jump key, notification settings, sounds, popups, focus, the OSC 133 requirement for exit recovery and the tmux limitation.
   - `README.md`: agent status in "What works today", `alt-a` in the default keys, and ALSA headers in the Linux install notes.
   - `GLOSSARY.md`: **Status record** and **Display state** (FR-027).
   - The product brief's milestone 3 (FR-026), and ALSA headers in `docs/agents/codebase.md`.
-- [ ] 5.2 Verify:
+- [x] 5.2 Verify:
   - `openspec validate program-status --type change --strict`, every link resolves, and the guide's config examples pass `ship config check`.
   - Implementation Rust and test lines reported separately against the count before this change.
 - [ ] 5.3 When the PR opens, file the tracking issue for adopting the libghostty-rs program status and semantic prompt bindings and deleting the scanner, and issues for anything else left open.
+
+### Slice 5 checkpoint
+
+Tasks 5.1 and 5.2 are complete and wait on Cyan's review. Task 5.3 waits on the PR.
+
+- `docs/guide.md` gained an Agents section (entries, icons, rollup, unseen marks and focus, `alt-a`, the split), Notifications and sounds, When status is wrong or missing, and Agent settings under Configuration.
+- `client.sidebar.resize` in the guide no longer says only `left` and `right` are accepted.
+- The OSC 133 paragraph gives a two-line zsh hook. A temporary probe ran it in an owned server: an agent that reported `working` and died by `kill -9` before the prompt was cleared with the hook and stayed `working` without it.
+- `README.md` changed beyond the task's three items: the warning banner and the overview said agent status wasn't built, and both now say agents can't drive the workspace yet. The mouse sentence names clicking agents and the second divider, and the resize-mode row gained `shift-j` and `shift-k`.
+- The product brief's milestone 3 names OSC 7501 as the reporting interface and moves hooks and screen detection to later (FR-026). Its "Pi lifecycle" completion line, the deferred "Every agent integration" row and the open "Agent reporting protocol" decision changed to match.
+- `GLOSSARY.md` gained **Status record** and **Display state** (FR-027), and `docs/agents/codebase.md` the Linux ALSA headers.
+
+Checks on macOS: strict OpenSpec validation passes; every relative link and in-page anchor in the five changed documents resolves, and the two new external links return 200; all 8 TOML blocks in the guide and README pass `ship config check`, which rejects a misspelled token at its line and column. This slice changed no Rust, so formatting, Clippy and builds were not rerun after the last commit, where they passed. The ALSA package names and the Linux build are unverified.
+
+Evidence: `/tmp/ship-slice5/` (`osc133.sh`, the extracted TOML blocks).
+
+Implementation Rust physical lines under crate/vendor `src/`: 13,651 before this change, 15,304 now (+1,653, including the 5 lines of the Ghostty log bridge). Test lines: 1,147 before and after; this change added none.
