@@ -48,7 +48,7 @@ Live evidence: `/tmp/ship-live-scripts/` and the `codex-watch.log` and `pi-watch
 
 Temporary protocol evidence: `/tmp/ship-status-probe.py` and `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-status-slice1-q2155f0f/results.json`. No permanent tests were added. Linux is unverified.
 
-Implementation Rust under `crates/*/src/`, counted by cloc as code lines and leaving out `vendor/`: 9,614 before this change, 10,730 now (+1,116, after slice 5 replaced `Display::label` with strum's `IntoStaticStr`). The vendored widget gained another 259. The physical-line count used by earlier slices, crates and vendor together, is 13,651 before and 15,295 now. Test lines: none under `crates/`, 988 code lines under `vendor/`, unchanged; this change added none.
+Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,081 after (+430). Added permanent test lines: 0. The scanner is 248 lines and the record module 75; the scanner estimate was low once the specified decoding, validation and bounded split-sequence handling were implemented.
 
 ## 2. Sidebar sections and display states
 
@@ -193,4 +193,4 @@ Checks on macOS: strict OpenSpec validation passes; every relative link and in-p
 
 Evidence: `/tmp/ship-slice5/` (`osc133.sh`, the extracted TOML blocks).
 
-Implementation Rust physical lines under crate/vendor `src/`: 13,651 before this change, 15,304 now (+1,653, including the 5 lines of the Ghostty log bridge). Test lines: 1,147 before and after; this change added none.
+Implementation Rust under `crates/*/src/`, counted by cloc as code lines and leaving out `vendor/`: 9,614 before this change, 10,730 now (+1,116, after slice 5 replaced `Display::label` with strum's `IntoStaticStr`). The vendored widget gained another 259. The physical-line count used by earlier slices, crates and vendor together, is 13,651 before and 15,295 now. Test lines: none under `crates/`, 988 code lines under `vendor/`, unchanged; this change added none.
