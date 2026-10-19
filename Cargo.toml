@@ -25,6 +25,8 @@ futures-util = "0.3"
 indexmap = { version = "2", features = ["serde"] }
 kameo = "0.22"
 libc = "0.2"
+# Same revision as ratatui-ghostty; named here for the `tracing` bridge.
+libghostty-vt = { git = "https://github.com/uzaaft/libghostty-rs", rev = "d2036baeb605d31d09a9e2ba6d0c923e04c34d54", features = ["tracing"] }
 nix = { version = "0.31", features = ["process", "signal"] }
 notify-debouncer-mini = "0.7"
 portable-pty = "=0.9.0"

@@ -1768,6 +1768,7 @@ dependencies = [
  "bitflags 2.13.2",
  "int-enum",
  "libghostty-vt-sys",
+ "tracing",
 ]
 
 [[package]]
@@ -3322,6 +3323,7 @@ dependencies = [
  "indexmap 2.14.2",
  "kameo",
  "libc",
+ "libghostty-vt",
  "nix 0.31.3",
  "portable-pty",
  "ratatui",

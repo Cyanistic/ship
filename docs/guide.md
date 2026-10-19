@@ -374,6 +374,8 @@ At `debug` and `trace`, this also enables actor message spans. A background serv
 
 `RUST_LOG` replaces the whole filter, including `SHIP_LOG`. For example, `RUST_LOG=warn,ship=debug,ratatui_ghostty=debug,kameo=info` sets Ship and its terminal widget to debug and enables actor spans. Invalid filter syntax fails startup.
 
+The server also logs Ghostty's own messages under the `libghostty_vt::ghostty` target, with Ghostty's scope in a `ghostty_scope` field. They name terminal input Ghostty doesn't handle, such as `unimplemented mode: 2031`, which helps tell a Ghostty gap from a Ship bug when a pane renders wrong. Warnings appear by default; add `libghostty_vt=info` to the filter to also see unknown sequences Ghostty ignores. Ghostty emits nothing below `info`.
+
 To inspect or change a running server without restarting it:
 
 ```sh

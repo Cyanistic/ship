@@ -33,6 +33,7 @@ use kameo::{
     actor::{ActorRef, Spawn},
     mailbox,
 };
+use libghostty_vt::log::TracingLogger;
 pub use settings::ServerSettings;
 use ship_core::{
     LogChange, LogFilter,
@@ -172,6 +173,10 @@ pub async fn serve(
         tcp.set_nodelay(true).ok();
     });
     tracing::info!(%address, pid = process::id(), protocol_version = ship_core::PROTOCOL_VERSION, "server listening");
+    // Ghostty drops its own logs unless given a logger.
+    if let Err(error) = libghostty_vt::set_logger(Some(Box::new(TracingLogger))) {
+        tracing::warn!("cannot route Ghostty's logs: {error}");
+    }
     // Axum awaits shutdown directly. This channel only observes its result so
     // the outer task can propagate errors and bound draining after signal receipt.
     let (result_tx, mut result_rx) = watch::channel(None);
