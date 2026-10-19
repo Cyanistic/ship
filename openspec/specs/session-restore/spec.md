@@ -14,11 +14,15 @@ The saved tabs SHALL hold the tab tree with its order and nesting, tab and pane 
 - **THEN** that pane's saved directory is `~/projects/ship`
 
 ### Requirement: Nothing live is saved
-The saved tabs SHALL NOT hold a pane's program or arguments, its title, its exit status, its geometry, or its screen and scrollback.
+The saved tabs SHALL NOT hold a pane's program or arguments, its title, its exit status, its status records, its geometry, or its screen and scrollback.
 
 #### Scenario: Program arguments stay off disk
 - **WHEN** a pane runs `sleep 1234` and the saved tabs are written
 - **THEN** the saved file does not contain `1234`
+
+#### Scenario: Status records stay off disk
+- **WHEN** a pane's program has reported `working` and the saved tabs are written
+- **THEN** the saved file has no `program` field, and after a restart the restored pane has no records
 
 ### Requirement: Saved file location
 Each server port SHALL have its own saved file at `$XDG_STATE_HOME/ship/tabs/<port>.json`, defaulting to `~/.local/state/ship/tabs/<port>.json` on Linux and macOS; other platforms' location is best effort. A server SHALL NOT read or write another port's file, and a second server on the same port SHALL fail to bind before it reads the file.

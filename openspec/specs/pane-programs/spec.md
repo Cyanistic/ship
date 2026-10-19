@@ -44,7 +44,7 @@ Programs in panes SHALL see a terminal that advertises 256 colors and 24-bit col
 - **THEN** it finds 256 and 24-bit color support, and an attached client shows the exact colors
 
 ### Requirement: Pane inspection
-`ship pane get` SHALL report the pane's command, starting directory, current title, current directory when known, and status, which is running or exited with its exit code. The title SHALL follow the title the program sets, and SHALL be absent when the program has set none or has cleared it. The current directory SHALL be the directory the shell last reported through OSC 7, else, on Linux and macOS, the program's working directory as of its latest output. It SHALL remain distinct from the starting directory and SHALL be absent until known.
+`ship pane get` SHALL report the pane's command, starting directory, current title, current directory when known, status, which is running or exited with its exit code, and its status records as program-status describes. The title SHALL follow the title the program sets, and SHALL be absent when the program has set none or has cleared it. The current directory SHALL be the directory the shell last reported through OSC 7, else, on Linux and macOS, the program's working directory as of its latest output. It SHALL remain distinct from the starting directory and SHALL be absent until known.
 
 #### Scenario: Program sets a title
 - **WHEN** a pane runs `sh -c 'printf "\033]0;hello\007"; sleep 100'`
@@ -61,6 +61,10 @@ Programs in panes SHALL see a terminal that advertises 256 colors and 24-bit col
 #### Scenario: No current directory known
 - **WHEN** the shell has not reported its directory and the platform offers no working-directory lookup
 - **THEN** inspection has no current directory and retains the starting directory
+
+#### Scenario: Program reports its status
+- **WHEN** a pane's program reports `working` through OSC 7501
+- **THEN** `ship pane get` shows the record under `program` with the key `""`
 
 ### Requirement: Exited programs
 When a pane's program exits, the pane SHALL remain with its last screen and exit status until it is removed, and SHALL ignore keys, pastes and resizes. Its history SHALL still scroll and be readable, and mouse selection in it SHALL still work.

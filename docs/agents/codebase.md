@@ -13,7 +13,7 @@ Where things live in Ship. `AGENTS.md` still applies; this is orientation, and t
 
 ## Building
 
-Building needs Zig 0.16 on `PATH` in addition to Rust. `libghostty-vt-sys` fetches Ghostty's source and builds it with Zig on the first build, so that build also needs `git` and network access.
+Building needs Zig 0.16 on `PATH` in addition to Rust. `libghostty-vt-sys` fetches Ghostty's source and builds it with Zig on the first build, so that build also needs `git` and network access. On Linux, the client's sound playback goes through ALSA, so building also needs `pkg-config` and ALSA's development headers (`libasound2-dev` on Debian and Ubuntu).
 
 ## OpenSpec layout
 

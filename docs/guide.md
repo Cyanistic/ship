@@ -9,6 +9,7 @@ How Ship behaves once you're past the [README](../README.md). Every example assu
 - [Panes and splits](#panes-and-splits)
 - [Scrolling and reading output](#scrolling-and-reading-output)
 - [Mouse and clipboard](#mouse-and-clipboard)
+- [Agents](#agents)
 - [Configuration](#configuration)
 - [Logs and levels](#logs-and-levels)
 - [Upgrading](#upgrading)
@@ -280,6 +281,58 @@ tab = []
 
 A named target replaces its whole default list, in the order given; omitted targets keep their defaults. An empty list disables that menu, leaving the old right-click behavior in place. Each item requires exactly one action, written as in a key binding. Without `label`, it uses the action's default label. Unknown targets, item fields or actions fail `ship config check` with a line and column. Valid saves reload menus with the rest of the client settings and close any open menu; invalid saves keep the last good settings. With `[client] mouse = false`, no menu opens.
 
+## Agents
+
+Agents that report their own state show up in the sidebar. They report it through [OSC 7501, the Program Status Protocol](https://www.superlogical.com/rex/docs/build/program-status), which Claude Code, Codex, Pi and crush 0.98.1 or later already speak. Ship has no list of agents and no per-agent setup, so any program that adopts the protocol appears without a Ship update. A plain shell, or an agent that hasn't reported anything yet, has no entry.
+
+The sidebar has two sections whenever it's shown: tabs on top and agents below, with a divider labelled `agents` between them. Each agent gets an entry, by default its name and state with its tab path underneath:
+
+```text
+▲ claude blocked
+ship › api
+```
+
+The name is what the agent reports, or the pane's label when it reports none. A long tab path is shortened from the left. Click an entry to select its pane. The selected pane's entry is highlighted.
+
+Each state has its own icon and color:
+
+| Icon | State | Meaning |
+| --- | --- | --- |
+| `▲` red | blocked | Waiting on you, such as a permission dialog |
+| `✖` magenta | error | The agent reported an error |
+| `◆` cyan | unseen | Finished while you weren't looking |
+| `●` yellow | working | Mid-turn |
+| `○` green | idle | Finished and seen, or waiting for a prompt |
+
+Entries are sorted in that order, blocked and error first, and by tab order within each state. Each tab row shows the most urgent icon among its own panes and every tab under it, in a column at the row's left edge, so a folded tab still shows what's inside.
+
+An agent becomes unseen when this client sees it go from working to idle or done while its pane isn't in view in a focused window. A pane is in view when this client draws it in the current tab; in a zoomed tab, only the zoomed pane is. The mark clears once you look at the pane with the window focused. Every client keeps its own marks, and a client that attaches starts with none, so agents that finished while you were away show as idle. A terminal that never reports focus counts as always focused.
+
+Press `alt-a` to jump to the next agent that needs you: blocked and error agents first, then unseen ones, in list order and wrapping around. When nothing needs you, it steps through every agent instead.
+
+The divider splits the sidebar in half to start with. Drag it, or use `shift-j` and `shift-k` in resize mode, to move it; each section keeps at least 3 rows and between 10% and 90% of the height. The split lasts until the client exits. Each section scrolls with the wheel on its own when it overflows.
+
+### Notifications and sounds
+
+When an agent goes blocked or reports an error, the client plays the attention sound. When it goes from working to idle or done, the client plays the done sound. A notification waits until the new state has held for a second, so an agent that briefly stops and carries on stays quiet, and it's skipped if the pane is in view in a focused window. If the pane is in view but the window isn't focused, say you're on another monitor, the sound plays anyway.
+
+Sounds play on the machine running the client, and each attached client notifies on its own. Without a working audio device, terminal work carries on and the client log notes it once. Optional popups also send each notification to your terminal as a desktop notification through OSC 9, such as `claude needs you · ship › api: Apply these changes?`. Ghostty and iTerm2 show them. [Agent settings](#agent-settings) covers the sounds, popups, the delay and what entries show.
+
+`ship pane get` and `ship tab list` include each pane's reports under `program`, keyed by the report's id, with the agent's own state under `""`. Reports aren't saved with your tabs.
+
+### When status is wrong or missing
+
+An agent that exits or crashes can leave its last state behind. Ship clears working and blocked when the shell prints its next prompt, but only if the shell marks its prompts with OSC 133. Bash and zsh don't on their own. In zsh, these lines in `~/.zshrc` are enough:
+
+```sh
+_prompt_mark() { print -n '\e]133;A\e\\' }
+precmd_functions+=(_prompt_mark)
+```
+
+Without prompt marks, a crashed agent keeps showing working or blocked until the pane's shell exits or another report replaces it. Done, error and idle stay after a prompt either way.
+
+Agents running inside tmux inside a Ship pane report nothing, because tmux doesn't pass the protocol on.
+
 ## Configuration
 
 Ship reads `ship/config.toml` from your config directory: `~/.config/ship/config.toml`, or under `$XDG_CONFIG_HOME` if you set it. `--config <file>` or `SHIP_CONFIG` points elsewhere. Without a file, Ship uses its defaults.
@@ -308,9 +361,29 @@ mouse = true         # false leaves selection to your terminal
 "alt-[" = { action = { client.sidebar.resize = { direction = "left", amount = 5 } } }
 ```
 
-Only `left` and `right` are accepted; omitting `amount` moves one column. This action has no CLI command.
+`left` and `right` change the width by columns; `up` and `down` move the divider between the tabs and agents sections by rows. Omitting `amount` moves one. This action has no CLI command.
 
 A running client reloads its settings and keys when you save the file. If the file has a mistake, the client keeps its current settings and shows the error. `ship config check` reports the first mistake with its line and column, and exits non-zero.
+
+### Agent settings
+
+```toml
+[client.agents]
+rows = [["icon", "app", "state"], ["tab"]]  # the default
+delay_ms = 1000                             # how long a state holds before notifying
+popups = false                              # true sends notifications to your terminal
+
+[client.agents.sounds.default]
+done = { path = "~/sounds/ding.mp3" }
+attention = { builtin = "attention" }
+
+[client.agents.sounds.apps.droid]
+done = "off"
+```
+
+`rows` lists the lines of each agent entry, each line a list of tokens separated by spaces when drawn: `icon`, `app`, `state`, `tab`, `pane`, `title` and `msg`. `pane` is the pane's label, `title` and `msg` are what the agent reported, and the rest are as described under [Agents](#agents). A token with no value is left out, and so is a line left empty.
+
+Each sound is `"off"`, a bundled sound as `{ builtin = "done" }` or `{ builtin = "attention" }`, or a file as `{ path = "..." }`. Files can be MP3, WAV, Ogg Vorbis or FLAC. Paths are relative to the config file, and `~` is your home directory. `[client.agents.sounds.apps.<app>]` overrides the defaults for agents that report that `app`, slot by slot. A file that's missing or can't be decoded is replaced by the bundled sound when the config loads, with a warning naming it in the client log; `ship config check` doesn't read sound files. A misspelled token or builtin name fails with its line and column, like any other config mistake. These settings reload with the rest of the client config. The bundled sounds are from Kenney's [Interface Sounds](https://www.kenney.nl) pack ([attribution](../crates/ship-client/assets/sounds/ATTRIBUTION.md)).
 
 ### Keys and modes
 
@@ -373,6 +446,8 @@ SHIP_LOG=debug ship
 At `debug` and `trace`, this also enables actor message spans. A background server inherits the launching command's environment. Changing that environment does not change an already-running server's level. An invalid level fails startup.
 
 `RUST_LOG` replaces the whole filter, including `SHIP_LOG`. For example, `RUST_LOG=warn,ship=debug,ratatui_ghostty=debug,kameo=info` sets Ship and its terminal widget to debug and enables actor spans. Invalid filter syntax fails startup.
+
+The server also logs Ghostty's own messages under the `libghostty_vt::ghostty` target, with Ghostty's scope in a `ghostty_scope` field. They name terminal input Ghostty doesn't handle, such as `unimplemented mode: 2031`, which helps tell a Ghostty gap from a Ship bug when a pane renders wrong. Warnings appear by default; add `libghostty_vt=info` to the filter to also see unknown sequences Ghostty ignores. Ghostty emits nothing below `info`.
 
 To inspect or change a running server without restarting it:
 

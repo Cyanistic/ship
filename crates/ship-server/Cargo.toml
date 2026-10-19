@@ -15,6 +15,7 @@ crossterm.workspace = true
 futures-util.workspace = true
 indexmap.workspace = true
 kameo.workspace = true
+libghostty-vt.workspace = true
 portable-pty.workspace = true
 ratatui.workspace = true
 ratatui-ghostty.workspace = true

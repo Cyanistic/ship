@@ -24,6 +24,7 @@
 "alt-g"       = { action = { client.mode = "tabs" } }
 "alt-r"       = { action = { client.mode = "resize" } }
 "alt-q"       = { action = { client.detach = {} } }
+"alt-a"       = { action = { client.agents.next = {} } }
 "alt-pageup"  = { action = { server.pane.scroll = { direction = "up" } } }
 "alt-pagedown" = { action = { server.pane.scroll = { direction = "down" } } }
 
@@ -47,6 +48,8 @@ kind = "sticky"
 "l"   = { action = { server.pane.resize.direction = "right" } }
 "shift-h" = { action = { client.sidebar.resize = { direction = "left" } }, label = "sidebar left" }
 "shift-l" = { action = { client.sidebar.resize = { direction = "right" } }, label = "sidebar right" }
+"shift-j" = { action = { client.sidebar.resize = { direction = "down" } }, label = "split down" }
+"shift-k" = { action = { client.sidebar.resize = { direction = "up" } }, label = "split up" }
 "esc" = { action = { client.mode = "normal" } }
 
 [client.modes.prefix]              # defined, empty, and entered by no key

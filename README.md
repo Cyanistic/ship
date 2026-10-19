@@ -13,13 +13,13 @@
 </div>
 
 > [!WARNING]
-> **Ship is a work in progress.** There are no releases yet, and the agent features that motivate it aren't built yet. [What works today](#what-works-today) is the honest list.
+> **Ship is a work in progress.** There are no releases yet, and agents can't drive the workspace yet. [What works today](#what-works-today) is the honest list.
 
 ## Overview
 
 If you run a few coding agents at once, you end up with a pile of terminals: an agent in one, an editor in another, a shell running tests, another agent somewhere else. Typing the commands is the easy part. The hard part is keeping track of it all. Which agent finished? Which one is stuck waiting on you? Where did you leave it?
 
-Ship puts all of that in one place. It keeps your shells, editors and agents together, keeps them running when you close the window, and is heading toward showing you which agent needs attention and letting agents drive the workspace themselves.
+Ship puts all of that in one place. It keeps your shells, editors and agents together, keeps them running when you close the window, shows you which agent needs attention, and is heading toward letting agents drive the workspace themselves.
 
 The name treats agents as your crew, and it's also about shipping software.
 
@@ -31,6 +31,7 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 
 - **Work that keeps running.** A background server owns your terminals. Close the window or press `alt-q` to detach, and everything keeps running until you come back.
 - **Saved tabs.** After a server restart or reboot, your tabs, splits and directories come back with fresh shells. Programs, agent conversations and scrollback do not resume.
+- **Agent status.** Agents that report their state, like Claude Code, Codex and Pi, get a sidebar entry showing whether they're working, blocked, finished unseen or idle, and their tabs show it too. A sound plays when one finishes or needs you while you're looking elsewhere, and `alt-a` jumps to it.
 - **Tabs inside tabs.** Tabs can nest, so a big task can hold its own smaller ones. A sidebar shows the tree; fold the parts you aren't looking at, or drag rows to reorder and nest tabs.
 - **Split panes.** Split, zoom, swap and resize from the keyboard, or drag shared borders to resize. New splits open in the directory you were working in.
 - **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
@@ -42,8 +43,6 @@ Linux and macOS are the priority platforms. Windows is best effort.
 
 ### Not built yet
 
-- Agent status: seeing which agents are working, blocked, idle or done.
-- An agent list and notifications to jump to whichever one needs you.
 - Sending input to a pane, or waiting for another agent to finish, from the CLI.
 - Releases and packages.
 
@@ -54,6 +53,7 @@ There are no releases yet, so you'll need to build from source. You need:
 - a recent stable [Rust toolchain](https://www.rust-lang.org/tools/install)
 - [Zig](https://ziglang.org/download/) 0.16 on your `PATH`, to build Ghostty's terminal library
 - `git` and a network connection on the first build, which fetches Ghostty's source
+- on Linux, `pkg-config` and ALSA's development headers for sound (`libasound2-dev` on Debian and Ubuntu, `alsa-lib-devel` on Fedora)
 
 Then:
 ```sh
@@ -92,15 +92,16 @@ All of Ship's default keys are Alt chords. Any other key goes to the program in 
 | `alt-left` / `alt-right` | Previous / next tab |
 | `alt-h` / `alt-j` / `alt-k` / `alt-l` | Move to the pane left, below, above or right |
 | `alt-tab` | Next pane in the tab |
+| `alt-a` | Jump to the next agent that needs you |
 | `alt-shift-h` / `j` / `k` / `l` | Swap the pane with its neighbor in that direction |
 | `alt-f` | Zoom the pane to fill the tab, or unzoom |
-| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the pane's edge, `shift-h` / `shift-l` resize the sidebar, `esc` leaves |
+| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the pane's edge, `shift-h` / `shift-l` resize the sidebar, `shift-j` / `shift-k` move the line between tabs and agents, `esc` leaves |
 | `alt-g` | Tabs mode: `j` / `k` move between tabs, `h` / `l` fold / unfold, `esc` leaves |
 | `alt-b` | Hide or show the sidebar |
 | `alt-pageup` / `alt-pagedown` | Scroll the pane up / down a page |
 | `alt-q` | Detach |
 
-The mouse works too: click a pane or a sidebar row to select it, scroll with the wheel, drag to select and copy text, drag pane borders or the sidebar divider to resize, and drag sidebar rows to move tabs. Right-click for actions, or click `≡` beside `tabs` for the global menu.
+The mouse works too: click a pane, a tab or an agent to select it, scroll with the wheel, drag to select and copy text, drag pane borders and the sidebar's dividers to resize, and drag sidebar rows to move tabs. Right-click for actions, or click `≡` beside `tabs` for the global menu.
 
 ## Configuration
 

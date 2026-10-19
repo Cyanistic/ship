@@ -1,5 +1,7 @@
 //! The full-screen client, opened by bare `ship`.
 
+mod agents;
+mod attention;
 mod draw;
 mod keys;
 mod lane;
@@ -18,7 +20,7 @@ use std::{
     path::Path,
     pin::Pin,
     sync::Arc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use crossterm::{
@@ -52,6 +54,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use self::{
+    attention::Attention,
     draw::Status,
     keys::{Handled, Keys},
     lane::{Item, Lane, Turn},
@@ -65,9 +68,10 @@ use self::{
 use crate::{
     Client, KeyScope, Scope,
     keymap::{
-        Action, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction, Menus,
-        Sidebar as SidebarAction,
+        Action, AgentSettings, ClientAction, ClientAgents, ClientPane, ClientSettings, ClientTab,
+        ConfigAction, Menus, Sidebar as SidebarAction,
     },
+    sound::Speaker,
     watch,
 };
 
@@ -176,6 +180,9 @@ async fn drive(
         menu: None,
         input: None,
         message,
+        attention: Attention::default(),
+        speaker: Speaker::start(),
+        agents: settings.agents,
     };
     let mut saves: Option<Saves> = match watch::changes(config) {
         Ok(saves) => Some(Box::pin(saves)),
@@ -213,13 +220,19 @@ async fn drive(
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));
+                    let attached = matches!(event, SseEvent::Attached(_));
                     let previous = local.observer.record().and_then(|record| record.selection);
                     let visible = local.observer.apply(event);
+                    if attached {
+                        local.attention.attached(&local.observer);
+                    } else if !screen {
+                        local.attention.observe(&local.observer, Instant::now(), local.agents.delay);
+                    }
                     if !screen && let Some(replica) = &local.observer.replica {
                         let selection = local.observer.record().and_then(|record| record.selection);
                         local.memory.observe(&replica.tabs, selection);
                         if previous != selection {
-                            local.sidebar.reveal(&replica.tabs, selection);
+                            local.sidebar.tabs.reveal(&replica.tabs, selection);
                         }
                     }
                     visible
@@ -282,7 +295,22 @@ async fn drive(
                 }
                 false
             }
+            () = until(local.attention.due()) => {
+                for fired in local.attention.fire(&local.observer, Instant::now()) {
+                    if let Some(clip) = local.agents.sounds.resolve(fired.app.as_deref(), fired.notice) {
+                        local.speaker.play(clip);
+                    }
+                    if local.agents.popups {
+                        guard.notify(&fired.popup())?;
+                    }
+                }
+                false
+            }
             event = terminal_events.next() => match event {
+                Some(Ok(Event::FocusGained | Event::FocusLost)) => {
+                    local.attention.set_focused(matches!(event, Some(Ok(Event::FocusGained))));
+                    true
+                }
                 Some(Ok(Event::Resize(cols, rows))) => {
                     terminal = (cols, rows);
                     guard.resize(terminal)?;
@@ -313,6 +341,14 @@ async fn drive(
                             }
                             Clicked::Width(width) => {
                                 local.sidebar.set_width(width, terminal.0);
+                                visible = true;
+                            }
+                            Clicked::Split(row) => {
+                                local.sidebar.set_split(row);
+                                visible = true;
+                            }
+                            Clicked::SidebarScroll { at, scroll } => {
+                                local.sidebar.scroll(at, scroll);
                                 visible = true;
                             }
                         }
@@ -403,7 +439,7 @@ async fn drive(
             }
         }
         if let Some(replica) = &local.observer.replica {
-            local.sidebar.reconcile(&replica.tabs);
+            local.sidebar.tabs.reconcile(&replica.tabs);
             local.mouse.reconcile(&replica.tabs);
         }
         if visible {
@@ -422,6 +458,10 @@ struct Local {
     menu: Option<Menu>,
     input: Option<mpsc::UnboundedSender<InputFrame>>,
     message: Option<String>,
+    attention: Attention,
+    speaker: Speaker,
+    /// Replaced whole on reload; readers take the piece they need.
+    agents: AgentSettings,
 }
 
 /// Published geometry shared by the router and pane painter.
@@ -468,7 +508,13 @@ impl Local {
                 Ok(())
             }
             ClientAction::Sidebar(SidebarAction::Resize { direction, amount }) => {
-                self.sidebar.nudge(direction, amount.unwrap_or(1), cols);
+                let amount = amount.unwrap_or(1);
+                match direction {
+                    Direction::Left | Direction::Right => {
+                        self.sidebar.nudge(direction, amount, cols);
+                    }
+                    Direction::Up | Direction::Down => self.sidebar.nudge_split(direction, amount),
+                }
                 Ok(())
             }
             ClientAction::Config(ConfigAction::Reload {}) => self.reload(guard, config),
@@ -485,6 +531,7 @@ impl Local {
         self.menu = None;
         self.sidebar.configure(settings.sidebar_width);
         self.keys.replace(settings.keymap);
+        self.agents = settings.agents;
         Ok(())
     }
 
@@ -527,7 +574,7 @@ impl Local {
                     .as_ref()
                     .is_some_and(|replica| tree::tab(&replica.tabs, tab).is_ok())
                 {
-                    self.sidebar.toggle(tab);
+                    self.sidebar.tabs.toggle(tab);
                 }
                 Turn::Done
             }
@@ -545,7 +592,7 @@ impl Local {
                     return Turn::Done;
                 }
                 if let MoveTab::Parent(Some(parent)) = moving.to {
-                    self.sidebar.fold(parent, false);
+                    self.sidebar.tabs.fold(parent, false);
                 }
                 Turn::Wait(Box::pin(async move {
                     match client.move_tab(moving.tab, &moving.to).await {
@@ -704,6 +751,7 @@ impl Local {
                             selection.and_then(|node| tree::viewed_tab(&replica.tabs, node))
                     {
                         self.sidebar
+                            .tabs
                             .fold(tab, matches!(action, ClientTab::Collapse {}));
                     }
                     Ok(())
@@ -718,6 +766,16 @@ impl Local {
                     }
                     None => Err(err!(Validation, "no pane selected")),
                 },
+                ClientAction::Agents(ClientAgents::Next {}) => {
+                    if let Some(replica) = &self.observer.replica
+                        && let Some(pane) =
+                            agents::next(&agents::list(&replica.tabs, &self.attention), selection)
+                        && Some(NodeId::Pane(pane)) != selection
+                    {
+                        return self.select(client, NodeId::Pane(pane));
+                    }
+                    Ok(())
+                }
                 ClientAction::Detach {} => return Turn::Detach,
                 _ => unreachable!("press-time actions and navigation handled before the lane"),
             },
@@ -741,8 +799,10 @@ fn typing_pane(observer: &Observer, memory: &Memory) -> Option<IdOf<Pane>> {
     }
 }
 
+/// Clears unseen marks for what this frame shows before drawing it.
 #[traced]
 fn redraw(guard: &mut TerminalGuard, local: &mut Local) -> Result<()> {
+    local.attention.viewed(&local.observer);
     let mut cursor = None;
     guard
         .terminal
@@ -791,7 +851,7 @@ fn navigate(
 ) -> Option<NodeId> {
     match step {
         Step::Tab { forward } => {
-            let rows = sidebar.visible(tabs);
+            let rows = sidebar.tabs.visible(tabs);
             let index = match from {
                 Some(node) => {
                     let tab = tree::viewed_tab(tabs, node)?;
@@ -852,6 +912,14 @@ async fn attach_after(client: &Client, request: AttachRequest, delay: Duration) 
 async fn next<S: Stream + Unpin>(events: &mut Option<S>) -> Option<S::Item> {
     match events {
         Some(events) => events.next().await,
+        None => pending().await,
+    }
+}
+
+/// At `due`, or never while nothing is due.
+async fn until(due: Option<Instant>) {
+    match due {
+        Some(due) => time::sleep_until(due.into()).await,
         None => pending().await,
     }
 }

@@ -52,10 +52,7 @@ impl Observer {
             },
             SseEvent::Screen(PaneScreen { pane, screen }) => {
                 self.screens.insert(pane, screen);
-                return self
-                    .selected()
-                    .and_then(|selected| selected.tab.geometry.as_ref())
-                    .is_some_and(|geometry| geometry.panes.contains_key(&pane));
+                return self.in_view(pane);
             }
             SseEvent::Ended(_) | SseEvent::Clipboard(_) => return false,
         }
@@ -92,6 +89,14 @@ impl Observer {
             selection: record.selection,
             area,
         })
+    }
+
+    /// Drawn in the selected tab: a key of its `geometry.panes`, which the
+    /// server narrows to the zoomed pane.
+    pub fn in_view(&self, pane: IdOf<Pane>) -> bool {
+        self.selected()
+            .and_then(|selected| selected.tab.geometry.as_ref())
+            .is_some_and(|geometry| geometry.panes.contains_key(&pane))
     }
 
     /// `None` when nothing is selected or before the first `Attached`.

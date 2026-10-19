@@ -7,7 +7,7 @@ Let users drive the client from the keyboard through modes of chord bindings, wh
 ## Requirements
 
 ### Requirement: Default keys
-With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab with shell), `alt-shift-n` (new child tab with shell), `alt-x` (close tab), `alt--`/`alt-|` (split down/right), `alt-shift-x` (close pane), `alt-left`/`alt-right` (previous/next visible tab row), `alt-h/j/k/l` (pane focus), `alt-tab` (next pane), `alt-b` (sidebar), `alt-g`/`alt-r` (tabs/resize mode), `alt-f` (zoom), `alt-shift-h/j/k/l` (client directional swap), `alt-pageup`/`alt-pagedown` (scroll the selected pane up/down one page) and `alt-q` (detach). `alt-1..9` SHALL NOT be bound by default. The default resize mode's `h/j/k/l` SHALL omit `amount`, moving one cell per press. Resize mode SHALL also bind `shift-h` and `shift-l` to `client.sidebar.resize` left and right, with the hints `sidebar left` and `sidebar right`.
+With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab with shell), `alt-shift-n` (new child tab with shell), `alt-x` (close tab), `alt--`/`alt-|` (split down/right), `alt-shift-x` (close pane), `alt-left`/`alt-right` (previous/next visible tab row), `alt-h/j/k/l` (pane focus), `alt-tab` (next pane), `alt-b` (sidebar), `alt-g`/`alt-r` (tabs/resize mode), `alt-f` (zoom), `alt-shift-h/j/k/l` (client directional swap), `alt-pageup`/`alt-pagedown` (scroll the selected pane up/down one page), `alt-a` (`client.agents.next`) and `alt-q` (detach). `alt-1..9` SHALL NOT be bound by default. The default resize mode's `h/j/k/l` SHALL omit `amount`, moving one cell per press. Resize mode SHALL also bind `shift-h` and `shift-l` to `client.sidebar.resize` left and right, with the hints `sidebar left` and `sidebar right`, and `shift-j` and `shift-k` to `client.sidebar.resize` down and up, with the hints `split down` and `split up`.
 
 #### Scenario: Herdr chords on the first run
 - **WHEN** a user with no config runs `ship` and presses `alt-n`, `alt-|`, `alt-right`, `alt-left`, `alt-tab` and `alt-q`
@@ -32,6 +32,14 @@ With no bindings in the file, normal mode SHALL bind `alt-n` (new sibling tab wi
 #### Scenario: Sidebar keys in resize mode
 - **WHEN** a user with no config presses `alt-r` and then `shift-l` three times
 - **THEN** the sidebar is 3 columns wider for that client
+
+#### Scenario: Split keys in resize mode
+- **WHEN** a user with no config presses `alt-r` and then `shift-j` twice
+- **THEN** the divider between the sidebar's sections moves 2 rows down for that client
+
+#### Scenario: Jump default
+- **WHEN** a user with no config has a blocked agent in another tab and presses `alt-a`
+- **THEN** the blocked agent's pane is selected, and the chord doesn't reach the program
 
 ### Requirement: Server and client actions
 Every binding SHALL name one action, under `server.` or `client.`. A `server.` action SHALL change shared state and SHALL be the `ship` command at the same path without `server.`, taking the same action arguments. A `client.` action SHALL change only that client's view and SHALL be reachable only from keys and the mouse, except `client.pane.swap`, which SHALL resolve direction locally and submit the explicit server swap pair. `client.pane.swap` SHALL have no CLI form. Any action SHALL be bindable in any mode.
@@ -225,14 +233,18 @@ The documented binding syntax SHALL be a table with an optional `action`, holdin
 - **THEN** it reports the unknown field `attachment` and exits 1
 
 ### Requirement: Sidebar resize action
-`client.sidebar.resize` SHALL take a `direction` of `left` or `right` and an optional `amount` in columns, defaulting to 1, and SHALL move the sidebar's right edge that way under config-file's Sidebar width setting, as a dragged width does. It SHALL apply at press, SHALL do nothing while the sidebar is hidden, and SHALL have no CLI command. Any other direction SHALL be a config error with its line and column.
+`client.sidebar.resize` SHALL take a `direction` of `left`, `right`, `up` or `down` and an optional `amount`, defaulting to 1. `left` and `right` SHALL move the sidebar's right edge that many columns under config-file's Sidebar width setting, as a dragged width does. `up` and `down` SHALL move the divider between the sidebar's sections that many rows, as a dragged divider row does, within terminal-client's Sidebar split limits. It SHALL apply at press, SHALL do nothing while the sidebar is hidden, and SHALL have no CLI command. Any other direction SHALL be a config error with its line and column.
 
 #### Scenario: Bound amount
 - **WHEN** the file binds `"alt-[" = { action = { client.sidebar.resize = { direction = "left", amount = 5 } } }` and the user presses it
 - **THEN** the sidebar is 5 columns narrower
 
 #### Scenario: Vertical direction
-- **WHEN** the file binds `client.sidebar.resize = { direction = "up" }` and the user runs `ship config check`
+- **WHEN** the file binds `"alt-]" = { action = { client.sidebar.resize = { direction = "up", amount = 3 } } }` and the user presses it
+- **THEN** the divider between the sidebar's sections moves 3 rows up, unless the tabs section would drop below its limit
+
+#### Scenario: Unknown direction
+- **WHEN** the file binds `client.sidebar.resize = { direction = "sideways" }` and the user runs `ship config check`
 - **THEN** it reports the bad value with its line and column and exits 1
 
 #### Scenario: Hidden sidebar
@@ -249,3 +261,10 @@ The documented binding syntax SHALL be a table with an optional `action`, holdin
 #### Scenario: Old rename binding
 - **WHEN** the file binds `"alt-e" = { action = { server.tab.rename = { name = "x" } } }` and the user runs `ship config check`
 - **THEN** it reports the unknown action with its line and column and exits 1
+
+### Requirement: Agents action
+`client.agents.next = {}` SHALL select the next pane that needs the user, as agent-attention's Jump to what needs the user describes. It SHALL have no CLI command.
+
+#### Scenario: Custom binding
+- **WHEN** the file binds `"alt-y" = { action = { client.agents.next = {} } }` and an agent is blocked
+- **THEN** pressing `alt-y` selects the blocked agent's pane

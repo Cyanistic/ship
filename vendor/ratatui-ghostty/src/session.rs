@@ -22,6 +22,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent,
 
 use crate::colors::{HostColors, Rgb};
 use crate::input::{self, IntoKeyInput, IntoMouseInput, KeyInput, MouseInput};
+use crate::program_status::{Found, ProgramState, ProgramStatus, QUERY_REPLY, Scanner, Terminator};
 use crate::widget::{CursorState, TerminalWidget};
 use crossbeam_channel::{Receiver, Sender};
 use libghostty_vt::fmt::{Format, Formatter, FormatterOptions};
@@ -162,6 +163,10 @@ pub enum SessionEvent {
     Copied(String),
     /// The program wrote the standard clipboard, OSC 52 already decoded.
     ClipboardWrite(String),
+    /// OSC 7501 report; RIS arrives as clear with an empty id.
+    ProgramStatus(ProgramStatus),
+    /// OSC 133 A: the shell started a prompt.
+    PromptStart,
 }
 
 /// Builder for constructing and spawning a [`SessionHandle`].
@@ -732,6 +737,33 @@ fn surface(x: i32, y: i32) -> (f64, f64) {
 }
 
 impl<'a> SessionState<'a> {
+    fn found(&mut self, found: Found) {
+        let event = match found {
+            Found::Query(terminator) => {
+                let mut writer = self.writer.borrow_mut();
+                let end = match terminator {
+                    Terminator::Bel => "\x07",
+                    Terminator::St => "\x1b\\",
+                };
+                write!(writer, "\x1b]7501;{QUERY_REPLY}{end}").ok();
+                writer.flush().ok();
+                return;
+            }
+            Found::Report(report) => SessionEvent::ProgramStatus(report),
+            Found::PromptStart => SessionEvent::PromptStart,
+            Found::Reset => SessionEvent::ProgramStatus(ProgramStatus {
+                state: ProgramState::Clear,
+                kind: None,
+                progress: None,
+                id: String::new(),
+                app: None,
+                title: None,
+                message: None,
+            }),
+        };
+        self.events.borrow_mut().push(event);
+    }
+
     fn geometry(&self) -> Geometry {
         Geometry {
             columns: u32::from(self.cols),
@@ -1202,12 +1234,15 @@ fn session_thread(
     // since the last render.
     let mut stale = false;
     let mut batch = Vec::new();
+    let mut scanner = Scanner::default();
     let mut woke = None;
     loop {
         // Every pass writes the waiting output first, so a command sees all
         // output read before it, like the modes that change how keys encode.
         pending.take(&mut batch);
         if !batch.is_empty() {
+            // Answer queries before libghostty can answer DA1 in this batch.
+            scanner.scan(&batch, |found| state.found(found));
             state.terminal.vt_write(&batch);
             batch.clear();
             needs_render = true;

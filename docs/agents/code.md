@@ -16,7 +16,9 @@ Keep one source of truth. Store what can't be derived and compute the rest; dupl
 
 Model state as state. When something has a current value, send and store the value, not the sequence of changes that produced it. Reserve event streams for things where each occurrence matters.
 
-Name your shapes. Prefer named types over anonymous inline structure, so data can be reused, documented and passed around.
+Name your shapes. Prefer named types over anonymous inline structure, so data can be reused, documented and passed around. Reuse a named shape instead of restating it.
+
+Say what things mean. A default, an override or a special case gets its own name in the type or config, rather than being implied by position, absence or a bare flag.
 
 Earn every layer. A wrapper, abstraction or coordination mechanism should do something the thing beneath it doesn't. If it only forwards or restates, remove it.
 

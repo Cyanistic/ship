@@ -332,6 +332,7 @@ impl ServerState {
             dir: None,
             title: None,
             status: PaneStatus::Running,
+            program: Default::default(),
         })
     }
 
@@ -952,7 +953,11 @@ impl Message<PaneEvent> for ServerState {
             match change {
                 PaneChange::Title(title) => pane.title = title,
                 PaneChange::Dir(dir) => pane.dir = Some(dir),
-                PaneChange::Exited(status) => pane.status = PaneStatus::Exited(status),
+                PaneChange::Exited(status) => {
+                    pane.status = PaneStatus::Exited(status);
+                    pane.program.clear();
+                }
+                PaneChange::Program(records) => pane.program = records,
             }
             Ok(())
         })
