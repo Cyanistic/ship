@@ -18,11 +18,11 @@ use ship_core::{
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use super::{Scroll, agents::icon};
-use crate::ui::{agents, draw::tab_label};
+use crate::ui::{agents, attention::Attention, draw::tab_label};
 
-/// Drawn before the selected row and blanked to its width on the others,
-/// whenever something is selected.
-const HIGHLIGHT: &str = " ";
+/// Columns left of the tree for rollup icons, drawn in the middle one so
+/// they line up with the agents section's icons.
+const GUTTER: u16 = 3;
 const OPEN: &str = "▾ ";
 const CLOSED: &str = "▸ ";
 /// tui-tree-widget's fixed indent per level.
@@ -134,13 +134,16 @@ impl Tabs {
         }
     }
 
-    /// The row drawn at `position`, if any. The marker's column repeats the
-    /// tree widget's layout: the highlight symbol, then the indent.
+    /// The row drawn at `position`, gutter included, if any. The marker's
+    /// column repeats the tree widget's layout: the gutter, then the indent.
     fn row_at(&self, position: Position) -> Option<Row> {
         if !self.drawn.iter().any(|row| row.y == position.y) {
             return None;
         }
-        let path = self.state.rendered_at(position)?;
+        let path = self.state.rendered_at(Position {
+            x: position.x.max(self.indent()),
+            ..position
+        })?;
         let tab = *path.last()?;
         let depth = path.len().saturating_sub(1) as u16;
         let start = self.indent().saturating_add(INDENT.saturating_mul(depth));
@@ -207,12 +210,7 @@ impl Tabs {
     }
 
     fn indent(&self) -> u16 {
-        self.area.x
-            + if self.state.selected().is_empty() {
-                0
-            } else {
-                Span::raw(HIGHLIGHT).width() as u16
-            }
+        self.area.x.saturating_add(GUTTER)
     }
 
     pub fn toggle(&mut self, tab: IdOf<Tab>) {
@@ -228,6 +226,7 @@ impl Tabs {
         tabs: &TabTree,
         selection: Option<NodeId>,
         gap: Option<&Gap>,
+        attention: &Attention,
     ) {
         self.area = area;
         self.state.close_all();
@@ -248,18 +247,23 @@ impl Tabs {
             self.state.select(selected);
         }
         self.rows = self.state.flatten(&items).len();
+        let band = Style::new().fg(Color::Reset).on_dark_gray().bold();
+        let rows = Rect {
+            x: self.indent(),
+            width: area.width.saturating_sub(GUTTER),
+            ..area
+        };
         // Tabs is an ID-keyed map, so sibling identifiers are unique.
         let widget = Tree::new(&items)
             .expect("unique tab IDs")
             .node_open_symbol(OPEN)
             .node_closed_symbol(CLOSED)
-            .highlight_symbol(HIGHLIGHT)
             .style(Style::new().gray())
-            .highlight_style(Style::new().fg(Color::Reset).on_dark_gray().bold());
-        frame.render_stateful_widget(widget, area, &mut self.state);
+            .highlight_style(band);
+        frame.render_stateful_widget(widget, rows, &mut self.state);
         self.drawn = (area.y..area.bottom())
             .filter_map(|y| {
-                let path = self.state.rendered_at(Position::new(area.x, y))?;
+                let path = self.state.rendered_at(Position::new(rows.x, y))?;
                 Some(Drawn {
                     tab: *path.last()?,
                     depth: path.len().saturating_sub(1) as u16,
@@ -269,6 +273,23 @@ impl Tabs {
             .collect();
         // rendered_at returns the final identifier for blank rows below it.
         self.drawn.dedup_by_key(|row| row.tab);
+        for row in &self.drawn {
+            let gutter = Rect::new(area.x, row.y, GUTTER, 1).intersection(area);
+            if self.state.selected().last() == Some(&row.tab) {
+                frame.buffer_mut().set_style(gutter, band);
+            }
+            let display = tree::tab(tabs, row.tab)
+                .ok()
+                .and_then(|tab| agents::rollup(tab, attention));
+            if let Some(display) = display
+                && gutter.width > 1
+            {
+                let icon = icon(display);
+                frame.buffer_mut()[(gutter.x + 1, row.y)]
+                    .set_symbol(&icon.content)
+                    .set_style(icon.style);
+            }
+        }
         if let Some(gap) = gap {
             let rows = Rect {
                 y: area.y.saturating_sub(1),
@@ -307,10 +328,6 @@ impl Tabs {
                 let mut row = Line::from(tab_label(tab, position));
                 if tab.zoomed.is_some() {
                     row.push_span(Span::from(" Z").cyan().bold());
-                }
-                if let Some(display) = agents::rollup(tab) {
-                    row.push_span(" ");
-                    row.push_span(icon(display));
                 }
                 TreeItem::new(tab.id, row, children).expect("unique tab IDs")
             })

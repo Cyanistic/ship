@@ -1,6 +1,6 @@
 //! `[client]` in the config file: settings, modes and their bindings.
 
-use std::{borrow::Cow, collections::HashMap, path::Path};
+use std::{borrow::Cow, collections::HashMap, path::Path, time::Duration};
 
 use crokey::KeyCombination;
 use indexmap::IndexMap;
@@ -27,6 +27,10 @@ pub struct ClientSettings {
 pub struct AgentSettings {
     /// The lines of an agent's entry in the sidebar.
     pub rows: Vec<Vec<Token>>,
+    /// How long a new state must hold before it notifies.
+    pub delay: Duration,
+    /// Whether fired notifications are also written as OSC 9 popups.
+    pub popups: bool,
 }
 
 /// One value in an agent's entry.
@@ -40,6 +44,15 @@ pub enum Token {
     Pane,
     Title,
     Msg,
+}
+
+/// The two kinds of notification. In config it also names a bundled
+/// sound: `{ builtin = "done" }`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Notice {
+    Done,
+    Attention,
 }
 
 pub struct Keymap {
@@ -152,6 +165,7 @@ impl Action {
             }
             Self::Client(ClientAction::Sidebar(action)) => action.into(),
             Self::Client(ClientAction::Config(action)) => action.into(),
+            Self::Client(ClientAction::Agents(action)) => action.into(),
             Self::Client(action) => action.into(),
         };
         Cow::Borrowed(name)
@@ -172,6 +186,7 @@ pub enum ClientAction {
     Send(KeyCombination),
     Detach {},
     Config(ConfigAction),
+    Agents(ClientAgents),
 }
 
 #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
@@ -217,6 +232,14 @@ pub enum Sidebar {
 #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 #[strum(serialize_all = "snake_case")]
+pub enum ClientAgents {
+    /// Select the next pane that needs the user, else the next agent.
+    Next {},
+}
+
+#[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+#[strum(serialize_all = "snake_case")]
 pub enum ConfigAction {
     Reload {},
 }
@@ -250,6 +273,8 @@ struct Client {
 #[serde(deny_unknown_fields)]
 struct AgentsFile {
     rows: Option<Vec<Vec<Token>>>,
+    delay_ms: Option<u64>,
+    popups: Option<bool>,
 }
 
 #[derive(Default, Deserialize)]
@@ -352,6 +377,8 @@ impl ClientSettings {
                         vec![Token::Tab],
                     ]
                 }),
+                delay: Duration::from_millis(file.client.agents.delay_ms.unwrap_or(1000)),
+                popups: file.client.agents.popups.unwrap_or(false),
             },
         }
     }

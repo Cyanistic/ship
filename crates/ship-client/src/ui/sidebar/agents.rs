@@ -3,24 +3,28 @@
 use ratatui::{
     Frame,
     layout::{Position, Rect},
-    style::{Color, Stylize},
+    style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::Paragraph,
 };
-use ship_core::{id::IdOf, model::Pane, tree::Tabs};
+use ship_core::{
+    id::IdOf,
+    model::{NodeId, Pane},
+    tree::Tabs,
+};
 
 use super::Scroll;
 use crate::{
     keymap::Token,
     ui::{
         agents::{self, Agent, Display},
+        attention::Attention,
         draw::pane_label,
     },
 };
 
 /// Drawn before each line, lining entries up with the `tabs` heading.
 const MARGIN: &str = " ";
-const SEPARATOR: &str = " › ";
 const ELLIPSIS: &str = "…";
 
 /// Distinct by shape and color; tab rows use the same.
@@ -28,6 +32,7 @@ pub(super) fn icon(display: Display) -> Span<'static> {
     let shape = match display {
         Display::Blocked => "▲",
         Display::Error => "✖",
+        Display::Unseen => "◆",
         Display::Working => "●",
         Display::Idle => "○",
     };
@@ -39,8 +44,9 @@ fn color(display: Display) -> Color {
     match display {
         Display::Blocked => Color::Red,
         Display::Error => Color::Magenta,
+        Display::Unseen => Color::Cyan,
         Display::Working => Color::Yellow,
-        Display::Idle => Color::DarkGray,
+        Display::Idle => Color::Green,
     }
 }
 
@@ -75,14 +81,24 @@ impl Agents {
         };
     }
 
-    /// The entries of `agents::list`, or a `no agents` placeholder.
-    pub fn draw(&mut self, frame: &mut Frame, area: Rect, tabs: &Tabs, rows: &[Vec<Token>]) {
+    /// The entries of `agents::list`, or a `no agents` placeholder. The
+    /// selected pane's entry gets Herdr's active band: full-bright text on
+    /// dark gray.
+    pub fn draw(
+        &mut self,
+        frame: &mut Frame,
+        area: Rect,
+        tabs: &Tabs,
+        selection: Option<NodeId>,
+        attention: &Attention,
+        rows: &[Vec<Token>],
+    ) {
         self.drawn.clear();
         if area.is_empty() {
             return;
         }
         let width = area.width.saturating_sub(Span::raw(MARGIN).width() as u16);
-        let entries: Vec<_> = agents::list(tabs)
+        let entries: Vec<_> = agents::list(tabs, attention)
             .iter()
             .map(|agent| (agent.pane.id, row(agent, rows, width)))
             .collect();
@@ -111,7 +127,12 @@ impl Agents {
                 height: (lines.len() as u16).min(area.bottom() - y),
                 ..area
             };
-            frame.render_widget(Paragraph::new(lines).gray(), entry);
+            let style = if selection == Some(NodeId::Pane(pane)) {
+                Style::new().fg(Color::Reset).on_dark_gray()
+            } else {
+                Style::new().gray()
+            };
+            frame.render_widget(Paragraph::new(lines).style(style), entry);
             self.drawn.push(Drawn { pane, area: entry });
             y = entry.bottom();
         }
@@ -153,9 +174,9 @@ fn value(agent: &Agent, token: Token) -> Option<Span<'static>> {
     let text = |text: &str| (!text.is_empty()).then(|| Span::from(text.to_owned()));
     match token {
         Token::Icon => Some(icon(agent.display)),
-        Token::App => text(agent.root.app.as_deref().unwrap_or(pane_label(agent.pane))),
+        Token::App => text(agent.name()),
         Token::State => text(agent.display.label()).map(|span| span.fg(color(agent.display))),
-        Token::Tab => text(&agent.path.join(SEPARATOR)),
+        Token::Tab => text(&agent.tab()),
         Token::Pane => text(pane_label(agent.pane)),
         Token::Title => text(agent.root.title.as_deref()?),
         Token::Msg => text(agent.root.msg.as_deref()?),

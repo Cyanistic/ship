@@ -1,6 +1,7 @@
 //! The full-screen client, opened by bare `ship`.
 
 mod agents;
+mod attention;
 mod draw;
 mod keys;
 mod lane;
@@ -19,7 +20,7 @@ use std::{
     path::Path,
     pin::Pin,
     sync::Arc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use crossterm::{
@@ -53,6 +54,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use self::{
+    attention::Attention,
     draw::Status,
     keys::{Handled, Keys},
     lane::{Item, Lane, Turn},
@@ -66,8 +68,8 @@ use self::{
 use crate::{
     Client, KeyScope, Scope,
     keymap::{
-        Action, AgentSettings, ClientAction, ClientPane, ClientSettings, ClientTab, ConfigAction,
-        Menus, Sidebar as SidebarAction,
+        Action, AgentSettings, ClientAction, ClientAgents, ClientPane, ClientSettings, ClientTab,
+        ConfigAction, Menus, Sidebar as SidebarAction,
     },
     watch,
 };
@@ -177,6 +179,7 @@ async fn drive(
         menu: None,
         input: None,
         message,
+        attention: Attention::default(),
         agents: settings.agents,
     };
     let mut saves: Option<Saves> = match watch::changes(config) {
@@ -215,8 +218,14 @@ async fn drive(
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));
+                    let attached = matches!(event, SseEvent::Attached(_));
                     let previous = local.observer.record().and_then(|record| record.selection);
                     let visible = local.observer.apply(event);
+                    if attached {
+                        local.attention.attached(&local.observer);
+                    } else if !screen {
+                        local.attention.observe(&local.observer, Instant::now(), local.agents.delay);
+                    }
                     if !screen && let Some(replica) = &local.observer.replica {
                         let selection = local.observer.record().and_then(|record| record.selection);
                         local.memory.observe(&replica.tabs, selection);
@@ -284,7 +293,20 @@ async fn drive(
                 }
                 false
             }
+            () = until(local.attention.due()) => {
+                let fired = local.attention.fire(&local.observer, Instant::now());
+                if local.agents.popups {
+                    for fired in &fired {
+                        guard.notify(&fired.popup())?;
+                    }
+                }
+                false
+            }
             event = terminal_events.next() => match event {
+                Some(Ok(Event::FocusGained | Event::FocusLost)) => {
+                    local.attention.set_focused(matches!(event, Some(Ok(Event::FocusGained))));
+                    true
+                }
                 Some(Ok(Event::Resize(cols, rows))) => {
                     terminal = (cols, rows);
                     guard.resize(terminal)?;
@@ -432,6 +454,7 @@ struct Local {
     menu: Option<Menu>,
     input: Option<mpsc::UnboundedSender<InputFrame>>,
     message: Option<String>,
+    attention: Attention,
     /// Replaced whole on reload; readers take the piece they need.
     agents: AgentSettings,
 }
@@ -738,6 +761,16 @@ impl Local {
                     }
                     None => Err(err!(Validation, "no pane selected")),
                 },
+                ClientAction::Agents(ClientAgents::Next {}) => {
+                    if let Some(replica) = &self.observer.replica
+                        && let Some(pane) =
+                            agents::next(&agents::list(&replica.tabs, &self.attention), selection)
+                        && Some(NodeId::Pane(pane)) != selection
+                    {
+                        return self.select(client, NodeId::Pane(pane));
+                    }
+                    Ok(())
+                }
                 ClientAction::Detach {} => return Turn::Detach,
                 _ => unreachable!("press-time actions and navigation handled before the lane"),
             },
@@ -761,8 +794,10 @@ fn typing_pane(observer: &Observer, memory: &Memory) -> Option<IdOf<Pane>> {
     }
 }
 
+/// Clears unseen marks for what this frame shows before drawing it.
 #[traced]
 fn redraw(guard: &mut TerminalGuard, local: &mut Local) -> Result<()> {
+    local.attention.viewed(&local.observer);
     let mut cursor = None;
     guard
         .terminal
@@ -872,6 +907,14 @@ async fn attach_after(client: &Client, request: AttachRequest, delay: Duration) 
 async fn next<S: Stream + Unpin>(events: &mut Option<S>) -> Option<S::Item> {
     match events {
         Some(events) => events.next().await,
+        None => pending().await,
+    }
+}
+
+/// At `due`, or never while nothing is due.
+async fn until(due: Option<Instant>) {
+    match due {
+        Some(due) => time::sleep_until(due.into()).await,
         None => pending().await,
     }
 }

@@ -68,6 +68,7 @@ pub(super) fn draw(frame: &mut Frame, local: &mut Local) -> Option<Cursor> {
             frame,
             sidebar_area,
             &local.observer,
+            &local.attention,
             &local.agents.rows,
             local.mouse.gap(),
         );

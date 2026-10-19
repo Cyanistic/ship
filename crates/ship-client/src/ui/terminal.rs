@@ -1,5 +1,6 @@
-//! The user's terminal while the client runs: raw mode, the alternate screen
-//! and bracketed paste, restored on every exit path the process survives.
+//! The user's terminal while the client runs: raw mode, the alternate screen,
+//! bracketed paste and focus reporting, restored on every exit path the
+//! process survives.
 
 use std::{
     io::{self, BufWriter, Stdout},
@@ -9,8 +10,12 @@ use std::{
 use crossterm::{
     clipboard::CopyToClipboard,
     cursor::{SetCursorStyle, Show},
-    event::{DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture},
+    event::{
+        DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
+        EnableFocusChange, EnableMouseCapture,
+    },
     execute,
+    style::Print,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{Terminal, TerminalOptions, Viewport, backend::CrosstermBackend, layout::Rect};
@@ -57,8 +62,13 @@ impl TerminalGuard {
             cursor: None,
             mouse: false,
         };
-        execute!(io::stdout(), EnterAlternateScreen, EnableBracketedPaste)
-            .map_err(|error| err!(Io, "cannot enter the alternate screen", @external: error))?;
+        execute!(
+            io::stdout(),
+            EnterAlternateScreen,
+            EnableBracketedPaste,
+            EnableFocusChange
+        )
+        .map_err(|error| err!(Io, "cannot enter the alternate screen", @external: error))?;
         Ok(guard)
     }
 
@@ -89,6 +99,14 @@ impl TerminalGuard {
     pub fn copy(&self, text: &str) -> Result<()> {
         execute!(io::stdout(), CopyToClipboard::to_clipboard_from(text))
             .map_err(|error| err!(Io, "cannot write the clipboard", @external: error))
+    }
+
+    /// One OSC 9 notification to the outer terminal, with control
+    /// characters removed so labels from window titles can't escape it.
+    pub fn notify(&self, text: &str) -> Result<()> {
+        let text: String = text.chars().filter(|c| !c.is_control()).collect();
+        execute!(io::stdout(), Print(format!("\x1b]9;{text}\x1b\\")))
+            .map_err(|error| err!(Io, "cannot write a notification", @external: error))
     }
 
     /// Match the pane's cursor shape. ratatui places and shows the cursor but
@@ -126,6 +144,7 @@ impl Drop for TerminalGuard {
 fn restore() {
     execute!(
         io::stdout(),
+        DisableFocusChange,
         DisableMouseCapture,
         DisableBracketedPaste,
         LeaveAlternateScreen,

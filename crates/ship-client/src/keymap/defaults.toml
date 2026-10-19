@@ -24,6 +24,7 @@
 "alt-g"       = { action = { client.mode = "tabs" } }
 "alt-r"       = { action = { client.mode = "resize" } }
 "alt-q"       = { action = { client.detach = {} } }
+"alt-a"       = { action = { client.agents.next = {} } }
 "alt-pageup"  = { action = { server.pane.scroll = { direction = "up" } } }
 "alt-pagedown" = { action = { server.pane.scroll = { direction = "down" } } }
 

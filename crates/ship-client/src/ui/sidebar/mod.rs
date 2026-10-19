@@ -19,7 +19,7 @@ pub(super) use self::{
     agents::Agents,
     tabs::{Gap, Tabs, movable},
 };
-use super::observer::Observer;
+use super::{attention::Attention, observer::Observer};
 use crate::keymap::Token;
 
 const MIN_WIDTH: u16 = 10;
@@ -183,6 +183,7 @@ impl Sidebar {
         frame: &mut Frame,
         area: Rect,
         observer: &Observer,
+        attention: &Attention,
         rows: &[Vec<Token>],
         gap: Option<&Gap>,
     ) {
@@ -226,6 +227,7 @@ impl Sidebar {
             &replica.tabs,
             observer.record().and_then(|record| record.selection),
             gap,
+            attention,
         );
         let label = " agents ";
         frame.render_widget(
@@ -251,6 +253,8 @@ impl Sidebar {
                 ..content
             },
             &replica.tabs,
+            observer.record().and_then(|record| record.selection),
+            attention,
             rows,
         );
     }
