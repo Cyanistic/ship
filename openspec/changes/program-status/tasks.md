@@ -52,11 +52,11 @@ Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,
 
 ## 2. Sidebar sections and display states
 
-- [ ] 2.1 Split the sidebar:
+- [x] 2.1 Split the sidebar:
   - Move `ui/sidebar.rs` to `ui/sidebar/mod.rs` (the frame) and `ui/sidebar/tabs.rs` (the tree, keeping its `TreeState`).
   - Add the split, the divider row, `Scroll`, nested `Hit`s and section scrolling.
   - Route `Hit::Tabs`, `Hit::Agent` and `Hit::Split`, `Clicked::Split`, `Clicked::SidebarScroll` and `Gesture::Split` in `mouse.rs`.
-- [ ] 2.2 Add the agents section:
+- [x] 2.2 Add the agents section:
   - `ui/agents.rs` with `Display`, `Agent`, `display`, `rollup` and `list`, without unseen.
   - `ui/sidebar/agents.rs` with `Agents`, `icon` and `row`, and rollup icons on tab rows.
   - `rows` and the `Direction` resize in `keymap.rs`; `shift-j` and `shift-k` in `defaults.toml`; `Local.agents` replaced on reload; the new `draw` call in `draw.rs`.
@@ -67,6 +67,25 @@ Implementation Rust physical lines under crate/vendor `src/`: 13,651 before, 14,
   - Clicking an agent entry selects its pane.
   - Folding, tab dragging with its gap underline, the heading menu and right-click menus behave as before the move.
   - `rows = [["icon", "app"], ["title"]]` reloads live, and a misspelled token fails with line and column.
+
+### Slice 2 verification checkpoint
+
+Tasks 2.1 and 2.2 are complete. Task 2.3 stays open for Cyan's review: Codex and Pi ran live, and Claude Code and crush did not, as in slice 1.
+
+On macOS, formatting, workspace Clippy with warnings denied, debug and release workspace builds, `ship-core` checks without default features and with `clap`, and `git diff --check` pass.
+
+Every exercise used an owned server with isolated config and state and a real client in a pty. Its output was replayed through pyte to read the drawn screen, and SGR mouse sequences and keys were written to the client's pty.
+- Scripted reporters in nested tabs showed `▲ claude blocked` above `ship › api`, ordered blocked and error, then working, then idle, in tree order. A reported `done` showed as idle, and a record without `app` showed the pane's name. Icons and colors matched G5 on rows and on tabs, and a folded tab kept its blocked rollup. A report reached the sidebar in about 0.1 s, including the reporter's own 100 ms poll.
+- Clicking an entry's second line selected its pane; pressing an entry and moving a cell before release didn't. Right-clicking an entry opened no menu.
+- At 30 rows, dragging the divider row to the top stopped at row 5 (3 tab rows) and to the bottom at row 26 (3 agent rows). `shift-k` twice moved it 2 rows up, and repeated `shift-j` and `shift-k` stopped at the same limits.
+- With 30 tabs and 20 reporting panes at 20 rows, wheel scrolling over either section moved only that section and stopped once its last row reached the bottom. Each wheel step redrew in about 3 ms. `alt-left` afterwards brought the newly selected row back into view.
+- Fold markers, dragging a tab with its gap underline (including the gap above the first row on the blank row), the row, heading-area and `≡` menus behaved as before the move.
+- Saving `rows = [["icon", "app"], ["title"]]` reflowed the entries live. Saving `rows = [["icon", "apps"]]` kept the running rows and showed the error, and `ship config check` reported line 2, column 18 with the accepted tokens and exited 1.
+- Codex 0.163.0 and Pi 1.3.0 ran live through `omlx launch` on `Qwen3.6-35B-A3B-PARO`, with scratch homes copied from slice 1, in tabs `work › codex` and `pi`. A watcher compared `ship pane get` with the drawn sidebar every 250 ms. Codex's row and both tabs' icons went idle, working, blocked with the approval dialog on screen, working after approval, and idle, each within one poll of the record. Pi's went idle, working with its spinner on screen, and idle on `done`. Both rows left on exit, and the placeholder returned.
+
+Evidence: `/tmp/ship-slice2/` (rig, renderer, reporters, watcher) and `codex-watch.log` and `pi-watch.log` in `/var/folders/n8/y68yxhhn3tl_0zh1r9kscs3w0000gn/T/ship-slice2-70fuquya/`. No permanent tests were added. Linux is unverified.
+
+Implementation Rust physical lines under crate/vendor `src/`: 14,081 before, 14,642 after (+561). Added permanent test lines: 0.
 
 ## 3. Unseen, notifications and the jump key
 

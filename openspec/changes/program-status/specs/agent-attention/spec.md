@@ -33,7 +33,7 @@ A pane SHALL become unseen when a done notification fires for it. It SHALL stop 
 - **THEN** none is marked unseen and nothing plays
 
 ### Requirement: Icons
-Each display state SHALL have an icon distinct in both shape and color: blocked `▲` red, error `✖` magenta, unseen `◆` blue, working `●` yellow and idle `○` dark gray. Agent rows and tab rows SHALL use the same icons.
+Each display state SHALL have an icon distinct in both shape and color: blocked `▲` red, error `✖` magenta, unseen `◆` cyan, working `●` yellow and idle `○` dark gray. Agent rows and tab rows SHALL use the same icons, and an agent row's `state` token SHALL take its icon's color.
 
 #### Scenario: Blocked agent
 - **WHEN** an agent's root record is `blocked`
