@@ -176,11 +176,11 @@ Implementation Rust physical lines under crate/vendor `src/`: 15,055 before, 15,
 - [x] 5.2 Verify:
   - `openspec validate program-status --type change --strict`, every link resolves, and the guide's config examples pass `ship config check`.
   - Implementation Rust and test lines reported separately against the count before this change.
-- [ ] 5.3 When the PR opens, file the tracking issue for adopting the libghostty-rs program status and semantic prompt bindings and deleting the scanner, and issues for anything else left open.
+- [x] 5.3 When the PR opens, file the tracking issue for adopting the libghostty-rs program status and semantic prompt bindings and deleting the scanner, and issues for anything else left open. Filed as #34 (the scanner and both bindings) and #35 (which icon a tab shows when blocked and error tie).
 
 ### Slice 5 checkpoint
 
-Tasks 5.1 and 5.2 are complete and wait on Cyan's review. Task 5.3 waits on the PR.
+Tasks 5.1 to 5.3 are complete. Task 5.3's issues were filed on 2026-10-19 at Cyan's request.
 
 - `docs/guide.md` gained an Agents section (entries, icons, rollup, unseen marks and focus, `alt-a`, the split), Notifications and sounds, When status is wrong or missing, and Agent settings under Configuration.
 - `client.sidebar.resize` in the guide no longer says only `left` and `right` are accepted.
