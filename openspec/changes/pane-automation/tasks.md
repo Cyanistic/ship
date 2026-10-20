@@ -61,12 +61,12 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 4. Docs, specs and size
 
-- [ ] 4.1 Document the user-visible behavior:
+- [x] 4.1 Document the user-visible behavior:
   - `docs/guide.md`: "Driving panes from scripts" after "Scrolling and reading output", covering everything FR-023 lists, and an Upgrading line for protocol 14.
   - `docs/product-brief.md`: milestone 4 as FR-022 lists.
   - `README.md`: line 16, "Not built yet" and "What works today".
   - The deltas under `specs/`: bring them in line with anything the deviation log changed.
-- [ ] 4.2 Verify:
+- [x] 4.2 Verify:
   - `openspec validate pane-automation --type change --strict`, every link resolves, and the guide's walkthrough runs as written, including `timeout(1)` and the macOS `gtimeout` note.
   - SC-001 by hand from inside a Ship pane with a real agent, with Cyan's OK.
   - Implementation Rust and test lines reported separately against the count before this change.

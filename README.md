@@ -13,7 +13,7 @@
 </div>
 
 > [!WARNING]
-> **Ship is a work in progress.** There are no releases yet, and agents can't drive the workspace yet. [What works today](#what-works-today) is the honest list.
+> **Ship is a work in progress.** There are no releases yet. [What works today](#what-works-today) is the honest list.
 
 ## Overview
 
@@ -37,13 +37,13 @@ tmux and Zellij keep terminals alive, but they don't know what an agent is. [Her
 - **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
 - **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
 - **A scriptable CLI.** Server actions are also `ship` commands that print JSON, so scripts and agents can create panes, read output and steer a specific client's selection.
+- **Agents driving agents.** `ship pane send` types a prompt or keys into a pane, and `ship pane wait` blocks until the agent there stops working, so one agent can hand work to another and read the answer.
 - **Your keys and menus.** Rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. Let mouse-aware programs have right-clicks per pane. Config changes apply when you save.
 
 Linux and macOS are the priority platforms. Windows is best effort.
 
 ### Not built yet
 
-- Sending input to a pane, or waiting for another agent to finish, from the CLI.
 - Releases and packages.
 
 ## Installation

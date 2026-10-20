@@ -259,6 +259,20 @@ ship pane send --pane "$WORKER" "Next task" --key enter --if idle,done
 ship pane send --pane "$WORKER" --key enter --if blocked
 ```
 
+To hand work to an agent in another pane, start it, wait until it's ready, send a prompt and wait for the turn to end, then read the answer:
+
+```sh
+TAB=$(ship tab create --name workers | jq -r .id)
+WORKER=$(ship pane create --tab "$TAB" --name worker -- claude | jq -r .id)
+timeout 60 ship pane wait --pane "$WORKER"
+timeout 600 ship pane send --pane "$WORKER" "Write a haiku about ships" --key enter --wait \
+  | jq -r '.program[""].state'
+ship pane read --pane "$WORKER" --lines 40
+ship tab close --tab "$TAB"
+```
+
+`pane create` returns as soon as the program starts, before the agent has reported anything, and `send --wait` refuses a pane with no status, so the first `wait` holds off until the agent is ready. Check the printed state: `done` or `idle` means the turn finished, `blocked` means it needs an answer first. Any program that reports OSC 7501 works in place of `claude`.
+
 For a program that reports OSC 7501, `send --wait` sends input and waits for its root status to leave `working`. It first needs to see the root state change from the one before the send, unless the program was already working. `pane wait` waits without sending anything and returns immediately if its condition already holds. Both print the matching pane as JSON, like `pane get`. In these examples, `WORKER` is the ID of a pane running a reporting program:
 
 ```sh
@@ -267,7 +281,7 @@ ship pane wait --pane "$WORKER" --status done,exited
 timeout 30 ship pane wait --pane "$WORKER"
 ```
 
-`--status` accepts a comma-separated list of `idle`, `working`, `done`, `blocked`, `error` and `exited`; any listed state matches. Without it, any root state except `working` matches, including `blocked` or `error`, but exit fails with the exit status. A running pane without a root status fails immediately unless `exited` is among the requested states. On `send`, `--status` requires `--wait`.
+`--status` accepts a comma-separated list of `idle`, `working`, `done`, `blocked`, `error` and `exited`; any listed state matches. Without it, any root state except `working` matches, including `blocked` or `error`, but exit fails with the exit status. A pane that hasn't reported anything yet, such as an agent still starting, is waited on until it reports, exits or closes; on a pane whose program never reports, `wait` runs until you stop it. On `send`, `--status` requires `--wait`.
 
 `send --wait` refuses a pane that has exited, has no root status, or is blocked, before sending anything. To answer a dialog and wait for what follows, say that blocked is expected:
 

@@ -85,17 +85,12 @@ impl Client {
         Ok(self.written())
     }
 
-    /// Return at once if the snapshot already holds the condition.
+    /// Return at once if the snapshot already holds the condition. A pane
+    /// without a root record waits for its first report.
     pub(crate) async fn wait(&self, pane: IdOf<Pane>, condition: Condition) -> Result<Pane> {
         let mut events = pin!(self.observe().await?);
         let snapshot = next(&mut events, pane).await?;
         let found = tree::pane(&snapshot.tabs, pane)?;
-        if found.status == PaneStatus::Running
-            && found.root_status().is_none()
-            && !condition.takes_exit()
-        {
-            return Err(err!(Conflict, "pane {} has no program status", pane));
-        }
         if condition.matches(found)? {
             return Ok(found.clone());
         }

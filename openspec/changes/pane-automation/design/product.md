@@ -6,6 +6,8 @@ Amended on 2026-10-19 during architecture at Cyan's direction: the published rev
 
 Amended again on 2026-10-19 after slice 3 at Cyan's direction ("let's just make the send change"): a live Claude test showed that answering a permission dialog and then waiting had no clean path, because a plain `send` followed by `wait` returns the stale `blocked`. `send` gains `--if STATE,...`, which refuses to write unless the root reports a listed state, with or without `--wait`. FR-017's refusal of a blocked pane becomes the default of `--if` under `--wait`, and the gate in FR-018 and FR-019 becomes "the root's state or blocked kind changed from the one before the write", so `send --wait --if blocked` answers a dialog and waits. The first P1 story, the P4 stories, the plain-send non-goal and FR-017 through FR-019 changed; FR-016a is new.
 
+Amended on 2026-10-20 during slice 4 at Cyan's direction ("yep! sounds good to me! go for it!"): the Goal's loop failed as written, because `pane create` returns before the agent's first report and FR-012 made `wait` refuse a pane with no root record. `wait` now waits for the first report instead, so `ship pane wait --pane ID` after `create` plays the part of Herdr's `agent start`. `send --wait` still refuses a pane with no root record (FR-017). The Goal's loop and FR-012 changed.
+
 ## Goal
 
 Milestone 4 in the product brief asks that an agent running in one pane can drive another: start a sibling, give it work, wait for the result and read it. Most of that already exists. `ship pane create` starts a program and prints the new pane with its ID, `ship tab list` and `ship pane get` show every pane with its program status, and `ship pane read` prints output and history. Two pieces are missing: sending input to a pane, and waiting for a pane's status to change. This change adds `ship pane send` and `ship pane wait`.
@@ -16,6 +18,7 @@ The loop the brief asks for:
 
 ```bash
 id=$(ship pane create --name worker -- claude | jq -r .id)
+ship pane wait --pane "$id"
 ship pane send --pane "$id" "fix the flaky test in saver.rs" --key enter --wait
 ship pane read --pane "$id" --lines 80
 ```
@@ -98,7 +101,7 @@ Tested independently by provoking each case from a script.
 - **FR-009** When the condition already holds, `wait` MUST return at once.
 - **FR-010** `exited` MUST match when the pane's program exits. When a pane closes because its program exited, a waiter MUST still receive the exit status.
 - **FR-011** When the program exits and `exited` isn't in the condition, `wait` MUST fail with an error saying the program exited and giving its exit status.
-- **FR-012** When the pane has no root record and `exited` isn't in the condition, `wait` MUST fail at once with an error saying the pane has no program status.
+- **FR-012** When the pane has no root record, `wait` MUST keep waiting for the program's first report, its exit or the pane's closing, so a caller can wait for a just-started agent to become ready.
 - **FR-013** On success, `wait` MUST print the pane as `ship pane get` would print it at the moment the condition matched.
 - **FR-014** `wait` MUST NOT time out on its own. Ending the CLI process MUST end the wait and leave no effect on the pane or server.
 - **FR-015** Running `wait` again after an earlier `wait` or `send --wait` ended early MUST be safe. It MUST NOT send input.

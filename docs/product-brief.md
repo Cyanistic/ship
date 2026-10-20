@@ -128,20 +128,20 @@ Completion evidence:
 
 Include a CLI and machine-readable control interface for:
 
-- Listing and inspecting sessions, tabs, panes and agents.
+- Listing and inspecting tabs, panes and their program status.
 - Creating, splitting, focusing and closing panes.
 - Running commands and sending text or logical keys.
 - Reading visible output and recent scrollback.
-- Prompting a named agent.
-- Waiting for output or an agent-state transition.
-- Receiving state/event updates.
+- Sending a prompt to a pane and waiting for it to be handled.
+- Waiting for a program-status transition or exit.
+- Receiving state updates, through `ship pane wait` and the existing listing commands.
 
-Use explicit target identities and useful errors. Automation must not accidentally act on whichever pane the user happens to focus. Share operation definitions with the application rather than reimplementing behavior in CLI handlers.
+Use explicit target identities and useful errors. Automation must not accidentally act on whichever pane the user happens to focus. Share operation definitions with the application rather than reimplementing behavior in CLI handlers. The pane-automation change amended this milestone.
 
 Completion evidence:
 
 - An agent can start a sibling task, submit work, wait for a result and read it through the control interface.
-- The sequence uses explicit identities rather than guessed targets; the exact creation-response contract remains open.
+- The sequence uses explicit identities rather than guessed targets; `ship pane create` prints the new pane, which settles the creation-response contract.
 - User focus changes do not redirect targeted automation.
 - Invalid targets, closed panes, timeouts and unavailable output are reported clearly.
 

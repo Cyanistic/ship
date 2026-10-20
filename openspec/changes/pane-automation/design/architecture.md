@@ -6,6 +6,8 @@ Amended on 2026-10-19 during program design at Cyan's direction: the input strea
 
 Amended again on 2026-10-19 after slice 3, following the product paper's `--if` amendment at Cyan's direction: the precheck checks the root against the `--if` states (by default anything reported but `blocked`), also for plain `send` when `--if` is given, using the pane from `GET /panes/{id}`; and the gate opens on the first replica newer than the boundary whose root state or blocked kind differs from the precheck's, or whose program exited, instead of one whose root is `working` or `blocked`. The precheck and waiter boxes and their descriptions below still show the earlier gate; nothing else in the shape changed.
 
+Amended on 2026-10-20 during slice 4, following the product paper's FR-012 amendment: the precheck for `wait` no longer fails on a missing root record; the wait goes on until the first report, as it does for a record cleared mid-wait. The precheck box below still shows the earlier rule.
+
 `send` and `wait` are client-side commands. To wait, the CLI attaches as an observer, an attachment with no area and no selection, so it gets each published replica but no screens and has no effect on any tab's size. It writes input through the existing input stream, without an attachment, and decides when a wait is over by reading replicas, just as the full-screen client reads them. The published revision is the source of truth: a status that never reaches a revision didn't happen. The server gains an optional attach area and an optional attachment header on the input stream. It gets no new route, counter or waiter registry.
 
 ## Context and constraints

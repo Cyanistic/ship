@@ -70,7 +70,8 @@ Without `--wait`, `send` SHALL print nothing on success and SHALL NOT attach to 
 - **THEN** it exits 2 and the pane receives nothing
 
 ### Requirement: Wait condition
-`ship pane wait` SHALL succeed when the pane's root status record matches its condition: by default any state other than `working`; with `--status STATE,...`, any listed state. `--status` SHALL accept `idle`, `working`, `done`, `blocked`, `error` and `exited`. When the condition already holds, `wait` SHALL return at once. 
+`ship pane wait` SHALL succeed when the pane's root status record matches its condition: by default any state other than `working`; with `--status STATE,...`, any listed state. `--status` SHALL accept `idle`, `working`, `done`, `blocked`, `error` and `exited`. When the condition already holds, `wait` SHALL return at once.
+
 #### Scenario: Default condition
 - **WHEN** a pane's program reports `working` and later `idle`, and a script runs `ship pane wait --pane <id>` while it is working
 - **THEN** the wait returns after `idle` is published and prints the pane with root state `idle`
@@ -110,11 +111,15 @@ On success, `wait` SHALL print the pane as `ship pane get` would print it at the
 - **THEN** the wait exits 1 with an error naming the pane and saying the program exited with code 1
 
 ### Requirement: Wait without program status
-When a running pane has no root status record and `exited` isn't in the condition, `wait` SHALL fail at once with an error saying the pane has no program status.
+When a running pane has no root status record, `wait` SHALL keep waiting until the program reports, exits or the pane closes.
+
+#### Scenario: Agent still starting
+- **WHEN** a script creates a pane running an agent and at once runs `ship pane wait --pane <id>`
+- **THEN** the wait returns once the agent reports `idle`, rather than failing because nothing is reported yet
 
 #### Scenario: Plain shell
-- **WHEN** a pane runs a shell that reports no status and a script runs `ship pane wait --pane <id>`
-- **THEN** the wait exits 1 at once with an error saying the pane has no program status
+- **WHEN** a pane runs a shell that reports no status and a script runs `timeout 2 ship pane wait --pane <id>`
+- **THEN** the command exits 124 and the pane is unaffected
 
 ### Requirement: Wait lifetime
 `wait` SHALL NOT time out on its own. Ending the CLI process SHALL end the wait and leave no effect on the pane or server, including no attachment left in `ship view list`. Running `wait` again after an earlier `wait` or `send --wait` ended early SHALL be safe, and `wait` SHALL NOT send input.
@@ -184,7 +189,7 @@ If no revision within 5 seconds of the write shows the change that picking up th
 - **THEN** the command fails within 6 seconds with an error saying the pane stalled and that the input was sent
 
 ### Requirement: Automation errors
-Errors from `send` and `wait` SHALL follow the CLI's existing convention: a message on stderr naming the pane and exit status 1, with usage errors keeping clap's exit status 2. Each failure SHALL have its own message: not found, closed, blocked, no program status, exited, stalled, the server stopped, and the connection lost.
+Errors from `send` and `wait` SHALL follow the CLI's existing convention: a message on stderr naming the pane and exit status 1, with usage errors keeping clap's exit status 2. Each failure SHALL have its own message: not found, closed, blocked, in a state `--if` doesn't list, no program status before sending, exited, stalled, the server stopped, and the connection lost.
 
 #### Scenario: Server stops during a wait
 - **WHEN** `ship server stop` runs while a script's `wait` is waiting
