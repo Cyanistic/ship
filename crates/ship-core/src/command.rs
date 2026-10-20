@@ -236,6 +236,8 @@ pub mod tab {
 pub mod pane {
     use std::path::PathBuf;
 
+    use crokey::KeyCombination;
+
     #[cfg(feature = "clap")]
     use clap::{Args, Subcommand};
     use serde::Deserialize;
@@ -247,7 +249,7 @@ pub mod pane {
         protocol::{ScrollDirection, SplitDirection},
     };
 
-    /// `get` and `read` are CLI-only, so the config rejects them.
+    /// `get`, `read` and `send` are CLI-only, so the config rejects them.
     #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
@@ -269,6 +271,9 @@ pub mod pane {
         /// Print the active screen, or its last lines including history
         #[serde(skip)]
         Read(Read),
+        /// Send text as one paste, then keys, without waiting for a response
+        #[serde(skip)]
+        Send(SendInput),
         /// Zoom a pane to fill its tab, or unzoom it, and print its tab as JSON
         Zoom(Zoom),
         /// Exchange a pane with another pane in its tab and print the tab as JSON
@@ -410,6 +415,19 @@ pub mod pane {
         /// Keep colors and styles as escape sequences
         #[cfg_attr(feature = "clap", arg(long))]
         pub ansi: bool,
+    }
+
+    #[derive(Clone, Debug, Default, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    pub struct SendInput {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
+        /// Text to send as one paste; `-` reads it from stdin
+        #[cfg_attr(feature = "clap", arg(required_unless_present = "keys"))]
+        pub text: Option<String>,
+        /// Key to press after the text, as in the keymap config; repeat for more
+        #[cfg_attr(feature = "clap", arg(long = "key", value_name = "KEY"))]
+        pub keys: Vec<KeyCombination>,
     }
 
     /// Directional swap is `client.pane.swap`, a key action with no CLI form.

@@ -8,6 +8,7 @@ How Ship behaves once you're past the [README](../README.md). Every example assu
 - [Tabs](#tabs)
 - [Panes and splits](#panes-and-splits)
 - [Scrolling and reading output](#scrolling-and-reading-output)
+- [Driving panes from scripts](#driving-panes-from-scripts)
 - [Mouse and clipboard](#mouse-and-clipboard)
 - [Agents](#agents)
 - [Configuration](#configuration)
@@ -232,6 +233,24 @@ ship tab close --tab "$TAB"
 ```
 
 `--lines N` reads the last N rows including history, and `--unwrap` joins lines the terminal wrapped. `ship pane scroll` takes `up`, `down`, `top` or `bottom`; `up` and `down` move one page unless you give `--amount`. Exited panes can still be scrolled and read.
+
+## Driving panes from scripts
+
+`ship pane send` sends text and keys to a pane without attaching a client. Pass `--pane ID`, or omit it inside a pane to use `SHIP_PANE_ID`. It never uses an attached client's selection.
+
+```sh
+TAB=$(ship tab create --name input | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" -- cat -v | jq -r .id)
+ship pane send --pane "$PANE" "hello" --key esc --key enter
+printf 'first\nsecond\nthird' | ship pane send --pane "$PANE" - --key enter
+ship pane read --pane "$PANE"
+ship pane send --pane "$PANE" --key ctrl-c
+ship tab close --tab "$TAB"
+```
+
+Text arrives as one paste, then each `--key` in order, even if a key option appears before the text. `-` reads all text from stdin. Keys use the keymap names, such as `enter`, `esc` and `ctrl-c`. An invalid key or giving neither text nor keys is a usage error; nothing is sent. Input returns a scrolled pane to the bottom.
+
+Success prints nothing. An unknown pane fails; a pane whose program has exited accepts and drops the input. This command sends input only: it does not wait for the program to handle it.
 
 ## Mouse and clipboard
 

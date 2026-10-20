@@ -25,15 +25,15 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 2. Headerless input and `ship pane send`
 
-- [ ] 2.1 Make the input header optional:
+- [x] 2.1 Make the input header optional:
   - `OptionalFromRequestParts` for `AttachmentHeader` in `attach.rs`.
   - `input` takes `Option<AttachmentHeader>`, `route` takes `Option<IdOf<Attachment>>` and rejects a headerless mouse frame, and the OpenAPI description is updated.
   - `send_stream` and `Client::input` take an optional attachment, and `send_stream` records the response's revision. The full-screen client passes `Some(attached.attachment)`.
-- [ ] 2.2 Add `ship pane send` without `--wait`:
+- [x] 2.2 Add `ship pane send` without `--wait`:
   - `crokey` in `ship-core`'s manifest, and `pane::SendInput` (pane, text, keys) on `PaneCommand`.
   - `automation.rs` with `Input`, `Client::send` and `Client::write`, and the `Send` arm in `execute.rs`.
-- [ ] 2.3 Verify P2 against `cat -v` and a shell, read back with `ship pane read`:
-  - Text then `--key escape --key enter` arrive in that order.
+- [x] 2.3 Verify P2 against `cat -v` and a shell, read back with `ship pane read`:
+  - Text then `--key esc --key enter` arrive in that order.
   - Multi-line stdin with `-` arrives as one paste and a single Enter.
   - `--key ctrl-c` interrupts `sleep`, and a pane scrolled into history returns to the bottom.
   - A headerless curl input with a mouse frame gets 422, and a malformed header still gets 400.
@@ -41,7 +41,7 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
   - `send` with neither text nor keys exits 2, and `--key ctl-c` exits 2 with nothing arriving.
   - An unknown or malformed ID fails naming the pane, and a pane whose program exited accepts the input silently.
   - `ship view list` shows no attachment from `send`.
-- [ ] 2.4 Gate G1 (U-1), with Cyan's OK: send a prompt with `--key enter` to each agent that reports OSC 7501, and record in the deviation log whether the Enter was taken.
+- [x] 2.4 Gate G1 (U-1), scoped by Cyan to Pi with `openai-codex/gpt-6-luna`: send a prompt with `--key enter` and record in the deviation log whether the Enter was taken. Passed 3/3 trials on macOS; other agents and Linux remain unverified.
 
 ## 3. `ship pane wait` and `send --wait`
 

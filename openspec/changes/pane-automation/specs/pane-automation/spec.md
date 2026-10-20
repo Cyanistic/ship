@@ -21,7 +21,7 @@ Let a script or an agent in one pane drive another: send it input, and wait for 
 `ship pane send [TEXT] [--key KEY]...` SHALL deliver TEXT as one paste, delivered the way a client's paste is, then each key in the order given. TEXT `-` SHALL read the text from stdin. Giving neither text nor keys SHALL be a usage error. Input SHALL return a scrolled pane to the bottom.
 
 #### Scenario: Text then keys
-- **WHEN** a script runs `ship pane send --pane <id> "hello" --key escape --key enter` against a pane running `cat -v`
+- **WHEN** a script runs `ship pane send --pane <id> "hello" --key esc --key enter` against a pane running `cat -v`
 - **THEN** `ship pane read --pane <id>` shows `hello`, then Escape, then Enter, in that order
 
 #### Scenario: Multi-line prompt from stdin
@@ -52,7 +52,7 @@ Without `--wait`, `send` SHALL print nothing on success and SHALL NOT attach to 
 - **THEN** `ship view list` never shows an attachment for it
 
 ### Requirement: Key names
-`--key` SHALL accept the key names the keymap config accepts, such as `enter`, `escape` and `ctrl-c`. Every key SHALL be parsed before anything is written; an invalid key SHALL be a usage error that sends nothing.
+`--key` SHALL accept the key names the keymap config accepts, such as `enter`, `esc` and `ctrl-c`. Every key SHALL be parsed before anything is written; an invalid key SHALL be a usage error that sends nothing.
 
 #### Scenario: Invalid key
 - **WHEN** a script runs `ship pane send --pane <id> "hi" --key ctl-c`
@@ -139,7 +139,7 @@ Before writing anything, `send --wait` SHALL fail if the pane doesn't exist, if 
 - **THEN** nothing is written and the error names the pane and `permission`
 
 #### Scenario: Plain send reaches a dialog
-- **WHEN** a pane's root record is `blocked` and a script runs `ship pane send --pane <id> --key escape`
+- **WHEN** a pane's root record is `blocked` and a script runs `ship pane send --pane <id> --key esc`
 - **THEN** the program receives Escape
 
 #### Scenario: No program status

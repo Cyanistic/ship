@@ -231,7 +231,7 @@ async fn drive(
                         tracing::info!("attached");
                         let (frames, received) = mpsc::unbounded_channel();
                         local.input = Some(frames);
-                        sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));
+                        sending = Some(Box::pin(client.input(Some(attached.attachment), UnboundedReceiverStream::new(received))));
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));

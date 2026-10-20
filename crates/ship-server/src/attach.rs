@@ -2,7 +2,7 @@ use std::{future::ready, sync::Arc, time::Duration};
 
 use axum::{
     Json,
-    extract::{FromRequestParts, State},
+    extract::{FromRequestParts, OptionalFromRequestParts, State},
     http::request::Parts,
     response::{
         IntoResponse, Response,
@@ -210,6 +210,20 @@ impl<S: Send + Sync> FromRequestParts<S> for AttachmentHeader {
             |error| err!(Validation, "malformed {} header", ATTACHMENT_HEADER, @external: error),
         )?;
         value.parse().map(Self)
+    }
+}
+
+impl<S: Send + Sync> OptionalFromRequestParts<S> for AttachmentHeader {
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Option<Self>> {
+        if parts.headers.contains_key(ATTACHMENT_HEADER) {
+            <Self as FromRequestParts<S>>::from_request_parts(parts, state)
+                .await
+                .map(Some)
+        } else {
+            Ok(None)
+        }
     }
 }
 

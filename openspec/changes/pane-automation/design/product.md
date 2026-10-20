@@ -37,7 +37,7 @@ Tested independently with a script in a pane that emits OSC 7501 reports on inpu
 
 - **Given** any pane, **when** the caller runs `ship pane send --pane ID --key ctrl-c`, **then** the program receives Ctrl+C.
 - **Given** a multi-line prompt on stdin, **when** the caller runs `ship pane send --pane ID - --key enter`, **then** the whole text arrives as one paste and a single Enter follows it.
-- **Given** `--key escape --key enter` with text, **then** the text arrives first, then Escape, then Enter.
+- **Given** `--key esc --key enter` with text, **then** the text arrives first, then Escape, then Enter.
 - **Given** a pane scrolled back into its history, **when** input is sent, **then** the pane returns to the bottom, as interactive input does.
 
 Tested independently by sending to `cat -v` or a shell and reading the pane.
@@ -53,7 +53,7 @@ Tested independently with a scripted reporter and with short-lived commands.
 
 ### P4: Clear failures
 
-- **Given** a pane showing a permission dialog and reporting `blocked`, **when** the caller runs `send --wait`, **then** nothing is written and the error names the pane and its blocked kind. A plain `send --key escape` still reaches the dialog.
+- **Given** a pane showing a permission dialog and reporting `blocked`, **when** the caller runs `send --wait`, **then** nothing is written and the error names the pane and its blocked kind. A plain `send --key esc` still reaches the dialog.
 - **Given** a plain shell pane with no status record, **when** the caller runs `send --wait`, **then** nothing is written and the error says the pane has no program status.
 - **Given** a program that doesn't report OSC 7501, or one that never starts working, **when** `send --wait` has sent its input, **then** after 5 seconds without `working` or `blocked` it fails with an error saying the pane stalled.
 - **Given** a wait without `exited` in its condition, **when** the program exits, **then** the wait fails with an error saying the program exited, including its exit status.

@@ -22,7 +22,7 @@ use ship_core::{
     tree::{self, Tabs},
 };
 
-use crate::Client;
+use crate::{Client, automation::Input};
 
 /// Where a missing target comes from.
 pub enum Scope {
@@ -233,6 +233,11 @@ impl Client {
                         )
                         .await?,
                     )
+                }
+                PaneCommand::Send(pane::SendInput { pane, text, keys }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    self.send(id, Input::new(text, keys)?).await?;
+                    Outcome::Closed
                 }
                 PaneCommand::Zoom(pane::Zoom { pane, zoomed }) => {
                     let id = Self::pane_target(pane, scope)?;
