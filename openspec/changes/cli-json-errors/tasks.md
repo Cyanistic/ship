@@ -12,8 +12,8 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 1. Error spelling
 
-- [ ] 1.1 Add `rename_all = "snake_case"` to `ErrorCode` and `rename_all = "camelCase"` to `InternalError` in `crates/ship-core/src/error.rs`.
-- [ ] 1.2 Verify:
+- [x] 1.1 Add `rename_all = "snake_case"` to `ErrorCode` and `rename_all = "camelCase"` to `InternalError` in `crates/ship-core/src/error.rs`.
+- [x] 1.2 Verify:
   - `curl` for a missing pane returns a 404 body with `"type":{"kind":"not_found"}`.
   - A failure with a cause shows `causedBy`.
   - `ship pane get --pane <missing>` still shows the server's message, so the client reads the new spelling.

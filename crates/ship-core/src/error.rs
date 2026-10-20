@@ -21,7 +21,7 @@ pub type Result<T, E = AppError> = result::Result<T, E>;
 
 /// Diagnostic categories. HTTP response policy remains server-owned.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(tag = "kind", content = "data")]
+#[serde(tag = "kind", content = "data", rename_all = "snake_case")]
 pub enum ErrorCode {
     Validation,
     NotFound,
@@ -66,6 +66,7 @@ pub enum AppError {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct InternalError {
     pub message: Cow<'static, str>,
     #[serde(rename = "type")]
