@@ -19,15 +19,18 @@ fn main() -> ExitCode {
     let source = matches.value_source("server_url");
     let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|error| error.exit());
     match run(cli, source) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => code,
         Err(error) => {
-            eprintln!("ship: {error}");
+            match serde_json::to_string(&error) {
+                Ok(json) => eprintln!("{json}"),
+                Err(_) => eprintln!("ship: {error}"),
+            }
             ExitCode::FAILURE
         }
     }
 }
 
-fn run(cli: Cli, source: Option<ValueSource>) -> Result<()> {
+fn run(cli: Cli, source: Option<ValueSource>) -> Result<ExitCode> {
     if matches!(
         cli.command,
         Some(Command::Server(cli::ServerArgs {
@@ -87,7 +90,7 @@ async fn dispatch(
     mut cli: Cli,
     source: Option<ValueSource>,
     diagnostics: &diagnostics::Diagnostics,
-) -> Result<()> {
+) -> Result<ExitCode> {
     let explicit_target = matches!(
         source,
         Some(ValueSource::CommandLine | ValueSource::EnvVariable)
@@ -136,10 +139,10 @@ async fn dispatch(
             .inspect_err(|error| tracing::error!(%error, "server failed"))
         }
         Some(Command::Config(cli::ConfigCommand::Check { file })) => {
-            commands::check_config(&match file {
+            return commands::check_config(&match file {
                 Some(file) => file,
                 None => cli.config_path()?,
-            })
+            });
         }
         Some(Command::Action(command)) => {
             let client = connect(&cli, explicit_target).await?;
@@ -166,6 +169,7 @@ async fn dispatch(
                 .inspect_err(|error| tracing::error!(%error, "client failed"))
         }
     }
+    .map(|()| ExitCode::SUCCESS)
 }
 
 /// Validate an explicit target without starting it; otherwise reuse or start
