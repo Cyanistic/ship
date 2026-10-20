@@ -8,6 +8,8 @@ Amended again on 2026-10-19 after slice 3 at Cyan's direction ("let's just make 
 
 Amended on 2026-10-20 during slice 4 at Cyan's direction ("yep! sounds good to me! go for it!"): the Goal's loop failed as written, because `pane create` returns before the agent's first report and FR-012 made `wait` refuse a pane with no root record. `wait` now waits for the first report instead, so `ship pane wait --pane ID` after `create` plays the part of Herdr's `agent start`. `send --wait` still refuses a pane with no root record (FR-017). The Goal's loop and FR-012 changed.
 
+Amended on 2026-10-20 after archiving, at Cyan's direction ("go for it!"): whether a waiter still receives the exit status when a pane closes because its program exited is left to the close-on-exit change. If that change removes the pane in the exit's own commit, the status never reaches a published revision; if it removes it in a later one, a waiter can still be handed only the removal. FR-010 and the second P3 story changed.
+
 ## Goal
 
 Milestone 4 in the product brief asks that an agent running in one pane can drive another: start a sibling, give it work, wait for the result and read it. Most of that already exists. `ship pane create` starts a program and prints the new pane with its ID, `ship tab list` and `ship pane get` show every pane with its program status, and `ship pane read` prints output and history. Two pieces are missing: sending input to a pane, and waiting for a pane's status to change. This change adds `ship pane send` and `ship pane wait`.
@@ -50,7 +52,7 @@ Tested independently by sending to `cat -v` or a shell and reading the pane.
 ### P3: Wait for a particular status, or for the program to end
 
 - **Given** a worker reporting `working`, **when** the caller runs `ship pane wait --pane ID --status blocked`, **then** it returns only once the root record reports `blocked`.
-- **Given** a pane running `cargo test`, **when** the caller runs `ship pane wait --pane ID --status exited`, **then** it returns when the program exits, and the printed JSON carries its exit status, even when the pane closes on exit.
+- **Given** a pane running `cargo test`, **when** the caller runs `ship pane wait --pane ID --status exited`, **then** it returns when the program exits, and the printed JSON carries its exit status.
 - **Given** `--status done,exited`, **then** the wait returns on whichever happens first.
 - **Given** the condition already holds, **when** the caller runs `wait`, **then** it returns at once.
 
@@ -99,7 +101,7 @@ Tested independently by provoking each case from a script.
 
 - **FR-008** `wait` MUST succeed when the pane's root status record matches the condition: by default, any state other than `working`; with `--status STATE,...`, any listed state. `--status` MUST accept `idle`, `working`, `done`, `blocked`, `error` and `exited`.
 - **FR-009** When the condition already holds, `wait` MUST return at once.
-- **FR-010** `exited` MUST match when the pane's program exits. When a pane closes because its program exited, a waiter MUST still receive the exit status.
+- **FR-010** `exited` MUST match when the pane's program exits. Whether a waiter still receives the exit status when a pane closes because its program exited is left to the close-on-exit change.
 - **FR-011** When the program exits and `exited` isn't in the condition, `wait` MUST fail with an error saying the program exited and giving its exit status.
 - **FR-012** When the pane has no root record, `wait` MUST keep waiting for the program's first report, its exit or the pane's closing, so a caller can wait for a just-started agent to become ready.
 - **FR-013** On success, `wait` MUST print the pane as `ship pane get` would print it at the moment the condition matched.

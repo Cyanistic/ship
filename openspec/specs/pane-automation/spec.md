@@ -96,7 +96,7 @@ On success, `wait` SHALL print the pane as `ship pane get` would print it at the
 - **THEN** the wait keeps waiting through the gap and returns on `idle`
 
 ### Requirement: Waiting on exit
-`exited` SHALL match when the pane's program exits, and the printed pane SHALL carry its exit status. When the program exits and `exited` isn't in the condition, the wait SHALL fail with an error saying the program exited and giving its exit status. When a pane closes because its program exited, a waiter SHALL still receive the exit status.
+`exited` SHALL match when the pane's program exits, and the printed pane SHALL carry its exit status. When the program exits and `exited` isn't in the condition, the wait SHALL fail with an error saying the program exited and giving its exit status.
 
 #### Scenario: Wait for exit
 - **WHEN** a pane runs `cargo test` and a script runs `ship pane wait --pane <id> --status exited`
