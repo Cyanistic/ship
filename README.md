@@ -13,19 +13,17 @@
 </div>
 
 > [!WARNING]
-> **Ship is a work in progress.** There are no releases yet. [What works today](#what-works-today) is the honest list.
+> **Ship is a work in progress.** There are no releases yet. See [what works today](#what-works-today) and [what isn't built yet](#not-built-yet).
 
 ## Overview
 
-If you run a few coding agents at once, you end up with a pile of terminals: an agent in one, an editor in another, a shell running tests, another agent somewhere else. Typing the commands is the easy part. The hard part is keeping track of it all. Which agent finished? Which one is stuck waiting on you? Where did you leave it?
-
-Ship puts all of that in one place. It keeps your shells, editors and agents together, keeps them running when you close the window, shows you which agent needs attention, and is heading toward letting agents drive the workspace themselves.
+Ship is a terminal multiplexer for running several coding agents at once. It keeps your shells, editors and agents in tabs and split panes, keeps them running when you close the window, shows which agent is finished or waiting on you, and lets agents open panes and hand work to each other.
 
 The name treats agents as your crew, and it's also about shipping software.
 
 ### Why another multiplexer?
 
-tmux and Zellij keep terminals alive, but they don't know what an agent is. [Herdr](https://github.com/herdrdev/herdr) does, and Ship is heavily inspired by it. Ship's angle is getting most of that daily value from a much smaller codebase: it leans on solid libraries for the mechanical parts, like terminal emulation ([Ghostty](https://ghostty.org)'s), PTYs and transport, and only writes the parts that are actually Ship. The goal is a codebase small enough to fit in your agent's (sorry, crewmate's) context window.
+tmux and Zellij keep terminals alive, but they don't know what an agent is. [Herdr](https://github.com/herdrdev/herdr) does, and Ship is heavily inspired by it. Ship aims to cover most of what Herdr does day to day with a much smaller codebase. It uses libraries for terminal emulation ([Ghostty](https://ghostty.org)'s), PTYs and transport, and only writes the tab, pane and agent parts itself.
 
 ## What works today
 
@@ -45,6 +43,11 @@ Linux and macOS are the priority platforms. Windows is best effort.
 ### Not built yet
 
 - Releases and packages.
+- Searching a pane's history, and a keyboard copy mode. For now, `ship pane read --lines N | grep ...` covers search.
+- Resuming agent conversations or rerunning programs after a restart. Saved tabs come back with fresh shells.
+- Closing a pane automatically when its program exits.
+- Connecting to another machine's server directly. The server only accepts local connections for now, so [use an SSH tunnel](docs/guide.md#using-ship-on-another-machine).
+- Testing on Linux. Most features have only been checked on macOS so far.
 
 ## Installation
 
