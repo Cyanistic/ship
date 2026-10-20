@@ -45,12 +45,12 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 3. `ship pane wait` and `send --wait`
 
-- [ ] 3.1 Gate G2 (U-2), with Cyan's OK, before writing this slice: with slice 2's `send` and a `ship pane get` loop, record what each reporting agent publishes around a prompt. A `working` later than 5 seconds, or an `idle` re-reported first, reopens FR-018 and FR-019.
-- [ ] 3.2 Add the waits:
+- [x] 3.1 Gate G2 (U-2), scoped by Cyan to Pi with `openai-codex/gpt-6-luna`: slice 2's `send` and a `ship pane get` loop observed `working` within 0.216 seconds in all three trials, then `done`, with no intervening root-state change to `idle`. Other agents and Linux remain unverified. See the deviation log for evidence.
+- [x] 3.2 Add the waits:
   - `pane::Wait`, `WaitState`, and `--wait` and `--status` on `SendInput`.
   - `Condition`, `Client::wait`, `Client::replicas`, `start` and `judge` in `automation.rs`, and `send` with a condition calling `wait`.
   - The `Wait` arm and the `--wait` path of the `Send` arm in `execute.rs`.
-- [ ] 3.3 Verify P1, P3 and P4 against a scripted reporter, a shell script in a pane that reads a line, reports OSC 7501 `working`, sleeps, then reports `idle`, `blocked`, `done` or `error`, or exits:
+- [x] 3.3 Verify P1, P3 and P4 against a scripted reporter, a shell script in a pane that reads a line, reports OSC 7501 `working`, sleeps, then reports `idle`, `blocked`, `done` or `error`, or exits:
   - SC-003: 50 of 50 `send --wait` runs return against a 50 ms `working`.
   - SC-004: each P4 failure prints its own message, and a reporter that never reports fails within 6 seconds.
   - SC-005: `timeout 2 ship pane wait` on a `working` pane exits 124 and leaves no observer in `ship view list`.

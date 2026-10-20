@@ -250,7 +250,21 @@ ship tab close --tab "$TAB"
 
 Text arrives as one paste, then each `--key` in order, even if a key option appears before the text. `-` reads all text from stdin. Keys use the keymap names, such as `enter`, `esc` and `ctrl-c`. An invalid key or giving neither text nor keys is a usage error; nothing is sent. Input returns a scrolled pane to the bottom.
 
-Success prints nothing. An unknown pane fails; a pane whose program has exited accepts and drops the input. This command sends input only: it does not wait for the program to handle it.
+Without `--wait`, success prints nothing. An unknown pane fails; a pane whose program has exited accepts and drops the input. Plain `send` does not wait for the program to handle it.
+
+For a program that reports OSC 7501, `send --wait` sends input and waits for its root status to leave `working`. It first needs to see `working` or `blocked` after the send, unless the program was already working. `pane wait` waits without sending anything and returns immediately if its condition already holds. Both print the matching pane as JSON, like `pane get`. In these examples, `WORKER` is the ID of a pane running a reporting program:
+
+```sh
+ship pane send --pane "$WORKER" "Summarize your progress" --key enter --wait
+ship pane wait --pane "$WORKER" --status done,exited
+timeout 30 ship pane wait --pane "$WORKER"
+```
+
+`--status` accepts a comma-separated list of `idle`, `working`, `done`, `blocked`, `error` and `exited`; any listed state matches. Without it, any root state except `working` matches, including `blocked` or `error`, but exit fails with the exit status. A running pane without a root status fails immediately unless `exited` is among the requested states. On `send`, `--status` requires `--wait`.
+
+`send --wait` refuses a pane that has exited, has no root status, or is blocked, before sending anything. After sending, it fails as stalled if neither `working` nor `blocked` is seen within five seconds. Once either is seen, there is no built-in timeout. Use `timeout(1)` to bound a wait; on macOS, coreutils provides it as `gtimeout`.
+
+A failed or timed-out `send --wait` may already have sent its input. Do not resend blindly: inspect the pane or run `pane wait` to continue waiting without sending again. Killing a wait removes its observer attachment and leaves the pane running. If the pane was already working when `send --wait` began, it returns when that current turn ends, not necessarily when the new input is handled. Only published root status counts; a cleared record matches nothing during a wait, and an agent that exits back to a shell without clearing its record can leave stale status behind.
 
 ## Mouse and clipboard
 

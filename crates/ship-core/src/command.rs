@@ -245,11 +245,11 @@ pub mod pane {
     use super::{Direction, PaneTarget, TabTarget};
     use crate::{
         id::{Attachment, IdOf},
-        model::{Pane, Switch},
+        model::{Pane, ReportedState, Switch},
         protocol::{ScrollDirection, SplitDirection},
     };
 
-    /// `get`, `read` and `send` are CLI-only, so the config rejects them.
+    /// `get`, `read`, `send` and `wait` are CLI-only, so the config rejects them.
     #[derive(Clone, Debug, Deserialize, strum::IntoStaticStr)]
     #[cfg_attr(feature = "clap", derive(Subcommand))]
     #[serde(rename_all = "snake_case")]
@@ -271,9 +271,12 @@ pub mod pane {
         /// Print the active screen, or its last lines including history
         #[serde(skip)]
         Read(Read),
-        /// Send text as one paste, then keys, without waiting for a response
+        /// Send text as one paste, then keys; optionally wait and print the pane
         #[serde(skip)]
         Send(SendInput),
+        /// Wait for the pane's program status and print the pane as JSON
+        #[serde(skip)]
+        Wait(Wait),
         /// Zoom a pane to fill its tab, or unzoom it, and print its tab as JSON
         Zoom(Zoom),
         /// Exchange a pane with another pane in its tab and print the tab as JSON
@@ -428,6 +431,47 @@ pub mod pane {
         /// Key to press after the text, as in the keymap config; repeat for more
         #[cfg_attr(feature = "clap", arg(long = "key", value_name = "KEY"))]
         pub keys: Vec<KeyCombination>,
+        /// Wait for the program to handle the input, then print the pane as JSON
+        #[cfg_attr(feature = "clap", arg(long))]
+        pub wait: bool,
+        /// With --wait, states to wait for; anything but working by default
+        #[cfg_attr(feature = "clap", arg(long, value_delimiter = ',', requires = "wait"))]
+        pub status: Vec<WaitState>,
+    }
+
+    #[derive(Clone, Debug, Default, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(Args))]
+    pub struct Wait {
+        #[cfg_attr(feature = "clap", command(flatten))]
+        pub pane: PaneTarget,
+        /// States to wait for; anything but working by default
+        #[cfg_attr(feature = "clap", arg(long, value_delimiter = ','))]
+        pub status: Vec<WaitState>,
+    }
+
+    /// A root program state or the pane's program exit.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+    #[serde(rename_all = "snake_case")]
+    pub enum WaitState {
+        Idle,
+        Working,
+        Done,
+        Blocked,
+        Error,
+        Exited,
+    }
+
+    impl From<ReportedState> for WaitState {
+        fn from(state: ReportedState) -> Self {
+            match state {
+                ReportedState::Idle => Self::Idle,
+                ReportedState::Working => Self::Working,
+                ReportedState::Done => Self::Done,
+                ReportedState::Blocked => Self::Blocked,
+                ReportedState::Error => Self::Error,
+            }
+        }
     }
 
     /// Directional swap is `client.pane.swap`, a key action with no CLI form.
