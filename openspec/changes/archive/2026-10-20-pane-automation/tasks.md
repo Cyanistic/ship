@@ -70,4 +70,4 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
   - `openspec validate pane-automation --type change --strict`, every link resolves, and the guide's walkthrough runs as written, including `timeout(1)` and the macOS `gtimeout` note.
   - SC-001 by hand from inside a Ship pane with a real agent, with Cyan's OK.
   - Implementation Rust and test lines reported separately against the count before this change.
-- [ ] 4.3 When the PR opens, file a tracking issue for exit followed by close (architecture "Risks"), and issues for anything else left open. Exit followed by close is now an open question on #16, after Cyan amended FR-010 on 2026-10-20 to leave it to the close-on-exit change.
+- [x] 4.3 When the PR opens, file a tracking issue for exit followed by close (architecture "Risks"), and issues for anything else left open. Exit followed by close is now an open question on #16, after Cyan amended FR-010 on 2026-10-20 to leave it to the close-on-exit change. No other open decision or workaround is left: printing CLI errors as JSON is #37, and Linux and real Claude in the worker loop are unverified rather than undecided.
