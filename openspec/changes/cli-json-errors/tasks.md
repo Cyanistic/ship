@@ -20,9 +20,9 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 2. JSON error line and config check exit
 
-- [ ] 2.1 In `crates/ship/src/main.rs`, make `run` and `dispatch` return `Result<ExitCode>`, with one `.map(|()| ExitCode::SUCCESS)` after the dispatch match. `main` prints `Err` as one `serde_json` line on stderr, falling back to `ship: {error}`, and exits 1.
-- [ ] 2.2 Make `check_config` in `crates/ship/src/commands.rs` return `Ok(ExitCode::FAILURE)` after printing findings, and return the code from its dispatch arm early.
-- [ ] 2.3 Verify:
+- [x] 2.1 In `crates/ship/src/main.rs`, make `run` and `dispatch` return `Result<ExitCode>`, with one `.map(|()| ExitCode::SUCCESS)` after the dispatch match. `main` prints `Err` as one `serde_json` line on stderr, falling back to `ship: {error}`, and exits 1.
+- [x] 2.2 Make `check_config` in `crates/ship/src/commands.rs` return `Ok(ExitCode::FAILURE)` after printing findings, and return the code from its dispatch arm early.
+- [x] 2.3 Verify:
   - `ship pane get --pane <missing>`: the last stderr line parses with `jq`, `.type.kind == "not_found"`, stdout is empty, and the exit status is 1.
   - `send --wait` on a blocked pane gives `.message == "nothing was sent"`. On a pane that never reports, it gives `.message == "the input was sent"` with the stall under `.causedBy`.
   - `ship pane read --pain x` prints clap's text and exits 2. `ship --help` and `ship --version` exit 0 as before.
@@ -31,9 +31,9 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 3. Guide
 
-- [ ] 3.1 Add a short section to `docs/guide.md` on reading a failed command's error with `jq`, telling from a `send --wait` error whether the input went out, and exit statuses 1 and 2, using output captured in slice 2.
-- [ ] 3.2 Verify: the guide's example matches the real output, and the delta specs still match the behavior from slice 2. `openspec validate cli-json-errors --type change --strict` passes.
+- [x] 3.1 Add a short section to `docs/guide.md` on reading a failed command's error with `jq`, telling from a `send --wait` error whether the input went out, and exit statuses 1 and 2, using output captured in slice 2.
+- [x] 3.2 Verify: the guide's example matches the real output, and the delta specs still match the behavior from slice 2. `openspec validate cli-json-errors --type change --strict` passes.
 
 ## 4. Size
 
-- [ ] 4.1 Report the change's implementation Rust and test line counts separately.
+- [x] 4.1 Report the change's implementation Rust and test line counts separately.
