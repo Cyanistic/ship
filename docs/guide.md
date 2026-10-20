@@ -8,6 +8,7 @@ How Ship behaves once you're past the [README](../README.md). Every example assu
 - [Tabs](#tabs)
 - [Panes and splits](#panes-and-splits)
 - [Scrolling and reading output](#scrolling-and-reading-output)
+- [Driving panes from scripts](#driving-panes-from-scripts)
 - [Mouse and clipboard](#mouse-and-clipboard)
 - [Agents](#agents)
 - [Configuration](#configuration)
@@ -78,7 +79,7 @@ Warnings name the affected pane or file in the [server log](#logs-and-levels), i
 
 ## Reading and steering a client
 
-`ship view list` prints every attached client's view as JSON, keyed by attachment ID in attach order. Each record contains its pane or tab selection, when it has one, and its terminal area. Use an ID from that listing to read or change one client's selection:
+`ship view list` prints every attached client's view as JSON, keyed by attachment ID in attach order. Each record contains its pane or tab selection and terminal area, when it has them. An observer attachment has neither: it receives shared state without screens and does not affect pane sizes. Use an ID from that listing to read or change one client's selection:
 
 ```sh
 ship view list
@@ -232,6 +233,67 @@ ship tab close --tab "$TAB"
 ```
 
 `--lines N` reads the last N rows including history, and `--unwrap` joins lines the terminal wrapped. `ship pane scroll` takes `up`, `down`, `top` or `bottom`; `up` and `down` move one page unless you give `--amount`. Exited panes can still be scrolled and read.
+
+## Driving panes from scripts
+
+`ship pane send` sends text and keys to a pane without attaching a client. Pass `--pane ID`, or omit it inside a pane to use `SHIP_PANE_ID`. It never uses an attached client's selection.
+
+```sh
+TAB=$(ship tab create --name input | jq -r .id)
+PANE=$(ship pane create --tab "$TAB" -- cat -v | jq -r .id)
+ship pane send --pane "$PANE" "hello" --key esc --key enter
+printf 'first\nsecond\nthird' | ship pane send --pane "$PANE" - --key enter
+ship pane read --pane "$PANE"
+ship pane send --pane "$PANE" --key ctrl-c
+ship tab close --tab "$TAB"
+```
+
+Text arrives as one paste, then each `--key` in order, even if a key option appears before the text. `-` reads all text from stdin. Keys use the keymap names, such as `enter`, `esc` and `ctrl-c`. An invalid key or giving neither text nor keys is a usage error; nothing is sent. Input returns a scrolled pane to the bottom.
+
+Without `--wait`, success prints nothing. An unknown pane fails; a pane whose program has exited accepts and drops the input. Plain `send` does not wait for the program to handle it.
+
+`--if STATE,...` sends only if the pane's root status is one of the listed states, taking the same values as `--status` below, and otherwise fails without sending anything. Use it to keep a prompt out of a busy agent or a dialog, or to make sure keys answer a dialog that is still there:
+
+```sh
+ship pane send --pane "$WORKER" "Next task" --key enter --if idle,done
+ship pane send --pane "$WORKER" --key enter --if blocked
+```
+
+To hand work to an agent in another pane, start it, wait until it's ready, send a prompt and wait for the turn to end, then read the answer:
+
+```sh
+TAB=$(ship tab create --name workers | jq -r .id)
+WORKER=$(ship pane create --tab "$TAB" --name worker -- claude | jq -r .id)
+timeout 60 ship pane wait --pane "$WORKER"
+timeout 600 ship pane send --pane "$WORKER" "Write a haiku about ships" --key enter --wait \
+  | jq -r '.program[""].state'
+ship pane read --pane "$WORKER" --lines 40
+ship tab close --tab "$TAB"
+```
+
+`pane create` returns as soon as the program starts, before the agent has reported anything, and `send --wait` refuses a pane with no status, so the first `wait` holds off until the agent is ready. Check the printed state: `done` or `idle` means the turn finished, `blocked` means it needs an answer first. Any program that reports OSC 7501 works in place of `claude`.
+
+For a program that reports OSC 7501, `send --wait` sends input and waits for its root status to leave `working`. It first needs to see the root state change from the one before the send, unless the program was already working. `pane wait` waits without sending anything and returns immediately if its condition already holds. Both print the matching pane as JSON, like `pane get`. In these examples, `WORKER` is the ID of a pane running a reporting program:
+
+```sh
+ship pane send --pane "$WORKER" "Summarize your progress" --key enter --wait
+ship pane wait --pane "$WORKER" --status done,exited
+timeout 30 ship pane wait --pane "$WORKER"
+```
+
+`--status` accepts a comma-separated list of `idle`, `working`, `done`, `blocked`, `error` and `exited`; any listed state matches. Without it, any root state except `working` matches, including `blocked` or `error`, but exit fails with the exit status. A pane that hasn't reported anything yet, such as an agent still starting, is waited on until it reports, exits or closes; on a pane whose program never reports, `wait` runs until you stop it. On `send`, `--status` requires `--wait`.
+
+`send --wait` refuses a pane that has exited, has no root status, or is blocked, before sending anything. To answer a dialog and wait for what follows, say that blocked is expected:
+
+```sh
+ship pane send --pane "$WORKER" --key down --key enter --wait --if blocked
+```
+
+That returns once the agent has moved on from the dialog and stopped working, not on the `blocked` from before the keys. A plain `send` followed by `pane wait` can't tell the two apart and may return the old `blocked`.
+
+After sending, `send --wait` fails as stalled if the root state (or the kind of block) doesn't change within five seconds. An agent that asks the same kind of question again without reporting `working` in between looks the same as one that ignored the keys, so a stall after answering a dialog means: read the pane before sending more. Once the state has changed, there is no built-in timeout. Use `timeout(1)` to bound a wait; on macOS, coreutils provides it as `gtimeout`.
+
+A failed or timed-out `send --wait` may already have sent its input. Do not resend blindly: inspect the pane or run `pane wait` to continue waiting without sending again. Killing a wait removes its observer attachment and leaves the pane running. If the pane was already working when `send --wait` began, it returns when that current turn ends, not necessarily when the new input is handled. Only published root status counts; a cleared record matches nothing during a wait, and an agent that exits back to a shell without clearing its record can leave stale status behind.
 
 ## Mouse and clipboard
 
@@ -489,5 +551,7 @@ If an older config uses `hint` on a key binding, rename it to `label`. `hint` is
 The mouse change moves protocol 10 to 11 and replaces `ship tab rename` / `ship pane rename` and their bindings with `set`. Use `--name ""` to clear a name; omitting `name` leaves it unchanged.
 
 Diagnostics moves protocol 12 to 13, adds live log-filter control and includes the current log part in health/status.
+
+Observer attachments move protocol 13 to 14. Attachments can omit their terminal area; observers have no selection or area and do not affect pane sizes.
 
 Update the client and server together. Before replacing the binary, finish or save running work and run `ship server stop` with the client that matches the running server. Stopping the server ends every program in it. Then rebuild or install the new version and start again. The new client refuses to talk to an older server with a different protocol version, including to stop it; keep the old client available until that server is stopped.

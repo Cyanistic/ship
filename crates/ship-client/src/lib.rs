@@ -2,6 +2,7 @@
 //! startup belong to the application.
 
 mod api;
+mod automation;
 mod execute;
 pub mod keymap;
 pub mod sound;
@@ -77,15 +78,16 @@ impl Client {
     }
 
     /// POST `items` as an NDJSON body, one line each as they arrive, and wait
-    /// for `expected_status`. No timeout: the body lasts as long as `items`.
+    /// for `expected_status`, recording the response's revision. No timeout:
+    /// the body lasts as long as `items`.
     async fn send_stream<T: Serialize + Send + 'static>(
         &self,
         path: &str,
-        attachment: IdOf<Attachment>,
+        attachment: Option<IdOf<Attachment>>,
         items: impl Stream<Item = T> + Send + 'static,
         expected_status: StatusCode,
     ) -> Result<()> {
-        let (request, safe) = self.build(Method::POST, path, NO_BODY, Some(attachment));
+        let (request, safe) = self.build(Method::POST, path, NO_BODY, attachment);
         let lines = items.map(|item| {
             serde_json::to_vec(&item).map(|mut line| {
                 line.push(b'\n');
@@ -95,10 +97,17 @@ impl Client {
         let request = request
             .header(header::CONTENT_TYPE, "application/x-ndjson")
             .body(Body::wrap_stream(lines));
-        open(request, expected_status)
+        let response = open(request, expected_status)
             .await
-            .map(drop)
-            .context(format!("request to {safe} failed"))
+            .context(format!("request to {safe} failed"))?;
+        if let Some(revision) = response
+            .headers()
+            .get(REVISION_HEADER)
+            .and_then(|value| value.to_str().ok()?.parse().ok())
+        {
+            self.wrote(revision);
+        }
+        Ok(())
     }
 
     /// The request, and its URL without credentials for error messages.

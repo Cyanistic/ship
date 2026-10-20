@@ -208,7 +208,11 @@ The server SHALL hold each attachment's selection. It SHALL change only through 
 
 #### Scenario: Read every view
 - **WHEN** two clients are attached and a caller sends `GET /api/v0/views`
-- **THEN** it receives an object with both attachment IDs, each holding that client's selection, when it has one, and area
+- **THEN** it receives an object with both attachment IDs, each holding that client's selection and area, when it has them
+
+#### Scenario: Read an observer
+- **WHEN** a full-screen client and an observer are attached and a caller sends `GET /api/v0/views`
+- **THEN** the observer's record holds neither a selection nor an area
 
 #### Scenario: Select nothing
 - **WHEN** a caller sends `PUT /api/v0/views/<id>/selection` with `{"selection": null}`
@@ -268,3 +272,14 @@ Each published pane screen SHALL carry `mouse: true` while the pane's program ha
 #### Scenario: Pager without the mouse
 - **WHEN** a pane runs `less` on a long file, then `less --mouse`
 - **THEN** the first omits `mouse`, and the second carries `mouse: true`
+
+### Requirement: Observer attachments
+`POST /api/v0/attach` SHALL accept a request without an `area`. An attachment without an area SHALL be left out of every tab's size, as one without a selection is, and its viewing record SHALL omit `area`. An **observer** is an attachment with neither an area nor a selection: it SHALL receive the `attached` replica and each later `state` replica, and no `screen` events. A later `PUT /api/v0/attach/view` SHALL give the attachment an area like any other.
+
+#### Scenario: Observer leaves geometry alone
+- **WHEN** a full-screen client views a tab and a caller attaches with the body `{}`
+- **THEN** the tab's published `geometry` is unchanged, the caller receives `attached` and `state` events and no `screen` events, and `ship view list` shows its record without an area
+
+#### Scenario: Observer detaches
+- **WHEN** the observer's stream is dropped
+- **THEN** its record leaves `ship view list` and the full-screen client keeps drawing as before

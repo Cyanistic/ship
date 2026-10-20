@@ -22,7 +22,10 @@ use ship_core::{
     tree::{self, Tabs},
 };
 
-use crate::Client;
+use crate::{
+    Client,
+    automation::{Condition, Input},
+};
 
 /// Where a missing target comes from.
 pub enum Scope {
@@ -233,6 +236,32 @@ impl Client {
                         )
                         .await?,
                     )
+                }
+                PaneCommand::Send(pane::SendInput {
+                    pane,
+                    text,
+                    keys,
+                    only_if,
+                    wait,
+                    status,
+                }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    let input = Input::new(text, keys)?;
+                    let ready = (!only_if.is_empty()).then(|| Condition::new(only_if));
+                    if wait {
+                        let ready = ready.unwrap_or_else(Condition::unblocked);
+                        Outcome::Pane(
+                            self.send_and_wait(id, input, ready, Condition::new(status))
+                                .await?,
+                        )
+                    } else {
+                        self.send(id, input, ready).await?;
+                        Outcome::Closed
+                    }
+                }
+                PaneCommand::Wait(pane::Wait { pane, status }) => {
+                    let id = Self::pane_target(pane, scope)?;
+                    Outcome::Pane(self.wait(id, Condition::new(status)).await?)
                 }
                 PaneCommand::Zoom(pane::Zoom { pane, zoomed }) => {
                     let id = Self::pane_target(pane, scope)?;

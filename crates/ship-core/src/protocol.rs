@@ -20,7 +20,7 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
-pub const PROTOCOL_VERSION: u32 = 13;
+pub const PROTOCOL_VERSION: u32 = 14;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -268,8 +268,10 @@ impl MoveTab {
 pub struct AttachRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
-    /// Where the client draws the viewed tab, after its own chrome.
-    pub area: Size,
+    /// Where the client draws the viewed tab, after its own chrome. None for
+    /// an observer, which has no screen and sizes no tab.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub area: Option<Size>,
 }
 
 /// PUT /attach/view body: the client's area only.
@@ -294,8 +296,10 @@ pub struct SelectView {
 pub struct ViewingRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<NodeId>,
-    /// Where the client draws the viewed tab. Tab sizes derive from it.
-    pub area: Size,
+    /// Where the client draws the viewed tab. Tab sizes derive from it; an
+    /// observer has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub area: Option<Size>,
 }
 
 /// Complete published state, including each viewed tab's derived geometry.

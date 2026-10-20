@@ -250,20 +250,18 @@ impl ServerState {
     }
 
     /// Each viewed tab's size: the smallest of its viewers' areas in each
-    /// dimension. Records without a selection are skipped. Derived, never
-    /// stored.
+    /// dimension. Records without a selection or an area are skipped.
+    /// Derived, never stored.
     fn tab_sizes(&self) -> HashMap<IdOf<Tab>, Size> {
         let mut sizes: HashMap<IdOf<Tab>, Size> = HashMap::new();
         for record in self.viewers.values() {
-            let Some(tab) = record
-                .selection
-                .and_then(|selection| tree::viewed_tab(&self.tabs, selection))
-            else {
+            let (Some(tab), Some(size)) = (
+                record
+                    .selection
+                    .and_then(|selection| tree::viewed_tab(&self.tabs, selection)),
+                record.area,
+            ) else {
                 continue;
-            };
-            let size = Size {
-                cols: record.area.cols,
-                rows: record.area.rows,
             };
             sizes
                 .entry(tab)
@@ -942,7 +940,7 @@ impl Message<SetView> for ServerState {
             let record = viewers
                 .get_mut(&attachment)
                 .ok_or_else(|| err!(NotFound, "attachment {} not found", attachment))?;
-            record.area = view.area;
+            record.area = Some(view.area);
             Ok(record.clone())
         })
         .await

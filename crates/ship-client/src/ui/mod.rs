@@ -143,7 +143,10 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
         ),
         false => None,
     };
-    let request = AttachRequest { selection, area };
+    let request = AttachRequest {
+        selection,
+        area: Some(area),
+    };
     // Fail on an unreachable server before taking the terminal.
     let events = attach_after(client, request.clone(), Duration::ZERO).await?;
     let exit = {
@@ -228,7 +231,7 @@ async fn drive(
                         tracing::info!("attached");
                         let (frames, received) = mpsc::unbounded_channel();
                         local.input = Some(frames);
-                        sending = Some(Box::pin(client.input(attached.attachment, UnboundedReceiverStream::new(received))));
+                        sending = Some(Box::pin(client.input(Some(attached.attachment), UnboundedReceiverStream::new(received))));
                         backoff = FIRST_BACKOFF;
                     }
                     let screen = matches!(event, SseEvent::Screen(_));
@@ -280,7 +283,7 @@ async fn drive(
                 Err(error) => {
                     tracing::debug!(%error, ?backoff, "reconnect failed");
                     backoff = (backoff * 2).min(MAX_BACKOFF);
-                    request.area = view_area(terminal, &local.sidebar);
+                    request.area = Some(view_area(terminal, &local.sidebar));
                     reconnect = Some(Box::pin(attach_after(client, request.clone(), backoff)));
                     false
                 }
@@ -966,7 +969,7 @@ fn view_area((cols, rows): (u16, u16), sidebar: &Sidebar) -> Size {
 
 /// Send only the area, never a selection that could overwrite a script's edit.
 fn unsent(observer: &Observer, area: Size) -> Option<(IdOf<Attachment>, ViewInput)> {
-    (observer.record()?.area != area).then_some((observer.attachment?, ViewInput { area }))
+    (observer.record()?.area != Some(area)).then_some((observer.attachment?, ViewInput { area }))
 }
 
 /// Resolves on SIGTERM, SIGHUP or SIGINT, so the terminal is restored before

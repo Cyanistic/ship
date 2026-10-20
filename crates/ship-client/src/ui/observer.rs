@@ -87,7 +87,7 @@ impl Observer {
         let record = self.record()?;
         Some(AttachRequest {
             selection: record.selection,
-            area,
+            area: Some(area),
         })
     }
 

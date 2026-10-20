@@ -240,11 +240,11 @@ impl Client {
             }))
     }
 
-    /// Stream `frames` to the attachment's panes in one POST, until `frames`
-    /// ends or the server answers. Only the connect timeout applies.
+    /// Stream `frames` to panes in one POST, until `frames` ends or the server
+    /// answers. Mouse frames need `attachment`. Only the connect timeout applies.
     pub async fn input(
         &self,
-        attachment: IdOf<Attachment>,
+        attachment: Option<IdOf<Attachment>>,
         frames: impl Stream<Item = InputFrame> + Send + 'static,
     ) -> Result<()> {
         self.send_stream(
