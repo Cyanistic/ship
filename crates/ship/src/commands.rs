@@ -1,6 +1,7 @@
 use std::{
     io::{self, Write},
     path::Path,
+    process::ExitCode,
     time::Duration,
 };
 
@@ -47,8 +48,9 @@ pub async fn view(client: &Client, command: ViewCommand) -> Result<()> {
 
 /// `ship config check`: loads each part of the file the way its process
 /// does, short of reading sound files, and prints each part's first error
-/// on stderr. No warnings.
-pub fn check_config(path: &Path) -> Result<()> {
+/// on stderr. Returns failure after findings, without a further error line.
+/// No warnings.
+pub fn check_config(path: &Path) -> Result<ExitCode> {
     let mut errors: Vec<AppError> = ServerSettings::load(path).err().into_iter().collect();
     errors.extend(ClientSettings::check(path).err());
     // A syntax error fails both parts the same way.
@@ -57,8 +59,8 @@ pub fn check_config(path: &Path) -> Result<()> {
         eprintln!("{error}");
     }
     match errors.is_empty() {
-        true => Ok(()),
-        false => Err(err!(Configuration, "invalid config")),
+        true => Ok(ExitCode::SUCCESS),
+        false => Ok(ExitCode::FAILURE),
     }
 }
 
