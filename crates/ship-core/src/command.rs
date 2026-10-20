@@ -431,6 +431,12 @@ pub mod pane {
         /// Key to press after the text, as in the keymap config; repeat for more
         #[cfg_attr(feature = "clap", arg(long = "key", value_name = "KEY"))]
         pub keys: Vec<KeyCombination>,
+        /// Send only if the program reports one of these states
+        #[cfg_attr(
+            feature = "clap",
+            arg(long = "if", value_name = "STATE", value_delimiter = ',')
+        )]
+        pub only_if: Vec<WaitState>,
         /// Wait for the program to handle the input, then print the pane as JSON
         #[cfg_attr(feature = "clap", arg(long))]
         pub wait: bool,

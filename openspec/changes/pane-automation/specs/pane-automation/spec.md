@@ -51,6 +51,17 @@ Without `--wait`, `send` SHALL print nothing on success and SHALL NOT attach to 
 - **WHEN** a script runs `ship pane send` without `--wait`
 - **THEN** `ship view list` never shows an attachment for it
 
+### Requirement: Ready states
+`ship pane send --if STATE,...` SHALL write nothing unless the pane's root status record reports one of the listed states, with or without `--wait`. `--if` SHALL accept the same values as `--status`. The error SHALL name the pane and its current state, or its blocked kind, or say it has no program status.
+
+#### Scenario: Not the expected state
+- **WHEN** a pane's root record is `idle` and a script runs `ship pane send --pane <id> --key enter --if blocked`
+- **THEN** nothing is written and the error names the pane and says it is `idle`
+
+#### Scenario: Guarded prompt
+- **WHEN** a pane's root record is `blocked` and a script runs `ship pane send --pane <id> "x" --key enter --if idle,done`
+- **THEN** nothing is written and the error names the pane and its blocked kind
+
 ### Requirement: Key names
 `--key` SHALL accept the key names the keymap config accepts, such as `enter`, `esc` and `ctrl-c`. Every key SHALL be parsed before anything is written; an invalid key SHALL be a usage error that sends nothing.
 
@@ -121,7 +132,7 @@ When a running pane has no root status record and `exited` isn't in the conditio
 
 #### Scenario: Prompt and wait
 - **WHEN** a pane's program reports `idle` and a script runs `ship pane send --pane <id> "fix the test" --key enter --wait`
-- **THEN** the text arrives as one paste followed by Enter, and the command prints the pane once the program has reported `working` or `blocked` after the send and then something other than `working`
+- **THEN** the text arrives as one paste followed by Enter, and the command prints the pane once the program's state has changed from `idle` after the send and then is something other than `working`
 
 #### Scenario: Blocked during the wait
 - **WHEN** the program stops at a permission prompt and reports `blocked` while `send --wait` is waiting
@@ -132,7 +143,7 @@ When a running pane has no root status record and `exited` isn't in the conditio
 - **THEN** it exits 2 with a usage error and nothing is written
 
 ### Requirement: Checks before sending
-Before writing anything, `send --wait` SHALL fail if the pane doesn't exist, if its program has exited, if it has no root status record, or if its root record is `blocked`, naming the blocked kind. Each such error SHALL say that nothing was sent. Plain `send` SHALL NOT make the status checks.
+Before writing anything, `send --wait` SHALL fail if the pane doesn't exist, if its program has exited, or if its root record doesn't report one of the `--if` states, which default to `idle`, `working`, `done` and `error`. So without `--if` a pane with no root status record or a `blocked` one fails, naming the blocked kind. Each such error SHALL say that nothing was sent. Plain `send` without `--if` SHALL NOT make the status checks.
 
 #### Scenario: Blocked pane
 - **WHEN** a pane's root record is `blocked` with kind `permission` and a script runs `send --wait`
@@ -146,8 +157,12 @@ Before writing anything, `send --wait` SHALL fail if the pane doesn't exist, if 
 - **WHEN** a pane runs a shell with no status record and a script runs `send --wait`
 - **THEN** nothing is written and the error says the pane has no program status
 
+#### Scenario: Answering a dialog
+- **WHEN** a pane's root record is `blocked` and a script runs `ship pane send --pane <id> --key enter --wait --if blocked`
+- **THEN** Enter is written, and the command returns only after the root has left `blocked` and then reports something other than `working`
+
 ### Requirement: Picking up the input
-After writing, `send --wait` SHALL NOT treat a status published at or before the write's revision as satisfying the wait. It SHALL first see the root record `working` or `blocked` in a revision published after the write, or have seen it `working` before the write, and only then apply its condition. A status that never reaches a published revision SHALL NOT count. The write's revision SHALL be the one its input response reports.
+After writing, `send --wait` SHALL NOT treat a status published at or before the write's revision, the one its input response reports, as satisfying the wait. Unless the root was `working` before the write, it SHALL first see the root's state or blocked kind change from the one before the write, or the program exit, and only then apply its condition. Titles, messages and status that never reaches a published revision SHALL NOT count.
 
 #### Scenario: Short turn
 - **WHEN** a program stays `working` for 50 ms after input, then reports `idle`, and a script runs `send --wait` 50 times
@@ -162,7 +177,7 @@ After writing, `send --wait` SHALL NOT treat a status published at or before the
 - **THEN** the input is written and the command returns when that turn ends
 
 ### Requirement: Stalled pane
-If the root record is neither `working` nor `blocked` in any revision within 5 seconds of the write, `send --wait` SHALL fail with an error naming the pane, saying it stalled, and saying that the input was sent. The stall timer SHALL stop once the program has been seen picking up the input. Any other error after the write SHALL also say that the input was sent.
+If no revision within 5 seconds of the write shows the change that picking up the input requires, `send --wait` SHALL fail with an error naming the pane, saying it stalled, and saying that the input was sent. The stall timer SHALL stop once the program has been seen picking up the input. Any other error after the write SHALL also say that the input was sent.
 
 #### Scenario: Program that never reports
 - **WHEN** a pane's root record is `idle`, its program never reports again, and a script runs `send --wait`

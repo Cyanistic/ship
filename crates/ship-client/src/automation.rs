@@ -23,7 +23,7 @@ use tokio::time::timeout;
 
 use crate::Client;
 
-/// How long `send --wait` gives the program to report `working` or `blocked`.
+/// How long `send --wait` gives the program to move off its status before the input.
 const STALL: Duration = Duration::from_secs(5);
 
 /// One paste followed by keys, all parsed before writing.
@@ -64,9 +64,17 @@ impl Input {
 }
 
 impl Client {
-    /// Check existence and write without attaching.
-    pub(crate) async fn send(&self, pane: IdOf<Pane>, input: Input) -> Result<()> {
-        self.get::<Pane>(pane).await?;
+    /// Check existence, and readiness when asked, then write without attaching.
+    pub(crate) async fn send(
+        &self,
+        pane: IdOf<Pane>,
+        input: Input,
+        ready: Option<Condition>,
+    ) -> Result<()> {
+        let found = self.get::<Pane>(pane).await?;
+        if let Some(ready) = ready {
+            check(&found, &ready)?;
+        }
         self.write(input.frames(pane)).await?;
         Ok(())
     }
@@ -97,39 +105,45 @@ impl Client {
         .await
     }
 
-    /// Refuse before writing, then wait for the program to pick up the input
-    /// within `STALL` unless it was already working, then for the condition.
+    /// Refuse before writing unless ready, then, unless it was working, wait
+    /// `STALL` for the program to move off its status, then for the condition.
     pub(crate) async fn send_and_wait(
         &self,
         pane: IdOf<Pane>,
         input: Input,
+        ready: Condition,
         condition: Condition,
     ) -> Result<Pane> {
         let mut events = pin!(self.observe().await.context("nothing was sent")?);
         let snapshot = next(&mut events, pane).await.context("nothing was sent")?;
-        let working = tree::pane(&snapshot.tabs, pane)
-            .and_then(accepts_input)
+        let before = tree::pane(&snapshot.tabs, pane)
+            .and_then(|found| check(found, &ready).map(|()| found.root_status().cloned()))
             .context("nothing was sent")?;
         let after = self
             .write(input.frames(pane))
             .await
             .context("the input may have been sent")?;
         let handled = async {
-            if !working {
-                let picked = timeout(
+            if before
+                .as_ref()
+                .is_none_or(|record| record.state != ReportedState::Working)
+            {
+                let moved = timeout(
                     STALL,
-                    watch(&mut events, pane, after, |found| Ok(picked_up(found))),
+                    watch(&mut events, pane, after, |found| {
+                        Ok(moved_from(found, before.as_ref()))
+                    }),
                 )
                 .await
                 .map_err(|_| {
                     err!(
                         Conflict,
-                        "pane {} stalled: no working or blocked within 5 seconds",
+                        "pane {} stalled: its program status did not change within 5 seconds",
                         pane
                     )
                 })??;
-                if condition.matches(&picked)? {
-                    return Ok(picked);
+                if condition.matches(&moved)? {
+                    return Ok(moved);
                 }
             }
             watch(&mut events, pane, after, |found| condition.matches(found)).await
@@ -200,31 +214,30 @@ async fn watch(
     }
 }
 
-/// Whether the root is already working; exited, unreported and blocked panes
-/// refuse input.
-fn accepts_input(pane: &Pane) -> Result<bool> {
-    if let PaneStatus::Exited(status) = &pane.status {
-        return Err(exited(pane.id, status));
+/// Refuse unless the root reports a ready state; exit fails with its status.
+fn check(pane: &Pane, ready: &Condition) -> Result<()> {
+    if ready.matches(pane)? {
+        return Ok(());
     }
-    let Some(record) = pane.root_status() else {
-        return Err(err!(Conflict, "pane {} has no program status", pane.id));
-    };
-    if record.state == ReportedState::Blocked {
-        let kind: &str = record.kind.map_or("unknown", Into::into);
-        return Err(err!(Conflict, "pane {} is blocked on {}", pane.id, kind));
-    }
-    Ok(record.state == ReportedState::Working)
+    Err(match pane.root_status() {
+        None => err!(Conflict, "pane {} has no program status", pane.id),
+        Some(record) if record.state == ReportedState::Blocked => {
+            let kind: &str = record.kind.map_or("unknown", Into::into);
+            err!(Conflict, "pane {} is blocked on {}", pane.id, kind)
+        }
+        Some(record) => {
+            let state: &str = record.state.into();
+            err!(Conflict, "pane {} is {}", pane.id, state)
+        }
+    })
 }
 
-/// Seeing the program take the input: working, blocked, or gone.
-fn picked_up(pane: &Pane) -> bool {
+/// The program left `before`: it exited or reports another state or blocked
+/// kind. A new title or message alone doesn't count.
+fn moved_from(pane: &Pane, before: Option<&StatusRecord>) -> bool {
     matches!(pane.status, PaneStatus::Exited(_))
-        || pane.root_status().is_some_and(|record| {
-            matches!(
-                record.state,
-                ReportedState::Working | ReportedState::Blocked
-            )
-        })
+        || pane.root_status().map(|record| (record.state, record.kind))
+            != before.map(|record| (record.state, record.kind))
 }
 
 /// The default differs from listing every non-working state: it never takes exit.
@@ -240,6 +253,16 @@ impl Condition {
         } else {
             Self::Any(states)
         }
+    }
+
+    /// `send --wait` without `--if`: anything reported but blocked.
+    pub(crate) fn unblocked() -> Self {
+        Self::Any(vec![
+            WaitState::Idle,
+            WaitState::Working,
+            WaitState::Done,
+            WaitState::Error,
+        ])
     }
 
     /// Exit matches only when asked for and otherwise fails with its status.

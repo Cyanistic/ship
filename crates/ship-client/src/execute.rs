@@ -241,18 +241,21 @@ impl Client {
                     pane,
                     text,
                     keys,
+                    only_if,
                     wait,
                     status,
                 }) => {
                     let id = Self::pane_target(pane, scope)?;
                     let input = Input::new(text, keys)?;
+                    let ready = (!only_if.is_empty()).then(|| Condition::new(only_if));
                     if wait {
+                        let ready = ready.unwrap_or_else(Condition::unblocked);
                         Outcome::Pane(
-                            self.send_and_wait(id, input, Condition::new(status))
+                            self.send_and_wait(id, input, ready, Condition::new(status))
                                 .await?,
                         )
                     } else {
-                        self.send(id, input).await?;
+                        self.send(id, input, ready).await?;
                         Outcome::Closed
                     }
                 }

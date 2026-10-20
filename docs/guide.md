@@ -252,7 +252,14 @@ Text arrives as one paste, then each `--key` in order, even if a key option appe
 
 Without `--wait`, success prints nothing. An unknown pane fails; a pane whose program has exited accepts and drops the input. Plain `send` does not wait for the program to handle it.
 
-For a program that reports OSC 7501, `send --wait` sends input and waits for its root status to leave `working`. It first needs to see `working` or `blocked` after the send, unless the program was already working. `pane wait` waits without sending anything and returns immediately if its condition already holds. Both print the matching pane as JSON, like `pane get`. In these examples, `WORKER` is the ID of a pane running a reporting program:
+`--if STATE,...` sends only if the pane's root status is one of the listed states, taking the same values as `--status` below, and otherwise fails without sending anything. Use it to keep a prompt out of a busy agent or a dialog, or to make sure keys answer a dialog that is still there:
+
+```sh
+ship pane send --pane "$WORKER" "Next task" --key enter --if idle,done
+ship pane send --pane "$WORKER" --key enter --if blocked
+```
+
+For a program that reports OSC 7501, `send --wait` sends input and waits for its root status to leave `working`. It first needs to see the root state change from the one before the send, unless the program was already working. `pane wait` waits without sending anything and returns immediately if its condition already holds. Both print the matching pane as JSON, like `pane get`. In these examples, `WORKER` is the ID of a pane running a reporting program:
 
 ```sh
 ship pane send --pane "$WORKER" "Summarize your progress" --key enter --wait
@@ -262,7 +269,15 @@ timeout 30 ship pane wait --pane "$WORKER"
 
 `--status` accepts a comma-separated list of `idle`, `working`, `done`, `blocked`, `error` and `exited`; any listed state matches. Without it, any root state except `working` matches, including `blocked` or `error`, but exit fails with the exit status. A running pane without a root status fails immediately unless `exited` is among the requested states. On `send`, `--status` requires `--wait`.
 
-`send --wait` refuses a pane that has exited, has no root status, or is blocked, before sending anything. After sending, it fails as stalled if neither `working` nor `blocked` is seen within five seconds. Once either is seen, there is no built-in timeout. Use `timeout(1)` to bound a wait; on macOS, coreutils provides it as `gtimeout`.
+`send --wait` refuses a pane that has exited, has no root status, or is blocked, before sending anything. To answer a dialog and wait for what follows, say that blocked is expected:
+
+```sh
+ship pane send --pane "$WORKER" --key down --key enter --wait --if blocked
+```
+
+That returns once the agent has moved on from the dialog and stopped working, not on the `blocked` from before the keys. A plain `send` followed by `pane wait` can't tell the two apart and may return the old `blocked`.
+
+After sending, `send --wait` fails as stalled if the root state (or the kind of block) doesn't change within five seconds. An agent that asks the same kind of question again without reporting `working` in between looks the same as one that ignored the keys, so a stall after answering a dialog means: read the pane before sending more. Once the state has changed, there is no built-in timeout. Use `timeout(1)` to bound a wait; on macOS, coreutils provides it as `gtimeout`.
 
 A failed or timed-out `send --wait` may already have sent its input. Do not resend blindly: inspect the pane or run `pane wait` to continue waiting without sending again. Killing a wait removes its observer attachment and leaves the pane running. If the pane was already working when `send --wait` began, it returns when that current turn ends, not necessarily when the new input is handled. Only published root status counts; a cleared record matches nothing during a wait, and an agent that exits back to a shell without clearing its record can leave stale status behind.
 
