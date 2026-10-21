@@ -3,6 +3,9 @@
 # included, replaces the default whole. A value that is itself a table, such
 # as a sound, would merge into a different default, so outside the keys those
 # only appear here as comments.
+#
+# Copy only what you want to change into your config file; the rest keeps
+# following Ship's defaults as they change.
 
 [server]
 # shell = "/bin/zsh"                 # path, relative to the config file; unset: your login shell

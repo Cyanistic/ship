@@ -7,7 +7,7 @@ Provide a usable local Ship executable with discoverable commands, documented pr
 ## Requirements
 
 ### Requirement: Buildable application and command help
-The project SHALL provide a buildable Ship executable with help and version output that do not require a running server. Help SHALL describe bare `ship` opening the client and `alt-q` detaching, `ship server status`, explicit server startup with `--starter`, custom target selection, `--config` and `ship config check`, and automatic background-server persistence.
+The project SHALL provide a buildable Ship executable with help and version output that do not require a running server. Help SHALL describe bare `ship` opening the client and `alt-q` detaching, `ship server status`, explicit server startup with `--starter`, custom target selection, `--config`, `ship config check` and `ship config defaults`, and automatic background-server persistence.
 
 #### Scenario: Foundation help without a server
 - **WHEN** a developer builds the foundation and runs `ship --help` or `ship --version` with no server running
@@ -15,7 +15,7 @@ The project SHALL provide a buildable Ship executable with help and version outp
 
 #### Scenario: Command discovery
 - **WHEN** a user requests help
-- **THEN** help describes `ship`, `ship server status`, `ship --server-url URL`, `ship --config FILE`, `ship config check`, `ship server [--port PORT] [--starter]` and that automatic startup leaves the server running
+- **THEN** help describes `ship`, `ship server status`, `ship --server-url URL`, `ship --config FILE`, `ship config check`, `ship config defaults`, `ship server [--port PORT] [--starter]` and that automatic startup leaves the server running
 
 ### Requirement: Repeatable local checks and honest evidence
 The project SHALL document repeatable formatting, linting and build commands. Each runnable slice SHALL pass its applicable checks and manual acceptance exercises before progression; unavailable checks SHALL remain explicitly unverified.
