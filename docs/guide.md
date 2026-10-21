@@ -10,6 +10,7 @@ This picks up where the [README](../README.md) leaves off. The examples assume `
 - [Scripting Ship](#scripting-ship)
 - [Saved tabs](#saved-tabs)
 - [Configuration](#configuration)
+- [Shell completions](#shell-completions)
 - [Troubleshooting](#troubleshooting)
 - [Upgrading](#upgrading)
 
@@ -411,6 +412,23 @@ tab = []    # no tab menu
 ```
 
 The menus are `pane`, `tab` and `global`. Any you leave out keep their defaults.
+
+## Shell completions
+
+`ship completions <shell>` prints a script that lets your shell tab-complete Ship's commands, flags and fixed values. It supports bash, zsh, fish, elvish and PowerShell. Load it from your shell's startup file:
+
+```sh
+# ~/.bashrc
+source <(ship completions bash)
+
+# ~/.zshrc, after compinit
+source <(ship completions zsh)
+
+# fish
+ship completions fish > ~/.config/fish/completions/ship.fish
+```
+
+The bash and zsh lines regenerate the script each time a shell starts, so it stays current after you upgrade Ship. The fish file doesn't, so rerun that command after an upgrade. Completion covers names Ship knows ahead of time; it doesn't look up tab or pane IDs.
 
 ## Troubleshooting
 

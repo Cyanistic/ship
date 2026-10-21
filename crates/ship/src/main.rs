@@ -4,7 +4,7 @@ mod diagnostics;
 mod local;
 mod runlog;
 
-use std::{process::ExitCode, time::Duration};
+use std::{io, process::ExitCode, time::Duration};
 
 use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
@@ -146,6 +146,15 @@ async fn dispatch(
         }
         Some(Command::Config(cli::ConfigCommand::Defaults)) => {
             print!("{}", config::DEFAULTS);
+            Ok(())
+        }
+        Some(Command::Completions(cli::CompletionsArgs { shell })) => {
+            clap_complete::generate(
+                shell,
+                &mut Cli::command(),
+                env!("CARGO_BIN_NAME"),
+                &mut io::stdout(),
+            );
             Ok(())
         }
         Some(Command::Action(command)) => {
