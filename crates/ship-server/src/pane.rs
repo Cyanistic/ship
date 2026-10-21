@@ -667,7 +667,9 @@ fn local_path(uri: &str) -> Option<String> {
 /// `/tmp` reads as `/private/tmp` on macOS.
 #[cfg(target_os = "linux")]
 fn process_cwd(pid: u32) -> Option<String> {
-    let dir = std::fs::read_link(format!("/proc/{pid}/cwd")).ok()?;
+    use std::fs;
+
+    let dir = fs::read_link(format!("/proc/{pid}/cwd")).ok()?;
     Some(dir.display().to_string())
 }
 
