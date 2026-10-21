@@ -62,6 +62,11 @@ pub enum Command {
     /// Check the config file or print the defaults
     #[command(subcommand)]
     Config(ConfigCommand),
+    /// Print a tab-completion script for your shell
+    Completions {
+        /// Shell to complete in
+        shell: clap_complete::Shell,
+    },
 }
 
 #[derive(Subcommand)]

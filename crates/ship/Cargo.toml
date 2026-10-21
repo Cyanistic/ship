@@ -9,6 +9,7 @@ description = "Local command-line application foundation"
 
 [dependencies]
 clap.workspace = true
+clap_complete.workspace = true
 etcetera.workspace = true
 ship-client.workspace = true
 ship-server.workspace = true
