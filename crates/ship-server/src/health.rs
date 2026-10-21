@@ -1,5 +1,5 @@
 use axum::{Json, extract::State};
-use ship_core::{HealthResponse, PROTOCOL_VERSION, Result};
+use ship_core::{HealthResponse, PROTOCOL_VERSION, Result, SERVICE};
 
 use crate::AppState;
 
@@ -11,7 +11,7 @@ use crate::AppState;
 )]
 pub(crate) async fn health(State(app): State<AppState>) -> Result<Json<HealthResponse>> {
     Ok(Json(HealthResponse {
-        service: "ship".into(),
+        service: SERVICE.into(),
         protocol_version: PROTOCOL_VERSION,
         version: env!("CARGO_PKG_VERSION").into(),
         log: (app.log)(None)?.file,

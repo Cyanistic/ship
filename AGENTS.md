@@ -40,6 +40,8 @@ Linux is Cyan's primary environment. Linux and macOS are priority platforms; Win
 
 Write issues from `.github/ISSUE_TEMPLATE/issue.md` and pull requests from `.github/pull_request_template.md`. The comments in each template are the rules: follow them, delete slots that don't apply, and file a tracking issue for every open decision or workaround a pull request leaves behind.
 
+Don't open a pull request for a small change, such as a renamed constant, a link fix or a few-line cleanup. Cyan finds a history full of tiny pull requests noisy. Fold the change into a pull request that is already open nearby, even if it's only loosely related, and list it under Details. If no pull request is open, hold small changes until there are enough for one tidy-up pull request. Make a change its own pull request only when it is large or risky enough to review or revert on its own.
+
 ## Reference multiplexers
 
 Herdr, Zellij and tmux show what established multiplexers do and what users expect. Use them to ground behavior and to check whether an idea is settled practice. They are inspiration, not templates: Ship's structure and command surface are its own.

@@ -20,6 +20,8 @@ use crate::{
 pub const DEFAULT_PORT: u16 = 43179;
 pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
+/// What a Ship server reports as `service` from `/health`.
+pub const SERVICE: &str = "ship";
 pub const PROTOCOL_VERSION: u32 = 14;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
