@@ -315,7 +315,13 @@ ship --server-url http://127.0.0.1:43326        # in another terminal
 
 ## Configuration
 
-Ship reads `~/.config/ship/config.toml`, or `ship/config.toml` under `$XDG_CONFIG_HOME`. Without one, it uses its defaults, which are all in [`defaults.toml`](../crates/ship-core/src/defaults.toml) with what each setting accepts. Your file only needs what you change. `--config <file>` or `SHIP_CONFIG` points somewhere else.
+Ship reads `~/.config/ship/config.toml`, or `ship/config.toml` under `$XDG_CONFIG_HOME`. Without one, it uses its defaults. `ship config defaults` prints them all, with what each setting accepts:
+
+```console
+$ ship config defaults | grep -A3 '\[client.agents\]'
+```
+
+Your file only needs what you change. Copy just those lines rather than the whole output: anything you copy stays fixed, and stops following Ship's defaults when they change. `--config <file>` or `SHIP_CONFIG` points somewhere else.
 
 Open windows pick up changes when you save. If the file has a mistake, Ship keeps the last working settings and shows the error. `ship config check` points at the first mistake with its line and column.
 

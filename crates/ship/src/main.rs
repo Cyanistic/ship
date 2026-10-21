@@ -10,7 +10,7 @@ use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
 use reqwest::redirect::Policy;
 use ship_client::{Client, ui};
-use ship_core::{HealthResponse, PROTOCOL_VERSION, prelude::*};
+use ship_core::{HealthResponse, PROTOCOL_VERSION, config, prelude::*};
 use tokio::runtime::Builder;
 use url::Url;
 
@@ -143,6 +143,10 @@ async fn dispatch(
                 Some(file) => file,
                 None => cli.config_path()?,
             });
+        }
+        Some(Command::Config(cli::ConfigCommand::Defaults)) => {
+            print!("{}", config::DEFAULTS);
+            Ok(())
         }
         Some(Command::Action(command)) => {
             let client = connect(&cli, explicit_target).await?;

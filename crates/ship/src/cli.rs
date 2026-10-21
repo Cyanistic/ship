@@ -59,7 +59,7 @@ pub enum Command {
     /// List clients' views, or read or set one client's selection
     #[command(subcommand)]
     View(ViewCommand),
-    /// Check the config file
+    /// Check the config file or print the defaults
     #[command(subcommand)]
     Config(ConfigCommand),
 }
@@ -95,6 +95,8 @@ pub enum ConfigCommand {
         /// File to check; defaults to the config file in use
         file: Option<PathBuf>,
     },
+    /// Print every default setting, key and menu, with what each accepts
+    Defaults,
 }
 
 /// Bare `ship server` runs one; stop it with SIGINT, SIGTERM or `ship server stop`.
