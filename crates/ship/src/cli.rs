@@ -63,10 +63,7 @@ pub enum Command {
     #[command(subcommand)]
     Config(ConfigCommand),
     /// Print a tab-completion script for your shell
-    Completions {
-        /// Shell to complete in
-        shell: clap_complete::Shell,
-    },
+    Completions(CompletionsArgs),
 }
 
 #[derive(Subcommand)]
@@ -102,6 +99,12 @@ pub enum ConfigCommand {
     },
     /// Print every default setting, key and menu, with what each accepts
     Defaults,
+}
+
+#[derive(Args)]
+pub struct CompletionsArgs {
+    /// Shell to complete in
+    pub shell: clap_complete::Shell,
 }
 
 /// Bare `ship server` runs one; stop it with SIGINT, SIGTERM or `ship server stop`.

@@ -148,8 +148,13 @@ async fn dispatch(
             print!("{}", config::DEFAULTS);
             Ok(())
         }
-        Some(Command::Completions { shell }) => {
-            clap_complete::generate(shell, &mut Cli::command(), "ship", &mut io::stdout());
+        Some(Command::Completions(cli::CompletionsArgs { shell })) => {
+            clap_complete::generate(
+                shell,
+                &mut Cli::command(),
+                env!("CARGO_BIN_NAME"),
+                &mut io::stdout(),
+            );
             Ok(())
         }
         Some(Command::Action(command)) => {
