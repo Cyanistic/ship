@@ -315,7 +315,7 @@ ship --server-url http://127.0.0.1:43326        # in another terminal
 
 ## Configuration
 
-Ship reads `~/.config/ship/config.toml`, or `ship/config.toml` under `$XDG_CONFIG_HOME`. Without one, it uses its defaults. `--config <file>` or `SHIP_CONFIG` points somewhere else.
+Ship reads `~/.config/ship/config.toml`, or `ship/config.toml` under `$XDG_CONFIG_HOME`. Without one, it uses its defaults, which are all in [`defaults.toml`](../crates/ship-core/src/defaults.toml) with what each setting accepts. Your file only needs what you change. `--config <file>` or `SHIP_CONFIG` points somewhere else.
 
 Open windows pick up changes when you save. If the file has a mistake, Ship keeps the last working settings and shows the error. `ship config check` points at the first mistake with its line and column.
 
@@ -387,7 +387,7 @@ A `oneshot` mode takes one key and returns to normal. A `sticky` mode stays unti
 
 When you're in a mode other than normal, a one-line hint bar shows at the bottom with that mode's keys. The same bar shows errors and when a pane's program has exited.
 
-All the defaults are in [`defaults.toml`](../crates/ship-client/src/keymap/defaults.toml). Key names like `ctrl-alt-x` and `shift-tab` follow [crokey](https://docs.rs/crokey).
+The default keys are in [`defaults.toml`](../crates/ship-core/src/defaults.toml). Key names like `ctrl-alt-x` and `shift-tab` follow [crokey](https://docs.rs/crokey).
 
 ### Menus
 

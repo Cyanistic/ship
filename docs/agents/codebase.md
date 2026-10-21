@@ -6,8 +6,8 @@ Where things live in Ship. `AGENTS.md` still applies; this is orientation, and t
 
 - `crates/ship`: the `ship` binary. CLI parsing, local server discovery and startup.
 - `crates/ship-server`: the server. HTTP API, attach stream, tabs, panes and their PTYs.
-- `crates/ship-client`: the HTTP client and full-screen client, including the keymap. `src/keymap/defaults.toml` holds the default keys.
-- `crates/ship-core`: types shared across the client/server boundary (commands, model, layout, screens, protocol, config) and errors.
+- `crates/ship-client`: the HTTP client and full-screen client, including the keymap.
+- `crates/ship-core`: types shared across the client/server boundary (commands, model, layout, screens, protocol, config) and errors. `src/defaults.toml` holds every config default, keys included.
 - `crates/ship-macros`: Ship's own derives.
 - `vendor/ratatui-ghostty`: a vendored Ratatui widget over `libghostty-vt`, built as a workspace member.
 

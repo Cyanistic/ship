@@ -1,6 +1,55 @@
-# Ship's default keys, from the keys-config product paper. A user file's chord
-# replaces the default on that chord in that mode (FR-012).
+# Ship's defaults, written the way a config file would set them. Your file
+# goes over this one: a table merges key by key, and any other value, lists
+# included, replaces the default whole. A value that is itself a table, such
+# as a sound, would merge into a different default, so outside the keys those
+# only appear here as comments.
 
+[server]
+# shell = "/bin/zsh"                 # path, relative to the config file; unset: your login shell
+scrollback_bytes = 10_000_000        # bytes of history per pane, for panes started afterwards
+
+[client]
+mouse = true                         # bool; capture the mouse
+sidebar_width = 26                   # columns; at least 10, and the panes keep at least 20
+
+[client.agents]
+rows = [["icon", "app", "state"], ["tab"]]  # lines of: icon app state tab pane title msg
+delay_ms = 1000                      # ms a new state must hold before it notifies
+popups = false                       # bool; also write notifications as OSC 9 popups
+
+# Each slot is "off", { builtin = "done" }, { builtin = "attention" } or
+# { path = "sounds/ding.mp3" }. An unset slot falls back to the default
+# table's, then to the bundled sound for its notification.
+[client.agents.sounds.default]
+# done = { builtin = "done" }
+# attention = { builtin = "attention" }
+
+[client.agents.sounds.apps]          # keyed by the app an agent reports
+# claude = { attention = "off" }
+
+[client.menus]
+pane = [
+  { label = "split right", action = { server.pane.create = { direction = "right", select = true } } },
+  { label = "split down", action = { server.pane.create = { direction = "down", select = true } } },
+  { label = "zoom", action = { server.pane.zoom = {} } },
+  { label = "right-click passthrough", action = { server.pane.set = { right_click_passthrough = "toggle" } } },
+  { label = "close", action = { server.pane.close = {} } },
+]
+tab = [
+  { label = "new tab", action = { server.tab.create = { starter = "shell", select = true } } },
+  { label = "new child tab", action = { server.tab.create = { starter = "shell", child = true, select = true } } },
+  { label = "close", action = { server.tab.close = {} } },
+]
+global = [
+  { label = "new tab", action = { server.tab.create = { starter = "shell", select = true } } },
+  { label = "hide sidebar", action = { client.sidebar.toggle = {} } },
+  { label = "reload config", action = { client.config.reload = {} } },
+  { label = "detach", action = { client.detach = {} } },
+]
+
+# Keys, from the keys-config product paper. These merge by chord instead: a
+# chord in your file replaces the default on that chord in that mode (FR-012),
+# `{}` unbinds it, and `clear_defaults = true` on a mode drops its defaults.
 [client.modes.normal.keys]
 "alt-n"       = { action = { server.tab.create = { starter = "shell", select = true } } }
 "alt-shift-n" = { action = { server.tab.create = { starter = "shell", child = true, select = true } } }
@@ -54,23 +103,3 @@ kind = "sticky"
 
 [client.modes.prefix]              # defined, empty, and entered by no key
 kind = "oneshot"
-
-[client.menus]
-pane = [
-  { label = "split right", action = { server.pane.create = { direction = "right", select = true } } },
-  { label = "split down", action = { server.pane.create = { direction = "down", select = true } } },
-  { label = "zoom", action = { server.pane.zoom = {} } },
-  { label = "right-click passthrough", action = { server.pane.set = { right_click_passthrough = "toggle" } } },
-  { label = "close", action = { server.pane.close = {} } },
-]
-tab = [
-  { label = "new tab", action = { server.tab.create = { starter = "shell", select = true } } },
-  { label = "new child tab", action = { server.tab.create = { starter = "shell", child = true, select = true } } },
-  { label = "close", action = { server.tab.close = {} } },
-]
-global = [
-  { label = "new tab", action = { server.tab.create = { starter = "shell", select = true } } },
-  { label = "hide sidebar", action = { client.sidebar.toggle = {} } },
-  { label = "reload config", action = { client.config.reload = {} } },
-  { label = "detach", action = { client.detach = {} } },
-]
