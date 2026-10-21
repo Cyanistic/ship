@@ -5,8 +5,9 @@ git_tag_enable = false
 git_release_enable = false
 changelog_update = false
 release_always = false
-# release-plz's default body, plus the note about editing.
+# release-plz's default body, listing only ship, plus the note about editing.
 pr_body = '''
+{% set releases = releases | group_by(attribute="package") | get(key="ship") %}
 {% set changes %}
 {%- for release in releases %}
 {%- if release.changelog %}{% if releases | length > 1 %}
