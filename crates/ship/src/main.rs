@@ -10,7 +10,7 @@ use clap::{CommandFactory, FromArgMatches, parser::ValueSource};
 use cli::{Cli, Command};
 use reqwest::redirect::Policy;
 use ship_client::{Client, ui};
-use ship_core::{HealthResponse, PROTOCOL_VERSION, config, prelude::*};
+use ship_core::{HealthResponse, PROTOCOL_VERSION, SERVICE, config, prelude::*};
 use tokio::runtime::Builder;
 use url::Url;
 
@@ -72,12 +72,11 @@ fn detach() -> Result<()> {
 /// Application compatibility boundary, shared by explicit requests and local readiness.
 async fn health(client: &Client) -> Result<HealthResponse> {
     let response = client.health().await?;
-    if response.service != "ship" || response.protocol_version != PROTOCOL_VERSION {
+    if response.service != SERVICE || response.protocol_version != PROTOCOL_VERSION {
         return Err(err!(
             Validation,
-            "incompatible health response from {}: expected service ship and protocol {}",
+            "incompatible health response from {}: expected service {SERVICE} and protocol {PROTOCOL_VERSION}",
             client.url.origin().ascii_serialization(),
-            PROTOCOL_VERSION
         ));
     }
     Ok(response)
