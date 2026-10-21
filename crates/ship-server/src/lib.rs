@@ -135,6 +135,7 @@ pub fn router(app: AppState) -> Router {
         .layer(compression)
         .split_for_parts()
         .0
+        .layer(from_fn(middleware::local_only))
         .layer(from_fn_with_state(app.clone(), app::stamp))
         .layer(from_fn(middleware::trace_request))
         .layer(PropagateRequestIdLayer::x_request_id())
