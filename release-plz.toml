@@ -1,0 +1,52 @@
+[workspace]
+git_only = true
+git_tag_name = "v{{ version }}"
+git_tag_enable = false
+git_release_enable = false
+changelog_update = false
+release_always = false
+# release-plz's default body, plus the note about editing.
+pr_body = '''
+{% set changes %}
+{%- for release in releases %}
+{%- if release.changelog %}{% if releases | length > 1 %}
+## `{{ release.package }}`
+{% endif %}
+<blockquote>
+
+{% if release.title %}## {{ release.title }}
+{% endif %}
+{{ release.changelog }}
+</blockquote>{% endif %}
+{% endfor %}
+{% endset %}
+
+## 🤖 New release
+{% for release in releases %}
+* `{{ release.package }}`: {% if release.previous_version and release.previous_version != release.next_version %}{{ release.previous_version }} -> {% endif %}{{ release.next_version }}{% if release.semver_check == "incompatible" %} (⚠ API breaking changes){% elif release.semver_check == "compatible" %} (✓ API compatible changes){% endif %}
+{%- endfor %}
+{%- for release in releases %}{% if release.breaking_changes %}
+
+### ⚠ `{{ release.package }}` breaking changes
+
+```text
+{{ release.breaking_changes }}
+```{% endif %}{% endfor %}
+{% if changes %}
+<details><summary><i><b>Changelog</b></i></summary><p>
+{{ changes }}
+</p></details>
+{% endif %}
+> Edit this PR just before merging it. If anything else merges to main first, release-plz closes this PR and opens a fresh one, and your edits stay behind on the closed one.
+
+---
+This PR was generated with [release-plz](https://github.com/release-plz/release-plz/).'''
+
+[[package]]
+name = "ship"
+changelog_path = "CHANGELOG.md"
+changelog_include = ["ship-client", "ship-server", "ship-core", "ship-macros", "ratatui-ghostty"]
+changelog_update = true
+git_tag_enable = true
+git_release_enable = true
+git_release_name = "v{{ version }}"

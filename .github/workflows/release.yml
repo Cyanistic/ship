@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  # release-plz publishes the release with the ship-crewmate token, which is
+  # what lets this run.
+  release:
+    types: [published]
+  # Builds the archives without uploading, when this workflow or what it
+  # packages changes.
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - about.toml
+      - about.hbs
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04 rather than 24.04 so the binaries run on older glibc.
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-15
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-about
+      - run: cargo about generate --locked --output-file THIRD-PARTY-LICENSES.txt about.hbs
+      - uses: taiki-e/upload-rust-binary-action@f0d45ae91ee7b8ee928de7a9d04d893a08bcbec6 # v1.30.2
+        with:
+          bin: ship
+          target: ${{ matrix.target }}
+          locked: true
+          include: LICENSE,README.md,THIRD-PARTY-LICENSES.txt
+          checksum: sha256
+          dry-run: ${{ github.event_name != 'release' }}
+          dry-run-intended: ${{ github.event_name != 'release' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
