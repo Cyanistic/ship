@@ -61,7 +61,7 @@ There are no releases yet, so you'll need to build from source. You need:
 
 Then:
 ```sh
-git clone https://github.com/Cyanistic/ship.git
+git clone https://github.com/shipmux/ship.git
 cd ship
 cargo install --path crates/ship
 ```
