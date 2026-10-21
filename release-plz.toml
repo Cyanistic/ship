@@ -1,0 +1,16 @@
+[workspace]
+git_only = true
+git_tag_name = "v{{ version }}"
+git_tag_enable = false
+git_release_enable = false
+changelog_update = false
+release_always = false
+
+[[package]]
+name = "ship"
+changelog_path = "CHANGELOG.md"
+changelog_include = ["ship-client", "ship-server", "ship-core", "ship-macros", "ratatui-ghostty"]
+changelog_update = true
+git_tag_enable = true
+git_release_enable = true
+git_release_name = "v{{ version }}"

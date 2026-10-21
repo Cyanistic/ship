@@ -1,0 +1,56 @@
+name: Release-plz
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Tags vX.Y.Z and creates the GitHub Release, but only when the commit is a
+  # merged release PR (`release_always = false` in release-plz.toml).
+  release:
+    name: Release
+    if: github.repository_owner == 'shipmux'
+    runs-on: ubuntu-24.04
+    steps:
+      # A ship-crewmate token, because tags, releases and PRs made with
+      # GITHUB_TOKEN don't trigger other workflows, such as the release
+      # build and CI.
+      - &token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: Iv23liVOR4Cdu26oCFZ8
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - &checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - &toolchain
+        run: rustup toolchain install
+      - uses: release-plz/action@8b5bf233ecb5779f63508db7cd050e948ee77cc2 # v0.5.144
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+
+  # Opens or updates the release PR: the next version and CHANGELOG.md.
+  release-pr:
+    name: Release PR
+    if: github.repository_owner == 'shipmux'
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - *token
+      - *checkout
+      - *toolchain
+      - uses: release-plz/action@8b5bf233ecb5779f63508db7cd050e948ee77cc2 # v0.5.144
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
