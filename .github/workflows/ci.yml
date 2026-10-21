@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Clippy and tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Installs the toolchain `rust-toolchain.toml` names.
+      - run: rustup toolchain install
+      # `libghostty-vt-sys` fetches Ghostty and builds it with Zig. The
+      # action also caches Zig's package cache.
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+
+  checks:
+    name: Format, dependencies, specs and size
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: cargo fmt --all --check
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-deny,tokei
+      - run: cargo deny check
+      # Not `--strict` yet: it also fails long requirements (#51).
+      - run: npx --yes @fission-ai/openspec@1.14.3 validate --all --no-interactive
+      - name: Line counts
+        run: |
+          count() { tokei "$@" --types Rust --output json | jq '.Rust.code // 0'; }
+          tests=$(find crates -type d \( -name tests -o -name benches \) -prune -print)
+          {
+            echo "### Rust lines of code"
+            echo
+            echo "| | Lines |"
+            echo "| --- | ---: |"
+            echo "| Implementation (\`crates/\`, budget about 20,000) | $(count crates --exclude tests --exclude benches) |"
+            echo "| Tests (\`crates/\`) | $( [ -n "$tests" ] && count $tests || echo 0) |"
+            echo "| Vendored (\`vendor/\`) | $(count vendor) |"
+          } >> "$GITHUB_STEP_SUMMARY"
