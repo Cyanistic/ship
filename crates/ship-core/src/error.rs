@@ -34,6 +34,9 @@ pub enum ErrorCode {
     Internal,
     Serialization,
     Unauthorized,
+    /// The request came from somewhere the server doesn't answer, such as a
+    /// web page or a non-loopback host.
+    Forbidden,
     Io,
     /// A well-formed request that would break the tab/pane structure.
     InvalidStructure,
@@ -52,6 +55,7 @@ impl ErrorCode {
             Self::Network | Self::ConnectionRefused | Self::UpstreamHttpStatus(_) => 502,
             Self::RateLimited => 429,
             Self::Unauthorized => 401,
+            Self::Forbidden => 403,
             Self::InvalidStructure => 422,
             Self::Unavailable => 503,
         }
