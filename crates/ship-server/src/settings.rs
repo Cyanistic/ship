@@ -6,7 +6,7 @@ use serde::Deserialize;
 use ship_core::{config, prelude::*};
 
 #[derive(Debug, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
 pub struct ServerSettings {
     /// Absent: the login shell.
     pub shell: Option<PathBuf>,
@@ -14,12 +14,10 @@ pub struct ServerSettings {
     pub scrollback_bytes: usize,
 }
 
+/// `defaults.toml`'s.
 impl Default for ServerSettings {
     fn default() -> Self {
-        Self {
-            shell: None,
-            scrollback_bytes: 10_000_000,
-        }
+        config::defaults::<Root>().server
     }
 }
 
@@ -27,7 +25,6 @@ impl Default for ServerSettings {
 /// client's part and any typo left to the client and `ship config check`.
 #[derive(Deserialize)]
 struct Root {
-    #[serde(default)]
     server: ServerSettings,
 }
 

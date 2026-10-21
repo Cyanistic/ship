@@ -22,8 +22,6 @@ use ship_core::{
 
 use crate::sound::{Clip, Cue};
 
-const DEFAULTS: &str = include_str!("keymap/defaults.toml");
-
 pub struct ClientSettings {
     pub mouse: bool,
     pub keymap: Keymap,
@@ -78,10 +76,8 @@ pub enum Sound {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, bound = "S: Deserialize<'de>")]
 pub struct Sounds<S> {
-    #[serde(default)]
     pub default: NoticeSounds<S>,
     /// Keyed by the record's `app`.
-    #[serde(default)]
     pub apps: HashMap<String, NoticeSounds<S>>,
 }
 
@@ -91,24 +87,6 @@ pub struct Sounds<S> {
 pub struct NoticeSounds<S> {
     pub done: Option<S>,
     pub attention: Option<S>,
-}
-
-impl<S> Default for Sounds<S> {
-    fn default() -> Self {
-        Self {
-            default: NoticeSounds::default(),
-            apps: HashMap::new(),
-        }
-    }
-}
-
-impl<S> Default for NoticeSounds<S> {
-    fn default() -> Self {
-        Self {
-            done: None,
-            attention: None,
-        }
-    }
 }
 
 impl Sounds<Sound> {
@@ -186,7 +164,8 @@ pub struct Keymap {
     pub menus: Menus,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Menus {
     pub pane: Vec<MenuItem>,
     pub tab: Vec<MenuItem>,
@@ -207,14 +186,6 @@ impl MenuItem {
             .as_deref()
             .map_or_else(|| self.action.label(), Cow::Borrowed)
     }
-}
-
-#[derive(Default, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct MenusFile {
-    pane: Option<Vec<MenuItem>>,
-    tab: Option<Vec<MenuItem>>,
-    global: Option<Vec<MenuItem>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
@@ -370,38 +341,35 @@ pub enum ConfigAction {
     Reload {},
 }
 
-/// The client's part of the config file. The defaults and the user's file
-/// both read as this, and the file then goes over the defaults.
-#[derive(Default, Deserialize)]
+/// The client's part of the config file, already over the defaults except
+/// for modes, which `over_defaults` merges by chord.
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct File {
     /// Left to the server; named so a misspelled table is still an error.
-    #[serde(default, rename = "server")]
+    #[serde(rename = "server")]
     _server: IgnoredAny,
-    #[serde(default)]
     client: Client,
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Client {
-    mouse: Option<bool>,
-    sidebar_width: Option<u16>,
-    #[serde(default)]
-    menus: MenusFile,
+    mouse: bool,
+    sidebar_width: u16,
+    menus: Menus,
+    /// Only the file's; the defaults' join in `over_defaults`.
     #[serde(default)]
     modes: HashMap<ModeName, ModeFile>,
-    #[serde(default)]
     agents: AgentsFile,
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AgentsFile {
-    rows: Option<Vec<Vec<Token>>>,
-    delay_ms: Option<u64>,
-    popups: Option<bool>,
-    #[serde(default)]
+    rows: Vec<Vec<Token>>,
+    delay_ms: u64,
+    popups: bool,
     sounds: Sounds<Sound>,
 }
 
@@ -453,17 +421,21 @@ impl ClientSettings {
     }
 
     pub fn defaults() -> Self {
-        Self::over_defaults(File::default(), Path::new(""))
+        Self::over_defaults(config::defaults(), Path::new(""))
     }
 
-    /// Sound paths resolve against `base`.
+    /// The file's modes over the default modes, chord by chord. Sound paths
+    /// resolve against `base`.
     fn over_defaults(file: File, base: &Path) -> Self {
-        let defaults: File = match toml::from_str(DEFAULTS) {
-            Ok(defaults) => defaults,
-            Err(error) => panic!("invalid default keys: {error}"),
-        };
-        let mut modes = defaults.client.modes;
-        for (name, over) in file.client.modes {
+        let Client {
+            mouse,
+            sidebar_width,
+            menus,
+            modes: file_modes,
+            agents,
+        } = file.client;
+        let mut modes = config::defaults::<File>().client.modes;
+        for (name, over) in file_modes {
             let mode = modes.entry(name).or_default();
             if over.clear_defaults {
                 mode.keys.clear();
@@ -480,41 +452,14 @@ impl ClientSettings {
             .map(|(name, mode)| (name, mode.into()))
             .collect();
         Self {
-            keymap: Keymap {
-                modes,
-                menus: Menus {
-                    pane: file
-                        .client
-                        .menus
-                        .pane
-                        .or(defaults.client.menus.pane)
-                        .unwrap_or_default(),
-                    tab: file
-                        .client
-                        .menus
-                        .tab
-                        .or(defaults.client.menus.tab)
-                        .unwrap_or_default(),
-                    global: file
-                        .client
-                        .menus
-                        .global
-                        .or(defaults.client.menus.global)
-                        .unwrap_or_default(),
-                },
-            },
-            sidebar_width: file.client.sidebar_width.unwrap_or(26),
-            mouse: file.client.mouse.unwrap_or(true),
+            keymap: Keymap { modes, menus },
+            sidebar_width,
+            mouse,
             agents: AgentSettings {
-                rows: file.client.agents.rows.unwrap_or_else(|| {
-                    vec![
-                        vec![Token::Icon, Token::App, Token::State],
-                        vec![Token::Tab],
-                    ]
-                }),
-                delay: Duration::from_millis(file.client.agents.delay_ms.unwrap_or(1000)),
-                popups: file.client.agents.popups.unwrap_or(false),
-                sounds: file.client.agents.sounds.load(base),
+                rows: agents.rows,
+                delay: Duration::from_millis(agents.delay_ms),
+                popups: agents.popups,
+                sounds: agents.sounds.load(base),
             },
         }
     }
