@@ -31,3 +31,13 @@ What showed it works, with the platform: fmt, Clippy, debug and release
 builds, workflows or probes run, by-feel checks and who did them. State
 what wasn't run.
 -->
+
+### License
+
+<!--
+Keep this box and check it. A pull request is merged only when it is
+checked. Contributions are licensed to the project permissively so it can
+change its own license later without asking each contributor.
+-->
+
+- [ ] I license this contribution to the project under `MIT OR Apache-2.0`, and I have the right to do so.

@@ -8,7 +8,8 @@
 [Installation](#installation) •
 [Keys](#keys) •
 [Configuration](#configuration) •
-[Guide](docs/guide.md)
+[Guide](docs/guide.md) •
+[License](#license)
 
 </div>
 
@@ -130,3 +131,9 @@ kind = "oneshot"                               # back to normal after one key
 ```
 
 `ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/guide.md#configuration) covers every setting, custom modes and how key actions map onto CLI commands.
+
+## License
+
+Ship is licensed under the [GNU General Public License v3.0 or later](LICENSE). The vendored [`ratatui-ghostty`](vendor/ratatui-ghostty) keeps its own MIT license.
+
+Contributions are accepted under `MIT OR Apache-2.0`, as the pull request template states, so the project can change its license later without asking each contributor.

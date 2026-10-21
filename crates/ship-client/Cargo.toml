@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 readme.workspace = true
+license.workspace = true
 description = "HTTP client library and full-screen client for Ship"
 
 [dependencies]
