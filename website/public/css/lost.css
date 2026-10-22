@@ -1,0 +1,29 @@
+/* "lost at sea", the 404: the landing's waterline and seabed with no ship above them.
+   Only what differs from landing.css lives here. */
+.lost-sky { position: relative; height: 150px; overflow: hidden; pointer-events: none;
+  background: linear-gradient(var(--sky-high) 0 44px, transparent 44px), var(--sky); }
+.lost-sky::before { content: ""; position: absolute; left: 0; right: 0; top: 44px; height: 16px;
+  background: repeating-conic-gradient(var(--sky) 0 25%, var(--sky-high) 0 50%) 0 0 / 8px 8px; }
+.lost-sky .cloud.a { top: 30px; left: 58%; }
+.lost-sky .cloud.c { top: 20px; left: 14%; }
+.lost-sky .g1 { left: 36%; top: 74px; }
+.lost-sky .g3 { left: 78%; top: 40px; }
+/* open water: the waves sit on sky, not on a hull */
+.lost .waves { background-color: transparent; }
+.lost { padding-bottom: 150px; }
+.lost .water-in { align-items: center; }
+.lost h1 { margin: 0 0 22px; }
+.lost .water-copy p { max-width: 46ch; }
+.lost .links a { color: var(--c15); }
+.lost-fig { margin: 0; }
+.lost-fig .term { border-color: var(--c8); }
+.lost-fig figcaption { margin-top: 10px; font-size: var(--t-sm); color: var(--c15); }
+.lost-water { min-height: 360px; padding: 0; }
+@media (max-width: 899px) {
+  .lost-sky { height: 110px; }
+  .lost-sky .cloud.c, .lost-sky .g3 { display: none; }
+}
+@media (max-width: 600px) {
+  .lost h1 { font-size: 44px; line-height: 55px; }
+  .lost-water { min-height: 260px; }
+}

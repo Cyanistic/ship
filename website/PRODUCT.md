@@ -8,7 +8,9 @@ web
 
 ## Stack
 
-Undecided. The site lives in the main repo under `website/`, deploys as static files, and builds docs from git tags: the landing page from `main`, `/docs/` at the latest release, `/docs/vX/` at each tag, and `/docs/main/` with an "unreleased" banner. Pick a static generator that does this without a server; record the choice and why.
+Astro with Starlight, built with pnpm. The site deploys as static files with no server, and docs search is Pagefind, which Starlight builds into the output. The docs are plain GitHub markdown in `docs/site/`, so they read the same on GitHub as on the site. Starlight's component overrides let the docs keep the ansi direction's markup and CSS exactly instead of approximating it with a theme.
+
+Versions are one Astro build per git ref, merged into one output by `website/scripts/build-versions.mjs`: the landing page and site chrome from the current checkout, `/docs/` from the newest `v*` tag, `/docs/vX/` for each tag, and `/docs/main/` with the "unreleased" banner. Each version gets its own search index. The starlight-versions plugin was passed over because it keeps every version's pages in the working tree; building from tags keeps old docs exactly as released. `website/README.md` has the commands.
 
 ## Users
 
@@ -49,8 +51,7 @@ Agent display states, from `openspec/specs/agent-attention/spec.md`. Any crewmat
 Open decisions that stay with Cyan; do not settle them in the site:
 
 - an interactive "play with it" demo that replays real server snapshots needs a recording hook in the server
-- `ship --skill` and printing default keys from the binary are public CLI changes
-- the art license, and whether AI-made art is acceptable in shipped assets
+- `ship skill` (a subcommand, tracked in shipmux/ship#61) and printing default keys from the binary are public CLI changes
 - the real domain (use `shipmux.dev` as a placeholder)
 
 ## Brand Commitments
@@ -97,7 +98,7 @@ Every place keeps a plain label next to its nautical one, so someone looking for
 ## Evidence on Hand
 
 - `assets/ship.svg`: the current logo, a tall sailing ship crewed by three little terminal crewmates. Treat it as the existing identity to evolve, not discard without reason.
-- `README.md` and `docs/guide.md`: real copy, keys, config and CLI examples.
+- `README.md` and `docs/site/`: real copy, keys, config and CLI examples.
 - The GitHub repo description already reads "staying afloat in an ocean of slop".
 - There are no screenshots, recordings, testimonials, user counts or press. Don't fabricate any. A VHS recording of the real terminal is planned; until then use a clearly marked placeholder.
 

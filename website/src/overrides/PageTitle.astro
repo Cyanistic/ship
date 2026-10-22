@@ -1,0 +1,19 @@
+---
+// The h1 in the pixel face, and below 1200px the ansi folded contents: the version, the docs, on this page.
+import VersionSelect from '../components/VersionSelect.astro';
+import NavList from '../components/NavList.astro';
+import { titleId } from '../title-id';
+const route = Astro.locals.starlightRoute;
+const { toc, entry } = route;
+const id = titleId(route);
+---
+<div class="doc">
+	<details class="contents" data-pagefind-ignore>
+		<summary>contents</summary>
+		<VersionSelect />
+		<NavList />
+		{toc && <p class="navlabel pixel p11">on this page</p>}
+		{toc && <ul>{toc.items.map((i) => <li><a href={`#${i.slug === '_top' ? id : i.slug}`}>{i.slug === '_top' ? entry.data.title : i.text}</a></li>)}</ul>}
+	</details>
+	<h1 id={id} class="pixel p44">{entry.data.title}</h1>
+</div>

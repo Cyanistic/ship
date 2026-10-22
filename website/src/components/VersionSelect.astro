@@ -1,0 +1,29 @@
+---
+// The version list lives in one /docs/versions.json written by scripts/build-versions.mjs and fetched at
+// runtime, so an old build learns about newer releases without being rebuilt. Shown in the side column
+// from 1200px up, and at the top of the folded contents below that.
+import { version } from '../version';
+const label = version.channel === 'latest' ? `${version.ref} (latest)` : version.channel === 'main' ? `${version.ref} (unreleased)` : version.ref;
+---
+<label class="versions" data-prefix={version.prefix} data-root={version.root} data-ref={version.ref}>
+	<span class="navlabel pixel p11">version</span>
+	<select><option selected>{label}</option></select>
+</label>
+<script>
+	type Version = { ref: string; path: string; label: string };
+	const boxes = [...document.querySelectorAll<HTMLElement>('.versions')];
+	const { root, ref, prefix } = boxes[0]?.dataset ?? {};
+	if (boxes.length) fetch(`${root}/versions.json`).then((r) => (r.ok ? r.json() : null)).then((list: Version[] | null) => {
+		if (!list) return;
+		for (const el of boxes) {
+			const sel = el.querySelector('select')!;
+			sel.replaceChildren(...list.map((v) => new Option(v.label, v.path, false, v.ref === ref)));
+			sel.addEventListener('change', async () => {
+				// the same page in the other version, or that version's overview if the page isn't there
+				const same = sel.value + location.pathname.slice(prefix!.length);
+				const ok = await fetch(same, { method: 'HEAD' }).then((r) => r.ok, () => false);
+				location.href = ok ? same + location.hash : sel.value + '/';
+			});
+		}
+	}).catch(() => {});
+</script>
