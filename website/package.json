@@ -10,7 +10,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check": "astro check"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.3",
