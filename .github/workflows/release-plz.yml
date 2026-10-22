@@ -24,6 +24,11 @@ jobs:
         with:
           client-id: Iv23liVOR4Cdu26oCFZ8
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # only what tags, releases and the release PR need, not all of the app's permissions
+          # (issues: release-plz labels its PR, which goes through the issues API)
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
       - &checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
