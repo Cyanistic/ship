@@ -58,6 +58,9 @@
   .bar-in > .places, .bar-in > .search { flex: 1 1 calc(100% - 9 * var(--px) - 20px); }
   .bar-in > .places + .mode, .bar-in > .search + .mode { margin-left: 0; }
 }
+@media (max-width: 479px) {   /* the 404's plain links don't leave room for it: it joins the logo and the links take their own row */
+  .bar-in > nav:has(+ .mode) { order: 1; flex-basis: 100%; }
+}
 
 /* the change itself: one cross-fade of the whole page (View Transitions), while the toggle's own sunset
    plays live on top. No fade on load, and none at all with reduced motion (src/mode.ts skips it) */

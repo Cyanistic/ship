@@ -52,7 +52,7 @@ body { margin: 0; font: var(--t-base)/1.55 var(--read); color: var(--ink); backg
 ::selection { background: var(--c6); color: var(--ink); }
 p, li { text-wrap: pretty; }
 a { color: inherit; text-underline-offset: 0.22em; text-decoration-thickness: 2px; }
-a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible {
+a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible {
   outline: 3px solid var(--ring); outline-offset: 3px; }
 img.px, svg.px { image-rendering: pixelated; display: block; }
 code, pre, kbd { font-family: var(--code); }
