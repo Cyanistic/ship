@@ -1,15 +1,16 @@
 ---
+import { withBase } from '../base';
 import Search from 'virtual:starlight/components/Search';
 import { version } from '../version';
 ---
 <div class="bar-in">
-	<a class="home" href="/"><img class="px" src="/marks/app.svg" width="32" height="32" alt="" /><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the landing page</span></a>
+	<a class="home" href={withBase('/')}><img class="px" src={withBase('/marks/app.svg')} width="32" height="32" alt="" /><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the landing page</span></a>
 	<nav aria-label="main">
 		<ul>
-			<li><a href={`${version.prefix}/`} aria-current="page">docs</a></li>
-			<li><a href="/#install">install</a></li>
-			<li><a href="/#keys">keys</a></li>
-			<li><a href="/#config">config</a></li>
+			<li><a href={withBase(`${version.prefix}/`)} aria-current="page">docs</a></li>
+			<li><a href={withBase('/#install')}>install</a></li>
+			<li><a href={withBase('/#keys')}>keys</a></li>
+			<li><a href={withBase('/#config')}>config</a></li>
 			<li><a href="https://github.com/shipmux/ship">github</a></li>
 		</ul>
 	</nav>

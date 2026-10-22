@@ -1,9 +1,10 @@
 ---
 import { version } from '../version';
+import { withBase } from '../base';
 ---
 {version.channel === 'main' && (
-	<p class="banner" data-pagefind-ignore><span class="tag pixel p11">main</span> these docs follow the main branch, which is unreleased.{version.latest ? <> the latest release is <a href={`${version.root}/`}>{version.latest}</a>.</> : ' there are no releases yet, so a build from source matches them.'}</p>
+	<p class="banner" data-pagefind-ignore><span class="tag pixel p11">main</span> these docs follow the main branch, which is unreleased.{version.latest ? <> the latest release is <a href={withBase(`${version.root}/`)}>{version.latest}</a>.</> : ' there are no releases yet, so a build from source matches them.'}</p>
 )}
 {version.channel === 'old' && (
-	<p class="banner" data-pagefind-ignore><span class="tag pixel p11">{version.ref}</span> these docs are for an older release. the latest is <a href={`${version.root}/`}>{version.latest}</a>.</p>
+	<p class="banner" data-pagefind-ignore><span class="tag pixel p11">{version.ref}</span> these docs are for an older release. the latest is <a href={withBase(`${version.root}/`)}>{version.latest}</a>.</p>
 )}

@@ -1,6 +1,6 @@
 # Ship website
 
-This folder builds Ship's landing page and docs site, using Astro and Starlight.
+This folder builds Ship's landing page and docs site, using Astro and Starlight. Pushes to main and each release deploy it to GitHub Pages, under `/ship/` (see [`.github/workflows/website.yml`](../.github/workflows/website.yml)).
 
 The docs themselves don't live here. They're plain markdown in [`docs/site/`](../docs/site/), so they read fine on GitHub too, and this folder turns them into the site. To fix or add a page, edit it there. A new page also needs a link in the overview's lists, [`docs/site/README.md`](../docs/site/README.md), which is how the sidebar knows about it.
 

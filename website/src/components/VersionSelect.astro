@@ -3,21 +3,23 @@
 // runtime, so an old build learns about newer releases without being rebuilt. Shown in the side column
 // from 1200px up, and at the top of the folded contents below that.
 import { version } from '../version';
+import { withBase } from '../base';
 const label = version.channel === 'latest' ? `${version.ref} (latest)` : version.channel === 'main' ? `${version.ref} (unreleased)` : version.ref;
 ---
-<label class="versions" data-prefix={version.prefix} data-root={version.root} data-ref={version.ref}>
+<label class="versions" data-prefix={withBase(version.prefix)} data-root={withBase(version.root)} data-ref={version.ref}>
 	<span class="navlabel pixel p11">version</span>
 	<select><option selected>{label}</option></select>
 </label>
 <script>
-	type Version = { ref: string; path: string; label: string };
+	import { base } from '../base';
+	type Version = { ref: string; path: string; label: string }; // path is site-relative, like /docs/v0.1.0
 	const boxes = [...document.querySelectorAll<HTMLElement>('.versions')];
-	const { root, ref, prefix } = boxes[0]?.dataset ?? {};
+	const { root, ref, prefix } = boxes[0]?.dataset ?? {}; // root and prefix already carry the base
 	if (boxes.length) fetch(`${root}/versions.json`).then((r) => (r.ok ? r.json() : null)).then((list: Version[] | null) => {
 		if (!list) return;
 		for (const el of boxes) {
 			const sel = el.querySelector('select')!;
-			sel.replaceChildren(...list.map((v) => new Option(v.label, v.path, false, v.ref === ref)));
+			sel.replaceChildren(...list.map((v) => new Option(v.label, base + v.path, false, v.ref === ref)));
 			sel.addEventListener('change', async () => {
 				// the same page in the other version, or that version's overview if the page isn't there
 				const same = sel.value + location.pathname.slice(prefix!.length);

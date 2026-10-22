@@ -8,18 +8,26 @@ import starlight from '@astrojs/starlight';
 import { readFileSync } from 'node:fs';
 import { satteri } from '@astrojs/markdown-satteri';
 import { alerts } from './src/markdown/alerts.mjs';
+import { rebaseLinks } from './src/markdown/links.mjs';
 import shipDocs from './src/integrations/ship-docs.mjs';
 import toml from './src/markdown/toml.mjs';
+import { siteEnv } from './scripts/site-env.mjs';
 
+const { base, site } = siteEnv(); // SHIP_BASE and SHIP_SITE_URL, see scripts/site-env.mjs
 const meta = JSON.parse(readFileSync(new URL('./.generated/site.json', import.meta.url), 'utf8'));
 const ship16 = JSON.parse(readFileSync(new URL('./src/ship16.theme.json', import.meta.url), 'utf8'));
 const css = (href) => ({ tag: 'link', attrs: { rel: 'stylesheet', href } });
 
 export default defineConfig({
+	site, // Starlight also adds a <link rel="sitemap"> to each page once this is set; no sitemap file is written (see below)
+	base,
 	outDir: process.env.DOCS_OUT ?? './dist',
 	trailingSlash: 'always',
-	markdown: { processor: satteri({ mdastPlugins: [alerts], features: { smartPunctuation: false } }) }, // the guide's straight quotes stay straight
+	markdown: { processor: satteri({ mdastPlugins: [alerts, rebaseLinks(base.replace(/\/$/, ''))], features: { smartPunctuation: false } }) }, // the guide's straight quotes stay straight
 	integrations: [
+		// one sitemap per build would overwrite the others (each version is its own build), so none is written.
+		// Starlight adds its own @astrojs/sitemap unless an integration of that name is present; this one does nothing.
+		{ name: '@astrojs/sitemap', hooks: {} },
 		starlight({
 			title: 'ship docs',
 			titleDelimiter: '·',
@@ -29,9 +37,9 @@ export default defineConfig({
 				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
 				css('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&display=swap'),
 				// the ansi CSS, served as is from public/css, then the bridge that maps Starlight's markup onto it
-				css('/css/site.css'),
-				css('/css/docs.css'),
-				css('/css/starlight-bridge.css'),
+				css(`${base}css/site.css`),
+				css(`${base}css/docs.css`),
+				css(`${base}css/starlight-bridge.css`),
 			],
 			sidebar: meta.sidebar,
 			tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 2 },

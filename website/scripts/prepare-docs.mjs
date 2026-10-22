@@ -12,7 +12,8 @@
 //
 // usage: node scripts/prepare-docs.mjs [docs-dir]
 // env:   DOCS_PREFIX (/docs), DOCS_REF (main), DOCS_CHANNEL (main | latest | old), DOCS_LATEST (newest tag or ''),
-//        SHIP_SITE_URL (https://shipmux.dev, a placeholder until the domain is settled)
+//        SHIP_BASE and SHIP_SITE_URL (see site-env.mjs). Links to other pages stay site-relative (/docs/x/): the
+//        Astro build adds the base. The raw copies and llms.txt use absolute URLs under SHIP_SITE_URL.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve, relative, posix } from 'node:path';
 import { fromMarkdown } from 'mdast-util-from-markdown';
@@ -20,6 +21,7 @@ import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { gfm } from 'micromark-extension-gfm';
 import { toString } from 'mdast-util-to-string';
 import { visit } from 'unist-util-visit';
+import { siteEnv } from './site-env.mjs';
 
 const site = resolve(import.meta.dirname, '..');
 const src = resolve(process.argv[2] ?? join(site, '../docs/site'));
@@ -29,7 +31,9 @@ const prefix = (process.env.DOCS_PREFIX ?? '/docs').replace(/\/$/, '');
 const ref = process.env.DOCS_REF ?? 'main';
 const channel = process.env.DOCS_CHANNEL ?? 'main';
 const latest = process.env.DOCS_LATEST ?? '';
-const SITE = (process.env.SHIP_SITE_URL ?? 'https://shipmux.dev').replace(/\/$/, '');
+const { site: SITE } = siteEnv();
+// the sources name the placeholder domain (docs/site is not ours to edit), so every write swaps it for SITE
+const PLACEHOLDER_SITE = 'https://shipmux.dev';
 const AGENT_GUIDE = 'agent-guide.md';
 // the build at /docs/ also owns the root copies, which is where the overview's agent prompt points
 const llmsPath = prefix === '/docs' ? '/llms.txt' : `${prefix}/llms.txt`;
@@ -125,7 +129,7 @@ for (const g of groups) {
 // ---------------------------------------------------------------- write
 rmSync(content, { recursive: true, force: true });
 rmSync(gen, { recursive: true, force: true });
-const put = (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); };
+const put = (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text.replaceAll(PLACEHOLDER_SITE, SITE)); };
 const yaml = (s) => JSON.stringify(s); // JSON strings are valid YAML scalars
 
 const header = `> These are the Ship docs (${ref}) as markdown. The index of every page is at ${SITE}${llmsPath}\n\n`;

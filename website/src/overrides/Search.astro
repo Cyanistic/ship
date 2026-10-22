@@ -2,7 +2,8 @@
 // The ansi inline search box, backed by the real Pagefind index. Starlight builds it, and
 // src/integrations/ship-docs.mjs moves it to <prefix>/pagefind/, so each version searches only itself.
 import { version } from '../version';
-const base = version.prefix;
+import { withBase } from '../base';
+const base = withBase(version.prefix);
 ---
 <form class="search" role="search" aria-label="search the docs" data-base={base}>
 	<label class="sr-only" for="q">search the docs</label>
@@ -12,6 +13,7 @@ const base = version.prefix;
 </form>
 
 <script>
+	import { base as siteBase } from '../base';
 	type Sub = { url: string; title: string; excerpt: string };
 	type Data = { url: string; meta: { title: string }; excerpt: string; sub_results?: Sub[] };
 
@@ -24,6 +26,9 @@ const base = version.prefix;
 	let pf: Promise<any> | null = null;
 	const load = () =>
 		(pf ??= import(/* @vite-ignore */ `${base}/pagefind/pagefind.js`).then(async (m) => {
+			// Pagefind prefixes results with the folder above its bundle, which is the version folder here; the pages
+			// are at the site root, so the site root (with the base) is the prefix
+			await m.options({ baseUrl: `${siteBase}/` });
 			await m.init();
 			return m;
 		}));
