@@ -1,0 +1,353 @@
+/* Day and night. The night follows the OS until the toggle in the bar picks one, and src/mode.ts sets
+   html[data-mode] before the first paint. Night repaints only the light grounds (the sky, the deck, the
+   docs' paper); everything from the waterline down is already dark and stays as it is. Starlight's own
+   data-theme stays "light", so its dark theme never fights these rules. Loaded last on every page. */
+
+[data-mode="dark"] {
+  color-scheme: dark;
+  /* the grounds at night: navy, darkest at the top of the sky, the deck a little lighter, as the day's are */
+  --sky-high: #0d1430;
+  --sky: #151f45;
+  --haze: #1c2851;
+  --paper: #141b34;
+  /* text on those grounds: the hull's own colours, cream for headings and warm grey for reading */
+  --muted-light: var(--muted-dark);
+  --ring: var(--c14);
+  --night-fg: var(--c7);
+  --night-head: var(--c15);
+  --night-line: var(--c8);
+  --night-accent: var(--c12);
+}
+
+/* ---------------------------------------------------------------- the toggle: a sun that sets for the moon */
+.mode {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: calc(9 * var(--px) + 4px);
+  height: calc(9 * var(--px) + 4px);
+  border: 2px solid var(--c8);
+  background: var(--sky);
+  color: var(--c7);
+} /* a little window onto the sky */
+.mode:hover {
+  border-color: var(--c14);
+}
+.mode:focus-visible {
+  outline: 3px solid var(--c14);
+  outline-offset: 3px;
+}
+.mode::before,
+.mode::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(9 * var(--px));
+  height: calc(9 * var(--px));
+  image-rendering: pixelated;
+  background: 0 0 / 100% 100% no-repeat;
+  transition: transform 0.5s steps(6, jump-none);
+}
+/*  ....o....
+    .o.....o.
+    ...kkk...
+    ..kYYYk..
+    o.kYYYk.o   the sun: c11 in an ink outline like every sprite, rays in c3
+    ..kYYYk..
+    ...kkk...
+    .o.....o.
+    ....o....  */
+.mode::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Crect x='4' y='0' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='7' y='1' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='4' y='2' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='4' y='3' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='5' y='3' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='0' y='4' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='2' y='4' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='3' y='4' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='5' y='4' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='8' y='4' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='2' y='5' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='4' y='5' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='5' y='5' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%231c1a27'/%3E%3Crect x='1' y='7' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23e2a52b'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%23e2a52b'/%3E%3C/svg%3E");
+}
+/*  ...WW....
+    ..WW...Y.
+    .WWs.....
+    .WWs.....
+    .WWWs....   the moon: c15, the inner edge in c7, one c11 star
+    .WWWWs...
+    ..WWWWWW.
+    ...WWWW..
+    .........  */
+.mode::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Crect x='3' y='0' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='0' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='7' y='1' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='1' y='3' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='1' y='4' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='4' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='4' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='1' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='5' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='2' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3C/svg%3E");
+  transform: translateY(calc(10 * var(--px)));
+}
+[data-mode="dark"] .mode::before {
+  transform: translateY(calc(10 * var(--px)));
+}
+[data-mode="dark"] .mode::after {
+  transform: none;
+}
+
+/* in the bar: beside the places menu or the search box, and on a phone it shares their row */
+.bar-in > .places + .mode,
+.bar-in > .search + .mode {
+  margin-left: -12px;
+}
+.bar-in > nav + .mode {
+  margin-left: auto;
+}
+@media (max-width: 899px) {
+  .bar-in > .places,
+  .bar-in > .search {
+    flex: 1 1 calc(100% - 9 * var(--px) - 20px);
+  }
+  .bar-in > .places + .mode,
+  .bar-in > .search + .mode {
+    margin-left: 0;
+  }
+}
+@media (max-width: 479px) {
+  /* the 404's plain links don't leave room for it: it joins the logo and the links take their own row */
+  .bar-in > nav:has(+ .mode) {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
+
+/* the change itself: one cross-fade of the whole page (View Transitions), while the toggle's own sunset
+   plays live on top. No fade on load, and none at all with reduced motion (src/mode.ts skips it) */
+.mode {
+  view-transition-name: ship-mode;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+::view-transition-old(ship-mode) {
+  display: none;
+}
+::view-transition-new(ship-mode) {
+  animation: none;
+}
+
+/* ---------------------------------------------------------------- night: shared */
+[data-mode="dark"] body {
+  color: var(--night-fg);
+}
+[data-mode="dark"] .doc li::before,
+[data-mode="dark"] .notyet li::before {
+  background: var(--night-accent);
+}
+
+/* ---------------------------------------------------------------- night: the landing's sky and deck */
+[data-mode="dark"] .hero h1,
+[data-mode="dark"] .deck h2,
+[data-mode="dark"] .works h3,
+[data-mode="dark"] .notyet h3 {
+  color: var(--night-head);
+}
+[data-mode="dark"] .deck .place {
+  color: var(--night-accent);
+}
+[data-mode="dark"] .works {
+  --dash: linear-gradient(to right, color-mix(in srgb, var(--c7) 34%, transparent) 4px, transparent 4px) 0 0 / 8px 2px
+    repeat-x;
+}
+[data-mode="dark"] .works h3::before {
+  background: var(--night-accent);
+}
+[data-mode="dark"] .notyet {
+  border-color: var(--night-line);
+}
+[data-mode="dark"] .term {
+  border-color: var(--c8);
+} /* an ink terminal on a navy ground keeps an edge, as it does below deck */
+
+/* clouds by moonlight, and the gulls have gone to roost */
+[data-mode="dark"] .cloud {
+  mix-blend-mode: soft-light;
+}
+[data-mode="dark"] .gull {
+  display: none;
+}
+
+/* the stars: three tiles of odd sizes, so the repeat never lines up, fading out toward the deck.
+   A few are bright crosses; one layer twinkles, in whole steps */
+.sky-art::before,
+.sky-art::after,
+.lost-sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+  image-rendering: pixelated;
+  -webkit-mask-image: linear-gradient(#000 30%, transparent 80%);
+  mask-image: linear-gradient(#000 30%, transparent 80%);
+}
+[data-mode="dark"] .sky-art::before,
+[data-mode="dark"] .sky-art::after,
+[data-mode="dark"] .lost-sky::after {
+  display: block;
+}
+/* on the landing the stars keep clear of the words: they fill the band above the headline and the margins
+   either side of the hero (the gutter, and right of the agents board), never the text between.
+   --col is the hero's column, --rig-x where the board ends; both follow .hero's grid in landing.css */
+.sky-art::before,
+.sky-art::after {
+  --col: min(1328px, 100% - 2 * var(--gut));
+  --rig-x: calc((100% - var(--col)) / 2 + (var(--col) - 56px) * 7 / 12 + 56px + 300px + 16px);
+  -webkit-mask-image:
+    linear-gradient(#000 0 140px, transparent 0),
+    linear-gradient(to right, #000 0 calc((100% - var(--col)) / 2 - 8px), transparent 0),
+    linear-gradient(to right, transparent 0 var(--rig-x), #000 0);
+  mask-image:
+    linear-gradient(#000 0 140px, transparent 0),
+    linear-gradient(to right, #000 0 calc((100% - var(--col)) / 2 - 8px), transparent 0),
+    linear-gradient(to right, transparent 0 var(--rig-x), #000 0);
+}
+@media (max-width: 899px) {
+  /* one column: only the band above the headline */
+  .sky-art::before,
+  .sky-art::after {
+    -webkit-mask-image: linear-gradient(#000 0 96px, transparent 0);
+    mask-image: linear-gradient(#000 0 96px, transparent 0);
+  }
+}
+@media (max-width: 600px) {
+  .sky-art::before,
+  .sky-art::after {
+    -webkit-mask-image: linear-gradient(#000 0 66px, transparent 0);
+    mask-image: linear-gradient(#000 0 66px, transparent 0);
+  }
+}
+.sky-art::before,
+.lost-sky::after {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 67' shape-rendering='crispEdges'%3E%3Crect x='3' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='41' y='19' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='67' y='3' width='1' height='1' fill='%237fe3ec'/%3E%3Crect x='19' y='47' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='77' y='57' width='1' height='1' fill='%23d4ccb8'/%3E%3C/svg%3E")
+      0 0 / calc(89 * var(--px)) calc(67 * var(--px)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 131 97' shape-rendering='crispEdges'%3E%3Crect x='21' y='9' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='20' y='9' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='22' y='9' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='21' y='8' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='21' y='10' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='101' y='51' width='1' height='1' fill='%2379a4ff'/%3E%3Crect x='118' y='23' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='70' y='88' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='69' y='88' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='71' y='88' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='70' y='87' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='70' y='89' width='1' height='1' fill='%235f5a75'/%3E%3C/svg%3E")
+      calc(17 * var(--px)) calc(5 * var(--px)) / calc(131 * var(--px)) calc(97 * var(--px));
+}
+.sky-art::after {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 71 113' shape-rendering='crispEdges'%3E%3Crect x='9' y='13' width='1' height='1' fill='%23ffd462'/%3E%3Crect x='51' y='80' width='1' height='1' fill='%23fbf8f1'/%3E%3C/svg%3E")
+    calc(29 * var(--px)) 0 / calc(71 * var(--px)) calc(113 * var(--px));
+  animation: twinkle 4.2s steps(1) infinite;
+}
+@keyframes twinkle {
+  0%,
+  62% {
+    opacity: 1;
+  }
+  63%,
+  71% {
+    opacity: 0.35;
+  }
+  72%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* the moon, over the open sky between the headline and the mast
+    ...............
+    ......W........
+    ....WW.........
+    ...WWs.........
+    ..WWW..........
+    ..WWW..........
+    .WWWW..........
+    .WWWWs.........   c15, shaded in c7 along the inner curve
+    .WWWWss........
+    ..WWWWss.......
+    ..WWWWWWsssss..
+    ...WWWWWWWWW...
+    ....WWWWWWW....
+    ......WWW......
+    ...............  */
+.sky-art .moon {
+  display: none;
+  position: absolute;
+  left: 66%;
+  top: 92px;
+  width: calc(15 * var(--px));
+  height: calc(15 * var(--px));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Crect x='6' y='1' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='2' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='2' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='3' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='3' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='2' y='4' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='4' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='5' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='1' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='1' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='7' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='1' y='8' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='8' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='8' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='8' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='2' y='9' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='9' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='9' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='2' y='10' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='3' y='10' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='10' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='10' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='11' y='10' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='12' y='10' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='3' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='7' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='8' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='9' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='10' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='11' y='11' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='4' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='5' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='7' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='8' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='9' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='10' y='12' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='6' y='13' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='7' y='13' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='8' y='13' width='1' height='1' fill='%23fbf8f1'/%3E%3C/svg%3E")
+    0 0 / 100% 100%;
+  image-rendering: pixelated;
+}
+[data-mode="dark"] .sky-art .moon {
+  display: block;
+}
+@media (max-width: 899px) {
+  .sky-art .moon {
+    left: 38%;
+    top: 14px;
+  }
+} /* above the headline, between the two clouds */
+@media (max-width: 600px) {
+  .sky-art .moon {
+    top: 12px;
+  }
+}
+
+/* ---------------------------------------------------------------- night: the docs */
+[data-mode="dark"] .banner {
+  background: var(--haze);
+}
+[data-mode="dark"] .doc h1,
+[data-mode="dark"] .doc h2,
+[data-mode="dark"] .doc h3 {
+  color: var(--night-head);
+}
+[data-mode="dark"] .side a,
+[data-mode="dark"] .toc a,
+[data-mode="dark"] .contents a,
+[data-mode="dark"] .docs-foot a {
+  color: var(--night-fg);
+}
+[data-mode="dark"] .side a:hover,
+[data-mode="dark"] .toc a:hover,
+[data-mode="dark"] .contents a:hover,
+[data-mode="dark"] .docs-foot a:hover,
+[data-mode="dark"] .toc a[aria-current] {
+  color: var(--night-head);
+}
+[data-mode="dark"] .side a[aria-current="page"] {
+  background: var(--haze);
+  color: var(--night-head);
+  box-shadow: inset 0 0 0 2px var(--night-line);
+}
+[data-mode="dark"] .doc a,
+[data-mode="dark"] .toc .gh a,
+[data-mode="dark"] .doc .anchor,
+[data-mode="dark"] .doc .sl-anchor-link,
+[data-mode="dark"] .contents summary::before {
+  color: var(--night-accent);
+}
+[data-mode="dark"] .doc h2::before {
+  background: var(--night-accent);
+}
+[data-mode="dark"] .contents,
+[data-mode="dark"] .contents[open] summary,
+[data-mode="dark"] .note,
+[data-mode="dark"] .doc .starlight-aside,
+[data-mode="dark"] .docs-foot {
+  border-color: var(--night-line);
+}
+[data-mode="dark"] .doc .expressive-code .frame {
+  border-color: var(--c8);
+}
+[data-mode="dark"] .side a[href^="https:"]::after,
+[data-mode="dark"] .contents a[href^="https:"]::after,
+[data-mode="dark"] .toc .gh a::after {
+  filter: brightness(1.9);
+} /* the c8 link arrow, lifted to c7's weight */
+[data-mode="dark"] .doc th,
+[data-mode="dark"] .doc td {
+  border-bottom-color: color-mix(in srgb, var(--c7) 22%, transparent);
+}
+[data-mode="dark"] .doc thead th {
+  border-bottom-color: var(--night-line);
+}
+[data-mode="dark"] .versions select {
+  color: var(--night-head);
+  border-color: var(--night-line);
+}

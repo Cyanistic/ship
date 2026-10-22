@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" shape-rendering="crispEdges" role="img">
+<title>ship-crewmate: a terminal crewmate in a sailor cap (one colour)</title>
+<path fill="#1c1a27" d="M80 16h96v16h-96zM64 32h16v32h-16zM176 32h16v32h-16zM48 48h16v16h-16zM80 48h96v16h-96zM192 48h16v16h-16zM16 64h32v16h-32zM208 64h32v16h-32zM16 80h16v144h-16zM224 80h16v144h-16zM48 96h160v16h-160zM48 112h32v80h-32zM112 112h32v48h-32zM176 112h32v80h-32zM80 144h32v48h-32zM144 144h32v16h-32zM112 160h16v32h-16zM160 160h16v32h-16zM128 176h32v16h-32zM32 208h192v16h-192z"/>
+</svg>

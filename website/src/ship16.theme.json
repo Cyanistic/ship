@@ -1,0 +1,98 @@
+{
+  "name": "ship-16",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1c1a27",
+    "editor.foreground": "#d4ccb8"
+  },
+  "tokenColors": [
+    {
+      "settings": {
+        "foreground": "#d4ccb8"
+      }
+    },
+    {
+      "scope": ["comment", "punctuation.definition.comment"],
+      "settings": {
+        "foreground": "#b9b3c9"
+      }
+    },
+    {
+      "scope": [
+        "string",
+        "string.quoted",
+        "punctuation.definition.string",
+        "support.type.property-name.toml string",
+        "string.quoted.double.basic.line.toml",
+        "string.quoted.key.toml",
+        "punctuation.definition.variable.begin.toml",
+        "punctuation.definition.variable.end.toml"
+      ],
+      "settings": {
+        "foreground": "#86d873"
+      }
+    },
+    {
+      "scope": [
+        "support.type.property-name",
+        "variable.other.key",
+        "entity.name.tag.toml",
+        "support.type.property-name.toml",
+        "keyword.key.toml"
+      ],
+      "settings": {
+        "foreground": "#79a4ff"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.section.toml",
+        "punctuation.definition.section.begin.toml",
+        "punctuation.definition.section.end.toml",
+        "punctuation.definition.section"
+      ],
+      "settings": {
+        "foreground": "#ffd462"
+      }
+    },
+    {
+      "scope": [
+        "support.type.property-name.table",
+        "entity.other.attribute-name.table",
+        "support.type.property-name.array",
+        "entity.other.attribute-name.table.toml",
+        "entity.other.attribute-name.table.array.toml",
+        "punctuation.definition.table",
+        "punctuation.definition.table.toml",
+        "punctuation.definition.array.table.toml"
+      ],
+      "settings": {
+        "foreground": "#ffd462"
+      }
+    },
+    {
+      "scope": ["constant.numeric", "constant.language", "constant.language.boolean"],
+      "settings": {
+        "foreground": "#f590e8"
+      }
+    },
+    {
+      "scope": ["punctuation.definition.prompt", "meta.prompt", "comment.prompt", "punctuation.separator.prompt"],
+      "settings": {
+        "foreground": "#b9b3c9"
+      }
+    },
+    {
+      "scope": ["entity.name.function", "entity.name.command", "support.function", "keyword", "keyword.operator"],
+      "settings": {
+        "foreground": "#d4ccb8"
+      }
+    },
+    {
+      "scope": ["constant.other.option", "string.unquoted.argument"],
+      "settings": {
+        "foreground": "#d4ccb8"
+      }
+    }
+  ]
+}

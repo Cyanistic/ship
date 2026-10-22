@@ -1,14 +1,17 @@
+<!--
+Scope: People deciding whether to try Ship: what it is and why, an honest split between what works and what isn't built, installation, and links into the guide.
+Not here: keys, configuration and CLI walkthroughs (docs/site/).
+-->
+
 <div align="center">
-<img src="assets/ship.svg" height="220" width="220" alt="A tall sailing ship crewed by three little terminal crewmates">
+<img src="website/public/marks/app-large.svg" height="216" width="216" alt="A pixel sailing ship with three crewmates on deck">
 
 **Ship - A Terminal Workspace for Working Alongside Coding Agents**
 
 [Overview](#overview) •
 [What works today](#what-works-today) •
 [Installation](#installation) •
-[Keys](#keys) •
-[Configuration](#configuration) •
-[Guide](docs/guide.md) •
+[Docs](#docs) •
 [License](#license)
 
 </div>
@@ -18,26 +21,57 @@
 
 ## Overview
 
-Ship is a terminal multiplexer for running several coding agents at once. It keeps your shells, editors and agents in tabs and split panes, keeps them running when you close the window, shows which agent is finished or waiting on you, and lets agents open panes and hand work to each other.
+Ship is a terminal multiplexer, like tmux or Zellij, except it treats coding agents as first-class citizens instead of just another program in a pane. Your shells and agents run in tabs and split panes on a background server, so they keep going after you close the window.
 
-The name treats agents as your crew, and it's also about shipping software.
+Programs can tell Ship what they're doing through a recently proposed protocol, the [Program Status Protocol](https://www.superlogical.com/rex/docs/build/program-status), and Ship shows it in the sidebar:
+
+```text
+─ agents ─────────────
+▲ claude blocked
+ship › api
+● codex working
+ship › docs
+◆ pi unseen
+site
+```
+
+So you can see what's working, what's waiting on you and what finished without flipping through tabs. Nothing about the protocol is specific to agents, but agents are where it's actually useful, and Claude Code, Codex, Pi and crush already support it. Support is up to each agent's authors, so there's no list of agents in Ship to keep up to date.
+
+Everything Ship does is also a `ship` command that prints JSON, and it's the same binary your agent calls from bash. So an agent running in Ship can start another one and hand it work:
+
+```sh
+$ ship pane create --name worker -- claude
+{"id":"pane:8df435b8…","name":"worker","command":["claude"],"status":{"state":"running"},…}
+
+$ ship pane send --pane pane:8df435b8… "write a haiku about ships" --key enter --wait
+{"id":"pane:8df435b8…",…,"program":{"":{"state":"done","app":"claude"}}}
+
+$ ship pane read --pane pane:8df435b8…
+write a haiku about ships
+wooden hull at dusk
+three small crewmates keep the watch
+the build turns green
+```
+
+No SDK or plugin needed, same reason you'd just run grep instead of rewriting it in every language. [Handing work to another agent](docs/site/scripting/handing-work-to-another-agent.md) has the full loop.
+
+The name started as a joke about shipping software faster, and the ship and crew theme grew out of that.
 
 ### Why another multiplexer?
 
-tmux and Zellij keep terminals alive, but they don't know what an agent is. [Herdr](https://github.com/herdrdev/herdr) does, and Ship is heavily inspired by it. Ship aims to cover most of what Herdr does day to day with a much smaller codebase. It uses libraries for terminal emulation ([Ghostty](https://ghostty.org)'s), PTYs and transport, and only writes the tab, pane and agent parts itself.
+[Herdr](https://github.com/herdrdev/herdr) already does a lot of this, and Ship is heavily inspired by it, but it tries to cover most of what Herdr does day to day with a much smaller codebase, by using libraries for the hard parts (terminal emulation from [Ghostty](https://ghostty.org), PTYs, transport) and only writing the tab, pane and agent parts itself.
 
 ## What works today
 
-- **Work that keeps running.** A background server owns your terminals. Close the window or press `alt-q` to detach, and everything keeps running until you come back.
-- **Saved tabs.** After a server restart or reboot, your tabs, splits and directories come back with fresh shells. Programs, agent conversations and scrollback do not resume.
-- **Agent status.** Agents that report their state, like Claude Code, Codex and Pi, get a sidebar entry showing whether they're working, blocked, finished unseen or idle, and their tabs show it too. A sound plays when one finishes or needs you while you're looking elsewhere, and `alt-a` jumps to it.
-- **Tabs inside tabs.** Tabs can nest, so a big task can hold its own smaller ones. A sidebar shows the tree; fold the parts you aren't looking at, or drag rows to reorder and nest tabs.
-- **Split panes.** Split, zoom, swap and resize from the keyboard, or drag shared borders to resize. New splits open in the directory you were working in.
-- **More than one window.** Attach from several terminals at once. Each one picks its own tab and pane, while the work underneath is shared.
-- **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
-- **A scriptable CLI.** Server actions are also `ship` commands that print JSON, so scripts and agents can create panes, read output and steer a specific client's selection.
-- **Agents driving agents.** `ship pane send` types a prompt or keys into a pane, and `ship pane wait` blocks until the agent there stops working, so one agent can hand work to another and read the answer.
-- **Your keys and menus.** Rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. Let mouse-aware programs have right-clicks per pane. Config changes apply when you save.
+- **Detaching.** Close the window or press `alt-q` and everything keeps running until you come back. [More](docs/site/windows-and-the-server.md)
+- **Saved tabs.** After a restart, your tabs, splits and directories come back with fresh shells. [More](docs/site/saved-tabs.md)
+- **Agent status.** Agents that speak the Program Status Protocol show in the sidebar, with a sound when one needs you. [More](docs/site/agents.md)
+- **Nested tabs.** A tab can hold its own tabs, and the sidebar shows them as a tree you can fold. [More](docs/site/tabs.md)
+- **Split panes.** Split, zoom, swap and resize from the keyboard or the mouse. [More](docs/site/panes.md)
+- **Several windows.** Attach from more than one terminal, each looking at its own tab. [More](docs/site/windows-and-the-server.md)
+- **Scrollback and copy.** Scroll back through a pane's history and drag to copy. [More](docs/site/scrolling-copying-and-the-mouse.md)
+- **A CLI that prints JSON.** Scripts and agents can do anything you can do from the keyboard. [More](docs/site/scripting/README.md)
+- **Custom keys and menus.** Rebind anything, build tmux-style prefix modes, and change the right-click menus. [More](docs/site/configuration.md)
 
 Linux and macOS are the priority platforms. Windows is best effort.
 
@@ -47,7 +81,7 @@ Linux and macOS are the priority platforms. Windows is best effort.
 - Searching a pane's history, and a keyboard copy mode. For now, `ship pane read --lines N | grep ...` covers search.
 - Resuming agent conversations or rerunning programs after a restart. Saved tabs come back with fresh shells.
 - Closing a pane automatically when its program exits.
-- Connecting to another machine's server directly. The server only accepts local connections for now, so [use an SSH tunnel](docs/guide.md#using-ship-on-another-machine).
+- Connecting to another machine's server directly. The server only accepts local connections for now, so [use an SSH tunnel](docs/site/windows-and-the-server.md#using-ship-on-another-machine).
 - Testing on Linux. Most features have only been checked on macOS so far.
 
 ## Installation
@@ -66,71 +100,18 @@ cd ship
 cargo install --path crates/ship
 ```
 
-Run `ship`. It starts a server in the background if one isn't running, restores its saved tabs, and opens on the first tab's first pane. With nothing to restore, it creates a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back. `ship server stop` shuts the server down and ends every program in it.
+Run `ship`. It starts a server in the background if one isn't running, restores its saved tabs, and opens on the first tab's first pane. With nothing to restore, it creates a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back.
 
 On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or Ship's keys will type special characters instead.
 
-### A quick look at the CLI
+## Docs
 
-Leave `ship` open in one terminal and try this from another:
-```sh
-TAB=$(ship tab create --name demo | jq -r .id)
-PANE=$(ship pane create --tab "$TAB" -- sh -c 'seq 100' | jq -r .id)
-ship pane read --pane "$PANE" --lines 5
-ship tab close --tab "$TAB"
-```
+The [guide](docs/site/README.md) starts with the keys you need for a first session and a short CLI demo, and goes from there. Some pages you'll probably want early on:
 
-The new tab shows up in the sidebar as soon as you create it, and `ship pane read` prints the last lines the pane wrote. Inside a Ship pane you can leave out `--tab` and `--pane`; commands default to the pane they run in. The [guide](docs/guide.md) walks through the rest, and `ship --help` lists every command.
-
-## Keys
-
-All of Ship's default keys are Alt chords. Any other key goes to the program in the selected pane.
-
-| Key | Does |
-| --- | --- |
-| `alt-n` | New tab with a shell |
-| `alt-shift-n` | New tab nested under the current one |
-| `alt-x` | Close the tab |
-| `alt-\|` / `alt--` | Split the pane right / down |
-| `alt-shift-x` | Close the pane |
-| `alt-left` / `alt-right` | Previous / next tab |
-| `alt-h` / `alt-j` / `alt-k` / `alt-l` | Move to the pane left, below, above or right |
-| `alt-tab` | Next pane in the tab |
-| `alt-a` | Jump to the next agent that needs you |
-| `alt-shift-h` / `j` / `k` / `l` | Swap the pane with its neighbor in that direction |
-| `alt-f` | Zoom the pane to fill the tab, or unzoom |
-| `alt-r` | Resize mode: `h` / `j` / `k` / `l` move the pane's edge, `shift-h` / `shift-l` resize the sidebar, `shift-j` / `shift-k` move the line between tabs and agents, `esc` leaves |
-| `alt-g` | Tabs mode: `j` / `k` move between tabs, `h` / `l` fold / unfold, `esc` leaves |
-| `alt-b` | Hide or show the sidebar |
-| `alt-pageup` / `alt-pagedown` | Scroll the pane up / down a page |
-| `alt-q` | Detach |
-
-The mouse works too: click a pane, a tab or an agent to select it, scroll with the wheel, drag to select and copy text, drag pane borders and the sidebar's dividers to resize, and drag sidebar rows to move tabs. Right-click for actions, or click `≡` beside `tabs` for the global menu.
-
-## Configuration
-
-Ship reads `~/.config/ship/config.toml` (or `$XDG_CONFIG_HOME/ship/config.toml`). Without one, it uses its defaults. A running client picks up changes as soon as you save.
-
-```toml
-[server]
-shell = "/bin/bash"            # default: your login shell
-
-[client]
-sidebar_width = 40
-
-[client.modes.normal.keys]
-"alt-q"  = {}                                     # alt-q reaches the program
-"ctrl-b" = { action = { client.mode = "prefix" } } # tmux habits
-
-[client.modes.prefix]
-kind = "oneshot"                               # back to normal after one key
-
-[client.modes.prefix.keys]
-"c"      = { action = { server.tab.create = { starter = "shell", select = true } } }
-"ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
-```
-
-`ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/guide.md#configuration) covers every setting, custom modes and how key actions map onto CLI commands.
+- [All the keys](docs/site/keys.md)
+- [Configuration](docs/site/configuration.md)
+- [Scripting Ship](docs/site/scripting/README.md)
+- [Troubleshooting](docs/site/troubleshooting.md)
 
 ## License
 

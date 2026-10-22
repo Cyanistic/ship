@@ -59,6 +59,8 @@ jobs:
         run: |
           count() { tokei "$@" --types Rust --output json | jq '.Rust.code // 0'; }
           tests=$(find crates -type d \( -name tests -o -name benches \) -prune -print)
+          # $tests is left unquoted on purpose: it can hold several directories
+          # shellcheck disable=SC2086
           {
             echo "### Rust lines of code"
             echo

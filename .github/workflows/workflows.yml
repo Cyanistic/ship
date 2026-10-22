@@ -1,0 +1,38 @@
+name: Workflows
+
+# Lints the workflows themselves when they change: actionlint for mistakes (bad expressions, shellcheck on run
+# scripts) and zizmor for security problems (unpinned actions, leaked credentials, cache poisoning).
+on:
+  pull_request:
+    paths:
+      - .github/**
+  push:
+    branches: [main]
+    paths:
+      - .github/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: actionlint and zizmor
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # the image bundles shellcheck; Dependabot doesn't update this digest, so bump it by hand
+      - run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color # 1.7.12
+      # pinned so a new zizmor audit can't fail an unrelated pull request
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: zizmor@1.31.1
+      # the token lets zizmor check pinned SHAs and versions against GitHub (impostor commits, known vulnerabilities)
+      - run: zizmor --format=github .github/
+        env:
+          GH_TOKEN: ${{ github.token }}

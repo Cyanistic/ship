@@ -1,0 +1,24 @@
+---
+import { version } from "../version";
+import { withBase } from "../base";
+---
+
+{version.channel === "main" && (
+  <aside class="banner" aria-label="docs version" data-pagefind-ignore>
+    <span class="tag pixel p11">main</span> these docs follow the main branch, which is unreleased.
+    {version.latest ? (
+      <>
+        {" "}
+        the latest release is <a href={withBase(`${version.root}/`)}>{version.latest}</a>.
+      </>
+    ) : (
+      " there are no releases yet, so a build from source matches them."
+    )}
+  </aside>
+)}
+{version.channel === "old" && (
+  <aside class="banner" aria-label="docs version" data-pagefind-ignore>
+    <span class="tag pixel p11">{version.ref}</span> these docs are for an older release. the latest is{" "}
+    <a href={withBase(`${version.root}/`)}>{version.latest}</a>.
+  </aside>
+)}

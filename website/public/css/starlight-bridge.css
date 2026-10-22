@@ -1,0 +1,286 @@
+/* Bridge: the ansi CSS is copied unchanged (site.css, docs.css). This file only undoes Starlight's
+   own layout and maps Starlight/Expressive Code markup onto the ansi look. Unlayered, so it beats
+   everything Starlight ships (Starlight's own CSS sits in @layer starlight.*). */
+
+/* the page frame: Starlight's main and content panels add padding, a hairline and a max width */
+main {
+  padding: 0 !important;
+  min-width: 0;
+  max-width: 820px;
+} /* !important: Page.astro sets main padding in an unlayered <style> */
+.content-panel {
+  padding: 0 !important;
+  border: 0 !important;
+}
+.content-panel .sl-container {
+  max-width: none;
+  margin: 0;
+}
+
+/* headings from markdown: Starlight wraps each in .sl-heading-wrapper with its own anchor link */
+.doc h1 {
+  margin: 0 0 22px;
+}
+.doc .sl-heading-wrapper {
+  display: flex;
+  align-items: baseline;
+  margin: 56px 0 16px;
+}
+.doc .sl-heading-wrapper h2 {
+  margin: 0;
+  font: 22px/33px var(--pixel);
+}
+.doc .sl-anchor-link {
+  font: 22px/33px var(--pixel);
+  color: var(--sea);
+  text-decoration: none;
+  opacity: 0;
+  padding: 0 4px;
+  margin-left: 14px;
+}
+.doc .sl-anchor-link .sl-anchor-icon {
+  display: none;
+}
+.doc .sl-anchor-link::after {
+  content: "#";
+}
+.doc .sl-heading-wrapper:hover .sl-anchor-link,
+.doc .sl-anchor-link:focus-visible {
+  opacity: 1;
+}
+.doc .lede {
+  font-size: var(--t-lg);
+}
+
+/* code blocks: Expressive Code's frame, made into the ansi .term .cmd block */
+.doc .expressive-code {
+  margin: 0 0 22px;
+}
+.doc .expressive-code .frame {
+  border: 2px solid var(--ink);
+  background: var(--ink);
+}
+.doc .expressive-code pre {
+  border: 0 !important;
+  padding: 16px 0 !important;
+}
+.doc .expressive-code .ec-line .code {
+  padding-inline: 18px 72px !important;
+}
+.doc .expressive-code figcaption.header {
+  display: none;
+}
+/* the ansi copy keycap. Expressive Code's wrapper is also div.copy, which the ansi .copy button rule hits */
+.doc .expressive-code div.copy {
+  all: unset;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+}
+.doc .expressive-code div.copy button {
+  all: unset;
+  opacity: 1 !important;
+  font: 11px/22px var(--pixel);
+  background: var(--c6);
+  color: var(--ink);
+  padding: 2px 10px 3px;
+  cursor: pointer;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--c6) 60%, var(--ink));
+}
+.doc .expressive-code div.copy button::after {
+  content: "copy";
+}
+.doc .expressive-code div.copy button:hover {
+  background: var(--c14);
+}
+.doc .expressive-code div.copy button:focus-visible {
+  outline: 3px solid var(--c14);
+  outline-offset: 3px;
+}
+.doc .expressive-code div.copy button div {
+  display: none;
+}
+.doc .expressive-code div.copy .feedback {
+  display: none;
+}
+
+/* inline code: Starlight's reset gives code its own font size */
+.doc :not(pre) > code {
+  font-size: 0.88em;
+}
+
+/* the version switcher, new: ansi has none. In the side column from 1200px, at the top of the folded contents below */
+.versions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0 0 14px;
+} /* the select drops under its label when "main (unreleased)" won't fit beside it */
+.versions .navlabel {
+  margin: 0;
+}
+.versions select {
+  max-width: 100%;
+  font: var(--t-sm)/1.2 var(--code);
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 3px 6px;
+}
+
+/* fixes after the first look */
+.doc .expressive-code code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+} /* the ansi inline-code chip was hitting every code line */
+.doc .expressive-code div.copy button::before {
+  display: none;
+}
+.doc .expressive-code div.copy button::after {
+  position: static;
+  background: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  margin: 0;
+  line-height: 22px;
+}
+.doc .expressive-code div.copy:has(.feedback.show) button {
+  background: var(--c10);
+}
+.doc .expressive-code div.copy:has(.feedback.show) button::after {
+  content: "copied";
+}
+@media (max-width: 899px) {
+  .doc .sl-anchor-link {
+    opacity: 1;
+  }
+}
+.doc .expressive-code pre,
+.doc .expressive-code .ec-line .code {
+  font-size: var(--code-md) !important;
+  line-height: 1.45 !important;
+} /* Starlight's --sl-text-code (0.9rem) was winning */
+@media (max-width: 899px) {
+  .doc .sl-heading-wrapper {
+    margin-top: 44px;
+  }
+} /* ansi's .doc h2 rule, moved onto Starlight's wrapper */
+.doc .expressive-code .ec-line .code {
+  padding-inline: 18px 54px !important;
+}
+/* the copy key sits over the first line: a wrapping block keeps that line clear of it, a scrolling one gives the key a strip of its own */
+.doc .expressive-code pre.wrap .ec-line:first-child .code {
+  padding-inline-end: 76px !important;
+}
+.doc .expressive-code pre:not(.wrap) {
+  padding-top: 44px !important;
+}
+
+/* ---- added in the port: what the ansi docs page had no example of ---- */
+
+/* Starlight has no body class; the ansi docs rules hang off body.docs */
+:root:root {
+  scroll-padding-top: 0;
+} /* Page.astro's own padding would add to the ansi scroll-margin */
+.doc h1,
+.doc .sl-heading-wrapper,
+.doc :target {
+  scroll-margin-top: calc(var(--bar-h) + 16px);
+}
+
+/* the page's first paragraph is the lede, as in the ansi page */
+.doc > p:first-child {
+  font-size: var(--t-lg);
+}
+
+/* notes come from GitHub alerts (src/markdown/alerts.mjs): the text sits in .note-body beside the crewmate */
+.note .note-body {
+  align-self: center;
+  min-width: 0;
+}
+.note .note-body > :last-child {
+  margin-bottom: 18px;
+}
+.note .note-body .expressive-code {
+  margin-bottom: 18px;
+}
+@media (max-width: 600px) {
+  .note .note-body {
+    order: -1;
+  }
+}
+
+/* tables: the keys table from the hold, redrawn for paper. ink rules, keys never wrap, sideways scroll on a phone */
+.doc table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 22px;
+  font-size: var(--t-md);
+  line-height: 1.45;
+}
+.doc th,
+.doc td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 7px 18px 7px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+}
+.doc thead th {
+  font: 11px/22px var(--pixel);
+  color: var(--muted-light);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 4px;
+}
+.doc th:first-child,
+.doc td:first-child {
+  width: 1%;
+  white-space: nowrap;
+} /* the key column hugs its keys, as in the hold */
+.doc td code {
+  white-space: nowrap;
+}
+@media (max-width: 899px) {
+  .doc table {
+    display: block;
+    overflow-x: auto;
+    scrollbar-color: var(--c8) transparent;
+  }
+}
+
+/* a plain blockquote (not an alert): the note's haze without the box or the crew */
+.doc blockquote {
+  margin: 0 0 22px;
+  padding: 14px 20px 0;
+  background: var(--haze);
+}
+.doc blockquote p {
+  max-width: 64ch;
+}
+
+/* Starlight's own :::note asides, should a page use one: the note box, no crewmate */
+.doc .starlight-aside {
+  background: var(--haze);
+  border: 2px solid var(--ink);
+  margin: 30px 0;
+  padding: 14px 22px 0;
+}
+.doc .starlight-aside__title {
+  font: 11px/22px var(--pixel);
+  margin: 0 0 6px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.doc .starlight-aside__icon {
+  display: none;
+}
+
+/* the version switcher inside the folded contents */
+.contents .versions {
+  margin: 0 14px 14px;
+}

@@ -1,0 +1,41 @@
+---
+import { withBase } from "../base";
+// Replaces Starlight's fixed header + fixed full-height sidebar with the ansi layout:
+// a sticky bar, a full-width banner, then one centred 1328px grid (side, doc, toc), then the footer.
+import VersionBanner from "../components/VersionBanner.astro";
+const { hasSidebar } = Astro.locals.starlightRoute;
+---
+
+<header class="bar">
+  <slot name="header" />
+</header>
+<VersionBanner />
+<div class="docs-grid">
+  {hasSidebar && (
+    <nav class="side" aria-label="the docs">
+      <slot name="sidebar" />
+    </nav>
+  )}
+  <slot />
+</div>
+<footer class="docs-foot">
+  <p>
+    ship is licensed under the{" "}
+    <a href="https://github.com/shipmux/ship/blob/main/LICENSE">gnu general public license v3.0 or later</a>. it is a
+    work in progress.
+  </p>
+  <nav aria-label="footer">
+    <a href={withBase("/")}>back to the ship</a>
+    <a href={withBase("/#install")}>install</a>
+    <a href={withBase("/#keys")}>keys</a>
+    <a href="https://github.com/shipmux/ship">github</a>
+  </nav>
+</footer>
+<script>
+  // the part of the ansi site.js the docs need: a crewmate loop pauses while it is off screen.
+  // (site.js itself would also wire its copy buttons onto Expressive Code's own .copy wrappers.)
+  const watch = new IntersectionObserver((entries) =>
+    entries.forEach((en) => en.target.classList.toggle("off", !en.isIntersecting)),
+  );
+  document.querySelectorAll(".act").forEach((el) => watch.observe(el));
+</script>

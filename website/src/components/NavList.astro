@@ -1,0 +1,31 @@
+---
+// The docs sidebar as the ansi side nav: plain links, each group under a small pixel label.
+// Used by the side column (1200px and up) and by the folded contents below that.
+const { sidebar } = Astro.locals.starlightRoute;
+const links = (entries: typeof sidebar) => entries.flatMap((e) => (e.type === "link" ? [e] : []));
+const groups = sidebar.flatMap((e) => (e.type === "group" ? [e] : []));
+---
+
+<ul>
+  {links(sidebar).map((l) => (
+    <li>
+      <a href={l.href} aria-current={l.isCurrent ? "page" : undefined}>
+        {l.label}
+      </a>
+    </li>
+  ))}
+</ul>
+{groups.map((g) => (
+  <>
+    <p class="navlabel pixel p11">{g.label}</p>
+    <ul>
+      {links(g.entries).map((l) => (
+        <li>
+          <a href={l.href} aria-current={l.isCurrent ? "page" : undefined}>
+            {l.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </>
+))}

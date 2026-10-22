@@ -10,10 +10,6 @@ A locked openspec paper, meaning one whose status reads "Locked" with Cyan's rec
 
 Questions those documents mark as open stay open. When work depends on one, bring it to Cyan with a recommendation and leave it unsettled in the code until Cyan decides.
 
-## User-facing docs
-
-`README.md` is for people deciding whether to try Ship: what it is, an honest split between what works and what isn't built, installation, the default keys and a short config example. Keep it that way. Put user-visible detail (CLI walkthroughs, edge cases, every setting) in `docs/guide.md`, and exact semantics (JSON shapes, protocol rules, geometry) in `openspec/specs/` only. When a change ships user-visible behavior, update the guide, and touch the README only if its "What works today", "Not built yet", keys or install steps changed.
-
 ## Compactness
 
 Own the domain, rent the mechanisms. Ship owns tab and pane behavior and how the pieces compose. Serialization, terminal emulation, PTYs, transport, clipboard, audio and similar solved capabilities come from libraries; look for a dependency before writing a mechanism, and accept a little imprecision (for example in generated schemas) over maintaining a hand-written copy.
@@ -55,6 +51,10 @@ Before exploring the code or openspec, read `docs/agents/codebase.md`: what each
 ### Writing code
 
 Before writing or changing Rust, read `docs/agents/code.md`: verification without tests, design rules, errors, and platform-specific code.
+
+### Writing docs
+
+When a change ships user-visible behavior, update the docs. Before writing or changing `README.md` or `docs/site/`, read `docs/agents/docs.md`: what goes where, page scopes, and keeping pages short as they change.
 
 ### Issue tracker
 

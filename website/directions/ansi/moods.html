@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>ship · ansi · crew moods</title>
+<link rel="stylesheet" href="css/site.css"><style>
+body{background:var(--sky);padding:44px} h1{margin:0 0 8px} .intro{max-width:72ch;margin:0 0 33px;color:var(--muted-light)}
+ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:22px}
+.mood{background:#e6f3f7;border:2px solid var(--ink);display:flex;flex-direction:column}
+.mood img{margin:16px auto 8px}
+.tag{padding:10px 14px;font-size:17px;border:0} .glyph{font-size:19px} .word{color:var(--c15)}
+.what{margin:0;padding:12px 14px 16px;font-size:16px;line-height:1.45} .pose{color:var(--muted-light)}
+.roles{display:flex;gap:33px;margin-top:44px;align-items:end} .roles figure{margin:0;text-align:center}
+h2{margin:44px 0 0}
+</style></head><body>
+<h1 class="pixel p33">crew moods</h1>
+<p class="intro">one crewmate, the deckhand, in the five agent states. the face is a terminal screen drawn in the state's colour, and the pose changes with it, but the mood never stands alone: the glyph, the colour and the word sit beside it every time, exactly as Ship's sidebar draws them. static marks use the neutral white face.</p>
+<ol><li class="mood">
+<img class="px" src="art/crew-deckhand-working.svg" width="224" height="192" alt="">
+<div class="term tag"><span class="glyph s-working" aria-hidden="true">●</span> <span class="word">working</span><span class="dim"> · yellow · ANSI 3</span></div>
+<p class="what">busy. <span class="pose">pose: swabbing the deck.</span></p></li><li class="mood">
+<img class="px" src="art/crew-deckhand-blocked.svg" width="224" height="192" alt="">
+<div class="term tag"><span class="glyph s-blocked" aria-hidden="true">▲</span> <span class="word">blocked</span><span class="dim"> · red · ANSI 1</span></div>
+<p class="what">waiting on you, like a permission prompt. <span class="pose">pose: hand up, asking.</span></p></li><li class="mood">
+<img class="px" src="art/crew-deckhand-unseen.svg" width="224" height="192" alt="">
+<div class="term tag"><span class="glyph s-unseen" aria-hidden="true">◆</span> <span class="word">unseen</span><span class="dim"> · cyan · ANSI 6</span></div>
+<p class="what">finished while you weren't looking. <span class="pose">pose: holding out the finished parcel.</span></p></li><li class="mood">
+<img class="px" src="art/crew-deckhand-idle.svg" width="224" height="192" alt="">
+<div class="term tag"><span class="glyph s-idle" aria-hidden="true">○</span> <span class="word">idle</span><span class="dim"> · green · ANSI 2</span></div>
+<p class="what">done and seen, or waiting for a prompt. <span class="pose">pose: hands behind the head.</span></p></li><li class="mood">
+<img class="px" src="art/crew-deckhand-error.svg" width="224" height="192" alt="">
+<div class="term tag"><span class="glyph s-error" aria-hidden="true">✖</span> <span class="word">error</span><span class="dim"> · magenta · ANSI 5</span></div>
+<p class="what">something went wrong. <span class="pose">pose: smoke coming off the cap.</span></p></li></ol>
+<h2 class="pixel p22">the crew, neutral, told apart by hats</h2>
+<div class="roles"><figure><img class="px" src="art/crew-lookout-neutral.svg" width="112" height="96" alt=""><figcaption class="pixel p11">lookout</figcaption></figure><figure><img class="px" src="art/crew-deckhand-neutral.svg" width="112" height="96" alt=""><figcaption class="pixel p11">deckhand</figcaption></figure><figure><img class="px" src="art/crew-navigator-neutral.svg" width="112" height="96" alt=""><figcaption class="pixel p11">navigator</figcaption></figure><figure><img class="px" src="art/crew-cook-neutral.svg" width="112" height="96" alt=""><figcaption class="pixel p11">cook</figcaption></figure><figure><img class="px" src="art/crew-captain-neutral.svg" width="112" height="96" alt=""><figcaption class="pixel p11">captain</figcaption></figure></div>
+</body></html>

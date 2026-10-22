@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>configuration · ship docs</title>
+<meta name="description" content="how ship reads its config file, with the server, client, agent, keys and menu settings.">
+<link rel="icon" href="marks/avatar.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/docs.css">
+</head>
+<body class="docs">
+<a class="skip" href="#main">skip to the docs</a>
+<header class="bar">
+  <div class="bar-in">
+    <a class="home" href="index.html"><img class="px" src="marks/app.svg" width="32" height="32" alt=""><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the landing page</span></a>
+    <nav aria-label="main">
+      <ul>
+        <li><a href="docs.html" aria-current="page">docs</a></li>
+        <li><a href="index.html#install">install</a></li>
+        <li><a href="index.html#keys">keys</a></li>
+        <li><a href="index.html#config">config</a></li>
+        <li><a href="https://github.com/shipmux/ship">github</a></li>
+      </ul>
+    </nav>
+    <!-- provisional: this searches the text of this one page. real docs search needs an index built at publish time, and the static generator is not chosen yet. -->
+    <form class="search" role="search" aria-label="search the docs" onsubmit="return false">
+      <label class="sr-only" for="q">search this page</label>
+      <input id="q" type="search" placeholder="search this page" autocomplete="off" spellcheck="false" aria-controls="results" aria-describedby="search-hint">
+      <kbd class="slash" id="search-hint" aria-hidden="true">/</kbd>
+      <div class="results" id="results" hidden></div>
+    </form>
+  </div>
+</header>
+<p class="banner"><span class="tag pixel p11">main</span> these docs follow the main branch, which is unreleased. there are no releases yet, so a build from source matches them.</p>
+
+<div class="docs-grid">
+  <nav class="side" aria-label="the guide">
+    <p class="navlabel pixel p11">the guide</p>
+    <ul>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#windows-and-the-server">windows and the server</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#tabs">tabs</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#panes">panes</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#scrolling-copying-and-the-mouse">scrolling, copying and the mouse</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#agents">agents</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#scripting-ship">scripting ship</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#saved-tabs">saved tabs</a></li>
+<li><a href="#configuration" aria-current="page">configuration</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#shell-completions">shell completions</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#troubleshooting">troubleshooting</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#upgrading">upgrading</a></li>
+    </ul>
+    <p>only configuration is on this site so far. the other sections open the guide on github.</p>
+  </nav>
+
+  <main class="doc" id="main">
+    <details class="contents">
+      <summary>contents</summary>
+      <p class="navlabel pixel p11">the guide</p>
+      <ul>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#windows-and-the-server">windows and the server</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#tabs">tabs</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#panes">panes</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#scrolling-copying-and-the-mouse">scrolling, copying and the mouse</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#agents">agents</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#scripting-ship">scripting ship</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#saved-tabs">saved tabs</a></li>
+<li><a href="#configuration" aria-current="page">configuration</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#shell-completions">shell completions</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#troubleshooting">troubleshooting</a></li>
+<li><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#upgrading">upgrading</a></li>
+      </ul>
+      <p class="navlabel pixel p11">on this page</p>
+      <ul>
+<li><a href="#configuration">configuration</a></li>
+<li><a href="#server-settings">server settings</a></li>
+<li><a href="#client-settings">client settings</a></li>
+<li><a href="#agent-settings">agent settings</a></li>
+<li><a href="#keys-and-modes">keys and modes</a></li>
+<li><a href="#menus">menus</a></li>
+      </ul>
+    </details>
+
+    <h1 id="configuration" class="pixel p44">configuration</h1>
+    <p class="lede">ship reads <code>~/.config/ship/config.toml</code>, or <code>ship/config.toml</code> under <code>$XDG_CONFIG_HOME</code>. without one, it uses its defaults. <code>ship config defaults</code> prints them all, with what each setting accepts:</p>
+    <div class="term cmd">
+<button class="copy" type="button" data-copy="ship config defaults | grep -A3 &#x27;\[client.agents\]&#x27;">copy</button>
+<pre class="wrap"><span class="t-prompt">$ </span>ship config defaults | grep -A3 <span class="t-s">'\[client.agents\]'</span></pre>
+</div>
+    <div class="note">
+<span class="act a-clipboard" aria-hidden="true"></span>
+<p>your file only needs what you change. copy just those lines rather than the whole output: anything you copy stays fixed, and stops following ship's defaults when they change.</p>
+</div>
+    <p><code>--config &lt;file&gt;</code> or <code>SHIP_CONFIG</code> points somewhere else.</p>
+    <div class="note">
+<span class="act a-point" aria-hidden="true"></span>
+<p>open windows pick up changes when you save. if the file has a mistake, ship keeps the last working settings and shows the error. <code>ship config check</code> points at the first mistake with its line and column.</p>
+</div>
+
+    <section aria-labelledby="server-settings">
+    <h2 id="server-settings" class="pixel p22">server settings<a class="anchor" href="#server-settings" aria-label="link to server settings">#</a></h2>
+    <div class="term cmd">
+<button class="copy" type="button" data-copy="[server]&#10;shell = &quot;/bin/bash&quot;           # default: your login shell&#10;scrollback_bytes = 10000000   # history per pane, about 10 MB by default">copy</button>
+<pre tabindex="0" aria-label="code, scrolls sideways if it is wide"><span class="t-h">[server]</span>
+<span class="t-k">shell</span> = <span class="t-s">"/bin/bash"</span>           <span class="t-c"># default: your login shell</span>
+<span class="t-k">scrollback_bytes</span> = <span class="t-n">10000000</span>   <span class="t-c"># history per pane, about 10 MB by default</span></pre>
+</div>
+    <div class="note">
+<span class="act a-reach" aria-hidden="true"></span>
+<p>these apply to new panes. panes that are already open keep what they started with.</p>
+</div>
+    </section>
+
+    <section aria-labelledby="client-settings">
+    <h2 id="client-settings" class="pixel p22">client settings<a class="anchor" href="#client-settings" aria-label="link to client settings">#</a></h2>
+    <div class="term cmd">
+<button class="copy" type="button" data-copy="[client]&#10;sidebar_width = 40   # default: 26 columns&#10;mouse = true         # false leaves the mouse to your terminal">copy</button>
+<pre tabindex="0" aria-label="code, scrolls sideways if it is wide"><span class="t-h">[client]</span>
+<span class="t-k">sidebar_width</span> = <span class="t-n">40</span>   <span class="t-c"># default: 26 columns</span>
+<span class="t-k">mouse</span> = <span class="t-n">true</span>         <span class="t-c"># false leaves the mouse to your terminal</span></pre>
+</div>
+    </section>
+
+    <section aria-labelledby="agent-settings">
+    <h2 id="agent-settings" class="pixel p22">agent settings<a class="anchor" href="#agent-settings" aria-label="link to agent settings">#</a></h2>
+    <div class="term cmd">
+<button class="copy" type="button" data-copy="[client.agents]&#10;rows = [[&quot;icon&quot;, &quot;app&quot;, &quot;state&quot;], [&quot;tab&quot;]]  # what each sidebar entry shows&#10;delay_ms = 1000                             # how long a state must hold before notifying&#10;popups = false                              # true also sends desktop notifications&#10;&#10;[client.agents.sounds.default]&#10;done = { path = &quot;~/sounds/ding.mp3&quot; }&#10;attention = { builtin = &quot;attention&quot; }&#10;&#10;[client.agents.sounds.apps.codex]&#10;done = &quot;off&quot;">copy</button>
+<pre tabindex="0" aria-label="code, scrolls sideways if it is wide"><span class="t-h">[client.agents]</span>
+<span class="t-k">rows</span> = [[<span class="t-s">"icon"</span>, <span class="t-s">"app"</span>, <span class="t-s">"state"</span>], [<span class="t-s">"tab"</span>]]  <span class="t-c"># what each sidebar entry shows</span>
+<span class="t-k">delay_ms</span> = <span class="t-n">1000</span>                             <span class="t-c"># how long a state must hold before notifying</span>
+<span class="t-k">popups</span> = <span class="t-n">false</span>                              <span class="t-c"># true also sends desktop notifications</span>
+
+<span class="t-h">[client.agents.sounds.default]</span>
+<span class="t-k">done</span> = { <span class="t-k">path</span> = <span class="t-s">"~/sounds/ding.mp3"</span> }
+<span class="t-k">attention</span> = { <span class="t-k">builtin</span> = <span class="t-s">"attention"</span> }
+
+<span class="t-h">[client.agents.sounds.apps.codex]</span>
+<span class="t-k">done</span> = <span class="t-s">"off"</span></pre>
+</div>
+    <p><code>rows</code> lists the lines of each entry. the pieces you can use are <code>icon</code>, <code>app</code>, <code>state</code>, <code>tab</code>, <code>pane</code> (the pane's label), and <code>title</code> and <code>msg</code> (whatever the agent reported).</p>
+    <p>a sound is <code>"off"</code>, a built-in (<code>{ builtin = "done" }</code> or <code>{ builtin = "attention" }</code>), or a file (<code>{ path = "..." }</code>) in mp3, wav, ogg vorbis or flac. <code>done</code> plays when an agent finishes and <code>attention</code> when it's blocked or errors. <code>[client.agents.sounds.apps.&lt;name&gt;]</code> overrides sounds for one agent. if a sound file is missing or broken, ship plays the built-in one instead and says so in the client log.</p>
+    <p>the built-in sounds are from kenney's <a href="https://www.kenney.nl">interface sounds</a> pack (<a href="https://github.com/shipmux/ship/blob/main/crates/ship-client/assets/sounds/ATTRIBUTION.md">attribution</a>).</p>
+    </section>
+
+    <section aria-labelledby="keys-and-modes">
+    <h2 id="keys-and-modes" class="pixel p22">keys and modes<a class="anchor" href="#keys-and-modes" aria-label="link to keys and modes">#</a></h2>
+    <p>keys live in modes, and you start in <code>normal</code>. binding a key replaces only that key; everything else keeps its default. <code>{}</code> unbinds a key so it reaches the program instead:</p>
+    <div class="term cmd">
+<button class="copy" type="button" data-copy="[client.modes.normal.keys]&#10;&quot;alt-q&quot;  = {}                                       # alt-q goes to the program&#10;&quot;alt-t&quot;  = { action = { server.tab.create = {} } }  # new empty tab&#10;&quot;ctrl-b&quot; = { action = { client.mode = &quot;prefix&quot; } }  # tmux habits&#10;&#10;[client.modes.prefix]&#10;kind = &quot;oneshot&quot;                                    # back to normal after one key&#10;&#10;[client.modes.prefix.keys]&#10;&quot;c&quot;      = { action = { server.tab.create = { starter = &quot;shell&quot;, select = true } } }&#10;&quot;%&quot;      = { action = { server.pane.create = { direction = &quot;right&quot;, select = true } } }&#10;&quot;ctrl-b&quot; = { action = { client.send = &quot;ctrl-b&quot; } }  # a real ctrl-b for the pane">copy</button>
+<pre tabindex="0" aria-label="code, scrolls sideways if it is wide"><span class="t-h">[client.modes.normal.keys]</span>
+<span class="t-s">"alt-q"</span>  = {}                                       <span class="t-c"># alt-q goes to the program</span>
+<span class="t-s">"alt-t"</span>  = { <span class="t-k">action</span> = { <span class="t-k">server.tab.create</span> = {} } }  <span class="t-c"># new empty tab</span>
+<span class="t-s">"ctrl-b"</span> = { <span class="t-k">action</span> = { <span class="t-k">client.mode</span> = <span class="t-s">"prefix"</span> } }  <span class="t-c"># tmux habits</span>
+
+<span class="t-h">[client.modes.prefix]</span>
+<span class="t-k">kind</span> = <span class="t-s">"oneshot"</span>                                    <span class="t-c"># back to normal after one key</span>
+
+<span class="t-h">[client.modes.prefix.keys]</span>
+<span class="t-s">"c"</span>      = { <span class="t-k">action</span> = { <span class="t-k">server.tab.create</span> = { <span class="t-k">starter</span> = <span class="t-s">"shell"</span>, <span class="t-k">select</span> = <span class="t-n">true</span> } } }
+<span class="t-s">"%"</span>      = { <span class="t-k">action</span> = { <span class="t-k">server.pane.create</span> = { <span class="t-k">direction</span> = <span class="t-s">"right"</span>, <span class="t-k">select</span> = <span class="t-n">true</span> } } }
+<span class="t-s">"ctrl-b"</span> = { <span class="t-k">action</span> = { <span class="t-k">client.send</span> = <span class="t-s">"ctrl-b"</span> } }  <span class="t-c"># a real ctrl-b for the pane</span></pre>
+</div>
+    <p>there are two kinds of actions:</p>
+    <ul>
+      <li><code>server.</code> actions are cli commands. <code>server.tab.create = { starter = "shell" }</code> does the same as <code>ship tab create --starter shell</code>, so <code>ship &lt;command&gt; --help</code> documents its options.</li>
+      <li><code>client.</code> actions change only your window, like <code>client.pane.focus</code>, <code>client.sidebar.toggle</code>, <code>client.mode</code> and <code>client.detach</code>.</li>
+    </ul>
+    <p>a <code>oneshot</code> mode takes one key and returns to normal. a <code>sticky</code> mode stays until a binding leaves it. <code>clear_defaults = true</code> starts a mode with none of ship's bindings. add <code>label = "..."</code> to a binding to change how it's shown in the hints.</p>
+    <p>when you're in a mode other than normal, a one-line hint bar shows at the bottom with that mode's keys. the same bar shows errors and when a pane's program has exited.</p>
+    <p>the default keys are in <a href="https://github.com/shipmux/ship/blob/main/crates/ship-core/src/defaults.toml"><code>defaults.toml</code></a>. key names like <code>ctrl-alt-x</code> and <code>shift-tab</code> follow <a href="https://docs.rs/crokey">crokey</a>.</p>
+    </section>
+
+    <section aria-labelledby="menus">
+    <h2 id="menus" class="pixel p22">menus<a class="anchor" href="#menus" aria-label="link to menus">#</a></h2>
+    <p>each right-click menu can be replaced with your own list of actions, written like key bindings:</p>
+    <div class="term cmd">
+<button class="copy" type="button" data-copy="[client.menus]&#10;pane = [&#10;  { action = { server.pane.zoom = {} }, label = &quot;fill&quot; },&#10;  { action = { server.pane.close = {} } },&#10;]&#10;tab = []    # no tab menu">copy</button>
+<pre tabindex="0" aria-label="code, scrolls sideways if it is wide"><span class="t-h">[client.menus]</span>
+<span class="t-k">pane</span> = [
+  { <span class="t-k">action</span> = { <span class="t-k">server.pane.zoom</span> = {} }, <span class="t-k">label</span> = <span class="t-s">"fill"</span> },
+  { <span class="t-k">action</span> = { <span class="t-k">server.pane.close</span> = {} } },
+]
+<span class="t-k">tab</span> = []    <span class="t-c"># no tab menu</span></pre>
+</div>
+    <p>the menus are <code>pane</code>, <code>tab</code> and <code>global</code>. any you leave out keep their defaults.</p>
+    </section>
+  </main>
+
+  <nav class="toc" aria-label="on this page">
+    <p class="navlabel pixel p11">on this page</p>
+    <ul>
+<li><a href="#configuration">configuration</a></li>
+<li><a href="#server-settings">server settings</a></li>
+<li><a href="#client-settings">client settings</a></li>
+<li><a href="#agent-settings">agent settings</a></li>
+<li><a href="#keys-and-modes">keys and modes</a></li>
+<li><a href="#menus">menus</a></li>
+    </ul>
+    <p class="gh"><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#configuration">this section on github</a></p>
+  </nav>
+</div>
+
+<footer class="docs-foot">
+  <p>ship is licensed under the <a href="https://github.com/shipmux/ship/blob/main/LICENSE">gnu general public license v3.0 or later</a>. it is a work in progress.</p>
+  <nav aria-label="footer"><a href="index.html">back to the ship</a><a href="index.html#install">install</a><a href="index.html#keys">keys</a><a href="https://github.com/shipmux/ship">github</a></nav>
+</footer>
+<script src="js/site.js" defer></script>
+<script src="js/docs.js" defer></script>
+</body>
+</html>

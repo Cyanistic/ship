@@ -1,1 +1,3 @@
 /target/
+# Platform binary; the impeccable launcher fetches its own when missing
+/.agents/skills/impeccable/scripts/bin/
