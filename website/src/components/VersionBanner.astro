@@ -4,7 +4,7 @@ import { withBase } from "../base";
 ---
 
 {version.channel === "main" && (
-  <p class="banner" data-pagefind-ignore>
+  <aside class="banner" aria-label="docs version" data-pagefind-ignore>
     <span class="tag pixel p11">main</span> these docs follow the main branch, which is unreleased.
     {version.latest ? (
       <>
@@ -14,11 +14,11 @@ import { withBase } from "../base";
     ) : (
       " there are no releases yet, so a build from source matches them."
     )}
-  </p>
+  </aside>
 )}
 {version.channel === "old" && (
-  <p class="banner" data-pagefind-ignore>
+  <aside class="banner" aria-label="docs version" data-pagefind-ignore>
     <span class="tag pixel p11">{version.ref}</span> these docs are for an older release. the latest is{" "}
     <a href={withBase(`${version.root}/`)}>{version.latest}</a>.
-  </p>
+  </aside>
 )}

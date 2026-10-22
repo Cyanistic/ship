@@ -24,7 +24,7 @@ export const alerts = {
     const body = [...(inline.length ? [{ type: "paragraph", children: inline }] : []), ...rest];
     const n = (ctx.data.shipNotes = (ctx.data.shipNotes ?? 0) + 1) - 1;
     const kind = m[1].toLowerCase();
-    return el("aside", { class: `note note-${kind}`, "aria-label": kind }, [
+    return el("div", { class: `note note-${kind}`, role: "note" }, [
       el("span", { class: `act a-${CREW[n % CREW.length]}`, "aria-hidden": "true" }),
       el("div", { class: "note-body" }, body),
     ]);
