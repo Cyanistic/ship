@@ -8,7 +8,7 @@
 [Installation](#installation) •
 [Keys](#keys) •
 [Configuration](#configuration) •
-[Guide](docs/guide.md) •
+[Guide](docs/site/README.md) •
 [License](#license)
 
 </div>
@@ -47,7 +47,7 @@ Linux and macOS are the priority platforms. Windows is best effort.
 - Searching a pane's history, and a keyboard copy mode. For now, `ship pane read --lines N | grep ...` covers search.
 - Resuming agent conversations or rerunning programs after a restart. Saved tabs come back with fresh shells.
 - Closing a pane automatically when its program exits.
-- Connecting to another machine's server directly. The server only accepts local connections for now, so [use an SSH tunnel](docs/guide.md#using-ship-on-another-machine).
+- Connecting to another machine's server directly. The server only accepts local connections for now, so [use an SSH tunnel](docs/site/windows-and-the-server.md#using-ship-on-another-machine).
 - Testing on Linux. Most features have only been checked on macOS so far.
 
 ## Installation
@@ -80,7 +80,7 @@ ship pane read --pane "$PANE" --lines 5
 ship tab close --tab "$TAB"
 ```
 
-The new tab shows up in the sidebar as soon as you create it, and `ship pane read` prints the last lines the pane wrote. Inside a Ship pane you can leave out `--tab` and `--pane`; commands default to the pane they run in. The [guide](docs/guide.md) walks through the rest, and `ship --help` lists every command.
+The new tab shows up in the sidebar as soon as you create it, and `ship pane read` prints the last lines the pane wrote. Inside a Ship pane you can leave out `--tab` and `--pane`; commands default to the pane they run in. The [guide](docs/site/README.md) walks through the rest, and `ship --help` lists every command.
 
 ## Keys
 
@@ -130,7 +130,7 @@ kind = "oneshot"                               # back to normal after one key
 "ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
 ```
 
-`ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/guide.md#configuration) covers every setting, custom modes and how key actions map onto CLI commands.
+`ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/site/configuration.md) covers every setting, custom modes and how key actions map onto CLI commands.
 
 ## License
 

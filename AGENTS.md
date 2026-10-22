@@ -12,7 +12,7 @@ Questions those documents mark as open stay open. When work depends on one, brin
 
 ## User-facing docs
 
-`README.md` is for people deciding whether to try Ship: what it is, an honest split between what works and what isn't built, installation, the default keys and a short config example. Keep it that way. Put user-visible detail (CLI walkthroughs, edge cases, every setting) in `docs/guide.md`, and exact semantics (JSON shapes, protocol rules, geometry) in `openspec/specs/` only. When a change ships user-visible behavior, update the guide, and touch the README only if its "What works today", "Not built yet", keys or install steps changed.
+`README.md` is for people deciding whether to try Ship: what it is, an honest split between what works and what isn't built, installation, the default keys and a short config example. Keep it that way. Put user-visible detail (CLI walkthroughs, edge cases, every setting) in `docs/site/`, and exact semantics (JSON shapes, protocol rules, geometry) in `openspec/specs/` only. When a change ships user-visible behavior, update the pages in `docs/site/`, and touch the README only if its "What works today", "Not built yet", keys or install steps changed.
 
 ## Compactness
 
