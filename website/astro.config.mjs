@@ -19,15 +19,12 @@ const ship16 = JSON.parse(readFileSync(new URL('./src/ship16.theme.json', import
 const css = (href) => ({ tag: 'link', attrs: { rel: 'stylesheet', href } });
 
 export default defineConfig({
-	site, // Starlight also adds a <link rel="sitemap"> to each page once this is set; no sitemap file is written (see below)
+	site, // with site set, Starlight writes a sitemap; in a versioned build the latest docs' build is copied last, so its sitemap is the one kept
 	base,
 	outDir: process.env.DOCS_OUT ?? './dist',
 	trailingSlash: 'always',
 	markdown: { processor: satteri({ mdastPlugins: [alerts, rebaseLinks(base.replace(/\/$/, ''))], features: { smartPunctuation: false } }) }, // the guide's straight quotes stay straight
 	integrations: [
-		// one sitemap per build would overwrite the others (each version is its own build), so none is written.
-		// Starlight adds its own @astrojs/sitemap unless an integration of that name is present; this one does nothing.
-		{ name: '@astrojs/sitemap', hooks: {} },
 		starlight({
 			title: 'ship docs',
 			titleDelimiter: '·',

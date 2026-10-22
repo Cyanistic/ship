@@ -36,7 +36,7 @@ const latest = tags[0] ?? '';
 const builds = [
 	{ ref: 'main', from: mainRef, prefix: latest ? '/docs/main' : '/docs', channel: 'main' },
 	...tags.slice().reverse().map((t) => ({ ref: t, from: t, prefix: `/docs/${t}`, channel: t === latest ? 'latest' : 'old' })),
-	// last, so its root copies of llms.txt and agent-guide.md are the ones that stay
+	// last, so its root copies of llms.txt, agent-guide.md and the sitemap are the ones that stay
 	...(latest ? [{ ref: latest, from: latest, prefix: '/docs', channel: 'latest' }] : []),
 ];
 
