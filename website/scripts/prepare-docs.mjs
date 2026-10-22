@@ -27,6 +27,9 @@ const site = resolve(import.meta.dirname, '..');
 const src = resolve(process.argv[2] ?? join(site, '../docs/site'));
 const REPO_DOCS = 'docs/site'; // where src sits in the repository, for links that leave it
 const REPO = 'https://github.com/shipmux/ship';
+// links to the repo README that the landing page covers go there instead of to GitHub, keyed by the README anchor.
+// Anything else in the README (the agent guide's "not built yet", which names the README as the source of truth) stays on GitHub.
+const LANDING = { '': '/', 'what-works-today': '/#deck' };
 const prefix = (process.env.DOCS_PREFIX ?? '/docs').replace(/\/$/, '');
 const ref = process.env.DOCS_REF ?? 'main';
 const channel = process.env.DOCS_CHANNEL ?? 'main';
@@ -70,8 +73,8 @@ for (const p of files) {
 }
 
 // ---------------------------------------------------------------- links
-/** Rewrite every relative link in a page. `toPage(slug, hash)` decides where links to other pages go. */
-function rewrite(p, { text, tree }, toPage) {
+/** Rewrite every relative link in a page. `toPage(slug, hash)` decides where links to other pages go, `toSite(path)` where site paths go. */
+function rewrite(p, { text, tree }, toPage, toSite = (path) => path) {
 	const edits = [];
 	visit(tree, ['link', 'definition', 'image'], (node) => {
 		const url = node.url;
@@ -80,6 +83,7 @@ function rewrite(p, { text, tree }, toPage) {
 		const target = posix.normalize(posix.join(posix.dirname(p), path));
 		let to;
 		if (pages.has(target)) to = toPage(pages.get(target).slug, hash ? '#' + hash : '');
+		else if (target === '../../README.md' && hash in LANDING) to = toSite(LANDING[hash]);
 		else if (target.startsWith('../')) {
 			// a repo file outside docs/site: link to it on GitHub at this build's ref
 			const repoPath = posix.normalize(posix.join(REPO_DOCS, target));
@@ -135,7 +139,7 @@ const yaml = (s) => JSON.stringify(s); // JSON strings are valid YAML scalars
 const header = `> These are the Ship docs (${ref}) as markdown. The index of every page is at ${SITE}${llmsPath}\n\n`;
 for (const [p, page] of pages) {
 	const toRaw = (slug, hash) => SITE + rawUrl(slug) + hash;
-	const rawText = header + rewrite(p, page, toRaw);
+	const rawText = header + rewrite(p, page, toRaw, (path) => SITE + path);
 	if (p === AGENT_GUIDE) {
 		put(join(raw, prefix, AGENT_GUIDE), rawText);
 		if (prefix === '/docs') put(join(raw, AGENT_GUIDE), rawText);
