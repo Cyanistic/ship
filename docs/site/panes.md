@@ -1,8 +1,8 @@
 # Panes
 
 <!--
-Scope: Splitting, moving between, zooming and closing panes, and what happens when a pane's program exits.
-Not here: scrolling and copying (scrolling-copying-and-the-mouse.md), driving panes from scripts (scripting/).
+Scope: Splitting, moving between, zooming and closing panes, what happens when a pane's program exits, and the matching CLI commands.
+Not here: scrolling and copying (scrolling-copying-and-the-mouse.md), scripting recipes (scripting/).
 -->
 
 Every pane runs a program in its own terminal, your shell unless you say otherwise. When a program exits, its pane stays open with its output so you can read what happened. Close it with `alt-shift-x`.
@@ -33,5 +33,3 @@ ship pane resize --pane "$LEFT" --direction right --amount 5
 ship tab get --tab "$TAB" | jq .layout
 ship tab close --tab "$TAB"
 ```
-
-Inside a Ship pane, you can leave out `--pane`; commands act on the pane they run in.

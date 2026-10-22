@@ -1,7 +1,7 @@
 # Tabs
 
 <!--
-Scope: Nested tabs, the sidebar tree, and the tab keys.
+Scope: Nested tabs, the sidebar tree, the tab keys and mouse actions, and the matching CLI commands.
 Not here: keeping tabs across restarts (saved-tabs.md).
 -->
 

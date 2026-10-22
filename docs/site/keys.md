@@ -5,10 +5,7 @@ Scope: Every default key, the resize and tabs modes, and the mouse, one line eac
 Not here: how to rebind (configuration.md), how scrolling and selection behave (scrolling-copying-and-the-mouse.md).
 -->
 
-All of Ship's default keys are Alt chords. Any other key goes to the program in the selected pane.
-
-> [!NOTE]
-> On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or these keys will type special characters instead.
+All of Ship's default keys are Alt chords. Any other key goes to the program in the selected pane. On macOS, your terminal needs [Option set as Alt](README.md#first-run) for them to work.
 
 | Key | Does |
 | --- | --- |

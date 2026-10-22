@@ -29,6 +29,6 @@ ship --server-url http://127.0.0.1:43179
 
 Run `ship` on the other machine once first so its server is up. Passing `--server-url` makes Ship connect only to that address, so it won't quietly start a local server if the tunnel isn't up. All the CLI commands take `--server-url` too, or set `SHIP_SERVER_URL` once.
 
-The server also refuses web pages and proxies. A request that a browser sends for a page, or that a proxy such as Tailscale Serve or Caddy passes on under its own hostname, gets a 403 `forbidden` error. Use an SSH tunnel to reach it from elsewhere.
+The server also refuses web pages and proxies, so opening it in a browser or putting it behind a proxy such as Tailscale Serve or Caddy won't work. Use an SSH tunnel to reach it from elsewhere.
 
 Sounds and clipboard copies happen on the machine you're sitting at. Through a tunnel, `ship server stop` stops the server but may report that it's still running, because the tunnel keeps accepting connections after the server is gone.

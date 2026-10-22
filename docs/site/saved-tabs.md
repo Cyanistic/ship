@@ -2,7 +2,7 @@
 
 <!--
 Scope: What comes back after a restart and what doesn't, where the file lives, and how to start fresh.
-Not here: the file's format.
+Not here: the file's format (openspec/specs/session-restore).
 -->
 
 After a server restart or a reboot, Ship brings back your tabs, their nesting and names, the splits and their sizes, zoom, and each pane's last directory. Every pane starts a fresh shell. Running programs, agent conversations and scrollback don't come back.

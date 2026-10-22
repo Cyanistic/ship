@@ -11,15 +11,7 @@ Every page of these docs has a plain markdown copy. [llms.txt](https://shipmux.d
 
 ## What Ship does not do yet
 
-Ship has no releases yet. Keep these out of your suggestions, because they are not built:
-
-- release binaries or packages (Ship builds from source)
-- searching a pane's history, or a keyboard copy mode (`ship pane read --lines N | grep ...` covers search)
-- resuming agent conversations or rerunning programs after a restart (saved tabs come back with fresh shells)
-- closing a pane automatically when its program exits
-- connecting to another machine's server directly (use an SSH tunnel, see [Windows and the server](windows-and-the-server.md#using-ship-on-another-machine))
-
-The [README](../../README.md#not-built-yet) is the source of truth for this list. If it disagrees with this page, the README wins.
+Ship has no releases yet, so it builds from source. Before suggesting anything, read the README's [Not built yet](../../README.md#not-built-yet) list and keep those things out of your suggestions.
 
 ## 1. Learn how the person works
 
@@ -27,20 +19,7 @@ Ask which terminal emulator and shell they use, which operating system, which co
 
 ## 2. Install
 
-Ship builds from source. Check each prerequisite with a command before installing anything, and report what is missing:
-
-- a recent stable Rust toolchain: `cargo --version`
-- Zig 0.16 on `PATH`: `zig version` prints `0.16.x`
-- `git`, and network access for the first build, which fetches Ghostty's source
-- on Linux, `pkg-config` and ALSA's development headers (`libasound2-dev` on Debian and Ubuntu, `alsa-lib-devel` on Fedora)
-
-Then, with the person's go-ahead:
-
-```sh
-git clone https://github.com/shipmux/ship.git
-cd ship
-cargo install --path crates/ship
-```
+The [Overview's Install section](README.md#install) lists the prerequisites and the build commands. Check each prerequisite with a command (`cargo --version`, `zig version` and so on) before installing anything, report what is missing, and run the build only with the person's go-ahead.
 
 Done when `ship --version` prints a version.
 
@@ -52,7 +31,7 @@ Done when the person confirms the setting, or their terminal needs none.
 
 ## 4. First run
 
-Ask the person to run `ship` in their own terminal: it is a full-screen program, so start it for them only if you can hand them the terminal. It starts the server, opens one tab with a shell, and `alt-q` detaches while everything keeps running. `ship server status` tells you whether a server is up.
+Ask the person to run `ship` in their own terminal: it is a full-screen program, so start it for them only if you can hand them the terminal. It starts the server and restores any saved tabs, or opens one tab with a shell if there are none, and `alt-q` detaches while everything keeps running. `ship server status` tells you whether a server is up.
 
 Walk them through the first keys from the [Overview](README.md#the-keys-to-start-with). Done when they have split a pane and detached once.
 

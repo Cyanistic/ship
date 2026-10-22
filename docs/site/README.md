@@ -1,7 +1,7 @@
 # Overview
 
 <!--
-Scope: A first session: install, first run, the few keys for day one, a taste of the CLI, and the link lists that make up the site's sidebar.
+Scope: A one-paragraph intro, then a first session: install, first run, the few keys for day one, a taste of the CLI, and the link lists that make up the site's sidebar.
 Not here: the full key list (keys.md), settings (configuration.md), anything a first session can skip.
 -->
 
