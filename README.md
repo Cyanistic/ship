@@ -1,5 +1,5 @@
 <div align="center">
-<img src="assets/ship.svg" height="220" width="220" alt="A tall sailing ship crewed by three little terminal crewmates">
+<img src="website/public/marks/app-large.svg" height="216" width="216" alt="A pixel sailing ship with three crewmates on deck">
 
 **Ship - A Terminal Workspace for Working Alongside Coding Agents**
 
