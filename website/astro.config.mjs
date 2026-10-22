@@ -16,7 +16,7 @@ import { siteEnv } from './scripts/site-env.mjs';
 const { base, site } = siteEnv(); // SHIP_BASE and SHIP_SITE_URL, see scripts/site-env.mjs
 const meta = JSON.parse(readFileSync(new URL('./.generated/site.json', import.meta.url), 'utf8'));
 const ship16 = JSON.parse(readFileSync(new URL('./src/ship16.theme.json', import.meta.url), 'utf8'));
-const css = (href) => ({ tag: 'link', attrs: { rel: 'stylesheet', href } });
+const css = (/** @type {string} */ href) => ({ tag: /** @type {const} */ ('link'), attrs: { rel: 'stylesheet', href } });
 
 export default defineConfig({
 	site, // with site set, Starlight writes a sitemap; in a versioned build the latest docs' build is copied last, so its sitemap is the one kept

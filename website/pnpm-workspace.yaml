@@ -1,0 +1,3 @@
+trustPolicyExclude:
+  # @astrojs/check depends on it; pnpm flags this release as a trust downgrade (published without the provenance of earlier releases)
+  - chokidar@4.0.3

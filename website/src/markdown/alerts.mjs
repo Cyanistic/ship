@@ -5,8 +5,9 @@
 const CREW = ['clipboard', 'point', 'reach'];
 const KIND = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\][ \t]*\n?/;
 
-/** an element with any tag, built the way Starlight builds its asides: an mdast parent with hName */
-const el = (tag, props, children = []) => ({ type: 'paragraph', data: { hName: tag, hProperties: props }, children });
+/** an element with any tag, built the way Starlight builds its asides: an mdast parent with hName.
+ * Sätteri's types leave hName out of node data although its renderer honours it, hence the cast. */
+const el = (tag, props, children = []) => /** @type {import('mdast').Paragraph} */ (/** @type {unknown} */ ({ type: 'paragraph', data: { hName: tag, hProperties: props }, children }));
 
 export const alerts = {
 	name: 'ship-alerts',
