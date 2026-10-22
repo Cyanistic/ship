@@ -37,6 +37,7 @@ export default defineConfig({
 				css(`${base}css/site.css`),
 				css(`${base}css/docs.css`),
 				css(`${base}css/starlight-bridge.css`),
+				css(`${base}css/mode.css`), // day and night, last so its night rules win
 			],
 			sidebar: meta.sidebar,
 			tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 2 },

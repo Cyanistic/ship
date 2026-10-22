@@ -1,5 +1,6 @@
 ---
 import { withBase, rebase } from '../base';
+import { modeScript, modeButton } from '../mode';
 // The landing page: the ansi cross-section, ported as is. Its markup lives in src/landing/body.html, a copy of
 // website/directions/ansi/index.html's body with the docs links pointed at /docs/. The CSS, script and art are
 // served unchanged from public/. The body is raw HTML because its config example is full of `{}`.
@@ -17,9 +18,11 @@ import body from '../landing/body.html?raw';
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&display=swap">
 <link rel="stylesheet" href={withBase('/css/site.css')}>
 <link rel="stylesheet" href={withBase('/css/landing.css')}>
+<link rel="stylesheet" href={withBase('/css/mode.css')}>
+<script is:inline set:html={modeScript}></script>
 </head>
 <body>
-<Fragment set:html={rebase(body)} />
+<Fragment set:html={rebase(body).replace('<!-- mode toggle -->', modeButton)} />
 <script is:inline src={withBase('/js/site.js')} defer></script>
 </body>
 </html>

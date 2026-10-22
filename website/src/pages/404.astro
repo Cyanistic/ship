@@ -1,5 +1,6 @@
 ---
 import { withBase } from '../base';
+import { modeScript, modeButton } from '../mode';
 // "lost at sea": the 404, drawn from the landing's own pieces. Open water with no ship in it, the drift of
 // flotsam on the waves, then the seabed and the footer. Absolute paths throughout, since a host serves this
 // page at whatever address was missing.
@@ -17,6 +18,8 @@ import { withBase } from '../base';
 <link rel="stylesheet" href={withBase('/css/site.css')}>
 <link rel="stylesheet" href={withBase('/css/landing.css')}>
 <link rel="stylesheet" href={withBase('/css/lost.css')}>
+<link rel="stylesheet" href={withBase('/css/mode.css')}>
+<script is:inline set:html={modeScript}></script>
 </head>
 <body>
 <a class="skip" href="#lost">skip to the content</a>
@@ -32,6 +35,7 @@ import { withBase } from '../base';
         <li><a href="https://github.com/shipmux/ship">github</a></li>
       </ul>
     </nav>
+    <Fragment set:html={modeButton} />
   </div>
 </header>
 

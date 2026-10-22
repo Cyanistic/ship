@@ -1,4 +1,7 @@
 ---
-// ansi docs are one light theme. Starlight's provider would pick dark from the OS.
+// Starlight's dark theme is never used: data-theme stays "light" so its own colours keep out of the way, and
+// the site's day and night is html[data-mode], set here before the first paint (see src/mode.ts).
+import { modeScript } from '../mode';
 ---
 <script is:inline>document.documentElement.dataset.theme = 'light';</script>
+<script is:inline set:html={modeScript}></script>

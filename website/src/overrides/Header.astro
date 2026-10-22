@@ -2,6 +2,7 @@
 import { withBase } from '../base';
 import Search from 'virtual:starlight/components/Search';
 import { version } from '../version';
+import { modeButton } from '../mode';
 ---
 <div class="bar-in">
 	<a class="home" href={withBase('/')}><img class="px" src={withBase('/marks/app.svg')} width="32" height="32" alt="" /><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the landing page</span></a>
@@ -15,4 +16,5 @@ import { version } from '../version';
 		</ul>
 	</nav>
 	<Search />
+	<Fragment set:html={modeButton} />
 </div>
