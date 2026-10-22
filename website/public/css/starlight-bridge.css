@@ -51,6 +51,9 @@ main { padding: 0 !important; min-width: 0; max-width: 820px; }   /* !important:
 .doc .expressive-code pre, .doc .expressive-code .ec-line .code { font-size: var(--code-md) !important; line-height: 1.45 !important; }   /* Starlight's --sl-text-code (0.9rem) was winning */
 @media (max-width: 899px) { .doc .sl-heading-wrapper { margin-top: 44px; } }   /* ansi's .doc h2 rule, moved onto Starlight's wrapper */
 .doc .expressive-code .ec-line .code { padding-inline: 18px 54px !important; }
+/* the copy key sits over the first line: a wrapping block keeps that line clear of it, a scrolling one gives the key a strip of its own */
+.doc .expressive-code pre.wrap .ec-line:first-child .code { padding-inline-end: 76px !important; }
+.doc .expressive-code pre:not(.wrap) { padding-top: 44px !important; }
 
 /* ---- added in the port: what the ansi docs page had no example of ---- */
 
