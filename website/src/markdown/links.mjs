@@ -3,8 +3,8 @@
 // alerts.mjs; Sätteri nodes are read-only, so the change goes through ctx.setProperty. `base` has no trailing
 // slash ('' or '/ship').
 export const rebaseLinks = (base) => {
-	const at = (node, ctx) => {
-		if (node.url?.startsWith('/') && !node.url.startsWith('//')) ctx.setProperty(node, 'url', base + node.url);
-	};
-	return { name: 'ship-base-links', link: at, definition: at, image: at };
+  const at = (node, ctx) => {
+    if (node.url?.startsWith("/") && !node.url.startsWith("//")) ctx.setProperty(node, "url", base + node.url);
+  };
+  return { name: "ship-base-links", link: at, definition: at, image: at };
 };

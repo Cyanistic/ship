@@ -1,20 +1,37 @@
 ---
-import { withBase } from '../base';
-import Search from './Search.astro'; // our override, which is what Starlight's virtual module resolves to
-import { version } from '../version';
-import { modeButton } from '../mode';
+import { withBase } from "../base";
+import Search from "./Search.astro"; // our override, which is what Starlight's virtual module resolves to
+import { version } from "../version";
+import { modeButton } from "../mode";
 ---
+
 <div class="bar-in">
-	<a class="home" href={withBase('/')}><img class="px" src={withBase('/marks/app.svg')} width="32" height="32" alt="" /><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the landing page</span></a>
-	<nav aria-label="main">
-		<ul>
-			<li><a href={withBase(`${version.prefix}/`)} aria-current="page">docs</a></li>
-			<li><a href={withBase('/#install')}>install</a></li>
-			<li><a href={withBase('/#keys')}>keys</a></li>
-			<li><a href={withBase('/#config')}>config</a></li>
-			<li><a href="https://github.com/shipmux/ship">github</a></li>
-		</ul>
-	</nav>
-	<Search />
-	<Fragment set:html={modeButton} />
+  <a class="home" href={withBase("/")}>
+    <img class="px" src={withBase("/marks/app.svg")} width="32" height="32" alt="" />
+    <span class="wordmark pixel p22">ship</span>
+    <span class="sr-only">ship, back to the landing page</span>
+  </a>
+  <nav aria-label="main">
+    <ul>
+      <li>
+        <a href={withBase(`${version.prefix}/`)} aria-current="page">
+          docs
+        </a>
+      </li>
+      <li>
+        <a href={withBase("/#install")}>install</a>
+      </li>
+      <li>
+        <a href={withBase("/#keys")}>keys</a>
+      </li>
+      <li>
+        <a href={withBase("/#config")}>config</a>
+      </li>
+      <li>
+        <a href="https://github.com/shipmux/ship">github</a>
+      </li>
+    </ul>
+  </nav>
+  <Search />
+  <Fragment set:html={modeButton} />
 </div>

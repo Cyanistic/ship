@@ -40,13 +40,13 @@ Use `README.md` as the source of truth for what works today and what isn't built
 
 Agent display states, from `openspec/specs/agent-attention/spec.md`. Any crewmate mood must sit next to its glyph and colour, never replace it:
 
-| State | Glyph | Colour |
-| --- | --- | --- |
-| working | `●` | yellow |
-| blocked | `▲` | red |
-| unseen (finished while you looked elsewhere) | `◆` | cyan |
-| idle | `○` | green |
-| error | `✖` | magenta |
+| State                                        | Glyph | Colour  |
+| -------------------------------------------- | ----- | ------- |
+| working                                      | `●`   | yellow  |
+| blocked                                      | `▲`   | red     |
+| unseen (finished while you looked elsewhere) | `◆`   | cyan    |
+| idle                                         | `○`   | green   |
+| error                                        | `✖`   | magenta |
 
 Open decisions that stay with Cyan; do not settle them in the site:
 
@@ -80,14 +80,14 @@ All three must read at 16px and in one colour.
 
 **The ship as a place.** The site is themed as the ship and its surroundings. The landing page is one tall cross-section through the ship, read top to bottom with native scrolling, so going down the page is going down the ship. This layout is fixed; directions compete on everything else.
 
-| Section | Place | Content |
-| --- | --- | --- |
-| top | sky and crow's nest | the hero; the lookout watching the five agent states |
-| | deck | what works today, the crew at work |
-| | waterline | the ocean of slop, just below the ship |
-| | below deck | how it works: the server, panes, CLI, agents driving agents |
-| | the hold | install, keys, config, with links into the docs |
-| bottom | seabed | "run a tight ship" and the install command |
+| Section | Place               | Content                                                     |
+| ------- | ------------------- | ----------------------------------------------------------- |
+| top     | sky and crow's nest | the hero; the lookout watching the five agent states        |
+|         | deck                | what works today, the crew at work                          |
+|         | waterline           | the ocean of slop, just below the ship                      |
+|         | below deck          | how it works: the server, panes, CLI, agents driving agents |
+|         | the hold            | install, keys, config, with links into the docs             |
+| bottom  | seabed              | "run a tight ship" and the install command                  |
 
 Each section is static content with its own anchor (for example `#install`). Liveliness comes from small ambient touches, such as the waterline moving or a crewmate glancing up as its section comes into view, never from scroll-driven sequences.
 

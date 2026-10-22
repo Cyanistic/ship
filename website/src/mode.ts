@@ -28,4 +28,5 @@ export const modeScript = `(() => {
 })();`;
 
 /** The toggle, for raw HTML (the landing body). The Astro pages write the same markup. */
-export const modeButton = '<button class="mode" type="button" aria-pressed="false" title="dark mode"><span class="sr-only">dark mode</span></button>';
+export const modeButton =
+  '<button class="mode" type="button" aria-pressed="false" title="dark mode"><span class="sr-only">dark mode</span></button>';

@@ -1,28 +1,35 @@
 ---
-import { withBase, rebase } from '../base';
-import { modeScript, modeButton } from '../mode';
+import { withBase, rebase } from "../base";
+import { modeScript, modeButton } from "../mode";
 // The landing page: the ansi cross-section, ported as is. Its markup lives in src/landing/body.html, a copy of
 // website/directions/ansi/index.html's body with the docs links pointed at /docs/. The CSS, script and art are
 // served unchanged from public/. The body is raw HTML because its config example is full of `{}`.
-import body from '../landing/body.html?raw';
+import body from "../landing/body.html?raw";
 ---
+
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ship: staying afloat in an ocean of slop</title>
-<meta name="description" content="ship is a small terminal workspace that gives you and your coding agents somewhere steady to work.">
-<link rel="icon" href={withBase('/marks/avatar.svg')}>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&display=swap">
-<link rel="stylesheet" href={withBase('/css/site.css')}>
-<link rel="stylesheet" href={withBase('/css/landing.css')}>
-<link rel="stylesheet" href={withBase('/css/mode.css')}>
-<script is:inline set:html={modeScript}></script>
-</head>
-<body>
-<Fragment set:html={rebase(body).replace('<!-- mode toggle -->', modeButton)} />
-<script is:inline src={withBase('/js/site.js')} defer></script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ship: staying afloat in an ocean of slop</title>
+    <meta
+      name="description"
+      content="ship is a small terminal workspace that gives you and your coding agents somewhere steady to work."
+    />
+    <link rel="icon" href={withBase("/marks/avatar.svg")} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&display=swap"
+    />
+    <link rel="stylesheet" href={withBase("/css/site.css")} />
+    <link rel="stylesheet" href={withBase("/css/landing.css")} />
+    <link rel="stylesheet" href={withBase("/css/mode.css")} />
+    <script is:inline set:html={modeScript}></script>
+  </head>
+  <body>
+    <Fragment set:html={rebase(body).replace("<!-- mode toggle -->", modeButton)} />
+    <script is:inline src={withBase("/js/site.js")} defer></script>
+  </body>
 </html>

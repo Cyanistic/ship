@@ -12,6 +12,7 @@ You'll need Node and pnpm.
 pnpm install
 pnpm dev      # a local copy that reloads as you edit
 pnpm build    # the static site, in dist/
+pnpm format   # Prettier; pull requests fail if this would change anything
 ```
 
 ## Versions

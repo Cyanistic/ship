@@ -7,13 +7,13 @@
 //
 // Returns base with both slashes ('/ship/') and site without a trailing slash ('https://shipmux.github.io/ship').
 export function siteEnv(env = process.env) {
-	let base = (env.SHIP_BASE ?? '/').trim();
-	if (!base.startsWith('/')) base = '/' + base;
-	if (!base.endsWith('/')) base += '/';
-	const site = (env.SHIP_SITE_URL ?? 'https://shipmux.dev').replace(/\/$/, '');
-	const sitePath = new URL(site).pathname.replace(/\/$/, '');
-	if (sitePath !== base.replace(/\/$/, '')) {
-		throw new Error(`SHIP_SITE_URL (${site}) must end with the base path (${base}); set both or neither`);
-	}
-	return { base, site };
+  let base = (env.SHIP_BASE ?? "/").trim();
+  if (!base.startsWith("/")) base = "/" + base;
+  if (!base.endsWith("/")) base += "/";
+  const site = (env.SHIP_SITE_URL ?? "https://shipmux.dev").replace(/\/$/, "");
+  const sitePath = new URL(site).pathname.replace(/\/$/, "");
+  if (sitePath !== base.replace(/\/$/, "")) {
+    throw new Error(`SHIP_SITE_URL (${site}) must end with the base path (${base}); set both or neither`);
+  }
+  return { base, site };
 }

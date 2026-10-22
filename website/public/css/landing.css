@@ -1,386 +1,1716 @@
 /* The landing page: one tall cross-section, read top to bottom.
    sky -> deck -> waterline -> below deck -> the hold -> seabed.
    Every sprite is sized in --px units (4px, or 3px on a phone) so the page has one pixel grid. */
-html, body { overflow-x: clip; }
-body { background: var(--c8); }   /* the last thing on the page is the footer, so a fractional page height never shows a cream hairline under it */
-main { display: block; }
-.wrapw { width: min(1328px, calc(100% - 2 * var(--gut))); margin-inline: auto; }
-.place { color: var(--sea); }
-h2 .place { margin-right: 0.35em; }
-.nb { white-space: nowrap; }
-h2, h3 { text-wrap: balance; }
-.intro { max-width: 62ch; margin: 0 0 36px; font-size: var(--t-lg); }
-section[id] { scroll-margin-top: var(--bar-h); }
+html,
+body {
+  overflow-x: clip;
+}
+body {
+  background: var(--c8);
+} /* the last thing on the page is the footer, so a fractional page height never shows a cream hairline under it */
+main {
+  display: block;
+}
+.wrapw {
+  width: min(1328px, calc(100% - 2 * var(--gut)));
+  margin-inline: auto;
+}
+.place {
+  color: var(--sea);
+}
+h2 .place {
+  margin-right: 0.35em;
+}
+.nb {
+  white-space: nowrap;
+}
+h2,
+h3 {
+  text-wrap: balance;
+}
+.intro {
+  max-width: 62ch;
+  margin: 0 0 36px;
+  font-size: var(--t-lg);
+}
+section[id] {
+  scroll-margin-top: var(--bar-h);
+}
 
-.links { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 22px; font-weight: 700; }
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 22px;
+  font-weight: 700;
+}
 
 /* ------------------------------------------------------------ sky */
-.sky { position: relative; overflow: hidden;
+.sky {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(var(--sky-high) 0 44px, transparent 44px), var(--sky);
-  padding: 110px var(--gut) 0; }
-.sky::before { /* a dithered step between the two sky blues, 4px cells */
-  content: ""; position: absolute; left: 0; right: 0; top: 44px; height: 16px;
-  background: repeating-conic-gradient(var(--sky) 0 25%, var(--sky-high) 0 50%) 0 0 / 8px 8px; }
-.sky-art { position: absolute; inset: 0; pointer-events: none; }
-.cloud { position: absolute; animation: drift 140s linear infinite; }
-.cloud.a { top: 150px; left: 50%; }
-.cloud.b { top: 560px; left: 49%; animation-duration: 190s; animation-delay: -60s; }
-.cloud.c { top: 46px; left: 40%; animation-duration: 170s; animation-delay: -90s; }
-@keyframes drift { from { transform: translateX(0); } 50% { transform: translateX(120px); } to { transform: translateX(0); } }
-.gull { position: absolute; width: calc(19 * var(--px)); height: calc(9 * var(--px));
-  background: url("../art/gull.svg") 0 0 / calc(38 * var(--px)) calc(9 * var(--px)); image-rendering: pixelated;
-  animation: flap 1s steps(1) infinite, glide 26s ease-in-out infinite alternate; }
-.g1 { left: 56%; top: 230px; }
-.g2 { left: 63%; top: 330px; animation-duration: 1.2s, 34s; animation-delay: -.4s, -12s; }
-.g3 { left: 53%; top: 470px; animation-duration: .9s, 30s; animation-delay: -.2s, -20s; }
-@keyframes flap { 0% { background-position: 0 0; } 50% { background-position: calc(-19 * var(--px)) 0; } }
-@keyframes glide { from { transform: translate(0, 0); } to { transform: translate(110px, -26px); } }
+  padding: 110px var(--gut) 0;
+}
+.sky::before {
+  /* a dithered step between the two sky blues, 4px cells */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 44px;
+  height: 16px;
+  background: repeating-conic-gradient(var(--sky) 0 25%, var(--sky-high) 0 50%) 0 0 / 8px 8px;
+}
+.sky-art {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cloud {
+  position: absolute;
+  animation: drift 140s linear infinite;
+}
+.cloud.a {
+  top: 150px;
+  left: 50%;
+}
+.cloud.b {
+  top: 560px;
+  left: 49%;
+  animation-duration: 190s;
+  animation-delay: -60s;
+}
+.cloud.c {
+  top: 46px;
+  left: 40%;
+  animation-duration: 170s;
+  animation-delay: -90s;
+}
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(120px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.gull {
+  position: absolute;
+  width: calc(19 * var(--px));
+  height: calc(9 * var(--px));
+  background: url("../art/gull.svg") 0 0 / calc(38 * var(--px)) calc(9 * var(--px));
+  image-rendering: pixelated;
+  animation:
+    flap 1s steps(1) infinite,
+    glide 26s ease-in-out infinite alternate;
+}
+.g1 {
+  left: 56%;
+  top: 230px;
+}
+.g2 {
+  left: 63%;
+  top: 330px;
+  animation-duration: 1.2s, 34s;
+  animation-delay:
+    -0.4s,
+    -12s;
+}
+.g3 {
+  left: 53%;
+  top: 470px;
+  animation-duration: 0.9s, 30s;
+  animation-delay:
+    -0.2s,
+    -20s;
+}
+@keyframes flap {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: calc(-19 * var(--px)) 0;
+  }
+}
+@keyframes glide {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(110px, -26px);
+  }
+}
 
-.hero { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 56px;
-  width: min(1328px, 100%); margin: 0 auto; }
-.hero-text { padding-bottom: 130px; }
-.hero h1 { margin: 0 0 28px; max-width: 15ch; }
-.lede { font-size: var(--t-xl); line-height: 1.5; max-width: 34ch; margin: 0 0 36px; }
-.install-quick { max-width: 620px; }
-.install-quick p { margin: 12px 0 0; font-size: var(--t-md); color: var(--muted-light); }
+.hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 56px;
+  width: min(1328px, 100%);
+  margin: 0 auto;
+}
+.hero-text {
+  padding-bottom: 130px;
+}
+.hero h1 {
+  margin: 0 0 28px;
+  max-width: 15ch;
+}
+.lede {
+  font-size: var(--t-xl);
+  line-height: 1.5;
+  max-width: 34ch;
+  margin: 0 0 36px;
+}
+.install-quick {
+  max-width: 620px;
+}
+.install-quick p {
+  margin: 12px 0 0;
+  font-size: var(--t-md);
+  color: var(--muted-light);
+}
 
-.rig { position: relative; min-height: 640px; }
-.nest { position: absolute; right: calc(5 * var(--px)); top: -60px; width: calc(44 * var(--px)); height: calc(48 * var(--px)); }
+.rig {
+  position: relative;
+  min-height: 640px;
+}
+.nest {
+  position: absolute;
+  right: calc(5 * var(--px));
+  top: -60px;
+  width: calc(44 * var(--px));
+  height: calc(48 * var(--px));
+}
 /* the lookout's spyglass sweeps from the horizon down to the agent list and back */
-.a-spyglass { position: absolute; left: 0; top: calc(12 * var(--px)); --w: 12; --h: 16; --n: 14; --dt: .5s; --lag: -2s; background-image: url("../art/spyglass-loop.svg"); }
-.mast, .ratlines { position: absolute; image-rendering: pixelated; }
-.mast { right: calc(22 * var(--px)); width: calc(6 * var(--px)); top: calc(-60px + 48 * var(--px)); bottom: 0;
-  background: url("../art/mast.svg") repeat-y left bottom / calc(6 * var(--px)) calc(16 * var(--px)); }
-.ratlines { right: calc(14 * var(--px)); width: calc(8 * var(--px)); top: calc(-60px + 52 * var(--px)); bottom: 0;
-  background: url("../art/ratlines.svg") repeat-y left bottom / calc(8 * var(--px)) calc(8 * var(--px)); }
-.mast-foot { display: none; }
-.board { position: absolute; left: 0; top: 260px; width: 300px; margin: 0; }
-.board .term { padding: 6px 0 10px; }
-.board .head { padding: 0 12px; color: var(--muted-dark); font-weight: 700; }
-.board ul { list-style: none; margin: 0; padding: 0; }
-.board li { padding: 3px 12px; }
-.board li span.tab { display: block; color: var(--muted-dark); }
-.board figcaption { font-size: var(--t-sm); color: var(--muted-light); margin-top: 10px; max-width: 30ch; }
+.a-spyglass {
+  position: absolute;
+  left: 0;
+  top: calc(12 * var(--px));
+  --w: 12;
+  --h: 16;
+  --n: 14;
+  --dt: 0.5s;
+  --lag: -2s;
+  background-image: url("../art/spyglass-loop.svg");
+}
+.mast,
+.ratlines {
+  position: absolute;
+  image-rendering: pixelated;
+}
+.mast {
+  right: calc(22 * var(--px));
+  width: calc(6 * var(--px));
+  top: calc(-60px + 48 * var(--px));
+  bottom: 0;
+  background: url("../art/mast.svg") repeat-y left bottom / calc(6 * var(--px)) calc(16 * var(--px));
+}
+.ratlines {
+  right: calc(14 * var(--px));
+  width: calc(8 * var(--px));
+  top: calc(-60px + 52 * var(--px));
+  bottom: 0;
+  background: url("../art/ratlines.svg") repeat-y left bottom / calc(8 * var(--px)) calc(8 * var(--px));
+}
+.mast-foot {
+  display: none;
+}
+.board {
+  position: absolute;
+  left: 0;
+  top: 260px;
+  width: 300px;
+  margin: 0;
+}
+.board .term {
+  padding: 6px 0 10px;
+}
+.board .head {
+  padding: 0 12px;
+  color: var(--muted-dark);
+  font-weight: 700;
+}
+.board ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.board li {
+  padding: 3px 12px;
+}
+.board li span.tab {
+  display: block;
+  color: var(--muted-dark);
+}
+.board figcaption {
+  font-size: var(--t-sm);
+  color: var(--muted-light);
+  margin-top: 10px;
+  max-width: 30ch;
+}
 
 /* ambient face patches: a neutral crewmate blinks, and glances up when its room scrolls into view */
-.eyes { position: absolute; display: block; pointer-events: none; opacity: 0;
-  left: calc(var(--x) * var(--px)); top: calc(var(--y) * var(--px)); width: calc(10 * var(--px)); height: calc(6 * var(--px));
-  background: url("../art/face-blink.svg") 0 0 / 100% 100%; image-rendering: pixelated;
-  animation: blink 7s steps(1) infinite; }
-.looking .eyes { background-image: url("../art/face-glance.svg"); opacity: 1; animation: none; }
-@keyframes blink { 0%, 93% { opacity: 0; } 94%, 96% { opacity: 1; } 97%, 100% { opacity: 0; } }
-.nest .eyes { z-index: 1; }
+.eyes {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  opacity: 0;
+  left: calc(var(--x) * var(--px));
+  top: calc(var(--y) * var(--px));
+  width: calc(10 * var(--px));
+  height: calc(6 * var(--px));
+  background: url("../art/face-blink.svg") 0 0 / 100% 100%;
+  image-rendering: pixelated;
+  animation: blink 7s steps(1) infinite;
+}
+.looking .eyes {
+  background-image: url("../art/face-glance.svg");
+  opacity: 1;
+  animation: none;
+}
+@keyframes blink {
+  0%,
+  93% {
+    opacity: 0;
+  }
+  94%,
+  96% {
+    opacity: 1;
+  }
+  97%,
+  100% {
+    opacity: 0;
+  }
+}
+.nest .eyes {
+  z-index: 1;
+}
 
 /* -------------------------------------------------------- deck */
-.deck { position: relative; background: var(--haze); padding: 80px 0 0; overflow: hidden; }
-.deck::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 16px;
-  background: repeating-conic-gradient(var(--haze) 0 25%, var(--sky) 0 50%) 0 0 / 8px 8px; }
-.deck-in { width: min(1328px, calc(100% - 2 * var(--gut))); margin-inline: auto; padding-right: calc(30 * var(--px)); }
-.deck > .mast, .deck > .ratlines { right: calc(max(var(--gut), 50% - 664px) + 22 * var(--px)); top: 0; }
-.deck > .ratlines { right: calc(max(var(--gut), 50% - 664px) + 14 * var(--px)); background-position: left top; }
-.deck > .mast { background-position: left top; }
-.deck > .mast, .deck > .ratlines { bottom: calc(32 * var(--px)); }
-.deck > .mast::after { content: ""; position: absolute; left: calc(-4 * var(--px)); bottom: 0; width: calc(14 * var(--px)); height: calc(8 * var(--px));
-  background: url("../art/mast-base.svg") 0 0 / 100% 100%; image-rendering: pixelated; }
-.deck h2 { margin: 0 0 20px; }
+.deck {
+  position: relative;
+  background: var(--haze);
+  padding: 80px 0 0;
+  overflow: hidden;
+}
+.deck::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 16px;
+  background: repeating-conic-gradient(var(--haze) 0 25%, var(--sky) 0 50%) 0 0 / 8px 8px;
+}
+.deck-in {
+  width: min(1328px, calc(100% - 2 * var(--gut)));
+  margin-inline: auto;
+  padding-right: calc(30 * var(--px));
+}
+.deck > .mast,
+.deck > .ratlines {
+  right: calc(max(var(--gut), 50% - 664px) + 22 * var(--px));
+  top: 0;
+}
+.deck > .ratlines {
+  right: calc(max(var(--gut), 50% - 664px) + 14 * var(--px));
+  background-position: left top;
+}
+.deck > .mast {
+  background-position: left top;
+}
+.deck > .mast,
+.deck > .ratlines {
+  bottom: calc(32 * var(--px));
+}
+.deck > .mast::after {
+  content: "";
+  position: absolute;
+  left: calc(-4 * var(--px));
+  bottom: 0;
+  width: calc(14 * var(--px));
+  height: calc(8 * var(--px));
+  background: url("../art/mast-base.svg") 0 0 / 100% 100%;
+  image-rendering: pixelated;
+}
+.deck h2 {
+  margin: 0 0 20px;
+}
 /* what works today: a ruled ledger, the ten names down the left so they read at a glance and the words beside them */
-.works { list-style: none; margin: 0; padding: 0;
-  --dash: linear-gradient(to right, color-mix(in srgb, var(--ink) 38%, transparent) 4px, transparent 4px) 0 0 / 8px 2px repeat-x; }
-.works::after { content: ""; display: block; height: 2px; background: var(--dash); }
-.works li { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 0 40px; align-items: baseline; margin: 0; padding: 18px 0 16px; background: var(--dash); }
-.works h3 { margin: 0; color: var(--ink); display: flex; gap: 12px; align-items: baseline; }
-.works h3::before { content: ""; flex: none; width: 12px; height: 12px; background: var(--sea); transform: translateY(1px); }
-.works p { margin: 0; max-width: 62ch; font-size: var(--t-base); }
-.notyet { margin-top: 24px; border: 3px dashed var(--ink); padding: 22px 28px 8px; }
-.notyet h3 { margin: 0 0 14px; }
-.notyet ul { columns: 2; column-gap: 56px; margin: 0; font-size: var(--t-base); }
-.notyet li { break-inside: avoid; margin: 0 0 14px; }
-.crew-note { margin: 44px 0 0; color: var(--muted-light); font-size: var(--t-md); max-width: 60ch; }
+.works {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  --dash: linear-gradient(to right, color-mix(in srgb, var(--ink) 38%, transparent) 4px, transparent 4px) 0 0 / 8px 2px
+    repeat-x;
+}
+.works::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background: var(--dash);
+}
+.works li {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 0 40px;
+  align-items: baseline;
+  margin: 0;
+  padding: 18px 0 16px;
+  background: var(--dash);
+}
+.works h3 {
+  margin: 0;
+  color: var(--ink);
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+.works h3::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: var(--sea);
+  transform: translateY(1px);
+}
+.works p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: var(--t-base);
+}
+.notyet {
+  margin-top: 24px;
+  border: 3px dashed var(--ink);
+  padding: 22px 28px 8px;
+}
+.notyet h3 {
+  margin: 0 0 14px;
+}
+.notyet ul {
+  columns: 2;
+  column-gap: 56px;
+  margin: 0;
+  font-size: var(--t-base);
+}
+.notyet li {
+  break-inside: avoid;
+  margin: 0 0 14px;
+}
+.crew-note {
+  margin: 44px 0 0;
+  color: var(--muted-light);
+  font-size: var(--t-md);
+  max-width: 60ch;
+}
 
-.stagewrap { position: relative; margin-top: 20px; }
-.rail-far { position: absolute; left: 0; right: 0; bottom: 0; background-image: url("../art/rail.svg"); }
-.stage { position: relative; width: min(1328px, calc(100% - 2 * var(--gut))); margin-inline: auto; padding-right: calc(30 * var(--px)); }
-.crew { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.crew > li { position: relative; margin-bottom: calc(-3 * var(--px)); }
-.prop { display: flex; align-items: flex-end; gap: calc(2 * var(--px)); margin-bottom: 0 !important; padding-bottom: 0; }
-.prop img { margin-bottom: 0; }
-.member { width: calc(28 * var(--px)); }
-.member > .act { margin-inline: calc((28 - var(--w)) / 2 * var(--px)); }   /* the frame is wider than the crewmate: centre it */
-.plate { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); margin: 0; z-index: 2;
-  background: var(--ink); color: var(--c15); font: var(--code-md)/22px var(--code); padding: 2px 12px 3px; text-align: center; white-space: nowrap;
-  box-shadow: 0 0 0 2px var(--ink); }
-.plate .g { margin-right: 4px; }
-.plate .role { display: block; color: var(--muted-dark); font-size: var(--code-sm); line-height: 20px; }
-.planks, .hull { background-image: url("../art/planks.svg"); }
-.hull { background-image: url("../art/hull.svg"); }
+.stagewrap {
+  position: relative;
+  margin-top: 20px;
+}
+.rail-far {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("../art/rail.svg");
+}
+.stage {
+  position: relative;
+  width: min(1328px, calc(100% - 2 * var(--gut)));
+  margin-inline: auto;
+  padding-right: calc(30 * var(--px));
+}
+.crew {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.crew > li {
+  position: relative;
+  margin-bottom: calc(-3 * var(--px));
+}
+.prop {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(2 * var(--px));
+  margin-bottom: 0 !important;
+  padding-bottom: 0;
+}
+.prop img {
+  margin-bottom: 0;
+}
+.member {
+  width: calc(28 * var(--px));
+}
+.member > .act {
+  margin-inline: calc((28 - var(--w)) / 2 * var(--px));
+} /* the frame is wider than the crewmate: centre it */
+.plate {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 2;
+  background: var(--ink);
+  color: var(--c15);
+  font: var(--code-md)/22px var(--code);
+  padding: 2px 12px 3px;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.plate .g {
+  margin-right: 4px;
+}
+.plate .role {
+  display: block;
+  color: var(--muted-dark);
+  font-size: var(--code-sm);
+  line-height: 20px;
+}
+.planks,
+.hull {
+  background-image: url("../art/planks.svg");
+}
+.hull {
+  background-image: url("../art/hull.svg");
+}
 
 /* ---------------------------------------------------- waterline */
-.waterline { position: relative; background: var(--sea); color: var(--c15); padding: 0 0 150px; --ring: var(--c14); }
-.waves { position: relative; z-index: 3; background-color: var(--ink); background-image: url("../art/wave.svg");
-  animation: swell 9s linear infinite; }
-.waves.back { position: absolute; top: 0; left: 0; right: 0; z-index: 2; background-color: transparent; background-image: url("../art/wave-back.svg");
-  animation: swell 16s linear infinite reverse; margin-top: calc(-0 * var(--px)); }
-@keyframes swell { to { background-position-x: calc(16 * var(--px)); } }
-.shade { position: absolute; left: 0; right: 0; top: calc(5 * var(--px)); z-index: 0; }
-.shade i { display: block; height: 16px; }
-.shade .d1 { background: repeating-conic-gradient(var(--c4) 0 25%, var(--c12) 0 50%) 0 0 / 8px 8px; }
-.shade .s1 { height: 8px; background: var(--c4); }
-.shade .d2 { background: repeating-conic-gradient(var(--sea) 0 25%, var(--c4) 0 50%) 0 0 / 8px 8px; }
-.slop { position: absolute; inset: 20px 0 0; font: 22px/44px var(--pixel); color: #2b5cb6; white-space: nowrap; pointer-events: none; overflow: hidden; }
-.slop div { animation: slosh 60s ease-in-out infinite alternate; }
-.slop div:nth-child(even) { animation-direction: alternate-reverse; margin-left: -300px; }
-@keyframes slosh { to { transform: translateX(-180px); } }
-.flotsam { position: absolute; left: 0; right: 0; top: 0; z-index: 4; pointer-events: none; }
-.flotsam img { position: absolute; top: calc(14px - var(--h) * var(--px) * 0.7); animation: bob 5s steps(2) infinite; }
-.f1 { left: 17%; } .f2 { left: 41%; animation-delay: -1.6s !important; } .f3 { left: 68%; animation-delay: -3s !important; } .f4 { left: 86%; animation-delay: -.8s !important; }
-@keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(calc(1 * var(--px))); } }
-.deepwater { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; opacity: .3; }
-.fish { position: absolute; background: url("../art/fish.svg") 0 0 / calc(24 * var(--px)) calc(6 * var(--px)); image-rendering: pixelated;
-  animation: tail .7s steps(1) infinite, swim 60s linear infinite; }
-.fish.s1 { bottom: 230px; left: 0; animation-delay: 0s, -10s; }
-.fish.s2 { bottom: 170px; left: 0; animation-delay: -.3s, -34s; animation-duration: .8s, 80s; }
-.fish.s3 { bottom: 300px; left: 0; animation-delay: -.5s, -50s; animation-duration: .6s, 70s; }
-@keyframes tail { 0% { background-position: 0 0; } 50% { background-position: calc(-12 * var(--px)) 0; } }
-@keyframes swim { from { transform: translateX(calc(100vw + 60px)); } to { transform: translateX(-200px); } }
-.bubble { position: absolute; bottom: -20px; animation: rise 18s linear infinite; }
-.b1 { left: 22%; } .b2 { left: 57%; animation-delay: -7s; animation-duration: 24s; } .b3 { left: 91%; animation-delay: -13s; animation-duration: 20s; }
-@keyframes rise { to { transform: translateY(-900px); } }
+.waterline {
+  position: relative;
+  background: var(--sea);
+  color: var(--c15);
+  padding: 0 0 150px;
+  --ring: var(--c14);
+}
+.waves {
+  position: relative;
+  z-index: 3;
+  background-color: var(--ink);
+  background-image: url("../art/wave.svg");
+  animation: swell 9s linear infinite;
+}
+.waves.back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background-color: transparent;
+  background-image: url("../art/wave-back.svg");
+  animation: swell 16s linear infinite reverse;
+  margin-top: calc(-0 * var(--px));
+}
+@keyframes swell {
+  to {
+    background-position-x: calc(16 * var(--px));
+  }
+}
+.shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(5 * var(--px));
+  z-index: 0;
+}
+.shade i {
+  display: block;
+  height: 16px;
+}
+.shade .d1 {
+  background: repeating-conic-gradient(var(--c4) 0 25%, var(--c12) 0 50%) 0 0 / 8px 8px;
+}
+.shade .s1 {
+  height: 8px;
+  background: var(--c4);
+}
+.shade .d2 {
+  background: repeating-conic-gradient(var(--sea) 0 25%, var(--c4) 0 50%) 0 0 / 8px 8px;
+}
+.slop {
+  position: absolute;
+  inset: 20px 0 0;
+  font: 22px/44px var(--pixel);
+  color: #2b5cb6;
+  white-space: nowrap;
+  pointer-events: none;
+  overflow: hidden;
+}
+.slop div {
+  animation: slosh 60s ease-in-out infinite alternate;
+}
+.slop div:nth-child(even) {
+  animation-direction: alternate-reverse;
+  margin-left: -300px;
+}
+@keyframes slosh {
+  to {
+    transform: translateX(-180px);
+  }
+}
+.flotsam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.flotsam img {
+  position: absolute;
+  top: calc(14px - var(--h) * var(--px) * 0.7);
+  animation: bob 5s steps(2) infinite;
+}
+.f1 {
+  left: 17%;
+}
+.f2 {
+  left: 41%;
+  animation-delay: -1.6s !important;
+}
+.f3 {
+  left: 68%;
+  animation-delay: -3s !important;
+}
+.f4 {
+  left: 86%;
+  animation-delay: -0.8s !important;
+}
+@keyframes bob {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(1 * var(--px)));
+  }
+}
+.deepwater {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.3;
+}
+.fish {
+  position: absolute;
+  background: url("../art/fish.svg") 0 0 / calc(24 * var(--px)) calc(6 * var(--px));
+  image-rendering: pixelated;
+  animation:
+    tail 0.7s steps(1) infinite,
+    swim 60s linear infinite;
+}
+.fish.s1 {
+  bottom: 230px;
+  left: 0;
+  animation-delay:
+    0s,
+    -10s;
+}
+.fish.s2 {
+  bottom: 170px;
+  left: 0;
+  animation-delay:
+    -0.3s,
+    -34s;
+  animation-duration: 0.8s, 80s;
+}
+.fish.s3 {
+  bottom: 300px;
+  left: 0;
+  animation-delay:
+    -0.5s,
+    -50s;
+  animation-duration: 0.6s, 70s;
+}
+@keyframes tail {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: calc(-12 * var(--px)) 0;
+  }
+}
+@keyframes swim {
+  from {
+    transform: translateX(calc(100vw + 60px));
+  }
+  to {
+    transform: translateX(-200px);
+  }
+}
+.bubble {
+  position: absolute;
+  bottom: -20px;
+  animation: rise 18s linear infinite;
+}
+.b1 {
+  left: 22%;
+}
+.b2 {
+  left: 57%;
+  animation-delay: -7s;
+  animation-duration: 24s;
+}
+.b3 {
+  left: 91%;
+  animation-delay: -13s;
+  animation-duration: 20s;
+}
+@keyframes rise {
+  to {
+    transform: translateY(-900px);
+  }
+}
 
-.water-in { position: relative; z-index: 1; width: min(1328px, calc(100% - 2 * var(--gut))); margin: 0 auto; padding-top: 99px;
-  display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 56px; align-items: start; }
-.waterline .place { color: var(--c14); }
-.water-in h2 { margin: 0 0 22px; }
-.plain { font: 11px/22px var(--pixel); display: inline-block; vertical-align: 4px; margin-left: 8px; padding: 0 8px; background: var(--c14); color: var(--ink); }
-.water-copy { background: var(--sea); box-shadow: 0 0 0 22px var(--sea); }
-.water-copy p { max-width: 58ch; margin: 0 0 18px; font-size: var(--t-lg); }
-.placeholder { margin: 0; border: 3px dashed var(--c11); background: var(--ink); padding: 22px; }
-.placeholder .label { font: 11px/22px var(--pixel); color: var(--ink); background: var(--c11); display: inline-block; padding: 0 8px; margin-bottom: 14px; }
-.placeholder p { margin: 0 0 14px; color: var(--c7); font-size: var(--t-md); }
-.mock { font: var(--code-sm)/1.35 var(--code); color: var(--c7); display: grid; grid-template-columns: 20ch 1fr; border: 1px solid var(--c8); }
-.mock .side { border-right: 1px solid var(--c8); padding: 4px 8px; white-space: pre; }
-.mock .pane { padding: 4px 8px; white-space: pre; border: 2px solid var(--c6); margin: 4px; }
-.seafloor-dither { position: absolute; left: 0; right: 0; bottom: 0; z-index: 0; }
-.seafloor-dither i { display: block; }
-.seafloor-dither .d1 { height: 16px; background: repeating-conic-gradient(var(--deep) 0 25%, var(--sea) 0 50%) 0 0 / 8px 8px; }
-.seafloor-dither .s1 { height: 64px; background: var(--deep); }
+.water-in {
+  position: relative;
+  z-index: 1;
+  width: min(1328px, calc(100% - 2 * var(--gut)));
+  margin: 0 auto;
+  padding-top: 99px;
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+  gap: 56px;
+  align-items: start;
+}
+.waterline .place {
+  color: var(--c14);
+}
+.water-in h2 {
+  margin: 0 0 22px;
+}
+.plain {
+  font: 11px/22px var(--pixel);
+  display: inline-block;
+  vertical-align: 4px;
+  margin-left: 8px;
+  padding: 0 8px;
+  background: var(--c14);
+  color: var(--ink);
+}
+.water-copy {
+  background: var(--sea);
+  box-shadow: 0 0 0 22px var(--sea);
+}
+.water-copy p {
+  max-width: 58ch;
+  margin: 0 0 18px;
+  font-size: var(--t-lg);
+}
+.placeholder {
+  margin: 0;
+  border: 3px dashed var(--c11);
+  background: var(--ink);
+  padding: 22px;
+}
+.placeholder .label {
+  font: 11px/22px var(--pixel);
+  color: var(--ink);
+  background: var(--c11);
+  display: inline-block;
+  padding: 0 8px;
+  margin-bottom: 14px;
+}
+.placeholder p {
+  margin: 0 0 14px;
+  color: var(--c7);
+  font-size: var(--t-md);
+}
+.mock {
+  font: var(--code-sm)/1.35 var(--code);
+  color: var(--c7);
+  display: grid;
+  grid-template-columns: 20ch 1fr;
+  border: 1px solid var(--c8);
+}
+.mock .side {
+  border-right: 1px solid var(--c8);
+  padding: 4px 8px;
+  white-space: pre;
+}
+.mock .pane {
+  padding: 4px 8px;
+  white-space: pre;
+  border: 2px solid var(--c6);
+  margin: 4px;
+}
+.seafloor-dither {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+}
+.seafloor-dither i {
+  display: block;
+}
+.seafloor-dither .d1 {
+  height: 16px;
+  background: repeating-conic-gradient(var(--deep) 0 25%, var(--sea) 0 50%) 0 0 / 8px 8px;
+}
+.seafloor-dither .s1 {
+  height: 64px;
+  background: var(--deep);
+}
 
 /* ---------------------------------------------------- below deck */
-.below { position: relative; color: var(--c15); --ring: var(--c14);
-  background: url("../art/wall.svg") 0 0 / calc(32 * var(--px)) calc(22 * var(--px)), var(--wall); }
-.bulkhead { background-image: url("../art/bulkhead.svg"); }
-.below .term, .hold .term, .seabed .term { border-color: var(--c8); }
-.below .place, .hold .place { color: var(--c14); }
-.below-in > :not(.beam) { width: min(1328px, calc(100% - 2 * var(--gut))); margin-inline: auto; }
-.below-in { padding-top: 72px; }
-.below h2 { margin: 0 0 18px; }
-.below-head .intro { margin-bottom: 0; }
-.below .intro { color: var(--c7); }
-.floor { display: grid; grid-template-columns: calc(76 * var(--px)) minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; align-items: start; padding: 48px 0 56px; }
-.room { position: relative; width: max-content; line-height: 0; }
+.below {
+  position: relative;
+  color: var(--c15);
+  --ring: var(--c14);
+  background:
+    url("../art/wall.svg") 0 0 / calc(32 * var(--px)) calc(22 * var(--px)),
+    var(--wall);
+}
+.bulkhead {
+  background-image: url("../art/bulkhead.svg");
+}
+.below .term,
+.hold .term,
+.seabed .term {
+  border-color: var(--c8);
+}
+.below .place,
+.hold .place {
+  color: var(--c14);
+}
+.below-in > :not(.beam) {
+  width: min(1328px, calc(100% - 2 * var(--gut)));
+  margin-inline: auto;
+}
+.below-in {
+  padding-top: 72px;
+}
+.below h2 {
+  margin: 0 0 18px;
+}
+.below-head .intro {
+  margin-bottom: 0;
+}
+.below .intro {
+  color: var(--c7);
+}
+.floor {
+  display: grid;
+  grid-template-columns: calc(76 * var(--px)) minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 48px;
+  align-items: start;
+  padding: 48px 0 56px;
+}
+.room {
+  position: relative;
+  width: max-content;
+  line-height: 0;
+}
 /* each room is a sheet of stills with the crewmate at work in it: stirring, pointing, pulling a lever, handing a note, counting cargo */
-.a-galley { --w: 68; --h: 52; --n: 4; --dt: .55s; --lag: -.8s; background-image: url("../art/room-galley.svg"); }
-.a-chart { --w: 68; --h: 52; --n: 8; --dt: .75s; --lag: -3.1s; background-image: url("../art/room-chart.svg"); }
-.a-telegraph { --w: 56; --h: 52; --n: 16; --dt: .3s; --lag: -1.9s; background-image: url("../art/room-telegraph.svg"); }
-.a-handoff { --w: 76; --h: 40; --n: 12; --dt: .33s; --lag: -2.4s; background-image: url("../art/room-handoff.svg"); }
-.a-hold { --w: 76; --h: 52; --n: 12; --dt: .45s; --lag: -4s; background-image: url("../art/room-hold.svg"); }
-.floor-text h3 { margin: 0 0 12px; color: var(--c15); }
-.floor-text p { margin: 0 0 14px; font-size: var(--t-base); color: var(--c7); max-width: 52ch; }
-.floor-fig { margin: 0; }
-.floor-fig figcaption { font-size: var(--t-sm); color: var(--muted-dark); margin-top: 10px; max-width: 60ch; }
-.floor-fig .cmd pre { font-size: var(--code-sm); }
-.steam { position: absolute; background: url("../art/steam.svg") 0 0 / calc(27 * var(--px)) calc(14 * var(--px)); image-rendering: pixelated;
-  animation: puff 2.4s steps(1) infinite; }
-@keyframes puff { 0% { background-position: 0 0; } 33% { background-position: calc(-9 * var(--px)) 0; } 66% { background-position: calc(-18 * var(--px)) 0; } }
-.beam { background-image: url("../art/beam.svg"); }
-.beam.last { margin-top: 0; }
+.a-galley {
+  --w: 68;
+  --h: 52;
+  --n: 4;
+  --dt: 0.55s;
+  --lag: -0.8s;
+  background-image: url("../art/room-galley.svg");
+}
+.a-chart {
+  --w: 68;
+  --h: 52;
+  --n: 8;
+  --dt: 0.75s;
+  --lag: -3.1s;
+  background-image: url("../art/room-chart.svg");
+}
+.a-telegraph {
+  --w: 56;
+  --h: 52;
+  --n: 16;
+  --dt: 0.3s;
+  --lag: -1.9s;
+  background-image: url("../art/room-telegraph.svg");
+}
+.a-handoff {
+  --w: 76;
+  --h: 40;
+  --n: 12;
+  --dt: 0.33s;
+  --lag: -2.4s;
+  background-image: url("../art/room-handoff.svg");
+}
+.a-hold {
+  --w: 76;
+  --h: 52;
+  --n: 12;
+  --dt: 0.45s;
+  --lag: -4s;
+  background-image: url("../art/room-hold.svg");
+}
+.floor-text h3 {
+  margin: 0 0 12px;
+  color: var(--c15);
+}
+.floor-text p {
+  margin: 0 0 14px;
+  font-size: var(--t-base);
+  color: var(--c7);
+  max-width: 52ch;
+}
+.floor-fig {
+  margin: 0;
+}
+.floor-fig figcaption {
+  font-size: var(--t-sm);
+  color: var(--muted-dark);
+  margin-top: 10px;
+  max-width: 60ch;
+}
+.floor-fig .cmd pre {
+  font-size: var(--code-sm);
+}
+.steam {
+  position: absolute;
+  background: url("../art/steam.svg") 0 0 / calc(27 * var(--px)) calc(14 * var(--px));
+  image-rendering: pixelated;
+  animation: puff 2.4s steps(1) infinite;
+}
+@keyframes puff {
+  0% {
+    background-position: 0 0;
+  }
+  33% {
+    background-position: calc(-9 * var(--px)) 0;
+  }
+  66% {
+    background-position: calc(-18 * var(--px)) 0;
+  }
+}
+.beam {
+  background-image: url("../art/beam.svg");
+}
+.beam.last {
+  margin-top: 0;
+}
 
 /* the server, drawn in the terminal's own boxes */
-.dg { padding: 18px; font: var(--code-md)/1.4 var(--code); }
-.dg-wins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.dg-win { position: relative; border: 2px solid var(--c14); padding: 6px 10px 8px; color: var(--c15); display: flex; flex-direction: column; }
-.dg-win b { font: 11px/22px var(--pixel); color: var(--c14); font-weight: 400; }
-.dg-win::after { content: ""; position: absolute; left: 50%; top: 100%; height: 22px; border-left: 2px solid var(--c14); }
-.dg-win.gone { border: 2px dashed var(--c8); color: var(--muted-dark); }
-.dg-win.gone b { color: var(--muted-dark); }
-.dg-win.gone::after { border-left: 2px dashed var(--c8); }
-.dg-server { margin-top: 22px; border: 2px solid var(--c11); padding: 10px 14px 14px; }
-.dg-label { font: 11px/22px var(--pixel); color: var(--c11); display: block; margin-bottom: 6px; font-weight: 400; }
-.dg-panes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.dg-pane { border: 2px solid var(--c8); padding: 5px 10px; color: var(--c15); }
+.dg {
+  padding: 18px;
+  font: var(--code-md)/1.4 var(--code);
+}
+.dg-wins {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.dg-win {
+  position: relative;
+  border: 2px solid var(--c14);
+  padding: 6px 10px 8px;
+  color: var(--c15);
+  display: flex;
+  flex-direction: column;
+}
+.dg-win b {
+  font: 11px/22px var(--pixel);
+  color: var(--c14);
+  font-weight: 400;
+}
+.dg-win::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  height: 22px;
+  border-left: 2px solid var(--c14);
+}
+.dg-win.gone {
+  border: 2px dashed var(--c8);
+  color: var(--muted-dark);
+}
+.dg-win.gone b {
+  color: var(--muted-dark);
+}
+.dg-win.gone::after {
+  border-left: 2px dashed var(--c8);
+}
+.dg-server {
+  margin-top: 22px;
+  border: 2px solid var(--c11);
+  padding: 10px 14px 14px;
+}
+.dg-label {
+  font: 11px/22px var(--pixel);
+  color: var(--c11);
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+.dg-panes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.dg-pane {
+  border: 2px solid var(--c8);
+  padding: 5px 10px;
+  color: var(--c15);
+}
 
 /* a hand-drawn sketch of ship's layout */
-.ui { display: grid; grid-template-columns: max-content minmax(0, 1fr); font: var(--code-sm)/1.4 var(--code); }
-.ui pre { white-space: pre; overflow: hidden; }
-.ui-side { border-right: 2px solid var(--c8); padding: 8px 6px; color: var(--c7); }
-.ui-main { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
-.ui-pane { border: 2px solid var(--c8); padding: 6px 8px; color: var(--c7); min-width: 0; }
-.ui-pane:first-child { grid-row: span 2; }
-.ui-pane.sel { border-color: var(--c6); }
+.ui {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  font: var(--code-sm)/1.4 var(--code);
+}
+.ui pre {
+  white-space: pre;
+  overflow: hidden;
+}
+.ui-side {
+  border-right: 2px solid var(--c8);
+  padding: 8px 6px;
+  color: var(--c7);
+}
+.ui-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+.ui-pane {
+  border: 2px solid var(--c8);
+  padding: 6px 8px;
+  color: var(--c7);
+  min-width: 0;
+}
+.ui-pane:first-child {
+  grid-row: span 2;
+}
+.ui-pane.sel {
+  border-color: var(--c6);
+}
 /* beside the text on a laptop the sketch gets too narrow for two columns of panes, so they stack rather than cut their words */
-.floor-fig { container-type: inline-size; }
-@container (max-width: 449px) { .ui-main { grid-template-columns: minmax(0, 1fr); } .ui-pane:first-child { grid-row: auto; } }
+.floor-fig {
+  container-type: inline-size;
+}
+@container (max-width: 449px) {
+  .ui-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ui-pane:first-child {
+    grid-row: auto;
+  }
+}
 
 /* ------------------------------------------------------- the hold */
-.hold { position: relative; background: var(--hold); color: var(--c15); padding: 0 0 calc(18 * var(--px) + 130px); overflow: hidden; --ring: var(--c14); }
-.hold-in { width: min(1328px, calc(100% - 2 * var(--gut))); margin: 0 auto; padding-top: 80px; position: relative; z-index: 1; }
-.hold-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: end; }
-.hold h2 { margin: 0 0 18px; }
-.hold .intro { color: var(--c7); margin-bottom: 0; }
-.cargo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 56px 64px; margin-top: 64px; align-items: start; }
-@media (min-width: 1280px) { .cargo { grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); } }   /* keys is the long column, so it gets the room: fewer wrapped rows */
-.crate-col h3 { margin: 0 0 12px; color: var(--c11); }
-.crate-col p { color: var(--c7); font-size: var(--t-base); max-width: 58ch; margin: 0 0 16px; }
-.crate-col .cmd { margin: 0 0 16px; }
-.crate-col .note { color: var(--c15); border-top: 2px dashed var(--c8); padding-top: 14px; }
-.needs { margin: 0 0 20px; color: var(--c7); font-size: var(--t-base); }
-.needs li { margin-bottom: 8px; }
-.keys { border-collapse: collapse; width: 100%; margin: 0 0 18px; }
-.keys th, .keys td { text-align: left; vertical-align: baseline; padding: 6px 14px 6px 0; border-bottom: 1px solid #3a3650; font-weight: 400; }
-.keys th { white-space: nowrap; width: 1%; }
-.keys td { color: var(--c7); font-size: var(--t-md); line-height: 1.4; }
-.keys td kbd { font-size: var(--code-sm); padding: 1px 5px 2px; box-shadow: 0 2px 0 var(--c8); background: #2b2840; margin-bottom: 0; }
-.keys th kbd { background: #2b2840; }
-#config { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr); column-gap: 64px; align-items: start; }
-#config > * { grid-column: 1; }
-#config > .term { grid-column: 2; grid-row: 1 / span 4; }
-#config .cmd pre { font-size: var(--code-md); white-space: pre; overflow-x: auto; }
-.more a { font-weight: 700; color: var(--c14); }
-.crate-col .hold-links { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 28px 0 0; font-weight: 700; }   /* where to go once it is installed */
-.hold a { color: var(--c14); }
+.hold {
+  position: relative;
+  background: var(--hold);
+  color: var(--c15);
+  padding: 0 0 calc(18 * var(--px) + 130px);
+  overflow: hidden;
+  --ring: var(--c14);
+}
+.hold-in {
+  width: min(1328px, calc(100% - 2 * var(--gut)));
+  margin: 0 auto;
+  padding-top: 80px;
+  position: relative;
+  z-index: 1;
+}
+.hold-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 48px;
+  align-items: end;
+}
+.hold h2 {
+  margin: 0 0 18px;
+}
+.hold .intro {
+  color: var(--c7);
+  margin-bottom: 0;
+}
+.cargo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 56px 64px;
+  margin-top: 64px;
+  align-items: start;
+}
+@media (min-width: 1280px) {
+  .cargo {
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  }
+} /* keys is the long column, so it gets the room: fewer wrapped rows */
+.crate-col h3 {
+  margin: 0 0 12px;
+  color: var(--c11);
+}
+.crate-col p {
+  color: var(--c7);
+  font-size: var(--t-base);
+  max-width: 58ch;
+  margin: 0 0 16px;
+}
+.crate-col .cmd {
+  margin: 0 0 16px;
+}
+.crate-col .note {
+  color: var(--c15);
+  border-top: 2px dashed var(--c8);
+  padding-top: 14px;
+}
+.needs {
+  margin: 0 0 20px;
+  color: var(--c7);
+  font-size: var(--t-base);
+}
+.needs li {
+  margin-bottom: 8px;
+}
+.keys {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 18px;
+}
+.keys th,
+.keys td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 6px 14px 6px 0;
+  border-bottom: 1px solid #3a3650;
+  font-weight: 400;
+}
+.keys th {
+  white-space: nowrap;
+  width: 1%;
+}
+.keys td {
+  color: var(--c7);
+  font-size: var(--t-md);
+  line-height: 1.4;
+}
+.keys td kbd {
+  font-size: var(--code-sm);
+  padding: 1px 5px 2px;
+  box-shadow: 0 2px 0 var(--c8);
+  background: #2b2840;
+  margin-bottom: 0;
+}
+.keys th kbd {
+  background: #2b2840;
+}
+#config {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+  column-gap: 64px;
+  align-items: start;
+}
+#config > * {
+  grid-column: 1;
+}
+#config > .term {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+}
+#config .cmd pre {
+  font-size: var(--code-md);
+  white-space: pre;
+  overflow-x: auto;
+}
+.more a {
+  font-weight: 700;
+  color: var(--c14);
+}
+.crate-col .hold-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 28px 0 0;
+  font-weight: 700;
+} /* where to go once it is installed */
+.hold a {
+  color: var(--c14);
+}
 /* the way down: a hatch cut in the last beam, a ladder into the hold and a lantern hung from the beam.
    Wide screens only, where the space beside the heading is free. */
 @media (min-width: 1360px) {
-  .below, .hold { --edge: max(var(--gut), calc(50% - 664px)); --roomw: calc(76 * var(--px)); }
-  .beam.last { position: relative; z-index: 5; }
-  .beam.last::before { content: ""; position: absolute; top: 0; height: calc(6 * var(--px)); width: calc(18 * var(--px));
-    right: calc(var(--edge) + var(--roomw) + 132px - 8px); background: var(--hold); }
-  .beam.last::after { content: ""; position: absolute; top: 0; width: calc(12 * var(--px)); height: calc(74 * var(--px));
+  .below,
+  .hold {
+    --edge: max(var(--gut), calc(50% - 664px));
+    --roomw: calc(76 * var(--px));
+  }
+  .beam.last {
+    position: relative;
+    z-index: 5;
+  }
+  .beam.last::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    height: calc(6 * var(--px));
+    width: calc(18 * var(--px));
+    right: calc(var(--edge) + var(--roomw) + 132px - 8px);
+    background: var(--hold);
+  }
+  .beam.last::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: calc(12 * var(--px));
+    height: calc(74 * var(--px));
     right: calc(var(--edge) + var(--roomw) + 132px);
-    background: url("../art/ladder.svg") 0 0 / calc(12 * var(--px)) calc(8 * var(--px)) repeat-y; image-rendering: pixelated; }
-  .hold::before { content: ""; position: absolute; z-index: 0; top: 0; width: calc(9 * var(--px)); height: calc(15 * var(--px));
+    background: url("../art/ladder.svg") 0 0 / calc(12 * var(--px)) calc(8 * var(--px)) repeat-y;
+    image-rendering: pixelated;
+  }
+  .hold::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    width: calc(9 * var(--px));
+    height: calc(15 * var(--px));
     right: calc(var(--edge) + var(--roomw) + 44px);
-    background: url("../art/lantern.svg") 0 0 / 100% 100%; image-rendering: pixelated; }
-  .hold::after { content: ""; position: absolute; z-index: 0; top: calc(-10 * var(--px)); width: calc(41 * var(--px)); height: calc(41 * var(--px));
+    background: url("../art/lantern.svg") 0 0 / 100% 100%;
+    image-rendering: pixelated;
+  }
+  .hold::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: calc(-10 * var(--px));
+    width: calc(41 * var(--px));
+    height: calc(41 * var(--px));
     right: calc(var(--edge) + var(--roomw) + 44px - 16 * var(--px));
-    background: url("../art/glow.svg") 0 0 / 100% 100%; image-rendering: pixelated; animation: lamp 5s steps(1) infinite; }
+    background: url("../art/glow.svg") 0 0 / 100% 100%;
+    image-rendering: pixelated;
+    animation: lamp 5s steps(1) infinite;
+  }
 }
-@keyframes lamp { 0% { opacity: 1; } 55% { opacity: .78; } 62% { opacity: 1; } 80% { opacity: .88; } }
-.pile { position: absolute; right: max(var(--gut), calc(50% - 664px)); bottom: calc(18 * var(--px) - 1 * var(--px)); line-height: 0; z-index: 0; }
-.pile-s { right: auto; left: 38%; }
-.floor-boards { position: absolute; left: 0; right: 0; bottom: 0; background-image: url("../art/planks.svg"); }
-.keel { position: absolute; left: 0; right: 0; top: 0; z-index: 3; background-image: url("../art/keel.svg"); }
+@keyframes lamp {
+  0% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.78;
+  }
+  62% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.88;
+  }
+}
+.pile {
+  position: absolute;
+  right: max(var(--gut), calc(50% - 664px));
+  bottom: calc(18 * var(--px) - 1 * var(--px));
+  line-height: 0;
+  z-index: 0;
+}
+.pile-s {
+  right: auto;
+  left: 38%;
+}
+.floor-boards {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("../art/planks.svg");
+}
+.keel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 3;
+  background-image: url("../art/keel.svg");
+}
 
 /* -------------------------------------------------------- seabed */
-.seabed { position: relative; color: var(--c15); --ring: var(--c14); }
-.water { position: relative; overflow: hidden; padding: 150px 0 0; min-height: 720px; background: linear-gradient(var(--deep), var(--seabed) 55%); }
-.seabed a { color: var(--c14); }
-.seabed-in { position: relative; z-index: 2; width: min(1000px, calc(100% - 2 * var(--gut))); margin: 0 auto; }
-.seabed .place { color: var(--c14); font-size: 22px; line-height: 33px; }
-.seabed h2 { margin: 0 0 40px; }
-.install-final { max-width: 640px; }
-.install-final p { color: var(--c7); font-size: var(--t-md); margin: 14px 0 0; }
-.reef { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.cable { position: absolute; left: max(24px, 9%); top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; z-index: 1; }
-.cable i { flex: 1; width: calc(4 * var(--px)); background: url("../art/chain.svg") repeat-y center top / calc(4 * var(--px)) calc(8 * var(--px)); image-rendering: pixelated; }
-.cable img { margin-bottom: calc(-1 * var(--px)); }
-.kelp { position: absolute; bottom: 0; background: url("../art/kelp.svg") 0 0 / calc(18 * var(--px)) calc(30 * var(--px)); image-rendering: pixelated; animation: sway 2.6s steps(1) infinite; }
-.k1 { left: 30%; } .k2 { left: 33%; animation-delay: -.9s; transform: scale(1, 0.8); transform-origin: bottom; } .k3 { left: 62%; animation-delay: -1.7s; }
-@keyframes sway { 0% { background-position: 0 0; } 50% { background-position: calc(-9 * var(--px)) 0; } }
-.rocks { position: absolute; bottom: calc(-2 * var(--px)); left: 20%; }
-.starfish { position: absolute; bottom: calc(-1 * var(--px)); left: 48%; }
-.crab { position: absolute; bottom: 0; left: 70%; background: url("../art/crab.svg") 0 0 / calc(32 * var(--px)) calc(9 * var(--px)); image-rendering: pixelated;
-  animation: scuttle .9s steps(1) infinite, wander 22s ease-in-out infinite alternate; }
-@keyframes scuttle { 0% { background-position: 0 0; } 50% { background-position: calc(-16 * var(--px)) 0; } }
-@keyframes wander { to { transform: translateX(160px); } }
-.fish.s4 { bottom: 300px; left: 0; animation-delay: -.2s, -25s; animation-duration: .7s, 90s; }
-.fish.s5 { bottom: 210px; left: 0; animation-delay: -.4s, -60s; animation-duration: .9s, 110s; }
-.reef .fish { opacity: .6; }
-.diver { position: absolute; right: max(24px, 7%); bottom: calc(-3 * var(--px)); }
-.a-diver { --w: 28; --h: 34; --n: 8; --dt: .55s; --lag: -1.6s; background-image: url("../art/crew-diver-loop.svg"); }   /* waves, and breathes out bubbles */
-.hose { position: absolute; left: calc(12 * var(--px)); bottom: calc(18 * var(--px)); height: 1400px; width: calc(2 * var(--px));
-  background: repeating-linear-gradient(to top, var(--c8) 0 8px, var(--ink) 8px 12px); }
-.b4 { left: 86%; } .b5 { left: 88%; animation-delay: -6s; animation-duration: 15s; } .b6 { left: 85%; animation-delay: -11s; animation-duration: 21s; }
-.reef .bubble { bottom: 100px; }
-.sand { background-image: url("../art/sand.svg"); }
-.foot { background: var(--c8); color: var(--c15); padding: 28px var(--edge) 44px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 40px; font-size: var(--t-md); }
-.foot p { margin: 0; max-width: 60ch; text-wrap: balance; }
-.foot a { color: var(--c15); }
-.foot nav { display: flex; flex-wrap: wrap; gap: 8px 22px; font-weight: 700; }
+.seabed {
+  position: relative;
+  color: var(--c15);
+  --ring: var(--c14);
+}
+.water {
+  position: relative;
+  overflow: hidden;
+  padding: 150px 0 0;
+  min-height: 720px;
+  background: linear-gradient(var(--deep), var(--seabed) 55%);
+}
+.seabed a {
+  color: var(--c14);
+}
+.seabed-in {
+  position: relative;
+  z-index: 2;
+  width: min(1000px, calc(100% - 2 * var(--gut)));
+  margin: 0 auto;
+}
+.seabed .place {
+  color: var(--c14);
+  font-size: 22px;
+  line-height: 33px;
+}
+.seabed h2 {
+  margin: 0 0 40px;
+}
+.install-final {
+  max-width: 640px;
+}
+.install-final p {
+  color: var(--c7);
+  font-size: var(--t-md);
+  margin: 14px 0 0;
+}
+.reef {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.cable {
+  position: absolute;
+  left: max(24px, 9%);
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+.cable i {
+  flex: 1;
+  width: calc(4 * var(--px));
+  background: url("../art/chain.svg") repeat-y center top / calc(4 * var(--px)) calc(8 * var(--px));
+  image-rendering: pixelated;
+}
+.cable img {
+  margin-bottom: calc(-1 * var(--px));
+}
+.kelp {
+  position: absolute;
+  bottom: 0;
+  background: url("../art/kelp.svg") 0 0 / calc(18 * var(--px)) calc(30 * var(--px));
+  image-rendering: pixelated;
+  animation: sway 2.6s steps(1) infinite;
+}
+.k1 {
+  left: 30%;
+}
+.k2 {
+  left: 33%;
+  animation-delay: -0.9s;
+  transform: scale(1, 0.8);
+  transform-origin: bottom;
+}
+.k3 {
+  left: 62%;
+  animation-delay: -1.7s;
+}
+@keyframes sway {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: calc(-9 * var(--px)) 0;
+  }
+}
+.rocks {
+  position: absolute;
+  bottom: calc(-2 * var(--px));
+  left: 20%;
+}
+.starfish {
+  position: absolute;
+  bottom: calc(-1 * var(--px));
+  left: 48%;
+}
+.crab {
+  position: absolute;
+  bottom: 0;
+  left: 70%;
+  background: url("../art/crab.svg") 0 0 / calc(32 * var(--px)) calc(9 * var(--px));
+  image-rendering: pixelated;
+  animation:
+    scuttle 0.9s steps(1) infinite,
+    wander 22s ease-in-out infinite alternate;
+}
+@keyframes scuttle {
+  0% {
+    background-position: 0 0;
+  }
+  50% {
+    background-position: calc(-16 * var(--px)) 0;
+  }
+}
+@keyframes wander {
+  to {
+    transform: translateX(160px);
+  }
+}
+.fish.s4 {
+  bottom: 300px;
+  left: 0;
+  animation-delay:
+    -0.2s,
+    -25s;
+  animation-duration: 0.7s, 90s;
+}
+.fish.s5 {
+  bottom: 210px;
+  left: 0;
+  animation-delay:
+    -0.4s,
+    -60s;
+  animation-duration: 0.9s, 110s;
+}
+.reef .fish {
+  opacity: 0.6;
+}
+.diver {
+  position: absolute;
+  right: max(24px, 7%);
+  bottom: calc(-3 * var(--px));
+}
+.a-diver {
+  --w: 28;
+  --h: 34;
+  --n: 8;
+  --dt: 0.55s;
+  --lag: -1.6s;
+  background-image: url("../art/crew-diver-loop.svg");
+} /* waves, and breathes out bubbles */
+.hose {
+  position: absolute;
+  left: calc(12 * var(--px));
+  bottom: calc(18 * var(--px));
+  height: 1400px;
+  width: calc(2 * var(--px));
+  background: repeating-linear-gradient(to top, var(--c8) 0 8px, var(--ink) 8px 12px);
+}
+.b4 {
+  left: 86%;
+}
+.b5 {
+  left: 88%;
+  animation-delay: -6s;
+  animation-duration: 15s;
+}
+.b6 {
+  left: 85%;
+  animation-delay: -11s;
+  animation-duration: 21s;
+}
+.reef .bubble {
+  bottom: 100px;
+}
+.sand {
+  background-image: url("../art/sand.svg");
+}
+.foot {
+  background: var(--c8);
+  color: var(--c15);
+  padding: 28px var(--edge) 44px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px 40px;
+  font-size: var(--t-md);
+}
+.foot p {
+  margin: 0;
+  max-width: 60ch;
+  text-wrap: balance;
+}
+.foot a {
+  color: var(--c15);
+}
+.foot nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-weight: 700;
+}
 
 /* ------------------------------------------------ narrower screens */
 @media (max-width: 1099px) {
-  .floor { grid-template-columns: calc(76 * var(--px)) minmax(0, 1fr); }
-  .floor-fig { grid-column: 1 / -1; }
-  .cargo, #config { grid-template-columns: minmax(0, 1fr); }
-  #config > .term { grid-column: 1; grid-row: auto; }
-  .hold-head { grid-template-columns: 1fr; }
+  .floor {
+    grid-template-columns: calc(76 * var(--px)) minmax(0, 1fr);
+  }
+  .floor-fig {
+    grid-column: 1 / -1;
+  }
+  .cargo,
+  #config {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #config > .term {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .hold-head {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 1099px) {
-  .crew > li.prop { display: none; }          /* five crew and two prop groups need about 1090px */
+  .crew > li.prop {
+    display: none;
+  } /* five crew and two prop groups need about 1090px */
 }
 @media (max-width: 899px) {
-  .hero { grid-template-columns: 1fr; gap: 0; }
-  .hero-text { padding-bottom: 40px; }
-  .hero h1 { font-size: 44px; line-height: 55px; }
-  .rig { min-height: 0; padding-bottom: calc(18 * var(--px)); }
-  .nest { top: 0; }
-  .mast { top: calc(48 * var(--px)); bottom: calc(18 * var(--px)); }
-  .ratlines { display: none; }
-  .mast-foot { display: block; position: absolute; right: calc(14 * var(--px)); bottom: 0; width: calc(32 * var(--px)); height: calc(18 * var(--px));
-    background: url("../art/planks.svg") 0 0 / calc(48 * var(--px)) calc(18 * var(--px)); image-rendering: pixelated; }
-  .mast-foot::before { content: ""; position: absolute; left: calc(5 * var(--px)); top: calc(-8 * var(--px)); width: calc(14 * var(--px)); height: calc(8 * var(--px));
-    background: url("../art/mast-base.svg") 0 0 / 100% 100%; image-rendering: pixelated; }
-  .board { position: relative; top: auto; margin-top: calc(18 * var(--px)); width: calc(100% - 28 * var(--px)); max-width: 300px; }
-  .cloud.a { top: 12px; left: 52%; }       /* clear of the headline, which starts 110px down */
-  .cloud.b, .g2, .g3 { display: none; }
-  .cloud.c { top: 20px; left: 3%; }
-  .g1 { top: 50px; left: 31%; }
-  .deck-in { padding-right: 0; }
-  .deck > .mast, .deck > .ratlines { display: none; }
-  .works li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .notyet ul { columns: 1; }
-  .stage { padding-right: 0; }
-  .water-in { grid-template-columns: minmax(0, 1fr); gap: 40px; }
-  .seabed .place { display: inline; }
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .hero-text {
+    padding-bottom: 40px;
+  }
+  .hero h1 {
+    font-size: 44px;
+    line-height: 55px;
+  }
+  .rig {
+    min-height: 0;
+    padding-bottom: calc(18 * var(--px));
+  }
+  .nest {
+    top: 0;
+  }
+  .mast {
+    top: calc(48 * var(--px));
+    bottom: calc(18 * var(--px));
+  }
+  .ratlines {
+    display: none;
+  }
+  .mast-foot {
+    display: block;
+    position: absolute;
+    right: calc(14 * var(--px));
+    bottom: 0;
+    width: calc(32 * var(--px));
+    height: calc(18 * var(--px));
+    background: url("../art/planks.svg") 0 0 / calc(48 * var(--px)) calc(18 * var(--px));
+    image-rendering: pixelated;
+  }
+  .mast-foot::before {
+    content: "";
+    position: absolute;
+    left: calc(5 * var(--px));
+    top: calc(-8 * var(--px));
+    width: calc(14 * var(--px));
+    height: calc(8 * var(--px));
+    background: url("../art/mast-base.svg") 0 0 / 100% 100%;
+    image-rendering: pixelated;
+  }
+  .board {
+    position: relative;
+    top: auto;
+    margin-top: calc(18 * var(--px));
+    width: calc(100% - 28 * var(--px));
+    max-width: 300px;
+  }
+  .cloud.a {
+    top: 12px;
+    left: 52%;
+  } /* clear of the headline, which starts 110px down */
+  .cloud.b,
+  .g2,
+  .g3 {
+    display: none;
+  }
+  .cloud.c {
+    top: 20px;
+    left: 3%;
+  }
+  .g1 {
+    top: 50px;
+    left: 31%;
+  }
+  .deck-in {
+    padding-right: 0;
+  }
+  .deck > .mast,
+  .deck > .ratlines {
+    display: none;
+  }
+  .works li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .notyet ul {
+    columns: 1;
+  }
+  .stage {
+    padding-right: 0;
+  }
+  .water-in {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+  .seabed .place {
+    display: inline;
+  }
 }
 @media (max-width: 600px) {
-  .hero h1 { font-size: 33px; line-height: 44px; }
-  .lede { font-size: var(--t-lg); }
-  .sky { padding-top: 76px; }
-  .cloud.a { top: 6px; }
-  .nest { top: 0; }
-  .board { margin-top: calc(34 * var(--px)); }   /* the board is as wide as the sky here, so it sits under the nest, not beside it */
-  .stagewrap { margin-top: 28px; }
-  .rail-far { display: none; }
-  .crew { display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 24px; column-gap: 0; justify-items: center; }
-  .crew > li.prop:first-child { display: flex; }
-  .crew > li { margin-bottom: 0; }
-  .crew > li.member { padding-bottom: calc(18 * var(--px)); width: 100%; display: flex; justify-content: center; }
-  .crew > li.prop { align-self: end; padding-bottom: calc(18 * var(--px)); }
-  .crew > li { background: url("../art/planks.svg") 0 100% / calc(48 * var(--px)) calc(18 * var(--px)) repeat-x; image-rendering: pixelated; }
-  .planks.tile { display: none; }
-  .plate { top: calc(100% - 17 * var(--px) + 6px); padding: 1px 8px 2px; }
-  .plate .role { line-height: 18px; }
-  .floor { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 36px 0 40px; }
-  .water-copy p { font-size: var(--t-base); }
-  .dg { padding: 12px; font-size: var(--code-sm); }
-  .dg-wins { gap: 8px; }
-  .dg-win { padding: 4px 6px 6px; }
-  .ui { grid-template-columns: minmax(0, 1fr); }
-  .ui-side { border-right: 0; border-bottom: 2px solid var(--c8); }
-  .mock { grid-template-columns: minmax(0, 1fr); }
-  .mock .side { border-right: 0; border-bottom: 1px solid var(--c8); }
-  .mock .pane { white-space: pre-wrap; }
-  .keys, .keys tbody, .keys tr, .keys th, .keys td { display: block; width: auto; }
-  .keys tr { padding: 8px 0 9px; border-bottom: 1px solid #3a3650; }
-  .keys th, .keys td { padding: 0; border: 0; white-space: normal; }
-  .keys th { margin-bottom: 4px; }
-  .water { padding-top: 90px; }
-  .water-in h2 .nb { white-space: normal; }                  /* 17 pixel-face characters are wider than a phone's column */
-  .seabed h2 { font-size: 44px; line-height: 55px; }
-  .cable { left: 8px; }
-  .seabed-in { padding-left: 28px; }
-  .diver { right: 12px; }
-  .hose { height: 220px; }
-  .cmd pre { font-size: var(--code-sm); }
+  .hero h1 {
+    font-size: 33px;
+    line-height: 44px;
+  }
+  .lede {
+    font-size: var(--t-lg);
+  }
+  .sky {
+    padding-top: 76px;
+  }
+  .cloud.a {
+    top: 6px;
+  }
+  .nest {
+    top: 0;
+  }
+  .board {
+    margin-top: calc(34 * var(--px));
+  } /* the board is as wide as the sky here, so it sits under the nest, not beside it */
+  .stagewrap {
+    margin-top: 28px;
+  }
+  .rail-far {
+    display: none;
+  }
+  .crew {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 24px;
+    column-gap: 0;
+    justify-items: center;
+  }
+  .crew > li.prop:first-child {
+    display: flex;
+  }
+  .crew > li {
+    margin-bottom: 0;
+  }
+  .crew > li.member {
+    padding-bottom: calc(18 * var(--px));
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .crew > li.prop {
+    align-self: end;
+    padding-bottom: calc(18 * var(--px));
+  }
+  .crew > li {
+    background: url("../art/planks.svg") 0 100% / calc(48 * var(--px)) calc(18 * var(--px)) repeat-x;
+    image-rendering: pixelated;
+  }
+  .planks.tile {
+    display: none;
+  }
+  .plate {
+    top: calc(100% - 17 * var(--px) + 6px);
+    padding: 1px 8px 2px;
+  }
+  .plate .role {
+    line-height: 18px;
+  }
+  .floor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding: 36px 0 40px;
+  }
+  .water-copy p {
+    font-size: var(--t-base);
+  }
+  .dg {
+    padding: 12px;
+    font-size: var(--code-sm);
+  }
+  .dg-wins {
+    gap: 8px;
+  }
+  .dg-win {
+    padding: 4px 6px 6px;
+  }
+  .ui {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ui-side {
+    border-right: 0;
+    border-bottom: 2px solid var(--c8);
+  }
+  .mock {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mock .side {
+    border-right: 0;
+    border-bottom: 1px solid var(--c8);
+  }
+  .mock .pane {
+    white-space: pre-wrap;
+  }
+  .keys,
+  .keys tbody,
+  .keys tr,
+  .keys th,
+  .keys td {
+    display: block;
+    width: auto;
+  }
+  .keys tr {
+    padding: 8px 0 9px;
+    border-bottom: 1px solid #3a3650;
+  }
+  .keys th,
+  .keys td {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  .keys th {
+    margin-bottom: 4px;
+  }
+  .water {
+    padding-top: 90px;
+  }
+  .water-in h2 .nb {
+    white-space: normal;
+  } /* 17 pixel-face characters are wider than a phone's column */
+  .seabed h2 {
+    font-size: 44px;
+    line-height: 55px;
+  }
+  .cable {
+    left: 8px;
+  }
+  .seabed-in {
+    padding-left: 28px;
+  }
+  .diver {
+    right: 12px;
+  }
+  .hose {
+    height: 220px;
+  }
+  .cmd pre {
+    font-size: var(--code-sm);
+  }
 }

@@ -1,96 +1,154 @@
 ---
 // The ansi inline search box, backed by the real Pagefind index. Starlight builds it, and
 // src/integrations/ship-docs.mjs moves it to <prefix>/pagefind/, so each version searches only itself.
-import { version } from '../version';
-import { withBase } from '../base';
+import { version } from "../version";
+import { withBase } from "../base";
 const base = withBase(version.prefix);
 ---
+
 <form class="search" role="search" aria-label="search the docs" data-base={base}>
-	<label class="sr-only" for="q">search the docs</label>
-	<input id="q" type="search" placeholder="search the docs" autocomplete="off" spellcheck="false" aria-controls="results" aria-describedby="search-hint" />
-	<kbd class="slash" id="search-hint" aria-hidden="true">/</kbd>
-	<div class="results" id="results" hidden></div>
+  <label class="sr-only" for="q">
+    search the docs
+  </label>
+  <input
+    id="q"
+    type="search"
+    placeholder="search the docs"
+    autocomplete="off"
+    spellcheck="false"
+    aria-controls="results"
+    aria-describedby="search-hint"
+  />
+  <kbd class="slash" id="search-hint" aria-hidden="true">
+    /
+  </kbd>
+  <div class="results" id="results" hidden></div>
 </form>
 
 <script>
-	import { base as siteBase } from '../base';
-	type Sub = { url: string; title: string; excerpt: string };
-	type Data = { url: string; meta: { title: string }; excerpt: string; sub_results?: Sub[] };
+  import { base as siteBase } from "../base";
+  type Sub = { url: string; title: string; excerpt: string };
+  type Data = { url: string; meta: { title: string }; excerpt: string; sub_results?: Sub[] };
 
-	const form = document.querySelector<HTMLFormElement>('form.search')!;
-	const q = form.querySelector<HTMLInputElement>('#q')!;
-	const box = form.querySelector<HTMLDivElement>('#results')!;
-	const base = form.dataset.base!;
-	// one shared promise: focus starts loading, and a keystroke that lands before init finishes waits for
-	// the same load instead of importing and initialising Pagefind a second time
-	let pf: Promise<any> | null = null;
-	const load = () =>
-		(pf ??= import(/* @vite-ignore */ `${base}/pagefind/pagefind.js`).then(async (m) => {
-			// Pagefind prefixes results with the folder above its bundle, which is the version folder here; the pages
-			// are at the site root, so the site root (with the base) is the prefix
-			await m.options({ baseUrl: `${siteBase}/` });
-			await m.init();
-			return m;
-		}));
+  const form = document.querySelector<HTMLFormElement>("form.search")!;
+  const q = form.querySelector<HTMLInputElement>("#q")!;
+  const box = form.querySelector<HTMLDivElement>("#results")!;
+  const base = form.dataset.base!;
+  // one shared promise: focus starts loading, and a keystroke that lands before init finishes waits for
+  // the same load instead of importing and initialising Pagefind a second time
+  let pf: Promise<any> | null = null;
+  const load = () =>
+    (pf ??= import(/* @vite-ignore */ `${base}/pagefind/pagefind.js`).then(async (m) => {
+      // Pagefind prefixes results with the folder above its bundle, which is the version folder here; the pages
+      // are at the site root, so the site root (with the base) is the prefix
+      await m.options({ baseUrl: `${siteBase}/` });
+      await m.init();
+      return m;
+    }));
 
-	const status = Object.assign(document.createElement('p'), { className: 'sr-only' });
-	status.setAttribute('role', 'status');
-	document.body.append(status);
+  const status = Object.assign(document.createElement("p"), { className: "sr-only" });
+  status.setAttribute("role", "status");
+  document.body.append(status);
 
-	const links = () => [...box.querySelectorAll('a')];
-	const hide = () => { box.hidden = true; q.setAttribute('aria-expanded', 'false'); };
+  const links = () => [...box.querySelectorAll("a")];
+  const hide = () => {
+    box.hidden = true;
+    q.setAttribute("aria-expanded", "false");
+  };
 
-	let seq = 0;
-	async function render() {
-		const term = q.value.trim();
-		const mine = ++seq;
-		if (!term) { box.replaceChildren(); hide(); status.textContent = ''; return; }
-		const p = await load();
-		const res = await p.debouncedSearch(term, {}, 120);
-		if (res === null || mine !== seq) return; // superseded by a newer keystroke
-		const pages: Data[] = await Promise.all(res.results.slice(0, 5).map((r: any) => r.data()));
-		// one hit per section, like the ansi stand-in: Pagefind's sub_results are heading-level matches
-		const hits: Sub[] = pages.flatMap((d) => (d.sub_results?.length ? d.sub_results : [{ url: d.url, title: d.meta.title, excerpt: d.excerpt }])).slice(0, 8);
-		box.replaceChildren();
-		for (const h of hits) {
-			const a = document.createElement('a');
-			a.href = h.url;
-			const b = document.createElement('b'); b.textContent = h.title;
-			const s = document.createElement('span'); s.innerHTML = h.excerpt; // Pagefind escapes text and adds <mark>
-			a.append(b, s);
-			box.append(a);
-		}
-		if (!hits.length) {
-			const e = document.createElement('p'); e.className = 'empty';
-			e.textContent = 'nothing in these docs matches “' + term + '”.';
-			box.append(e);
-		}
-		box.hidden = false;
-		q.setAttribute('aria-expanded', 'true');
-		status.textContent = hits.length + (hits.length === 1 ? ' match' : ' matches');
-	}
+  let seq = 0;
+  async function render() {
+    const term = q.value.trim();
+    const mine = ++seq;
+    if (!term) {
+      box.replaceChildren();
+      hide();
+      status.textContent = "";
+      return;
+    }
+    const p = await load();
+    const res = await p.debouncedSearch(term, {}, 120);
+    if (res === null || mine !== seq) return; // superseded by a newer keystroke
+    const pages: Data[] = await Promise.all(res.results.slice(0, 5).map((r: any) => r.data()));
+    // one hit per section, like the ansi stand-in: Pagefind's sub_results are heading-level matches
+    const hits: Sub[] = pages
+      .flatMap((d) =>
+        d.sub_results?.length ? d.sub_results : [{ url: d.url, title: d.meta.title, excerpt: d.excerpt }],
+      )
+      .slice(0, 8);
+    box.replaceChildren();
+    for (const h of hits) {
+      const a = document.createElement("a");
+      a.href = h.url;
+      const b = document.createElement("b");
+      b.textContent = h.title;
+      const s = document.createElement("span");
+      s.innerHTML = h.excerpt; // Pagefind escapes text and adds <mark>
+      a.append(b, s);
+      box.append(a);
+    }
+    if (!hits.length) {
+      const e = document.createElement("p");
+      e.className = "empty";
+      e.textContent = "nothing in these docs matches “" + term + "”.";
+      box.append(e);
+    }
+    box.hidden = false;
+    q.setAttribute("aria-expanded", "true");
+    status.textContent = hits.length + (hits.length === 1 ? " match" : " matches");
+  }
 
-	form.addEventListener('submit', (e) => e.preventDefault());
-	q.setAttribute('aria-expanded', 'false');
-	q.addEventListener('input', render);
-	q.addEventListener('focus', () => { load(); if (q.value.trim()) render(); });
-	q.addEventListener('keydown', (e) => {
-		if (e.key === 'ArrowDown' && !box.hidden) { e.preventDefault(); links()[0]?.focus(); }
-		else if (e.key === 'Enter') { e.preventDefault(); links()[0]?.click(); }
-		else if (e.key === 'Escape') { if (q.value) { q.value = ''; render(); } else q.blur(); }
-	});
-	box.addEventListener('keydown', (e) => {
-		const all = links(), i = all.indexOf(document.activeElement as HTMLAnchorElement);
-		if (e.key === 'ArrowDown') { e.preventDefault(); all[Math.min(all.length - 1, i + 1)]?.focus(); }
-		else if (e.key === 'ArrowUp') { e.preventDefault(); if (i <= 0) q.focus(); else all[i - 1].focus(); }
-		else if (e.key === 'Escape') { q.focus(); hide(); }
-	});
-	box.addEventListener('click', (e) => { if ((e.target as Element).closest('a')) { hide(); q.blur(); } });
-	document.addEventListener('click', (e) => { if (!box.hidden && !form.contains(e.target as Node)) hide(); });
-	document.addEventListener('keydown', (e) => {
-		if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
-		const t = e.target as Element;
-		if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
-		e.preventDefault(); q.focus(); q.select();
-	});
+  form.addEventListener("submit", (e) => e.preventDefault());
+  q.setAttribute("aria-expanded", "false");
+  q.addEventListener("input", render);
+  q.addEventListener("focus", () => {
+    load();
+    if (q.value.trim()) render();
+  });
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" && !box.hidden) {
+      e.preventDefault();
+      links()[0]?.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      links()[0]?.click();
+    } else if (e.key === "Escape") {
+      if (q.value) {
+        q.value = "";
+        render();
+      } else q.blur();
+    }
+  });
+  box.addEventListener("keydown", (e) => {
+    const all = links(),
+      i = all.indexOf(document.activeElement as HTMLAnchorElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      all[Math.min(all.length - 1, i + 1)]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (i <= 0) q.focus();
+      else all[i - 1].focus();
+    } else if (e.key === "Escape") {
+      q.focus();
+      hide();
+    }
+  });
+  box.addEventListener("click", (e) => {
+    if ((e.target as Element).closest("a")) {
+      hide();
+      q.blur();
+    }
+  });
+  document.addEventListener("click", (e) => {
+    if (!box.hidden && !form.contains(e.target as Node)) hide();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target as Element;
+    if (t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    e.preventDefault();
+    q.focus();
+    q.select();
+  });
 </script>

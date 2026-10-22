@@ -1,35 +1,60 @@
 ---
-import { titleId } from '../title-id';
-import { sourceOf } from '../version';
+import { titleId } from "../title-id";
+import { sourceOf } from "../version";
 const route = Astro.locals.starlightRoute;
 const { toc, entry } = route;
 const id = titleId(route);
 const items = toc?.items ?? [];
 const source = sourceOf(Astro.url.pathname);
 ---
+
 {toc && (
-	<nav class="toc" aria-label="on this page">
-		<p class="navlabel pixel p11">on this page</p>
-		<ul>
-			{items.map((i) => <li><a href={`#${i.slug === '_top' ? id : i.slug}`}>{i.slug === '_top' ? entry.data.title : i.text}</a></li>)}
-		</ul>
-		{source && <p class="gh"><a href={source}>this page on github</a></p>}
-	</nav>
+  <nav class="toc" aria-label="on this page">
+    <p class="navlabel pixel p11">on this page</p>
+    <ul>
+      {items.map((i) => (
+        <li>
+          <a href={`#${i.slug === "_top" ? id : i.slug}`}>{i.slug === "_top" ? entry.data.title : i.text}</a>
+        </li>
+      ))}
+    </ul>
+    {source && (
+      <p class="gh">
+        <a href={source}>this page on github</a>
+      </p>
+    )}
+  </nav>
 )}
 <script>
-	// the ansi scroll spy: the last heading above the upper third, or the last one at the bottom of the page
-	const toc = new Map([...document.querySelectorAll<HTMLAnchorElement>('.toc a[href^="#"]')].map((a) => [decodeURIComponent(a.hash.slice(1)), a]));
-	const heads = [...toc.keys()].map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
-	let queued = false;
-	function mark() {
-		queued = false;
-		let cur = heads[0];
-		for (const h of heads) if (h.getBoundingClientRect().top <= innerHeight * 0.3) cur = h;
-		if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) cur = heads[heads.length - 1];
-		toc.forEach((a, id) => (id === cur.id ? a.setAttribute('aria-current', 'location') : a.removeAttribute('aria-current')));
-	}
-	if (heads.length) {
-		addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(mark); } }, { passive: true });
-		mark();
-	}
+  // the ansi scroll spy: the last heading above the upper third, or the last one at the bottom of the page
+  const toc = new Map(
+    [...document.querySelectorAll<HTMLAnchorElement>('.toc a[href^="#"]')].map((a) => [
+      decodeURIComponent(a.hash.slice(1)),
+      a,
+    ]),
+  );
+  const heads = [...toc.keys()].map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+  let queued = false;
+  function mark() {
+    queued = false;
+    let cur = heads[0];
+    for (const h of heads) if (h.getBoundingClientRect().top <= innerHeight * 0.3) cur = h;
+    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) cur = heads[heads.length - 1];
+    toc.forEach((a, id) =>
+      id === cur.id ? a.setAttribute("aria-current", "location") : a.removeAttribute("aria-current"),
+    );
+  }
+  if (heads.length) {
+    addEventListener(
+      "scroll",
+      () => {
+        if (!queued) {
+          queued = true;
+          requestAnimationFrame(mark);
+        }
+      },
+      { passive: true },
+    );
+    mark();
+  }
 </script>
