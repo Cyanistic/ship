@@ -1,5 +1,10 @@
 # Ship agent guide
 
+<!--
+Scope: Steps for an agent setting Ship up for a person: install, terminal setup, first run, agents, and only the configuration the person asks for.
+Not here: feature reference (link the page that covers it), anything beyond installing, configuring and using Ship.
+-->
+
 You are helping a person install and set up Ship, a terminal workspace for running several coding agents at once. A background server owns tabs, panes and the programs in them; `ship` opens a window onto that server; agents report their state and show up in a sidebar. Work through the steps below in order, and treat the person as the decision maker: ask before you install anything, edit a file or stop a server.
 
 Every page of these docs has a plain markdown copy. [llms.txt](https://shipmux.dev/llms.txt) lists them all. Read a page before you explain the feature it covers, and quote the docs rather than your memory of other multiplexers: Ship's keys, config and CLI are its own.

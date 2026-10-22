@@ -1,5 +1,10 @@
 # Panes
 
+<!--
+Scope: Splitting, moving between, zooming and closing panes, and what happens when a pane's program exits.
+Not here: scrolling and copying (scrolling-copying-and-the-mouse.md), driving panes from scripts (scripting/).
+-->
+
 Every pane runs a program in its own terminal, your shell unless you say otherwise. When a program exits, its pane stays open with its output so you can read what happened. Close it with `alt-shift-x`.
 
 | Key | Does |

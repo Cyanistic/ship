@@ -1,5 +1,10 @@
 # Tabs
 
+<!--
+Scope: Nested tabs, the sidebar tree, and the tab keys.
+Not here: keeping tabs across restarts (saved-tabs.md).
+-->
+
 Tabs can hold panes, other tabs, or both, so a big task can keep its smaller pieces underneath it. The sidebar on the left shows the tree. `▾` marks an open tab and `▸` a folded one. A tab without a name is labeled with its first pane's directory.
 
 | Key | Does |

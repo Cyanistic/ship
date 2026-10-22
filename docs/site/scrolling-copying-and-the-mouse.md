@@ -1,5 +1,10 @@
 # Scrolling, copying and the mouse
 
+<!--
+Scope: Scrolling, selecting and copying, clicking and dragging, and right-click menus.
+Not here: changing the menus (configuration.md).
+-->
+
 ## Scrolling
 
 `alt-pageup` and `alt-pagedown` scroll a page at a time, and the mouse wheel scrolls whatever pane it's over. An `[offset/history]` marker shows how far up you are. New output doesn't pull you back down, but typing does. Each pane keeps about 10 MB of history.

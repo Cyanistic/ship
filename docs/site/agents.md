@@ -1,5 +1,10 @@
 # Agents
 
+<!--
+Scope: How agents show up: the sidebar entry and its states, sounds and notifications, and what to check when a status looks wrong.
+Not here: agent settings (configuration.md), driving agents from scripts (scripting/).
+-->
+
 Agents report their own state using [OSC 7501, the Program Status Protocol](https://www.superlogical.com/rex/docs/build/program-status). Claude Code, Codex, Pi and crush already do, so they work with no setup. Ship has no list of agents to update; anything that speaks the protocol shows up.
 
 Each reporting agent gets an entry in the lower half of the sidebar:

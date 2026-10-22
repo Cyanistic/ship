@@ -1,5 +1,10 @@
 # Windows and the server
 
+<!--
+Scope: The window and server split, starting and stopping the server, and using Ship on another machine.
+Not here: saved tabs (saved-tabs.md), the HTTP protocol (openspec/specs/).
+-->
+
 Ship runs in two parts. A background server owns your tabs, panes and the programs in them. Running `ship` opens a window onto that server. Closing the window, or pressing `alt-q`, leaves everything running, and running `ship` again brings you back.
 
 The first `ship` starts the server for you. It restores your [saved tabs](saved-tabs.md), or opens one tab with a shell if there's nothing to restore. `ship server status` tells you whether a server is running, and `ship server stop` shuts it down, ending every program inside.

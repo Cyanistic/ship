@@ -64,9 +64,15 @@ const rawUrl = (slug) => `${prefix}/${slug || "index"}.md`;
 
 const parse = (text) => fromMarkdown(text, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] });
 
+// each page says what it covers, for whoever edits it next (docs/agents/docs.md); readers never see it
+const SCOPE = /^<!--\s*Scope:[\s\S]*?-->\n+/m;
+
 const pages = new Map(); // path -> { slug, title, text, tree }
 for (const p of files) {
-  const text = readFileSync(join(src, p), "utf8");
+  const source = readFileSync(join(src, p), "utf8");
+  if (!SCOPE.test(source))
+    throw new Error(`${p}: needs a "<!-- Scope: ... -->" comment after its title, see docs/agents/docs.md`);
+  const text = source.replace(SCOPE, "");
   const tree = parse(text);
   const h1 = tree.children.find((n) => n.type === "heading" && n.depth === 1);
   if (!h1) throw new Error(`${p}: a page starts with a "# Title" heading`);

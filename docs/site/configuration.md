@@ -1,5 +1,10 @@
 # Configuration
 
+<!--
+Scope: The config file: where it lives, then server, client and agent settings, keys, modes and menus, each with a short example.
+Not here: what each default key does (keys.md), every setting and value (`ship config defaults` prints them).
+-->
+
 Ship reads `~/.config/ship/config.toml`, or `ship/config.toml` under `$XDG_CONFIG_HOME`. Without one, it uses its defaults. `ship config defaults` prints them all, with what each setting accepts:
 
 ```console

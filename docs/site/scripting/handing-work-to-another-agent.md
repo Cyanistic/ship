@@ -1,5 +1,10 @@
 # Handing work to another agent
 
+<!--
+Scope: The loop for one agent starting another, giving it a task, waiting and reading the answer.
+Not here: each command's full options (`--help`).
+-->
+
 This is the loop for one agent starting another, giving it a task and reading the answer:
 
 ```sh

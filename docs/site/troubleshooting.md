@@ -1,5 +1,10 @@
 # Troubleshooting
 
+<!--
+Scope: Where the logs are, raising the log level, and recording a timeline for a bug report.
+Not here: fixes for one feature's problems, which go on that feature's page.
+-->
+
 ## Logs
 
 The server writes logs to `~/.local/state/ship/logs/43179/` (under `$XDG_STATE_HOME` if set). To follow along:

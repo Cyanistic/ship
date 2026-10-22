@@ -1,5 +1,10 @@
 # Typing into a pane
 
+<!--
+Scope: Typing text and pressing keys in a pane with `ship pane send`.
+Not here: waiting for the answer (handing-work-to-another-agent.md).
+-->
+
 `ship pane send` types text and presses keys, as if you typed them:
 
 ```sh

@@ -1,5 +1,10 @@
 # Keys
 
+<!--
+Scope: Every default key, the resize and tabs modes, and the mouse, one line each.
+Not here: how to rebind (configuration.md), how scrolling and selection behave (scrolling-copying-and-the-mouse.md).
+-->
+
 All of Ship's default keys are Alt chords. Any other key goes to the program in the selected pane.
 
 > [!NOTE]

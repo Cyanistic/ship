@@ -1,5 +1,10 @@
 # Reading command errors
 
+<!--
+Scope: The JSON error a failing command prints, and how a script reads and branches on it.
+Not here: what each error means for a person at the keyboard.
+-->
+
 When a command fails, its last stderr line is a JSON error and it exits 1, with nothing on stdout. Logs can come before that line. Capture stderr and read the error with `jq`:
 
 ```sh

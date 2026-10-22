@@ -1,3 +1,8 @@
+<!--
+Scope: People deciding whether to try Ship: what it is and why, an honest split between what works and what isn't built, installation, and links into the guide.
+Not here: keys, configuration and CLI walkthroughs (docs/site/).
+-->
+
 <div align="center">
 <img src="website/public/marks/app-large.svg" height="216" width="216" alt="A pixel sailing ship with three crewmates on deck">
 

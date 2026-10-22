@@ -1,5 +1,10 @@
 # Shell completions
 
+<!--
+Scope: Loading `ship completions` in each supported shell.
+Not here: the commands themselves (`ship --help`).
+-->
+
 `ship completions <shell>` prints a script that lets your shell tab-complete Ship's commands, flags and fixed values. It supports bash, zsh, fish, elvish and PowerShell. Load it from your shell's startup file:
 
 ```sh

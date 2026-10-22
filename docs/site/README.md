@@ -1,5 +1,10 @@
 # Overview
 
+<!--
+Scope: A first session: install, first run, the few keys for day one, a taste of the CLI, and the link lists that make up the site's sidebar.
+Not here: the full key list (keys.md), settings (configuration.md), anything a first session can skip.
+-->
+
 Ship is a terminal multiplexer, like tmux or Zellij, except it treats coding agents as first-class citizens instead of just another program in a pane. Your shells and agents run on a background server, so they keep going after you close the window, and agents that support the [Program Status Protocol](https://www.superlogical.com/rex/docs/build/program-status) show up in the sidebar as working, waiting on you or done. Everything is also a `ship` command that prints JSON, so agents can open panes and hand work to each other. [Agents](agents.md) and [Handing work to another agent](scripting/handing-work-to-another-agent.md) show what both look like.
 
 Ship is a work in progress and has no releases yet. The [README](../../README.md#what-works-today) lists what works today and what isn't built yet.
