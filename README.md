@@ -6,9 +6,7 @@
 [Overview](#overview) •
 [What works today](#what-works-today) •
 [Installation](#installation) •
-[Keys](#keys) •
-[Configuration](#configuration) •
-[Guide](docs/site/README.md) •
+[Docs](#docs) •
 [License](#license)
 
 </div>
@@ -60,16 +58,15 @@ The name started as a joke about shipping software faster, and the ship and crew
 
 ## What works today
 
-- **Detaching.** A background server owns your terminals. Close the window or press `alt-q` to detach, and everything keeps running until you come back.
-- **Saved tabs.** After a server restart or reboot, your tabs, splits and directories come back with fresh shells. Programs, agent conversations and scrollback aren't restored.
-- **Agent status.** Agents that speak the Program Status Protocol get a sidebar entry showing whether they're working, blocked, finished unseen or idle, and their tabs show it too. A sound plays when one finishes or needs you while you're looking at something else, and `alt-a` jumps to it.
-- **Nested tabs.** A tab can hold its own tabs, so a big task can keep its smaller ones together. The sidebar shows the tree, and you can fold the parts you aren't looking at or drag rows to reorder and nest tabs.
-- **Split panes.** Split, zoom, swap and resize from the keyboard, or drag shared borders to resize. New splits open in the directory you were working in.
-- **Several windows.** Attach from more than one terminal at once. Each one picks its own tab and pane, and the work underneath is shared.
-- **Scrollback and copy.** Scroll back through a pane's history, and drag to select and copy text.
-- **A CLI that prints JSON.** Everything the server does is also a `ship` command, so scripts and agents can create panes, read output and change which tab and pane a specific window has selected.
-- **Handing work to another agent.** `ship pane send` types a prompt or keys into a pane, and `ship pane wait` blocks until the agent there stops working, so one agent can give another a task and read the answer.
-- **Custom keys and menus.** Rebind anything, build tmux-style prefix modes, and change the right-click menus for panes, tabs and the sidebar. Programs that use the mouse can get right-clicks instead of Ship's menu, per pane. Config changes apply when you save.
+- **Detaching.** Close the window or press `alt-q` and everything keeps running until you come back. [More](docs/site/windows-and-the-server.md)
+- **Saved tabs.** After a restart, your tabs, splits and directories come back with fresh shells. [More](docs/site/saved-tabs.md)
+- **Agent status.** Agents that speak the Program Status Protocol show in the sidebar, with a sound when one needs you. [More](docs/site/agents.md)
+- **Nested tabs.** A tab can hold its own tabs, and the sidebar shows them as a tree you can fold. [More](docs/site/tabs.md)
+- **Split panes.** Split, zoom, swap and resize from the keyboard or the mouse. [More](docs/site/panes.md)
+- **Several windows.** Attach from more than one terminal, each looking at its own tab. [More](docs/site/windows-and-the-server.md)
+- **Scrollback and copy.** Scroll back through a pane's history and drag to copy. [More](docs/site/scrolling-copying-and-the-mouse.md)
+- **A CLI that prints JSON.** Scripts and agents can do anything you can do from the keyboard. [More](docs/site/scripting/README.md)
+- **Custom keys and menus.** Rebind anything, build tmux-style prefix modes, and change the right-click menus. [More](docs/site/configuration.md)
 
 Linux and macOS are the priority platforms. Windows is best effort.
 
@@ -98,76 +95,18 @@ cd ship
 cargo install --path crates/ship
 ```
 
-Run `ship`. It starts a server in the background if one isn't running, restores its saved tabs, and opens on the first tab's first pane. With nothing to restore, it creates a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back. `ship server stop` shuts the server down and ends every program in it.
+Run `ship`. It starts a server in the background if one isn't running, restores its saved tabs, and opens on the first tab's first pane. With nothing to restore, it creates a tab with your shell. Press `alt-q` to detach; the server and everything in it keeps running, and `ship` brings you back.
 
 On macOS, set your terminal to use Option as Alt (often called "Option as Meta"), or Ship's keys will type special characters instead.
 
-### A quick look at the CLI
+## Docs
 
-Leave `ship` open in one terminal and try this from another:
-```sh
-$ TAB=$(ship tab create --name demo | jq -r .id)
-$ PANE=$(ship pane create --tab "$TAB" -- sh -c 'seq 100' | jq -r .id)
-$ ship pane read --pane "$PANE" | tail -3
-98
-99
-100
-$ ship tab close --tab "$TAB"
-```
+The [guide](docs/site/README.md) starts with the keys you need for a first session and a short CLI demo, and goes from there. Some pages you'll probably want early on:
 
-The demo tab shows up in the sidebar as soon as you create it and goes away when you close it. Inside a Ship pane you can leave out `--tab` and `--pane`, since commands default to the pane they run in. The [guide](docs/site/README.md) walks through the rest, and `ship --help` lists every command.
-
-## Keys
-
-All of Ship's default keys are Alt chords. Any other key goes to the program in the selected pane.
-
-| Key | Does |
-| --- | --- |
-| `alt-n` | New tab with a shell |
-| `alt-shift-n` | New tab nested under the current one |
-| `alt-x` | Close the tab |
-| `alt-\|` / `alt--` | Split the pane right / down |
-| `alt-shift-x` | Close the pane |
-| `alt-left` / `alt-right` | Previous / next tab |
-| `alt-h` / `alt-j` / `alt-k` / `alt-l` | Move to the pane left, below, above or right |
-| `alt-tab` | Next pane in the tab |
-| `alt-a` | Jump to the next agent that needs you |
-| `alt-shift-h` / `j` / `k` / `l` | Swap the pane with its neighbor in that direction |
-| `alt-f` | Zoom the pane to fill the tab, or unzoom |
-| `alt-r` | Resize mode (below) |
-| `alt-g` | Tabs mode (below) |
-| `alt-b` | Hide or show the sidebar |
-| `alt-pageup` / `alt-pagedown` | Scroll the pane up / down a page |
-| `alt-q` | Detach |
-
-In resize mode, `h` / `j` / `k` / `l` move the pane's edge, `shift-h` / `shift-l` resize the sidebar and `shift-j` / `shift-k` move the line between tabs and agents. In tabs mode, `j` / `k` move between tabs and `h` / `l` fold and unfold. `esc` leaves either mode.
-
-The mouse works too: click a pane, a tab or an agent to select it, scroll with the wheel, drag to select and copy text, drag pane borders and the sidebar's dividers to resize, and drag sidebar rows to move tabs. Right-click for actions, or click `≡` beside `tabs` for the global menu.
-
-## Configuration
-
-Ship reads `~/.config/ship/config.toml` (or `$XDG_CONFIG_HOME/ship/config.toml`). Without one, it uses its defaults. A running client picks up changes as soon as you save.
-
-```toml
-[server]
-shell = "/bin/bash"            # default: your login shell
-
-[client]
-sidebar_width = 40
-
-[client.modes.normal.keys]
-"alt-q"  = {}                                     # alt-q reaches the program
-"ctrl-b" = { action = { client.mode = "prefix" } } # tmux habits
-
-[client.modes.prefix]
-kind = "oneshot"                               # back to normal after one key
-
-[client.modes.prefix.keys]
-"c"      = { action = { server.tab.create = { starter = "shell", select = true } } }
-"ctrl-b" = { action = { client.send = "ctrl-b" } }  # a literal ctrl-b for the pane
-```
-
-`ship config check` points at the first mistake in the file, with its line and column. The [guide](docs/site/configuration.md) covers every setting, custom modes and how key actions map onto CLI commands.
+- [All the keys](docs/site/keys.md)
+- [Configuration](docs/site/configuration.md)
+- [Scripting Ship](docs/site/scripting/README.md)
+- [Troubleshooting](docs/site/troubleshooting.md)
 
 ## License
 

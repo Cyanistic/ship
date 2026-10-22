@@ -34,7 +34,23 @@ All of Ship's default keys are Alt chords, and any other key goes to the program
 | `alt-x` | Close the tab |
 | `alt-q` | Detach |
 
-[Tabs](tabs.md) and [Panes](panes.md) list the rest, and [Configuration](configuration.md#keys-and-modes) shows how to rebind them.
+That's all you need for now. [Keys](keys.md) lists the rest when you want them.
+
+## Try the CLI
+
+Leave `ship` open in one terminal and try this from another:
+
+```sh
+$ TAB=$(ship tab create --name demo | jq -r .id)
+$ PANE=$(ship pane create --tab "$TAB" -- sh -c 'seq 100' | jq -r .id)
+$ ship pane read --pane "$PANE" | tail -3
+98
+99
+100
+$ ship tab close --tab "$TAB"
+```
+
+The demo tab shows up in the sidebar as soon as you create it and goes away when you close it. Inside a Ship pane you can leave out `--tab` and `--pane`, since commands default to the pane they run in. [Scripting Ship](scripting/README.md) picks up from here.
 
 ## Let your agent set you up
 
@@ -48,13 +64,19 @@ Agents that want the whole map can start from [llms.txt](https://shipmux.dev/llm
 
 ## Guides
 
-This picks up where the [README](../../README.md) leaves off. The examples assume `ship` is on your `PATH` and [`jq`](https://jqlang.org) is installed. `ship --help`, or `--help` on any command, lists every option.
+These cover day-to-day use, roughly in the order you'll run into things. The examples assume `ship` is on your `PATH` and [`jq`](https://jqlang.org) is installed.
 
 - [Windows and the server](windows-and-the-server.md)
 - [Tabs](tabs.md)
 - [Panes](panes.md)
 - [Scrolling, copying and the mouse](scrolling-copying-and-the-mouse.md)
 - [Agents](agents.md)
+- [Keys](keys.md)
+
+## When you need them
+
+You can skip these until something sends you looking. `ship --help`, or `--help` on any command, lists every option.
+
 - [Saved tabs](saved-tabs.md)
 - [Configuration](configuration.md)
 - [Shell completions](shell-completions.md)
