@@ -77,4 +77,4 @@ For tmux habits, the prefix-mode example on the Configuration page is the starti
 
 ## When something goes wrong
 
-[Troubleshooting](troubleshooting.md) has the log locations and how to raise the log level. Before upgrading Ship, stop the server with the old binary (`ship server stop`), as [Upgrading](upgrading.md) explains; that ends every program in it, so confirm with the person first.
+[Troubleshooting](troubleshooting.md) has the log locations and how to raise the log level.

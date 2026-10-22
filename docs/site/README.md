@@ -81,7 +81,6 @@ You can skip these until something sends you looking. `ship --help`, or `--help`
 - [Configuration](configuration.md)
 - [Shell completions](shell-completions.md)
 - [Troubleshooting](troubleshooting.md)
-- [Upgrading](upgrading.md)
 
 ## Scripting
 
