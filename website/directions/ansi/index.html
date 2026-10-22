@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ship: staying afloat in an ocean of slop</title>
+<meta name="description" content="ship is a small terminal workspace that gives you and your coding agents somewhere steady to work.">
+<link rel="icon" href="marks/avatar.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+<a class="skip" href="#sky">skip to the content</a>
+<header class="bar">
+  <div class="bar-in">
+    <a class="home" href="#sky"><img class="px" src="marks/app.svg" width="32" height="32" alt=""><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the top</span></a>
+    <nav aria-label="main">
+      <ul>
+        <li><a href="docs.html">docs</a></li>
+        <li><a href="#install">install</a></li>
+        <li><a href="#keys">keys</a></li>
+        <li><a href="#config">config</a></li>
+        <li><a href="https://github.com/shipmux/ship">github</a></li>
+      </ul>
+    </nav>
+    <details class="places">
+      <summary><span class="lab">places</span> <span class="here" data-here>sky · top</span> <span class="caret" aria-hidden="true"></span></summary>
+      <ol>
+        <li><a href="#sky"><span class="nau">sky</span><span class="pl">top</span></a></li>
+        <li><a href="#deck"><span class="nau">deck</span><span class="pl">what works today</span></a></li>
+        <li><a href="#waterline"><span class="nau">waterline</span><span class="pl">why ship</span></a></li>
+        <li><a href="#below-deck"><span class="nau">below deck</span><span class="pl">how it works</span></a></li>
+        <li><a href="#hold"><span class="nau">the hold</span><span class="pl">install, keys, config</span></a></li>
+        <li><a href="#seabed"><span class="nau">seabed</span><span class="pl">start here</span></a></li>
+      </ol>
+    </details>
+  </div>
+</header>
+
+<main>
+
+<!-- sky and crow's nest -->
+<section class="sky" id="sky" aria-labelledby="title">
+  <div class="sky-art" aria-hidden="true">
+    <img class="cloud a px art" style="--w:51;--h:22" src="art/cloud.svg" alt="">
+    <img class="cloud b px art" style="--w:34;--h:18" src="art/cloud-b.svg" alt="">
+    <img class="cloud c px art" style="--w:23;--h:15" src="art/cloud-c.svg" alt="">
+    <span class="gull g1"></span><span class="gull g2"></span><span class="gull g3"></span>
+  </div>
+  <div class="hero">
+    <div class="hero-text">
+      <h1 id="title" class="pixel p66"><span class="nb">staying afloat</span> <span class="nb">in an ocean</span> <span class="nb">of slop</span></h1>
+      <p class="lede">ship is a small terminal workspace that gives you and your coding agents somewhere steady to work while everyone else keeps shipping more slop.</p>
+      <div class="install-quick">
+        <div class="term cmd">
+          <button class="copy" type="button" data-copy="git clone https://github.com/shipmux/ship.git&#10;cd ship &amp;&amp; cargo install --path crates/ship">copy</button>
+<pre><span class="t-prompt">$ </span>git clone https://github.com/shipmux/ship.git
+<span class="t-prompt">$ </span>cd ship &amp;&amp; cargo install --path crates/ship</pre>
+        </div>
+        <p>there are no releases yet, so ship builds from source with rust and zig 0.16. linux and macos come first, and windows is best effort.</p>
+        <div class="links"><a href="docs.html">read the docs</a><a href="https://github.com/shipmux/ship">see it on github</a></div>
+      </div>
+    </div>
+    <div class="rig">
+      <div class="mast" aria-hidden="true"></div>
+      <div class="mast-foot" aria-hidden="true"></div>
+      <div class="ratlines" aria-hidden="true"></div>
+      <div class="nest" aria-hidden="true">
+        <img class="px art" style="--w:44;--h:48" src="art/crows-nest.svg" alt="">
+        <span class="act a-spyglass"></span>
+        <i class="eyes" style="--x:13;--y:20;animation-delay:-2s"></i>
+      </div>
+      <figure class="board">
+        <div class="term" role="img" aria-label="ship's agents list: codex blocked, claude error, pi unseen, claude working, crush idle">
+          <div class="head">─ agents ─────────────</div>
+          <ul aria-hidden="true">
+            <li><span class="s-blocked">▲</span> codex blocked<span class="tab">ship › api</span></li>
+            <li><span class="s-error">✖</span> claude error<span class="tab">ship › release</span></li>
+            <li><span class="s-unseen">◆</span> pi unseen<span class="tab">docs › guide</span></li>
+            <li><span class="s-working">●</span> claude working<span class="tab">site</span></li>
+            <li><span class="s-idle">○</span> crush idle<span class="tab">notes</span></li>
+          </ul>
+        </div>
+        <figcaption>from the crow's nest, the lookout watches ship's agent list, with the ones that need you sorted to the top. drawn by hand to match the real sidebar.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- deck -->
+<section class="deck" id="deck" aria-labelledby="deck-title">
+  <div class="mast deckpiece" aria-hidden="true"></div>
+  <div class="ratlines deckpiece" aria-hidden="true"></div>
+  <div class="deck-in">
+    <h2 id="deck-title" class="pixel p33"><span class="place">deck</span> what works today</h2>
+    <p class="intro">there are no releases yet, but a build from source does all of this today. linux and macos are the priority platforms, and windows is best effort.</p>
+    <ul class="works">
+      <li><h3 class="pixel p22">work that keeps running</h3><p>a background server owns your terminals. close the window or press <code>alt-q</code> to detach, and everything keeps running until you come back.</p></li>
+      <li><h3 class="pixel p22">saved tabs</h3><p>after a server restart or reboot, your tabs, splits and directories come back with fresh shells. programs, agent conversations and scrollback do not resume.</p></li>
+      <li><h3 class="pixel p22">agent status</h3><p>agents that report their state, like claude code, codex and pi, get a sidebar entry showing whether they're working, blocked, finished unseen or idle, and their tabs show it too. a sound plays when one finishes or needs you while you're looking elsewhere, and <code>alt-a</code> jumps to it.</p></li>
+      <li><h3 class="pixel p22">tabs inside tabs</h3><p>tabs can nest, so a big task can hold its own smaller ones. a sidebar shows the tree. fold the parts you aren't looking at, or drag rows to reorder and nest tabs.</p></li>
+      <li><h3 class="pixel p22">split panes</h3><p>split, zoom, swap and resize from the keyboard, or drag shared borders to resize. new splits open in the directory you were working in.</p></li>
+      <li><h3 class="pixel p22">more than one window</h3><p>attach from several terminals at once. each one picks its own tab and pane, while the work underneath is shared.</p></li>
+      <li><h3 class="pixel p22">scrollback and copy</h3><p>scroll back through a pane's history, and drag to select and copy text.</p></li>
+      <li><h3 class="pixel p22">a scriptable cli</h3><p>server actions are also <code>ship</code> commands that print json, so scripts and agents can create panes, read output and steer a specific client's selection.</p></li>
+      <li><h3 class="pixel p22">agents driving agents</h3><p><code>ship pane send</code> types a prompt or keys into a pane, and <code>ship pane wait</code> blocks until the agent there stops working, so one agent can hand work to another and read the answer.</p></li>
+      <li><h3 class="pixel p22">your keys and menus</h3><p>rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. let mouse-aware programs have right-clicks per pane. config changes apply when you save.</p></li>
+    </ul>
+
+    <aside class="notyet" aria-labelledby="notyet-title">
+      <h3 id="notyet-title" class="pixel p22">not built yet</h3>
+      <ul>
+        <li>releases and packages.</li>
+        <li>searching a pane's history, and a keyboard copy mode. for now, <code>ship pane read --lines N | grep ...</code> covers search.</li>
+        <li>resuming agent conversations or rerunning programs after a restart. saved tabs come back with fresh shells.</li>
+        <li>closing a pane automatically when its program exits.</li>
+        <li>connecting to another machine's server directly. the server only accepts local connections for now, so <a href="https://github.com/shipmux/ship/blob/main/docs/guide.md#using-ship-on-another-machine">use an ssh tunnel</a>.</li>
+        <li>testing on linux. most features have only been checked on macos so far.</li>
+      </ul>
+    </aside>
+
+    <p class="crew-note">the crew below stand in for agents. each plate shows the glyph and the word ship would show for that state.</p>
+  </div>
+
+  <div class="stagewrap">
+    <div class="rail-far tile" style="--tw:12;--th:14" aria-hidden="true"></div>
+    <div class="stage">
+      <ul class="crew">
+        <li class="prop"><img class="px art" style="--w:12;--h:14" src="art/barrel.svg" alt=""><img class="px art" style="--w:14;--h:14" src="art/crate.svg" alt=""></li>
+        <li class="member">
+          <span class="act a-error" aria-hidden="true"></span>
+          <p class="plate"><span class="g s-error" aria-hidden="true">✖</span> error<span class="role">lookout</span></p>
+        </li>
+        <li class="member">
+          <span class="act a-blocked" aria-hidden="true"></span>
+          <p class="plate"><span class="g s-blocked" aria-hidden="true">▲</span> blocked<span class="role">navigator</span></p>
+        </li>
+        <li class="member">
+          <span class="act a-working" aria-hidden="true"></span>
+          <p class="plate"><span class="g s-working" aria-hidden="true">●</span> working<span class="role">deckhand</span></p>
+        </li>
+        <li class="prop"><img class="px art" style="--w:10;--h:7" src="art/bucket.svg" alt=""><img class="px art" style="--w:16;--h:8" src="art/rope-coil.svg" alt=""></li>
+        <li class="member">
+          <span class="act a-unseen" aria-hidden="true"></span>
+          <p class="plate"><span class="g s-unseen" aria-hidden="true">◆</span> unseen<span class="role">cook</span></p>
+        </li>
+        <li class="member">
+          <span class="act a-idle" aria-hidden="true"></span>
+          <p class="plate"><span class="g s-idle" aria-hidden="true">○</span> idle<span class="role">captain</span></p>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="planks tile" style="--tw:48;--th:18" aria-hidden="true"></div>
+  <div class="hull tile" style="--tw:16;--th:14" aria-hidden="true"></div>
+</section>
+
+<!-- waterline -->
+<section class="waterline" id="waterline" aria-labelledby="waterline-title">
+  <div class="waves back tile" style="--tw:16;--th:4" aria-hidden="true"></div>
+  <div class="waves tile" style="--tw:16;--th:5" aria-hidden="true"></div>
+  <div class="shade" aria-hidden="true"><i class="d1"></i><i class="s1"></i><i class="d2"></i></div>
+  <div class="slop" aria-hidden="true">
+    <div>delve into ~ seamless ~ in today's fast-paced world ~ let's dive in ~ robust and scalable ~ game-changing ~ unlock ~ elevate your workflow ~ delve into ~ seamless</div>
+    <div>it's not just a tool, it's a mindset ~ 10x ~ here's the kicker ~ leverage ~ revolutionize ~ cutting-edge ~ streamline ~ empower ~ a testament to</div>
+    <div>as an ai language model ~ synergy ~ best-in-class ~ the future of work ~ blazingly ~ supercharge ~ effortless ~ next-generation ~ delve into</div>
+    <div>seamless ~ unlock the power of ~ a rich tapestry ~ robust ~ game-changer ~ let's unpack this ~ in conclusion ~ elevate ~ seamless ~ 10x</div>
+    <div>here's the thing ~ it's worth noting ~ holistic ~ paradigm ~ harness ~ cutting-edge ~ streamline ~ delve ~ empower ~ effortless ~ synergy</div>
+    <div>revolutionize ~ next-level ~ in today's landscape ~ unleash ~ seamless ~ robust ~ the ultimate ~ let's dive in ~ 10x ~ a testament to</div>
+    <div>supercharge ~ unlock ~ delve into ~ game-changing ~ best-in-class ~ it's not just x, it's y ~ elevate your workflow ~ seamless</div>
+    <div>as an ai language model ~ holistic ~ leverage ~ synergy ~ in conclusion ~ empower ~ blazingly ~ streamline ~ unleash ~ delve</div>
+  </div>
+  <div class="flotsam" aria-hidden="true">
+    <img class="px art f1" style="--w:7;--h:10" src="art/bottle.svg" alt="">
+    <img class="px art f2" style="--w:18;--h:12" src="art/float-sign.svg" alt="">
+    <img class="px art f3" style="--w:16;--h:10" src="art/buoy.svg" alt="">
+    <img class="px art f4" style="--w:18;--h:4" src="art/float-plank.svg" alt="">
+  </div>
+  <div class="deepwater" aria-hidden="true">
+    <span class="fish s1 art" style="--w:12;--h:6"></span><span class="fish s2 art" style="--w:12;--h:6"></span><span class="fish s3 art" style="--w:12;--h:6"></span>
+    <img class="bubble px art b1" style="--w:3;--h:3" src="art/bubble.svg" alt=""><img class="bubble px art b2" style="--w:3;--h:3" src="art/bubble.svg" alt=""><img class="bubble px art b3" style="--w:3;--h:3" src="art/bubble.svg" alt="">
+  </div>
+  <div class="water-in">
+    <div class="water-copy">
+      <h2 id="waterline-title" class="pixel p33"><span class="place">waterline</span> <span class="nb">the ocean of slop</span> <span class="plain">why ship</span></h2>
+      <p>this is the water everyone else keeps shipping into: readmes that promise everything, pull requests nobody read to the end, and features that exist because generating them was cheaper than deciding not to.</p>
+      <p>ship can't drain it, and it doesn't try. it keeps your shells, editors and agents in tabs and panes on a server that stays up after the window closes, and it tells you which agent is working, which one is stuck on a question and which one finished while you were looking somewhere else, so whatever you send out is something you actually looked at.</p>
+    </div>
+    <figure class="placeholder" aria-label="placeholder for a terminal recording">
+      <span class="label">placeholder · not a recording</span>
+      <p>a VHS recording of a real ship session goes here. until it exists, this frame holds a hand-drawn sketch of the layout.</p>
+      <div class="mock" aria-hidden="true">
+        <div class="side"> tabs          ≡
+ ▾ ship        <span class="s-blocked">▲</span>
+     api       <span class="s-blocked">▲</span>
+     site      <span class="s-working">●</span>
+ ▸ notes
+
+─ agents ─────────
+ <span class="s-blocked">▲</span> codex blocked
+ ship › api
+ <span class="s-working">●</span> claude working
+ site</div>
+        <div class="pane">$ cargo test
+   Compiling ship-core
+   Running 214 tests
+   ...
+</div>
+      </div>
+    </figure>
+  </div>
+  <div class="seafloor-dither" aria-hidden="true"><i class="d1"></i><i class="s1"></i></div>
+</section>
+
+<!-- below deck -->
+<section class="below" id="below-deck" aria-labelledby="below-title">
+  <div class="bulkhead tile" style="--tw:64;--th:24" aria-hidden="true"></div>
+  <div class="below-in">
+    <div class="below-head">
+      <h2 id="below-title" class="pixel p33"><span class="place">below deck</span> how it works</h2>
+      <p class="intro">ship runs in two parts, a server that owns the work and windows that look at it, and the rooms below follow from that.</p>
+    </div>
+
+    <article class="floor">
+      <div class="room" aria-hidden="true">
+        <span class="act a-galley"></span>
+        <i class="eyes" style="--x:11;--y:36;animation-delay:-1s"></i>
+        <span class="steam art" style="--w:9;--h:14;left:calc(38*var(--px));top:calc(10*var(--px))"></span>
+      </div>
+      <div class="floor-text">
+        <h3 class="pixel p22">a server that stays up</h3>
+        <p>a background server owns your tabs, panes and the programs in them. running <code>ship</code> opens a window onto that server, and closing the window, or pressing <code>alt-q</code>, leaves everything running until you run <code>ship</code> again.</p>
+        <p>you can open ship from several terminals at once. the windows share the work, the same tabs, programs and output, but each picks its own tab and pane, folds its own sidebar and keeps its own mode. <code>ship server stop</code> ends the server and every program inside it.</p>
+      </div>
+      <figure class="floor-fig">
+        <div class="term dg" role="img" aria-label="three windows above one server. two windows are attached, each on its own tab. the third was closed with alt-q, shown dashed. the server below holds four panes and keeps running either way.">
+          <div class="dg-wins" aria-hidden="true">
+            <div class="dg-win"><b>window</b><span>ship › api</span></div>
+            <div class="dg-win"><b>window</b><span>docs › guide</span></div>
+            <div class="dg-win gone"><b>window</b><span>closed with alt-q</span></div>
+          </div>
+          <div class="dg-server" aria-hidden="true">
+            <b class="dg-label">server</b>
+            <div class="dg-panes">
+              <div class="dg-pane"><span class="t-prompt">$ </span>cargo test</div>
+              <div class="dg-pane"><span class="s-blocked">▲</span> codex</div>
+              <div class="dg-pane"><span class="s-working">●</span> claude</div>
+              <div class="dg-pane"><span class="t-prompt">$ </span>nvim</div>
+            </div>
+          </div>
+        </div>
+        <figcaption>a window is a view. the work lives on the server, so closing a window ends none of it.</figcaption>
+      </figure>
+    </article>
+    <div class="beam tile" style="--tw:16;--th:6" aria-hidden="true"></div>
+
+    <article class="floor">
+      <div class="room" aria-hidden="true">
+        <span class="act a-chart"></span>
+        <i class="eyes" style="--x:13;--y:36;animation-delay:-4s"></i>
+      </div>
+      <div class="floor-text">
+        <h3 class="pixel p22">tabs and panes</h3>
+        <p>tabs can hold panes, other tabs, or both, so a big task can keep its smaller pieces underneath it, and the sidebar on the left shows the tree. a new split opens in the directory you were working in, and a program that exits leaves its pane open with its output so you can read what happened.</p>
+        <p>agents that report their state get an entry in the lower half of the sidebar, with the ones that need you sorted to the top. tabs show the most urgent icon from anything inside them, so a blocked agent stays visible even in a folded tab.</p>
+      </div>
+      <figure class="floor-fig">
+        <div class="term ui" role="img" aria-label="a sketch of ship's layout: a sidebar with a tree of tabs and a list of agents, and three panes, one running cargo test, one with claude waiting on a question and one with nvim">
+          <div class="ui-side" aria-hidden="true"><pre> tabs          ≡
+ ▾ ship        <span class="s-blocked">▲</span>
+     api       <span class="s-blocked">▲</span>
+     site      <span class="s-working">●</span>
+ ▸ notes
+
+ ─ agents ─────
+ <span class="s-blocked">▲</span> claude blocked
+ ship › api
+ <span class="s-working">●</span> codex working
+ site</pre></div>
+          <div class="ui-main" aria-hidden="true">
+            <div class="ui-pane sel"><pre><span class="t-prompt">$ </span>cargo test
+   Compiling
+   ...</pre></div>
+            <div class="ui-pane"><pre>claude
+Apply changes?
+<span class="t-h">❯ yes</span>   no</pre></div>
+            <div class="ui-pane"><pre><span class="t-prompt">$ </span>nvim notes.md</pre></div>
+          </div>
+        </div>
+        <figcaption>a hand-drawn sketch of the layout, not a recording. the selected pane has the cyan border.</figcaption>
+      </figure>
+    </article>
+    <div class="beam tile" style="--tw:16;--th:6" aria-hidden="true"></div>
+
+    <article class="floor">
+      <div class="room" aria-hidden="true">
+        <span class="act a-telegraph"></span>
+        <i class="eyes" style="--x:11;--y:36;animation-delay:-5s"></i>
+      </div>
+      <div class="floor-text">
+        <h3 class="pixel p22">a cli that prints json</h3>
+        <p>anything you can do with keys you can also do with <code>ship</code> commands. they print json and take explicit ids, so a script never acts on whichever pane you happen to have selected, and inside a ship pane the commands default to the pane they run in.</p>
+      </div>
+      <figure class="floor-fig">
+        <div class="term cmd">
+          <button class="copy" type="button" data-copy="TAB=$(ship tab create --name demo | jq -r .id)&#10;PANE=$(ship pane create --tab &quot;$TAB&quot; -- sh -c 'seq 100' | jq -r .id)&#10;ship pane read --pane &quot;$PANE&quot; --lines 5&#10;ship tab close --tab &quot;$TAB&quot;">copy</button>
+<pre><span class="t-prompt">$ </span>TAB=$(ship tab create --name demo | jq -r .id)
+<span class="t-prompt">$ </span>PANE=$(ship pane create --tab "$TAB" -- sh -c <span class="t-s">'seq 100'</span> | jq -r .id)
+<span class="t-prompt">$ </span>ship pane read --pane "$PANE" --lines 5
+96
+97
+98
+99
+100
+<span class="t-prompt">$ </span>ship tab close --tab "$TAB"</pre>
+        </div>
+        <figcaption>the new tab shows up in the sidebar as soon as it exists. <code>ship --help</code> lists every command.</figcaption>
+      </figure>
+    </article>
+    <div class="beam tile" style="--tw:16;--th:6" aria-hidden="true"></div>
+
+    <article class="floor">
+      <div class="room" aria-hidden="true">
+        <span class="act a-handoff"></span>
+        <i class="eyes" style="--x:11;--y:24;animation-delay:-3s"></i>
+      </div>
+      <div class="floor-text">
+        <h3 class="pixel p22">agents driving agents</h3>
+        <p><code>ship pane send</code> types a prompt or keys into a pane, and <code>ship pane wait</code> blocks until the agent there stops working. that is enough for one agent to start another, give it a task and read the answer.</p>
+        <p><code>--wait</code> returns once the agent has stopped working, and the state it prints says how the turn ended: <code>done</code> or <code>idle</code> means it finished, and <code>blocked</code> means it is asking you something. this works with any program that reports its status.</p>
+      </div>
+      <figure class="floor-fig">
+        <div class="term cmd">
+          <button class="copy" type="button" data-copy="TAB=$(ship tab create --name workers | jq -r .id)&#10;WORKER=$(ship pane create --tab &quot;$TAB&quot; --name worker -- claude | jq -r .id)&#10;ship pane wait --pane &quot;$WORKER&quot;&#10;ship pane send --pane &quot;$WORKER&quot; &quot;Write a haiku about ships&quot; --key enter --wait \&#10;  | jq -r '.program[&quot;&quot;].state'&#10;ship pane read --pane &quot;$WORKER&quot; --lines 40">copy</button>
+<pre><span class="t-prompt">$ </span>TAB=$(ship tab create --name workers | jq -r .id)
+<span class="t-prompt">$ </span>WORKER=$(ship pane create --tab "$TAB" --name worker -- claude | jq -r .id)
+<span class="t-prompt">$ </span>ship pane wait --pane "$WORKER"  <span class="t-c"># until it's ready</span>
+<span class="t-prompt">$ </span>ship pane send --pane "$WORKER" <span class="t-s">"Write a haiku about ships"</span> --key enter --wait \
+    | jq -r <span class="t-s">'.program[""].state'</span>
+<span class="t-prompt">$ </span>ship pane read --pane "$WORKER" --lines 40</pre>
+        </div>
+        <figcaption>one agent starting another and reading what it said.</figcaption>
+      </figure>
+    </article>
+  </div>
+  <div class="beam tile last" style="--tw:16;--th:6" aria-hidden="true"></div>
+</section>
+
+<!-- the hold -->
+<section class="hold" id="hold" aria-labelledby="hold-title">
+  <div class="hold-in">
+    <div class="hold-head">
+      <div>
+        <h2 id="hold-title" class="pixel p33"><span class="place">the hold</span> install, keys and config</h2>
+        <p class="intro">the practical part: how to build it, which keys do what and where the settings live, with links into the docs for the rest.</p>
+      </div>
+      <div class="room hold-room" aria-hidden="true">
+        <span class="act a-hold"></span>
+        <i class="eyes" style="--x:11;--y:36;animation-delay:-6s"></i>
+      </div>
+    </div>
+
+    <div class="cargo">
+      <section class="crate-col" id="install" aria-labelledby="install-title">
+        <h3 id="install-title" class="pixel p22">install</h3>
+        <p>there are no releases yet, so ship builds from source. you need:</p>
+        <ul class="needs">
+          <li>a recent stable <a href="https://www.rust-lang.org/tools/install">rust toolchain</a></li>
+          <li><a href="https://ziglang.org/download/">zig</a> 0.16 on your <code>PATH</code>, to build ghostty's terminal library</li>
+          <li><code>git</code> and a network connection on the first build, which fetches ghostty's source</li>
+          <li>on linux, <code>pkg-config</code> and alsa's development headers for sound (<code>libasound2-dev</code> on debian and ubuntu, <code>alsa-lib-devel</code> on fedora)</li>
+        </ul>
+        <div class="term cmd">
+          <button class="copy" type="button" data-copy="git clone https://github.com/shipmux/ship.git&#10;cd ship&#10;cargo install --path crates/ship">copy</button>
+<pre><span class="t-prompt">$ </span>git clone https://github.com/shipmux/ship.git
+<span class="t-prompt">$ </span>cd ship
+<span class="t-prompt">$ </span>cargo install --path crates/ship</pre>
+        </div>
+        <p>run <code>ship</code>. it starts a server in the background if one isn't running, restores its saved tabs, and opens on the first tab's first pane. press <code>alt-q</code> to detach, and <code>ship</code> brings you back.</p>
+        <p class="note">on macos, set your terminal to use option as alt, often called "option as meta", or ship's keys will type special characters instead.</p>
+        <p class="hold-links"><a href="docs.html">read the docs</a><a href="https://github.com/shipmux/ship/blob/main/docs/guide.md">the full guide on github</a><a href="https://github.com/shipmux/ship">ship on github</a></p>
+      </section>
+
+      <section class="crate-col" id="keys" aria-labelledby="keys-title">
+        <h3 id="keys-title" class="pixel p22">keys</h3>
+        <p>all of ship's default keys are alt chords, and any other key goes to the program in the selected pane.</p>
+        <table class="keys">
+          <caption class="sr-only">default keys</caption>
+          <tbody>
+            <tr><th scope="row"><kbd>alt-n</kbd></th><td>new tab with a shell</td></tr>
+            <tr><th scope="row"><kbd>alt-shift-n</kbd></th><td>new tab nested under the current one</td></tr>
+            <tr><th scope="row"><kbd>alt-x</kbd></th><td>close the tab</td></tr>
+            <tr><th scope="row"><kbd>alt-|</kbd> <kbd>alt--</kbd></th><td>split the pane right or down</td></tr>
+            <tr><th scope="row"><kbd>alt-shift-x</kbd></th><td>close the pane</td></tr>
+            <tr><th scope="row"><kbd>alt-left</kbd> <kbd>alt-right</kbd></th><td>previous or next tab</td></tr>
+            <tr><th scope="row"><kbd>alt-h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></th><td>move to the pane left, below, above or right</td></tr>
+            <tr><th scope="row"><kbd>alt-tab</kbd></th><td>next pane in the tab</td></tr>
+            <tr><th scope="row"><kbd>alt-a</kbd></th><td>jump to the next agent that needs you</td></tr>
+            <tr><th scope="row"><kbd>alt-shift-h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd></th><td>swap the pane with its neighbor in that direction</td></tr>
+            <tr><th scope="row"><kbd>alt-f</kbd></th><td>zoom the pane to fill the tab, or unzoom</td></tr>
+            <tr><th scope="row"><kbd>alt-r</kbd></th><td>resize mode: <kbd>h</kbd> <kbd>j</kbd> <kbd>k</kbd> <kbd>l</kbd> move the pane's edge, <kbd>esc</kbd> leaves</td></tr>
+            <tr><th scope="row"><kbd>alt-g</kbd></th><td>tabs mode: <kbd>j</kbd> <kbd>k</kbd> move, <kbd>h</kbd> <kbd>l</kbd> fold or unfold, <kbd>esc</kbd> leaves</td></tr>
+            <tr><th scope="row"><kbd>alt-b</kbd></th><td>hide or show the sidebar</td></tr>
+            <tr><th scope="row"><kbd>alt-pageup</kbd> <kbd>alt-pagedown</kbd></th><td>scroll the pane up or down a page</td></tr>
+            <tr><th scope="row"><kbd>alt-q</kbd></th><td>detach</td></tr>
+          </tbody>
+        </table>
+        <p>the mouse works too: click a pane, a tab or an agent to select it, scroll with the wheel, drag to select and copy text, and drag borders and sidebar rows to resize and move things. right-click for actions.</p>
+      </section>
+
+      <section class="crate-col" id="config" aria-labelledby="config-title">
+        <h3 id="config-title" class="pixel p22">config</h3>
+        <p>ship reads <code>~/.config/ship/config.toml</code>, or <code>$XDG_CONFIG_HOME/ship/config.toml</code>. without one it uses its defaults, and a running window picks up changes as soon as you save.</p>
+        <div class="term cmd">
+<pre tabindex="0" aria-label="config example, scrolls sideways if it is wide"><span class="t-h">[server]</span>
+<span class="t-k">shell</span> = <span class="t-s">"/bin/bash"</span>   <span class="t-c"># default: your login shell</span>
+
+<span class="t-h">[client]</span>
+<span class="t-k">sidebar_width</span> = <span class="t-n">40</span>
+
+<span class="t-h">[client.modes.normal.keys]</span>
+<span class="t-s">"alt-q"</span>  = {}  <span class="t-c"># alt-q reaches the program</span>
+<span class="t-s">"ctrl-b"</span> = { <span class="t-k">action</span> = { <span class="t-k">client.mode</span> = <span class="t-s">"prefix"</span> } }
+<span class="t-c"># tmux habits</span>
+
+<span class="t-h">[client.modes.prefix]</span>
+<span class="t-k">kind</span> = <span class="t-s">"oneshot"</span>   <span class="t-c"># back to normal after one key</span>
+
+<span class="t-h">[client.modes.prefix.keys]</span>
+<span class="t-s">"c"</span>      = { <span class="t-k">action</span> = { <span class="t-k">server.tab.create</span> = { <span class="t-k">starter</span> = <span class="t-s">"shell"</span>, <span class="t-k">select</span> = true } } }
+<span class="t-s">"ctrl-b"</span> = { <span class="t-k">action</span> = { <span class="t-k">client.send</span> = <span class="t-s">"ctrl-b"</span> } }</pre>
+        </div>
+        <p><code>ship config check</code> points at the first mistake in the file, with its line and column.</p>
+        <p class="more"><a href="docs.html#configuration">every setting, custom modes and menus in the docs</a></p>
+      </section>
+    </div>
+  </div>
+  <div class="pile" aria-hidden="true"><img class="px art" style="--w:64;--h:40" src="art/pile.svg" alt=""></div>
+  <div class="pile pile-s" aria-hidden="true"><img class="px art" style="--w:40;--h:28" src="art/pile-small.svg" alt=""></div>
+  <div class="floor-boards planks tile" style="--tw:48;--th:18" aria-hidden="true"></div>
+</section>
+
+<!-- seabed -->
+<section class="seabed" id="seabed" aria-labelledby="seabed-title">
+  <div class="water">
+    <div class="keel tile" style="--tw:48;--th:16" aria-hidden="true"></div>
+    <div class="cable" aria-hidden="true"><i></i><img class="px art" style="--w:16;--h:14" src="art/anchor.svg" alt=""></div>
+    <div class="seabed-in">
+      <h2 id="seabed-title" class="pixel p66"><span class="place">seabed</span> run a tight ship</h2>
+      <div class="install-final">
+        <div class="term cmd">
+          <button class="copy" type="button" data-copy="git clone https://github.com/shipmux/ship.git&#10;cd ship &amp;&amp; cargo install --path crates/ship">copy</button>
+<pre><span class="t-prompt">$ </span>git clone https://github.com/shipmux/ship.git
+<span class="t-prompt">$ </span>cd ship &amp;&amp; cargo install --path crates/ship</pre>
+        </div>
+        <p>builds from source with rust and zig 0.16. linux and macos come first, and windows is best effort.</p>
+        <div class="links"><a href="docs.html">read the docs</a><a href="https://github.com/shipmux/ship">see it on github</a></div>
+      </div>
+    </div>
+    <div class="reef" aria-hidden="true">
+      <span class="kelp k1 art" style="--w:9;--h:30"></span><span class="kelp k2 art" style="--w:9;--h:30"></span><span class="kelp k3 art" style="--w:9;--h:30"></span>
+      <img class="px art rocks" style="--w:26;--h:11" src="art/rocks.svg" alt="">
+      <img class="px art starfish" style="--w:11;--h:9" src="art/starfish.svg" alt="">
+      <span class="crab art" style="--w:16;--h:9"></span>
+      <span class="fish s4 art" style="--w:12;--h:6"></span><span class="fish s5 art" style="--w:12;--h:6"></span>
+      <div class="diver"><i class="hose"></i><span class="act a-diver"></span></div>
+      <img class="bubble px art b4" style="--w:3;--h:3" src="art/bubble.svg" alt=""><img class="bubble px art b5" style="--w:3;--h:3" src="art/bubble.svg" alt=""><img class="bubble px art b6" style="--w:3;--h:3" src="art/bubble.svg" alt="">
+    </div>
+  </div>
+  <div class="sand tile" style="--tw:32;--th:14" aria-hidden="true"></div>
+  <footer class="foot">
+    <p>ship is licensed under the <a href="https://github.com/shipmux/ship/blob/main/LICENSE">gnu general public license v3.0 or later</a>. it is a work in progress.</p>
+    <nav aria-label="footer"><a href="docs.html">docs</a><a href="#install">install</a><a href="#keys">keys</a><a href="#config">config</a><a href="https://github.com/shipmux/ship">github</a><a href="#sky">back to the sky</a></nav>
+  </footer>
+</section>
+
+</main>
+<script src="js/site.js" defer></script>
+</body>
+</html>
