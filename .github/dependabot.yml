@@ -9,6 +9,10 @@ updates:
     groups:
       cargo:
         patterns: ["*"]
+    ignore:
+      # ship-macros moves to syn 3 once the macro crates it's built with do
+      - dependency-name: syn
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
