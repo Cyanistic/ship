@@ -1,0 +1,9 @@
+# Ship config for the demo recording. Sounds off so a take doesn't play
+# notification sounds on the recording machine.
+[client]
+# Narrower than the default 26 so the agent panes get the columns.
+sidebar_width = 23
+
+[client.agents.sounds.default]
+done = "off"
+attention = "off"

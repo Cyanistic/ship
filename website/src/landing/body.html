@@ -176,27 +176,9 @@
       <p>this is the water everyone else keeps shipping into: readmes that promise everything, pull requests nobody read to the end, and features that exist because generating them was cheaper than deciding not to.</p>
       <p>ship can't drain it, and it doesn't try. it keeps your shells, editors and agents in tabs and panes on a server that stays up after the window closes, and it tells you which agent is working, which one is stuck on a question and which one finished while you were looking somewhere else, so whatever you send out is something you actually looked at.</p>
     </div>
-    <figure class="placeholder" aria-label="placeholder for a terminal recording">
-      <span class="label">placeholder · not a recording</span>
-      <p>a VHS recording of a real ship session goes here. until it exists, this frame holds a hand-drawn sketch of the layout.</p>
-      <div class="mock" aria-hidden="true">
-        <div class="side"> tabs          ≡
- ▾ ship        <span class="s-blocked">▲</span>
-     api       <span class="s-blocked">▲</span>
-     site      <span class="s-working">●</span>
- ▸ notes
-
-─ agents ─────────
- <span class="s-blocked">▲</span> codex blocked
- ship › api
- <span class="s-working">●</span> claude working
- site</div>
-        <div class="pane">$ cargo test
-   Compiling ship-core
-   Running 214 tests
-   ...
-</div>
-      </div>
+    <figure class="recording">
+      <video src="demo/waterline.webm" poster="demo/waterline.png" width="1920" height="1080" muted loop playsinline controls preload="metadata" aria-label="a ship session: claude code and pi work side by side in nested tabs, claude stops on a permission question and the sidebar marks it blocked, the window detaches and reattaches with both agents still working"></video>
+      <figcaption>a real ship session, recorded in CI for each release. claude code and pi run on openrouter's free models, so every take comes out a little different.</figcaption>
     </figure>
   </div>
   <div class="seafloor-dither" aria-hidden="true"><i class="d1"></i><i class="s1"></i></div>

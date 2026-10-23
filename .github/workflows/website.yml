@@ -58,10 +58,64 @@ jobs:
       - run: pnpm build
         working-directory: website
 
+  # Records the demo videos (website/tapes) with real Claude Code and pi on OpenRouter's free models. Only
+  # releases and manual runs record. Takes vary from run to run, and a take that fails falls back to the copy
+  # already on the site (see the build job).
+  demo:
+    name: Record the demo videos
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # record.sh builds ship, which needs the toolchain from rust-toolchain.toml and Zig for libghostty-vt-sys.
+      # No Rust or Zig cache in a job whose output is published.
+      - run: rustup toolchain install
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+          use-cache: false
+      - run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev
+      # with no tape path it only installs VHS, ttyd, ffmpeg and JetBrains Mono, which the tapes use
+      - uses: charmbracelet/vhs-action@f6d7db07a432fcd3b06772628d36a57f96d95dcf # v2.1.1
+        with:
+          version: v0.12.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      # claude and pi at the versions website/tapes/package-lock.json pins; a new agent version can change
+      # what a take looks like
+      - run: |
+          npm ci
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+        working-directory: website/tapes
+      - name: Record waterline
+        continue-on-error: true
+        run: OUT="$RUNNER_TEMP/demo" website/tapes/record.sh waterline.tape --openrouter
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - name: Record relay
+        continue-on-error: true
+        run: OUT="$RUNNER_TEMP/demo" website/tapes/record.sh relay.tape --openrouter
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: demo
+          path: |
+            ${{ runner.temp }}/demo/*.webm
+            ${{ runner.temp }}/demo/*.png
+          if-no-files-found: ignore
+
   # One Astro build per docs version, merged into a single folder for Pages.
   build:
     name: Build the versioned site
-    if: github.event_name != 'pull_request'
+    # after demo, or without it when it is skipped (pushes) or fails
+    needs: demo
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -82,6 +136,25 @@ jobs:
       # origin/main, not main: a release or manual run may have no local main branch
       - run: node scripts/build-versions.mjs .. dist --main origin/main
         working-directory: website
+      # the demo job's takes, when this run recorded any
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: demo
+          path: ${{ runner.temp }}/demo
+      # Renders are never committed, so each file comes from this run's take or else from the live site.
+      - name: Add the demo videos
+        working-directory: website
+        run: |
+          mkdir -p dist/demo
+          for f in waterline.webm waterline.png relay.webm relay.png; do
+            if [ -f "$RUNNER_TEMP/demo/$f" ]; then
+              cp "$RUNNER_TEMP/demo/$f" dist/demo/
+            elif ! curl -fsSLo "dist/demo/$f" "$SHIP_SITE_URL/demo/$f"; then
+              rm -f "dist/demo/$f"
+              echo "::warning::no $f: no take this run and none on the live site"
+            fi
+          done
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -89,7 +162,9 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    if: github.event_name != 'pull_request'
+    # Only main and releases publish. A manual run on another branch stops at the build job, whose Pages
+    # artifact can be downloaded to preview the site.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
     needs: build
     runs-on: ubuntu-24.04
     permissions:

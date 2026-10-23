@@ -88,4 +88,16 @@
     );
     document.querySelectorAll(".act").forEach((el) => watch.observe(el));
   }
+
+  // the recording loops on its own while it's on screen; with reduced motion, or without this script, it
+  // waits on its poster with controls
+  if (!reduce && "IntersectionObserver" in window) {
+    const reel = new IntersectionObserver((entries) =>
+      entries.forEach((en) => (en.isIntersecting ? en.target.play().catch(() => {}) : en.target.pause())),
+    );
+    document.querySelectorAll(".recording video").forEach((v) => {
+      v.controls = false;
+      reel.observe(v);
+    });
+  }
 })();

@@ -711,42 +711,20 @@ section[id] {
   margin: 0 0 18px;
   font-size: var(--t-lg);
 }
-.placeholder {
+.recording {
   margin: 0;
-  border: 3px dashed var(--c11);
+}
+.recording video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 3px solid var(--c8);
   background: var(--ink);
-  padding: 22px;
 }
-.placeholder .label {
-  font: 11px/22px var(--pixel);
-  color: var(--ink);
-  background: var(--c11);
-  display: inline-block;
-  padding: 0 8px;
-  margin-bottom: 14px;
-}
-.placeholder p {
-  margin: 0 0 14px;
+.recording figcaption {
+  margin-top: 10px;
   color: var(--c7);
   font-size: var(--t-md);
-}
-.mock {
-  font: var(--code-sm)/1.35 var(--code);
-  color: var(--c7);
-  display: grid;
-  grid-template-columns: 20ch 1fr;
-  border: 1px solid var(--c8);
-}
-.mock .side {
-  border-right: 1px solid var(--c8);
-  padding: 4px 8px;
-  white-space: pre;
-}
-.mock .pane {
-  padding: 4px 8px;
-  white-space: pre;
-  border: 2px solid var(--c6);
-  margin: 4px;
 }
 .seafloor-dither {
   position: absolute;
