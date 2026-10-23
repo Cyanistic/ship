@@ -117,6 +117,12 @@ mkdir -p "$ROOT"/xdg/{state,config,data,cache} "$ROOT/pi" "$ROOT/bin"
 chmod 700 "$ROOT" "$ROOT/pi"
 export XDG_STATE_HOME=$ROOT/xdg/state XDG_CONFIG_HOME=$ROOT/xdg/config \
   XDG_DATA_HOME=$ROOT/xdg/data XDG_CACHE_HOME=$ROOT/xdg/cache
+# On Linux, fontconfig finds user fonts under $XDG_DATA_HOME/fonts, so the
+# temp data dir would hide JetBrains Mono (vhs-action installs it into
+# ~/.local/share/fonts) and xterm.js would measure a wider fallback font.
+if [[ -d $HOME/.local/share/fonts ]]; then
+  ln -s "$HOME/.local/share/fonts" "$XDG_DATA_HOME/fonts"
+fi
 
 if [[ $PROXY_MODE == replay ]]; then
   # A fake login: pi only needs a JWT-shaped access token naming an account

@@ -103,5 +103,5 @@ Enter
 Wait+Screen@10s /alt-right to open one/
 Sleep 1s
 Alt+a
-Wait+Screen@10s /ship-demo\/harbor/
+Wait+Screen@10s /π - harbor|stub-agent/
 Sleep 3.5s
