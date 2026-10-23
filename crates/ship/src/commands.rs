@@ -7,13 +7,12 @@ use std::{
 
 use serde::Serialize;
 use ship_client::{Client, Outcome, Scope, keymap::ClientSettings};
-use ship_core::{command::Command, prelude::*, protocol::SelectView};
+use ship_core::{command::Command, config::ServerSettings, prelude::*, protocol::SelectView};
 
 use crate::{
     cli::{LogArgs, ViewCommand},
     diagnostics,
 };
-use ship_server::ServerSettings;
 
 use tokio::time::{Instant, sleep};
 

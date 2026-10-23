@@ -121,7 +121,9 @@ impl ServerState {
             };
             let input = PaneInput {
                 name: saved.name,
-                right_click_passthrough: saved.right_click_passthrough,
+                right_click_passthrough: Some(saved.right_click_passthrough),
+                exit_behavior: Some(saved.exit_behavior),
+                scrollback_bytes: Some(saved.scrollback_bytes),
                 spec: PaneSpec { command: None, cwd },
             };
             match self.start_pane(saved.id, Size::FALLBACK, input) {
@@ -322,14 +324,19 @@ impl ServerState {
     }
 
     /// Start before insertion; commit cleanup owns failed-edit teardown.
+    /// Settings absent from `input` take `[server.defaults.pane]`, read once.
     fn start_pane(&mut self, id: IdOf<Pane>, size: Size, input: PaneInput) -> Result<Pane> {
         let cwd = Self::pane_cwd(input.spec.cwd)?;
+        let defaults = self.pane_env.settings().defaults.pane;
+        let scrollback_bytes = input.scrollback_bytes.unwrap_or(defaults.scrollback_bytes);
         let Spawned { runtime, command } = pane::spawn(
             Launch {
                 pane: id,
                 command: input.spec.command,
                 cwd: cwd.clone(),
                 size,
+                shell: defaults.shell,
+                scrollback_bytes,
             },
             &self.pane_env,
             self.bus.clone(),
@@ -338,7 +345,11 @@ impl ServerState {
         Ok(Pane {
             id,
             name: input.name,
-            right_click_passthrough: input.right_click_passthrough,
+            right_click_passthrough: input
+                .right_click_passthrough
+                .unwrap_or(defaults.right_click_passthrough),
+            exit_behavior: input.exit_behavior.unwrap_or(defaults.exit_behavior),
+            scrollback_bytes,
             command,
             cwd: cwd.display().to_string(),
             dir: None,

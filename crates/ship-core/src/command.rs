@@ -245,7 +245,7 @@ pub mod pane {
     use super::{Direction, PaneTarget, TabTarget};
     use crate::{
         id::{Attachment, IdOf},
-        model::{Pane, ReportedState, Switch},
+        model::{ExitBehavior, Pane, ReportedState, Switch},
         protocol::{ScrollDirection, SplitDirection},
     };
 
@@ -302,9 +302,25 @@ pub mod pane {
         /// Pane name; omitted or blank means none
         #[cfg_attr(feature = "clap", arg(long))]
         pub name: Option<String>,
-        /// Give right-clicks on contents to a program that tracks the mouse
-        #[cfg_attr(feature = "clap", arg(long))]
-        pub right_click_passthrough: bool,
+        /// Give right-clicks on contents to a program that tracks the mouse;
+        /// defaults to the config's setting
+        #[cfg_attr(
+            feature = "clap",
+            arg(
+                long,
+                num_args = 0..=1,
+                require_equals = true,
+                default_missing_value = "true",
+                value_name = "true|false"
+            )
+        )]
+        pub right_click_passthrough: Option<bool>,
+        /// What happens when the program exits; defaults to the config's setting
+        #[cfg_attr(feature = "clap", arg(long, value_name = "close|keep|keep_failed"))]
+        pub exit_behavior: Option<ExitBehavior>,
+        /// Bytes of history to keep; defaults to the config's setting
+        #[cfg_attr(feature = "clap", arg(long, value_name = "BYTES"))]
+        pub scrollback_bytes: Option<usize>,
         /// Starting directory; defaults to the current directory
         #[cfg_attr(feature = "clap", arg(long))]
         pub cwd: Option<PathBuf>,

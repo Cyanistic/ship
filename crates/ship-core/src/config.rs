@@ -1,12 +1,15 @@
 //! The config file: one TOML file that the server and each client read their
 //! own part of, over the defaults in `defaults.toml`.
 
-use std::{fs, io, path::Path};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 use toml::de::{DeTable, DeValue, Deserializer};
 
-use crate::prelude::*;
+use crate::{model::ExitBehavior, prelude::*};
 
 /// Every default setting, key and menu, as a config file would write them.
 pub const DEFAULTS: &str = include_str!("defaults.toml");
@@ -39,6 +42,64 @@ pub fn defaults<T: DeserializeOwned>() -> T {
         Ok(defaults) => defaults,
         Err(error) => panic!("invalid defaults.toml: {error}"),
     }
+}
+
+/// `[server.defaults.pane]`: what a new pane starts with unless its create
+/// request says otherwise.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PaneDefaults {
+    /// Absent: the login shell. Relative paths resolve from the config file's folder.
+    pub shell: Option<PathBuf>,
+    pub scrollback_bytes: usize,
+    pub right_click_passthrough: bool,
+    pub exit_behavior: ExitBehavior,
+}
+
+/// `[server]`. The server reads it whenever a pane is created, never cached.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServerSettings {
+    pub defaults: ServerDefaults,
+}
+
+/// `[server.defaults]`.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServerDefaults {
+    pub pane: PaneDefaults,
+}
+
+/// `defaults.toml`'s.
+impl Default for ServerSettings {
+    fn default() -> Self {
+        defaults::<ServerRoot>().server
+    }
+}
+
+/// The file's top level as the server sees it: only `server`, with the
+/// client's part and any typo left to the client and `ship config check`.
+#[derive(Deserialize)]
+struct ServerRoot {
+    server: ServerSettings,
+}
+
+impl ServerSettings {
+    /// `server` from the file. A missing file is the defaults; a relative
+    /// `defaults.pane.shell` resolves from the file's folder (FR-005). Also
+    /// what `ship config check` runs.
+    pub fn load(path: &Path) -> Result<Self> {
+        let ServerRoot { mut server } = load(path)?;
+        if let (Some(shell), Some(folder)) = (&mut server.defaults.pane.shell, path.parent()) {
+            *shell = folder.join(&*shell);
+        }
+        Ok(server)
+    }
+}
+
+/// `defaults.toml`'s pane history size, for saved panes that lack one.
+pub fn builtin_scrollback_bytes() -> usize {
+    ServerSettings::default().defaults.pane.scrollback_bytes
 }
 
 /// The defaults that fill a file key by key. Keys are left out: the client

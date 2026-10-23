@@ -9,7 +9,6 @@ mod pane;
 mod records;
 mod routes;
 mod saver;
-mod settings;
 mod state;
 mod views;
 
@@ -34,7 +33,6 @@ use kameo::{
     mailbox,
 };
 use libghostty_vt::log::TracingLogger;
-pub use settings::ServerSettings;
 use ship_core::{
     LogChange, LogFilter,
     geometry::{PaneGeometry, TabGeometry},

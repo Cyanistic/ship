@@ -25,6 +25,7 @@ use ratatui_ghostty::{
     widget::CursorStyle,
 };
 use ship_core::{
+    config::ServerSettings,
     id::{Attachment, IdOf},
     model::{ExitStatus, Pane, StatusRecord},
     prelude::*,
@@ -41,7 +42,7 @@ use tokio_util::sync::{CancellationToken, DropGuard};
 use tracing::Instrument;
 use url::Url;
 
-use crate::{records::Records, settings::ServerSettings};
+use crate::records::Records;
 
 /// The shortest gap between two published screens of one pane.
 pub(crate) const FRAME: Duration = Duration::from_millis(4);
@@ -77,13 +78,16 @@ impl PaneRuntime {
     }
 }
 
-/// What to start. `command: None` is the configured shell, else the login
-/// shell, from portable-pty's `CommandBuilder::new_default_prog`.
+/// What to start. `command: None` is `shell`, else the login shell, from
+/// portable-pty's `CommandBuilder::new_default_prog`.
 pub(crate) struct Launch {
     pub pane: IdOf<Pane>,
     pub command: Option<Vec<String>>,
     pub cwd: PathBuf,
     pub size: Size,
+    /// From `[server.defaults.pane]`; only used when `command` is `None`.
+    pub shell: Option<PathBuf>,
+    pub scrollback_bytes: usize,
 }
 
 /// The environment every pane's program starts with, on top of what the
@@ -92,7 +96,7 @@ pub(crate) struct Launch {
 pub(crate) struct PaneEnv {
     server_url: String,
     bin: PathBuf,
-    /// Re-read for shell and history settings on every pane spawn.
+    /// Re-read for pane defaults on every pane create.
     config: PathBuf,
 }
 
@@ -107,8 +111,8 @@ impl PaneEnv {
         })
     }
 
-    /// A bad file leaves both the login shell and default history cap.
-    fn settings(&self) -> ServerSettings {
+    /// A bad file gives the built-in defaults and logs the error (FR-005).
+    pub(crate) fn settings(&self) -> ServerSettings {
         ServerSettings::load(&self.config).unwrap_or_else(|error| {
             tracing::warn!(%error, "using default server settings");
             ServerSettings::default()
@@ -233,9 +237,10 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
         command,
         cwd,
         size,
+        shell,
+        scrollback_bytes,
     } = launch;
     let size = terminal_size(size);
-    let settings = env.settings();
     let pty = native_pty_system()
         .openpty(PtySize {
             rows: size.rows,
@@ -271,7 +276,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     let dirty = Arc::new(Notify::new());
     let session = SessionHandle::spawn(
         SessionConfig {
-            scrollback_bytes: Some(settings.scrollback_bytes),
+            scrollback_bytes: Some(scrollback_bytes),
             render_on_request: true,
             ..Default::default()
         },
@@ -290,7 +295,7 @@ pub(crate) fn spawn(launch: Launch, env: &PaneEnv, bus: ActorRef<RelayBus>) -> R
     .map_err(|error| err!(Io, "cannot start the terminal", @external: error))?;
 
     let mut builder = match &command {
-        None => match settings.shell {
+        None => match shell {
             Some(shell) => {
                 // An explicit shell must fail rather than silently fall back
                 // through portable-pty's default-program resolution.

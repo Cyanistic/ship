@@ -129,6 +129,8 @@ impl Client {
                     direction,
                     name,
                     right_click_passthrough,
+                    exit_behavior,
+                    scrollback_bytes,
                     cwd,
                     command,
                     select,
@@ -151,6 +153,8 @@ impl Client {
                     let input = PaneInput {
                         name: name.into(),
                         right_click_passthrough,
+                        exit_behavior,
+                        scrollback_bytes,
                         spec: PaneSpec {
                             command: Some(command).filter(|command| !command.is_empty()),
                             cwd: cwd.map(|cwd| cwd.display().to_string()),

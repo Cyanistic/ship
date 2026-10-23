@@ -12,8 +12,8 @@ use uuid::Uuid;
 use crate::{
     command::Direction,
     id::{Attachment, IdOf},
-    model::{NodeId, OptionalName, Pane, Switch, Tab, tabs_schema},
-    screen::{Screen, Size, is_false},
+    model::{ExitBehavior, NodeId, OptionalName, Pane, Switch, Tab, tabs_schema},
+    screen::{Screen, Size},
     tree::Tabs,
 };
 
@@ -22,7 +22,7 @@ pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
 /// What a Ship server reports as `service` from `/health`.
 pub const SERVICE: &str = "ship";
-pub const PROTOCOL_VERSION: u32 = 14;
+pub const PROTOCOL_VERSION: u32 = 15;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -130,15 +130,19 @@ pub struct PaneSpec {
     pub cwd: Option<String>,
 }
 
-/// POST /panes input, flattened next to `at` and `direction`.
+/// POST /panes input, flattened next to `at` and `direction`. Absent
+/// settings take `[server.defaults.pane]`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PaneInput {
     #[serde(default)]
     pub name: OptionalName,
-    /// Start with right-click passthrough on.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub right_click_passthrough: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub right_click_passthrough: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_behavior: Option<ExitBehavior>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrollback_bytes: Option<usize>,
     #[serde(flatten)]
     pub spec: PaneSpec,
 }

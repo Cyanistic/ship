@@ -450,4 +450,9 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## Deviation log
 
-Empty.
+- Slice 1: ~~`config.rs` also has `PaneDefaults::builtin()`, which reads the table out of `defaults.toml`. `builtin_scrollback_bytes` calls it, so 10,000,000 is still written only in `defaults.toml`. The skeleton showed only `builtin_scrollback_bytes`.~~ Superseded by the next entry.
+- Slice 1: `ServerSettings`, `ServerDefaults` and their `load` moved from `ship-server/src/settings.rs` into `ship-core/src/config.rs`, and `settings.rs` is gone. Cyan approved the move in chat on 2026-10-23 ("give it a go! i like this better"). The file map's `settings.rs` entries (lines 16, 139 and 403) now refer to that code in `config.rs`. `Pane`'s serde default lives in core and couldn't reach the server's typed defaults before the move. `builtin_scrollback_bytes` now reads `ServerSettings::default()` instead of indexing `defaults.toml` by string. `ship config check` imports it from `ship_core`. The `[client]` half stays in `ship-client`.
+- Slice 5 targets: after the rebase onto main, `docs/guide.md` is split into pages under `docs/site/`, the README no longer has a config example, and the site's landing page repeats the README's "Not built yet" list and a `[server]` config example. The `README.md`/`docs/guide.md` entry above (Replaced) and its slice 5 checks now refer to the `docs/site/` pages and the landing page listed in tasks 5.1 and 5.2. FR-011's "guide" refers to those pages.
+- Slice 1: the `ExitBehavior` variants carry doc comments, so `ship pane create --help` lists what each value does. `closes()` waits for slice 3 as planned.
+- Slice 1: the `server.pane.create` key-binding fields were checked with `ship config check`, which parses them with the same struct, including a rejected bad value. A key press in the full-screen client was not tried.
+- Slice 1: the commented `shell` example in `defaults.toml` is `/bin/sh` instead of `/bin/zsh`, at Cyan's request, since every Unix system has it. It is only a comment: an unset shell is still the login shell.

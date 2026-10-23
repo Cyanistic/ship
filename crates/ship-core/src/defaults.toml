@@ -7,9 +7,11 @@
 # Copy only what you want to change into your config file; the rest keeps
 # following Ship's defaults as they change.
 
-[server]
-# shell = "/bin/zsh"                 # path, relative to the config file; unset: your login shell
-scrollback_bytes = 10_000_000        # bytes of history per pane, for panes started afterwards
+[server.defaults.pane]               # what new panes start with, unless created with other values
+# shell = "/bin/sh"                  # path, relative to the config file; unset: your login shell
+scrollback_bytes = 10_000_000        # bytes of history
+right_click_passthrough = false      # bool; give right-clicks to programs that track the mouse
+exit_behavior = "close"              # "close" | "keep" | "keep_failed": when the program exits
 
 [client]
 mouse = true                         # bool; capture the mouse
