@@ -17,7 +17,7 @@ use ship_core::{
 use ship_macros::traced;
 use tokio::{
     runtime::Handle,
-    sync::{mpsc, watch},
+    sync::{broadcast, mpsc, watch},
 };
 use tokio_stream::{StreamMap, wrappers::WatchStream};
 
@@ -57,7 +57,7 @@ impl Drop for AttachmentGuard {
             description = "Server-sent events whose `data:` lines are `SseEvent` JSON: \
                 `attached` first, then `state` for each newer replica and `screen` for each \
                 changed screen of a pane in the viewed tab, `clipboard` for text to copy, then \
-                `ended` when the server shuts down. Viewing a tab sends each of its panes' current screens."),
+                `ended` when the server shuts down or an every-revision stream falls behind. Viewing a tab sends each of its panes' current screens."),
         (status = 422, description = "Malformed selection or area"),
         (status = 503, body = AppError),
     ),
@@ -71,6 +71,14 @@ pub(crate) async fn attach(
         state: app.state.clone(),
     };
     let attachment = guard.attachment;
+    let replicas = match request.feed {
+        FeedMode::Latest => Feed::Latest(app.replicas.latest()),
+        FeedMode::Every => Feed::Every(
+            app.replicas
+                .every()
+                .ok_or_else(|| err!(Unavailable, "the server is shutting down"))?,
+        ),
+    };
     let attached = app
         .state
         .ask(Attach {
@@ -88,7 +96,7 @@ pub(crate) async fn attach(
     let mut progress = Progress {
         attachment,
         clipboard,
-        replicas: app.replicas.clone(),
+        replicas,
         live: app.live.clone(),
         replica: Arc::clone(&attached.replica),
         watching: StreamMap::new(),
@@ -121,7 +129,7 @@ struct Progress {
     /// Every pane's copies; this stream sends those addressed to it, and
     /// program writes in the panes it watches.
     clipboard: mpsc::UnboundedReceiver<Clipboard>,
-    replicas: watch::Receiver<Arc<Replica>>,
+    replicas: Feed,
     /// Holds every pane of a replica the stream has, because the state actor
     /// publishes it first.
     live: watch::Receiver<LivePanes>,
@@ -131,6 +139,29 @@ struct Progress {
     watching: StreamMap<IdOf<Pane>, WatchStream<Arc<Screen>>>,
 }
 
+enum Feed {
+    Latest(watch::Receiver<Arc<Replica>>),
+    Every(broadcast::Receiver<Arc<Replica>>),
+}
+
+impl Feed {
+    async fn next(&mut self) -> Result<Arc<Replica>, EndReason> {
+        match self {
+            Self::Latest(receiver) => {
+                receiver
+                    .changed()
+                    .await
+                    .map_err(|_| EndReason::ServerShutdown)?;
+                Ok(receiver.borrow_and_update().clone())
+            }
+            Self::Every(receiver) => receiver.recv().await.map_err(|error| match error {
+                broadcast::error::RecvError::Lagged(_) => EndReason::Lost,
+                broadcast::error::RecvError::Closed => EndReason::ServerShutdown,
+            }),
+        }
+    }
+}
+
 impl Progress {
     /// Waits for a newer replica or a watched screen. Replicas no newer than
     /// the one sent are skipped. A closed channel means shutdown.
@@ -138,9 +169,8 @@ impl Progress {
     async fn next(&mut self) -> Result<SseEvent, EndReason> {
         loop {
             tokio::select! {
-                changed = self.replicas.changed() => {
-                    changed.map_err(|_| EndReason::ServerShutdown)?;
-                    let replica = self.replicas.borrow_and_update().clone();
+                replica = self.replicas.next() => {
+                    let replica = replica?;
                     if replica.revision > self.replica.revision {
                         self.replica = Arc::clone(&replica);
                         self.view();

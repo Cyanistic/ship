@@ -9,21 +9,21 @@ use axum::{
     response::Response,
 };
 use kameo::actor::ActorRef;
-use ship_core::protocol::{REVISION_HEADER, Replica};
+use ship_core::protocol::REVISION_HEADER;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use ship_core::relay::RelayBus;
 
-use crate::{pane::LivePanes, state::ServerState};
+use crate::{pane::LivePanes, replicas::Replicas, state::ServerState};
 
 /// The one Axum state. Every handler extracts this; each actor ref is cheap to clone.
 #[derive(Clone)]
 pub struct AppState {
     pub state: ActorRef<ServerState>,
     pub bus: ActorRef<RelayBus>,
-    /// Latest published replica. Each SSE stream clones this receiver.
-    pub replicas: watch::Receiver<Arc<Replica>>,
+    /// Published replicas, with latest-only and every-revision subscriptions.
+    pub replicas: Replicas,
     /// Every running pane's handle. SSE streams find screens through it.
     pub(crate) live: watch::Receiver<LivePanes>,
     /// Cancelled by `POST /api/v0/server/stop`; shuts down like SIGTERM.

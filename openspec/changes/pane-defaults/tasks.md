@@ -25,9 +25,9 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 2. The every feed
 
-- [ ] 2.1 Add `crates/ship-server/src/replicas.rs` with `Replicas`, `ReplicaSink` and `RING = 256`, and wire it into `AppState`, `lib.rs`, the saver and `input.rs`.
-- [ ] 2.2 Add `FeedMode` and `AttachRequest.feed`, and `EndReason::Lost`, in `protocol.rs`. In `attach.rs`, build the `Feed` before the attach commit and handle `Lagged` as `Lost`.
-- [ ] 2.3 Make the client's `observe()` ask for `every` and `next()` report `Lost` as "fell behind the server while waiting on pane P". Add the `Lost` arm to the UI, handled as a dropped stream.
+- [x] 2.1 Add `crates/ship-server/src/replicas.rs` with `Replicas`, `ReplicaSink` and `RING = 256`, and wire it into `AppState`, `lib.rs`, the saver and `input.rs`.
+- [x] 2.2 Add `FeedMode` and `AttachRequest.feed`, and `EndReason::Lost`, in `protocol.rs`. In `attach.rs`, build the `Feed` before the attach commit and handle `Lagged` as `Lost`.
+- [x] 2.3 Make the client's `observe()` ask for `every` and `next()` report `Lost` as "fell behind the server while waiting on pane P". Add the `Lost` arm to the UI, handled as a dropped stream.
 - [ ] 2.4 Verify slice 2's checks: consecutive revisions on `every`, coalescing on the default feed, `lost` under a temporary `RING = 2` probe (then revert), and unchanged waits and UI.
 
 ## 3. Close on exit

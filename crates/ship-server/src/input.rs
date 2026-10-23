@@ -58,7 +58,7 @@ pub(crate) async fn input(
         Some(id) => app.state.ask(CheckAttachment(id)).await?,
         None => 0,
     };
-    let mut replicas = app.replicas.clone();
+    let mut replicas = app.replicas.latest();
     let body = StreamReader::new(body.into_data_stream().map_err(io::Error::other));
     let mut lines = FramedRead::new(body, LinesCodec::new_with_max_length(INPUT_LINE_MAX));
     loop {

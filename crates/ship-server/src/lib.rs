@@ -7,6 +7,7 @@ mod input;
 mod middleware;
 mod pane;
 mod records;
+mod replicas;
 mod routes;
 mod saver;
 mod state;
@@ -194,13 +195,13 @@ pub async fn serve(
         pane::PaneEnv::new(address, config)?,
         saved,
     );
-    let (replica_tx, replicas) = watch::channel(state.replica());
+    let (replicas, replica_sink) = replicas::Replicas::new(state.replica());
     // The starter is a saved change, so take the baseline before creating it.
-    let baseline = saver::project(&replicas.borrow().tabs);
+    let baseline = saver::project(&replicas.latest().borrow().tabs);
     let restored = !baseline.is_empty();
     let revision = state.written();
     bus.ask(relay::Subscribe::<Arc<Replica>> {
-        sink: Box::new(replica_tx),
+        sink: Box::new(replica_sink),
     })
     .await
     .map_err(|error| err!(Internal, "cannot subscribe replica stream", @external: error))?;
@@ -223,7 +224,7 @@ pub async fn serve(
     }
     let saver = tokio::spawn(
         saver::Saver::new(save, baseline)
-            .run(replicas.clone())
+            .run(replicas.latest())
             .instrument(tracing::info_span!(parent: None, "saver")),
     );
     let actors = (state.clone(), bus.clone());

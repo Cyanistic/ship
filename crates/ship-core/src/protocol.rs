@@ -278,6 +278,19 @@ pub struct AttachRequest {
     /// an observer, which has no screen and sizes no tab.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub area: Option<Size>,
+    #[serde(default)]
+    pub feed: FeedMode,
+}
+
+/// Which replicas an attach stream sends. Screens and clipboard are unchanged.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FeedMode {
+    /// The newest replica only; intermediate revisions may be skipped.
+    #[default]
+    Latest,
+    /// Every revision after the seed, in order; ends with `lost` on overflow.
+    Every,
 }
 
 /// PUT /attach/view body: the client's area only.
@@ -375,12 +388,14 @@ pub struct Ended {
     pub reason: EndReason,
 }
 
-/// Derived by each stream from the latest replica, never published.
+/// Why an attach stream ended.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EndReason {
     /// The server is shutting down. Reattaching may succeed later.
     ServerShutdown,
+    /// An every-revision stream fell behind the server's ring.
+    Lost,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
