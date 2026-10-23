@@ -100,7 +100,7 @@ Every place keeps a plain label next to its nautical one, so someone looking for
 - `assets/ship.svg`: the current logo, a tall sailing ship crewed by three little terminal crewmates. Treat it as the existing identity to evolve, not discard without reason.
 - `README.md` and `docs/site/`: real copy, keys, config and CLI examples.
 - The GitHub repo description already reads "staying afloat in an ocean of slop".
-- There are no screenshots, recordings, testimonials, user counts or press. Don't fabricate any. A VHS recording of the real terminal is planned; until then use a clearly marked placeholder.
+- There are no screenshots, testimonials, user counts or press. Don't fabricate any. The one recording is the waterline section's VHS take of a real session with real agents (`website/tapes/`), re-recorded in CI for each release and never committed; its caption says so.
 
 ## Product Principles
 

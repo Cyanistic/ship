@@ -1,0 +1,9 @@
+{
+  "name": "ship-demo-agents",
+  "private": true,
+  "description": "The agent versions the demo tapes are recorded with in CI",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.302",
+    "@earendil-works/pi-coding-agent": "1.3.0"
+  }
+}

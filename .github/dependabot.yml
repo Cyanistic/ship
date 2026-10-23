@@ -18,3 +18,13 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+  # the agents the demo tapes record with; review a bump by watching the next take
+  - package-ecosystem: npm
+    directory: /website/tapes
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      demo-agents:
+        patterns: ["*"]

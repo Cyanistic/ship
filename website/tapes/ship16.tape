@@ -1,0 +1,3 @@
+# Ship 16, the site's ANSI palette (--c0..--c15 in website/public/css/site.css).
+# Source this from a tape to record in the site's colors.
+Set Theme { "name": "Ship 16", "black": "#1c1a27", "red": "#e65a48", "green": "#3fae5a", "yellow": "#e2a52b", "blue": "#2f63cc", "magenta": "#c45cc4", "cyan": "#25b2c0", "white": "#d4ccb8", "brightBlack": "#5f5a75", "brightRed": "#ff7a68", "brightGreen": "#86d873", "brightYellow": "#ffd462", "brightBlue": "#79a4ff", "brightMagenta": "#f590e8", "brightCyan": "#7fe3ec", "brightWhite": "#fbf8f1", "background": "#1c1a27", "foreground": "#d4ccb8", "selection": "#5f5a75", "cursor": "#ffd462" }
