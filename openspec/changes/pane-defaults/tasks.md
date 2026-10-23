@@ -32,9 +32,11 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## 3. Close on exit
 
-- [ ] 3.1 Add `ExitBehavior::closes`, and in the `PaneEvent` handler commit the exit and then, when it closes, the close as `Remove<Pane>` does.
-- [ ] 3.2 Add `exit_behavior` to `SetPane` and `pane::Set`, applied in the `Set<Pane>` handler and passed through in `execute.rs`.
-- [ ] 3.3 Verify slice 3's checks: `exit` closes a split and a lone pane, `keep` stays and reads back, `wait --status exited` on a closing pane prints the status, a plain wait fails with the exit code, `keep_failed` for code 0, code 3 and a signal, and `set --exit-behavior` on running and exited panes from the CLI and a key binding.
+- [x] 3.1 Add `ExitBehavior::closes`, and in the `PaneEvent` handler commit the exit and then, when it closes, the close as `Remove<Pane>` does.
+- [x] 3.2 Add `exit_behavior` to `SetPane` and `pane::Set`, applied in the `Set<Pane>` handler and passed through in `execute.rs`.
+- [x] 3.3 Verify slice 3's checks: `exit` closes a split and a lone pane, `keep` stays and reads back, `wait --status exited` on a closing pane prints the status, a plain wait fails with the exit code, `keep_failed` for code 0, code 3 and a signal, and `set --exit-behavior` on running and exited panes from the CLI and a key binding.
+
+Slice 3 verified on macOS with an owned temporary server on port 43332 and isolated config, state and home directories. The probe captured consecutive exit/close revisions, selection moving to the sibling and its frame expanding to 100×30, and a lone shell leaving an empty selected tab. Kept panes retained output and history; closing-pane waits returned or reported code 4; `keep_failed` closed code 0 and kept code 3 and SIGTERM. CLI edits and real PTY key presses changed running panes and only stored changes on exited panes. HTTP null/no-op edits kept the revision and combined edits made one revision. Formatting, workspace/all-targets Clippy with warnings denied, debug/release builds and strict OpenSpec validation passed. Evidence is in `target/slice3-4e7j7w_k/`; the temporary probe is `target/slice3-probe.py`, both ignored by Git. Linux is unverified. Slice 2 task 2.4 remains incomplete.
 
 ## 4. History size on a live pane
 

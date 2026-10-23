@@ -173,6 +173,8 @@ pub struct SetPane {
     pub name: Option<OptionalName>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub right_click_passthrough: Option<Switch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_behavior: Option<ExitBehavior>,
 }
 
 /// A present blank name must serialize as `""` to clear, not `null` to leave.

@@ -78,6 +78,17 @@ pub enum ExitBehavior {
     KeepFailed,
 }
 
+impl ExitBehavior {
+    /// Whether this exit closes the pane; a signal is never a successful exit.
+    pub fn closes(self, status: &ExitStatus) -> bool {
+        match self {
+            Self::Close => true,
+            Self::Keep => false,
+            Self::KeepFailed => status.code == 0 && status.signal.is_none(),
+        }
+    }
+}
+
 /// The root record's id, which an explicit protocol id cannot claim.
 pub const ROOT: &str = "";
 

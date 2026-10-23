@@ -359,6 +359,9 @@ pub mod pane {
         /// Give right-clicks on contents to a program that tracks the mouse
         #[cfg_attr(feature = "clap", arg(long, value_name = "true|false|toggle"))]
         pub right_click_passthrough: Option<Switch>,
+        /// What happens when the program exits. On an exited pane, only stored
+        #[cfg_attr(feature = "clap", arg(long, value_name = "close|keep|keep_failed"))]
+        pub exit_behavior: Option<ExitBehavior>,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]

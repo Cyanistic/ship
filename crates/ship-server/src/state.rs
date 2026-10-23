@@ -675,9 +675,14 @@ impl Message<Set<Pane, SetPane>> for ServerState {
             .map_or(pane.right_click_passthrough, |switch| {
                 switch.apply(pane.right_click_passthrough)
             });
-        if pane.name != name || pane.right_click_passthrough != passthrough {
+        let exit_behavior = set.exit_behavior.unwrap_or(pane.exit_behavior);
+        if pane.name != name
+            || pane.right_click_passthrough != passthrough
+            || pane.exit_behavior != exit_behavior
+        {
             pane.name = name;
             pane.right_click_passthrough = passthrough;
+            pane.exit_behavior = exit_behavior;
             self.commit(|tabs, _| {
                 let owner = tree::pane_owner(tabs, id)?;
                 *tree::tab_mut(tabs, owner)?
@@ -971,22 +976,35 @@ impl Message<PaneEvent> for ServerState {
         if tree::pane(&self.tabs, id).is_err() {
             return Ok(());
         }
-        self.commit(|tabs, _| {
-            let owner = tree::pane_owner(tabs, id)?;
-            let pane = tree::tab_mut(tabs, owner)?
-                .pane_mut(id)
-                .ok_or_else(|| tree::not_found(NodeId::Pane(id)))?;
-            match change {
-                PaneChange::Title(title) => pane.title = title,
-                PaneChange::Dir(dir) => pane.dir = Some(dir),
-                PaneChange::Exited(status) => {
-                    pane.status = PaneStatus::Exited(status);
-                    pane.program.clear();
+        let closes = self
+            .commit(|tabs, _| {
+                let owner = tree::pane_owner(tabs, id)?;
+                let pane = tree::tab_mut(tabs, owner)?
+                    .pane_mut(id)
+                    .ok_or_else(|| tree::not_found(NodeId::Pane(id)))?;
+                let mut closes = false;
+                match change {
+                    PaneChange::Title(title) => pane.title = title,
+                    PaneChange::Dir(dir) => pane.dir = Some(dir),
+                    PaneChange::Exited(status) => {
+                        closes = pane.exit_behavior.closes(&status);
+                        pane.status = PaneStatus::Exited(status);
+                        pane.program.clear();
+                    }
+                    PaneChange::Program(records) => pane.program = records,
                 }
-                PaneChange::Program(records) => pane.program = records,
-            }
-            Ok(())
-        })
-        .await
+                Ok(closes)
+            })
+            .await?;
+        if closes {
+            // Publish the exit before removing the pane so every-feed waits see it.
+            self.commit(|tabs, _| {
+                let owner = tree::pane_owner(tabs, id)?;
+                layout::close(tree::tab_mut(tabs, owner)?, id)?;
+                Ok(())
+            })
+            .await?;
+        }
+        Ok(())
     }
 }

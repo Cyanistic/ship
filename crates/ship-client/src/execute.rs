@@ -177,6 +177,7 @@ impl Client {
                     pane,
                     name,
                     right_click_passthrough,
+                    exit_behavior,
                 }) => {
                     let id = Self::pane_target(pane, scope)?;
                     Outcome::Pane(
@@ -185,6 +186,7 @@ impl Client {
                             &SetPane {
                                 name: name.map(|name| Some(name).into()),
                                 right_click_passthrough,
+                                exit_behavior,
                             },
                         )
                         .await?,
