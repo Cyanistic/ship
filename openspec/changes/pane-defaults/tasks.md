@@ -40,9 +40,11 @@ Slice 3 verified on macOS with an owned temporary server on port 43332 and isola
 
 ## 4. History size on a live pane
 
-- [ ] 4.1 Add `SessionCommand::ScrollbackBytes` and `SessionHandle::set_scrollback_bytes` to `vendor/ratatui-ghostty/src/session.rs`.
-- [ ] 4.2 Add `PaneCommand::Scrollback`, and `scrollback_bytes` to `SetPane` and `pane::Set`. Send the command from the `Set<Pane>` handler when the value changes. Document raising and lowering in `ship pane set --help`.
-- [ ] 4.3 Verify slice 4's checks: lowering drops the oldest lines at once, raising keeps history and lets it grow, and the help text says both.
+- [x] 4.1 Add `SessionCommand::ScrollbackBytes` and `SessionHandle::set_scrollback_bytes` to `vendor/ratatui-ghostty/src/session.rs`.
+- [x] 4.2 Add `PaneCommand::Scrollback`, and `scrollback_bytes` to `SetPane` and `pane::Set`. Send the command from the `Set<Pane>` handler whenever the request supplies the value, independently of whether shared state changes (Cyan-approved refinement). Document raising and lowering in `ship pane set --help`.
+- [x] 4.3 Verify slice 4's checks: lowering drops the oldest lines at once, raising keeps history and lets it grow, and the help text says both.
+
+Slice 4 verified on macOS with an owned temporary server on port 43334 and isolated config, state and home directories. After `seq 1 700000`, lowering from 10,000,000 to 1,000,000 bytes without new output reduced retained numeric lines from 13,849 (starting at 686152) to 847 (starting at 699154). Raising to 50,000,000 kept all 847 lines, then retained them alongside 20,000 new lines. HTTP changes and real PTY key presses also pruned or preserved history as requested. Combined HTTP edits committed once; absent, null and unchanged values kept the revision, and invalid values were rejected. Kept exited panes accepted history changes, including zero clearing history while preserving visible output. `pane set --help` describes raising and lowering. Formatting, workspace/all-targets Clippy with warnings denied, debug/release builds and strict OpenSpec validation passed. After Cyan approved replacing field-by-field change detection with `Pane` equality and forwarding every supplied history value, both slice 3 and slice 4 probes passed again. Latest evidence is in `target/slice4-s8kbvhsw/` and `target/slice3-4_gdr2ka/`; the temporary slice 4 probe is `target/slice4-probe.py`, all ignored by Git. Port 43333 was occupied and left untouched. Linux is unverified. Slice 2 task 2.4 remains incomplete.
 
 ## 5. Docs and specs
 

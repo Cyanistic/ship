@@ -178,6 +178,7 @@ impl Client {
                     name,
                     right_click_passthrough,
                     exit_behavior,
+                    scrollback_bytes,
                 }) => {
                     let id = Self::pane_target(pane, scope)?;
                     Outcome::Pane(
@@ -187,6 +188,7 @@ impl Client {
                                 name: name.map(|name| Some(name).into()),
                                 right_click_passthrough,
                                 exit_behavior,
+                                scrollback_bytes,
                             },
                         )
                         .await?,

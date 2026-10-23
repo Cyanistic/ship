@@ -183,6 +183,8 @@ pub(crate) enum PaneCommand {
     /// Dropped when equal to the pane's current size.
     Resize(Size),
     Scroll(ScrollPane),
+    /// New history byte limit; lowering prunes the oldest history at once.
+    Scrollback(usize),
     Read(ReadPane, oneshot::Sender<String>),
 }
 
@@ -506,7 +508,10 @@ impl PaneTask {
         if self.exit.reaped
             && !matches!(
                 command,
-                PaneCommand::Scroll(_) | PaneCommand::Read(..) | PaneCommand::Mouse(_)
+                PaneCommand::Scroll(_)
+                    | PaneCommand::Scrollback(_)
+                    | PaneCommand::Read(..)
+                    | PaneCommand::Mouse(_)
             )
         {
             return;
@@ -565,6 +570,7 @@ impl PaneTask {
                 self.session.send_key(key);
             }
             PaneCommand::Paste(text) => self.session.send_paste(text.into_bytes()),
+            PaneCommand::Scrollback(bytes) => self.session.set_scrollback_bytes(bytes),
             PaneCommand::Resize(size) => {
                 let size = terminal_size(size);
                 if size != self.size {

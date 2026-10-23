@@ -668,21 +668,21 @@ impl Message<Set<Pane, SetPane>> for ServerState {
         Set { id, set }: Set<Pane, SetPane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        let mut pane = tree::pane(&self.tabs, id)?.clone();
-        let name = set.name.unwrap_or_else(|| pane.name.clone());
-        let passthrough = set
-            .right_click_passthrough
-            .map_or(pane.right_click_passthrough, |switch| {
-                switch.apply(pane.right_click_passthrough)
-            });
-        let exit_behavior = set.exit_behavior.unwrap_or(pane.exit_behavior);
-        if pane.name != name
-            || pane.right_click_passthrough != passthrough
-            || pane.exit_behavior != exit_behavior
-        {
+        let before = tree::pane(&self.tabs, id)?;
+        let mut pane = before.clone();
+        if let Some(name) = set.name {
             pane.name = name;
-            pane.right_click_passthrough = passthrough;
-            pane.exit_behavior = exit_behavior;
+        }
+        if let Some(switch) = set.right_click_passthrough {
+            pane.right_click_passthrough = switch.apply(pane.right_click_passthrough);
+        }
+        if let Some(behavior) = set.exit_behavior {
+            pane.exit_behavior = behavior;
+        }
+        if let Some(bytes) = set.scrollback_bytes {
+            pane.scrollback_bytes = bytes;
+        }
+        if &pane != before {
             self.commit(|tabs, _| {
                 let owner = tree::pane_owner(tabs, id)?;
                 *tree::tab_mut(tabs, owner)?
@@ -691,6 +691,15 @@ impl Message<Set<Pane, SetPane>> for ServerState {
                 Ok(())
             })
             .await?;
+        }
+        if let Some(bytes) = set.scrollback_bytes
+            && let Some(runtime) = self.runtimes.get(&id)
+        {
+            runtime
+                .handle
+                .commands
+                .send(PaneCommand::Scrollback(bytes))
+                .ok();
         }
         Ok(pane)
     }

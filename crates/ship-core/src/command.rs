@@ -362,6 +362,10 @@ pub mod pane {
         /// What happens when the program exits. On an exited pane, only stored
         #[cfg_attr(feature = "clap", arg(long, value_name = "close|keep|keep_failed"))]
         pub exit_behavior: Option<ExitBehavior>,
+        /// Bytes of history to keep. Raising keeps history; lowering drops the
+        /// oldest history beyond the limit at once
+        #[cfg_attr(feature = "clap", arg(long, value_name = "BYTES"))]
+        pub scrollback_bytes: Option<usize>,
     }
 
     #[derive(Clone, Debug, Default, Deserialize)]
