@@ -50,13 +50,15 @@ else
   # with Cyan's subscription login, and the proxy matches requests on tool
   # names, so it is off in record and replay alike.
   # On OpenRouter both agents use its free router, and the key stays in the
-  # server's environment rather than in the wrappers.
+  # server's environment rather than in the wrappers. Claude doesn't know the
+  # free router's context window and warns about it on screen unless
+  # CLAUDE_CODE_MAX_CONTEXT_TOKENS names one; 200K is what it assumes anyway.
   # The relay lead's `ship pane send --wait` lasts as long as pi's whole turn;
   # past claude's default 2-minute Bash timeout it lingers as a background
   # shell in claude's footer.
   claude_env="env BASH_DEFAULT_TIMEOUT_MS=600000 " claude_extra="" pi_env="" pi_model=openai-codex/gpt-6-luna
   if ${OPENROUTER:-false}; then
-    claude_env+='ANTHROPIC_BASE_URL=https://openrouter.ai/api ANTHROPIC_AUTH_TOKEN="$OPENROUTER_API_KEY" ANTHROPIC_API_KEY= ANTHROPIC_DEFAULT_HAIKU_MODEL=openrouter/free CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 '
+    claude_env+='ANTHROPIC_BASE_URL=https://openrouter.ai/api ANTHROPIC_AUTH_TOKEN="$OPENROUTER_API_KEY" ANTHROPIC_API_KEY= ANTHROPIC_DEFAULT_HAIKU_MODEL=openrouter/free CLAUDE_CODE_MAX_CONTEXT_TOKENS=200000 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 '
     pi_env="env PI_OFFLINE=1 "
     pi_model=openrouter/openrouter/free
   elif [[ -n ${PROXY_MODE:-} ]]; then

@@ -77,7 +77,10 @@ jobs:
         with:
           version: 0.16.0
           use-cache: false
-      - run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev
+      # Noto covers the symbols claude draws that JetBrains Mono lacks (⏵⏵ before "don't ask on", its
+      # spinners), which otherwise render as boxes. pi warns on screen when it can't find fd (it accepts
+      # Ubuntu's fdfind) or rg, and the tapes run it offline, so it can't download them.
+      - run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev fonts-noto-core fd-find ripgrep
       # with no tape path it only installs VHS, ttyd, ffmpeg and JetBrains Mono, which the tapes use
       - uses: charmbracelet/vhs-action@f6d7db07a432fcd3b06772628d36a57f96d95dcf # v2.1.1
         with:
