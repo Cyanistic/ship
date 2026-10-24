@@ -396,8 +396,9 @@ pre[tabindex] {
     repeating-conic-gradient(var(--c8) 0 25%, transparent 0 50%) scroll 100% 0 / 8px 8px repeat-y;
 }
 
-/* the copy button on a command */
-.copy {
+/* the copy button on a command (and the landing's recording controls, which share its keycap) */
+.copy,
+.reel-btn {
   font: 11px/22px var(--pixel);
   background: var(--c6);
   color: var(--ink);
@@ -407,10 +408,21 @@ pre[tabindex] {
   box-shadow: 0 2px 0 color-mix(in srgb, var(--c6) 60%, var(--ink));
   transition: background-color 0.12s;
 }
-.copy:hover {
-  background: var(--c14);
+@media (hover: hover) {
+  .copy:hover,
+  .reel-btn:hover {
+    background: var(--c14);
+  }
 }
-.copy:active {
+@media (pointer: coarse) {
+  .cmd .copy::after {
+    content: "";
+    position: absolute;
+    inset: -9px -6px;
+  } /* a 44px target around the keycap */
+}
+.copy:active,
+.reel-btn:active {
   transform: translateY(2px);
   box-shadow: none;
 }
@@ -447,6 +459,25 @@ pre[tabindex] {
   gap: 10px;
   color: var(--c15);
 }
+/* the mark: 72 art pixels drawn at 44 (36 on a phone, where it is crisp at twice the density), so the crew still read; it rocks a little on the swell
+   when you point at it or Tab to it, and the sprite is still when motion is reduced */
+.bar .home .mark {
+  width: 44px;
+  height: 44px;
+}
+.bar .home:focus-visible .mark {
+  animation: rock 0.8s steps(1) infinite;
+}
+@media (hover: hover) {
+  .bar .home:hover .mark {
+    animation: rock 0.8s steps(1) infinite;
+  }
+}
+@keyframes rock {
+  50% {
+    transform: translateY(2px);
+  }
+}
 .bar nav ul {
   display: flex;
   gap: 22px;
@@ -460,10 +491,15 @@ pre[tabindex] {
   display: inline-block;
   padding: 13px 2px;
 }
-.bar nav a:hover,
 .bar nav a[aria-current] {
   color: var(--c15);
   text-decoration: underline;
+}
+@media (hover: hover) {
+  .bar nav a:hover {
+    color: var(--c15);
+    text-decoration: underline;
+  }
 }
 .places {
   margin-left: auto;
@@ -484,10 +520,15 @@ pre[tabindex] {
 .places summary::-webkit-details-marker {
   display: none;
 }
-.places summary:hover,
 .places[open] summary {
   border-color: var(--c14);
   color: var(--c15);
+}
+@media (hover: hover) {
+  .places summary:hover {
+    border-color: var(--c14);
+    color: var(--c15);
+  }
 }
 .places summary .lab {
   font: 11px/22px var(--pixel);
@@ -523,9 +564,11 @@ pre[tabindex] {
   color: var(--c7);
   text-decoration: none;
 }
-.places li a:hover {
-  background: #2b2840;
-  color: var(--c15);
+@media (hover: hover) {
+  .places li a:hover {
+    background: #2b2840;
+    color: var(--c15);
+  }
 }
 .places li a[aria-current] {
   color: var(--c15);
@@ -547,7 +590,7 @@ pre[tabindex] {
 
 @media (max-width: 899px) {
   :root {
-    --bar-h: 80px;
+    --bar-h: 90px; /* the bar is two rows here, about 86px with the mark */
     --gut: 28px;
   }
   .bar-in {
@@ -558,6 +601,10 @@ pre[tabindex] {
   }
   .bar .home {
     padding: 4px 0;
+  }
+  .bar .home .mark {
+    width: 36px;
+    height: 36px;
   }
   .bar .home .wordmark {
     display: none;

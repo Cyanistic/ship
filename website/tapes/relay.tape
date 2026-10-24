@@ -38,11 +38,16 @@ Type@20ms "Use the ship CLI to open pi in a pane to your right and have it write
 Sleep 500ms
 Enter
 
-# Beat 2: claude opened the worker and typed the task into it.
+# Beat 2: claude opens the worker, then types the task into it. Both steps
+# are seen; the think time before each is cut.
 Hide
-Wait+Screen@180s /● pi working[^\n]*\n[^\n]*ship › crew/
+Wait+Screen@180s / pi [^\n]*\n[^\n]*ship › crew/
 Show
-Sleep 4s
+Sleep 2s
+Hide
+Wait+Screen@120s /● pi working[^\n]*\n[^\n]*ship › crew/
+Show
+Sleep 3s
 
 # Beat 3: pi finished, and claude read its answer back.
 Hide
