@@ -166,8 +166,9 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     # Only main and releases publish. A manual run on another branch stops at the build job, whose Pages
-    # artifact can be downloaded to preview the site.
-    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    # artifact can be downloaded to preview the site. Without a status check of its own this job would be
+    # skipped whenever demo is (every push), since the implicit success() looks through build to demo.
+    if: ${{ !cancelled() && needs.build.result == 'success' && (github.ref == 'refs/heads/main' || github.event_name == 'release') }}
     needs: build
     runs-on: ubuntu-24.04
     permissions:
