@@ -408,6 +408,15 @@ impl SessionHandle {
         self.cmd_tx.send(SessionCommand::Scroll(scroll)).ok();
     }
 
+    /// Change the history byte limit without rebuilding the terminal.
+    /// Raising keeps history; lowering prunes the oldest history at once.
+    /// Terminal errors arrive as [`SessionEvent::Error`].
+    pub fn set_scrollback_bytes(&self, bytes: usize) {
+        self.cmd_tx
+            .send(SessionCommand::ScrollbackBytes(bytes))
+            .ok();
+    }
+
     /// Read from the active screen's bottom without moving the viewport.
     /// A failed read or stopped session drops `reply` without calling it.
     pub fn read(&self, read: Read, reply: Box<dyn FnOnce(String) + Send>) {
@@ -575,6 +584,7 @@ enum SessionCommand {
     Focus(bool),
     Resize { cols: u16, rows: u16 },
     Scroll(Scroll),
+    ScrollbackBytes(usize),
     Read(Read, Box<dyn FnOnce(String) + Send>),
     Render(Box<dyn FnOnce() + Send>),
     Paste(Vec<u8>),
@@ -1021,6 +1031,15 @@ impl<'a> SessionState<'a> {
                     };
                     self.terminal.scroll_viewport(to);
                     *needs_render = true;
+                }
+            }
+            SessionCommand::ScrollbackBytes(bytes) => {
+                match self.terminal.set_scrollback_max_bytes(Some(bytes)) {
+                    Ok(_) => *needs_render = true,
+                    Err(error) => self
+                        .events
+                        .borrow_mut()
+                        .push(SessionEvent::Error(error.into())),
                 }
             }
             SessionCommand::Read(read, reply) => {

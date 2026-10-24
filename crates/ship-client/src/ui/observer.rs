@@ -88,6 +88,7 @@ impl Observer {
         Some(AttachRequest {
             selection: record.selection,
             area: Some(area),
+            feed: Default::default(),
         })
     }
 

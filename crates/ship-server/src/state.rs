@@ -121,7 +121,9 @@ impl ServerState {
             };
             let input = PaneInput {
                 name: saved.name,
-                right_click_passthrough: saved.right_click_passthrough,
+                right_click_passthrough: Some(saved.right_click_passthrough),
+                exit_behavior: Some(saved.exit_behavior),
+                scrollback_bytes: Some(saved.scrollback_bytes),
                 spec: PaneSpec { command: None, cwd },
             };
             match self.start_pane(saved.id, Size::FALLBACK, input) {
@@ -322,14 +324,19 @@ impl ServerState {
     }
 
     /// Start before insertion; commit cleanup owns failed-edit teardown.
+    /// Settings absent from `input` take `[server.defaults.pane]`, read once.
     fn start_pane(&mut self, id: IdOf<Pane>, size: Size, input: PaneInput) -> Result<Pane> {
         let cwd = Self::pane_cwd(input.spec.cwd)?;
+        let defaults = self.pane_env.settings().defaults.pane;
+        let scrollback_bytes = input.scrollback_bytes.unwrap_or(defaults.scrollback_bytes);
         let Spawned { runtime, command } = pane::spawn(
             Launch {
                 pane: id,
                 command: input.spec.command,
                 cwd: cwd.clone(),
                 size,
+                shell: defaults.shell,
+                scrollback_bytes,
             },
             &self.pane_env,
             self.bus.clone(),
@@ -338,7 +345,11 @@ impl ServerState {
         Ok(Pane {
             id,
             name: input.name,
-            right_click_passthrough: input.right_click_passthrough,
+            right_click_passthrough: input
+                .right_click_passthrough
+                .unwrap_or(defaults.right_click_passthrough),
+            exit_behavior: input.exit_behavior.unwrap_or(defaults.exit_behavior),
+            scrollback_bytes,
             command,
             cwd: cwd.display().to_string(),
             dir: None,
@@ -657,16 +668,21 @@ impl Message<Set<Pane, SetPane>> for ServerState {
         Set { id, set }: Set<Pane, SetPane>,
         _: &mut Context<Self, Self::Reply>,
     ) -> Self::Reply {
-        let mut pane = tree::pane(&self.tabs, id)?.clone();
-        let name = set.name.unwrap_or_else(|| pane.name.clone());
-        let passthrough = set
-            .right_click_passthrough
-            .map_or(pane.right_click_passthrough, |switch| {
-                switch.apply(pane.right_click_passthrough)
-            });
-        if pane.name != name || pane.right_click_passthrough != passthrough {
+        let before = tree::pane(&self.tabs, id)?;
+        let mut pane = before.clone();
+        if let Some(name) = set.name {
             pane.name = name;
-            pane.right_click_passthrough = passthrough;
+        }
+        if let Some(switch) = set.right_click_passthrough {
+            pane.right_click_passthrough = switch.apply(pane.right_click_passthrough);
+        }
+        if let Some(behavior) = set.exit_behavior {
+            pane.exit_behavior = behavior;
+        }
+        if let Some(bytes) = set.scrollback_bytes {
+            pane.scrollback_bytes = bytes;
+        }
+        if &pane != before {
             self.commit(|tabs, _| {
                 let owner = tree::pane_owner(tabs, id)?;
                 *tree::tab_mut(tabs, owner)?
@@ -675,6 +691,15 @@ impl Message<Set<Pane, SetPane>> for ServerState {
                 Ok(())
             })
             .await?;
+        }
+        if let Some(bytes) = set.scrollback_bytes
+            && let Some(runtime) = self.runtimes.get(&id)
+        {
+            runtime
+                .handle
+                .commands
+                .send(PaneCommand::Scrollback(bytes))
+                .ok();
         }
         Ok(pane)
     }
@@ -960,22 +985,35 @@ impl Message<PaneEvent> for ServerState {
         if tree::pane(&self.tabs, id).is_err() {
             return Ok(());
         }
-        self.commit(|tabs, _| {
-            let owner = tree::pane_owner(tabs, id)?;
-            let pane = tree::tab_mut(tabs, owner)?
-                .pane_mut(id)
-                .ok_or_else(|| tree::not_found(NodeId::Pane(id)))?;
-            match change {
-                PaneChange::Title(title) => pane.title = title,
-                PaneChange::Dir(dir) => pane.dir = Some(dir),
-                PaneChange::Exited(status) => {
-                    pane.status = PaneStatus::Exited(status);
-                    pane.program.clear();
+        let closes = self
+            .commit(|tabs, _| {
+                let owner = tree::pane_owner(tabs, id)?;
+                let pane = tree::tab_mut(tabs, owner)?
+                    .pane_mut(id)
+                    .ok_or_else(|| tree::not_found(NodeId::Pane(id)))?;
+                let mut closes = false;
+                match change {
+                    PaneChange::Title(title) => pane.title = title,
+                    PaneChange::Dir(dir) => pane.dir = Some(dir),
+                    PaneChange::Exited(status) => {
+                        closes = pane.exit_behavior.closes(&status);
+                        pane.status = PaneStatus::Exited(status);
+                        pane.program.clear();
+                    }
+                    PaneChange::Program(records) => pane.program = records,
                 }
-                PaneChange::Program(records) => pane.program = records,
-            }
-            Ok(())
-        })
-        .await
+                Ok(closes)
+            })
+            .await?;
+        if closes {
+            // Publish the exit before removing the pane so every-feed waits see it.
+            self.commit(|tabs, _| {
+                let owner = tree::pane_owner(tabs, id)?;
+                layout::close(tree::tab_mut(tabs, owner)?, id)?;
+                Ok(())
+            })
+            .await?;
+        }
+        Ok(())
     }
 }

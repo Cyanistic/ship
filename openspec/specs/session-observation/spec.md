@@ -6,6 +6,24 @@ Let independently running full-screen clients open the whole server, see its liv
 
 ## Requirements
 
+### Requirement: Attach feed
+`POST /api/v0/attach` SHALL accept `"feed": "latest"` or `"feed": "every"`, defaulting to `latest`. A `latest` stream SHALL send only the newest replica, so it may skip revisions in between. An `every` stream SHALL send each replica newer than its `attached` seed, once and in revision order. Screen and clipboard events SHALL NOT depend on the feed.
+
+#### Scenario: Every revision in order
+- **WHEN** a caller attaches with `{"feed": "every"}` and a script renames a pane 20 times
+- **THEN** the caller receives 20 `state` events with consecutive revisions
+
+#### Scenario: Default feed
+- **WHEN** a caller attaches with `{}`
+- **THEN** it receives the newest state after each change and may skip revisions in between, as before
+
+### Requirement: Falling behind an every feed
+The server SHALL keep at least the last 256 revisions for `every` streams. A stream that falls further behind SHALL end with `{"type": "ended", "reason": "lost"}` instead of skipping revisions, and its attachment SHALL detach.
+
+#### Scenario: Stalled reader
+- **WHEN** an `every` stream's reader stops reading while more revisions than the server keeps are published, and then resumes
+- **THEN** when the server detects the lag, it ends the stream with reason `lost` without draining the retained revisions, and `ship view list` no longer shows the attachment
+
 ### Requirement: Attach a client
 Bare `ship` SHALL attach a full-screen client to the whole server, as described by the `terminal-client` capability. On attach it SHALL show the server's current state and, once a tab is viewed, the current screens of all its visible panes, including changes made while it was attaching, without waiting for another change. It SHALL update after each later change. `ship attach` SHALL no longer exist.
 
@@ -82,7 +100,7 @@ An attachment SHALL end only when its client detaches or the server shuts down. 
 - **THEN** the client's hint updates to `2 tabs · alt-right to open one` without reattaching
 
 ### Requirement: Latest state for slow observers
-A client SHALL never be shown state or a screen older than what it has already shown. A client that stops reading SHALL, once it resumes, receive the latest state and the latest screen of each pane it shows, even if no further change occurs. Intermediate states and screens are not guaranteed to be shown.
+A client SHALL never be shown state or a screen older than what it has already shown. A client on the `latest` feed that stops reading SHALL, once it resumes, receive the latest state and the latest screen of each pane it shows, even if no further change occurs. Intermediate states and screens on that feed are not guaranteed to be shown.
 
 #### Scenario: Stalled observer resumes
 - **WHEN** a client process is suspended, fifty edits are made and its pane prints more output, and the process is resumed
@@ -274,11 +292,15 @@ Each published pane screen SHALL carry `mouse: true` while the pane's program ha
 - **THEN** the first omits `mouse`, and the second carries `mouse: true`
 
 ### Requirement: Observer attachments
-`POST /api/v0/attach` SHALL accept a request without an `area`. An attachment without an area SHALL be left out of every tab's size, as one without a selection is, and its viewing record SHALL omit `area`. An **observer** is an attachment with neither an area nor a selection: it SHALL receive the `attached` replica and each later `state` replica, and no `screen` events. A later `PUT /api/v0/attach/view` SHALL give the attachment an area like any other.
+`POST /api/v0/attach` SHALL accept a request without an `area`. An attachment without an area SHALL be left out of every tab's size, as one without a selection is, and its viewing record SHALL omit `area`. An **observer** is an attachment with neither an area nor a selection: it SHALL receive the `attached` replica and later `state` replicas as its feed sends them, and no `screen` events. A later `PUT /api/v0/attach/view` SHALL give the attachment an area like any other.
 
 #### Scenario: Observer leaves geometry alone
 - **WHEN** a full-screen client views a tab and a caller attaches with the body `{}`
 - **THEN** the tab's published `geometry` is unchanged, the caller receives `attached` and `state` events and no `screen` events, and `ship view list` shows its record without an area
+
+#### Scenario: Observer on the every feed
+- **WHEN** a caller attaches with `{"feed": "every"}`
+- **THEN** it receives a `state` event for each later revision and no `screen` events
 
 #### Scenario: Observer detaches
 - **WHEN** the observer's stream is dropped

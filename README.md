@@ -80,7 +80,6 @@ Linux and macOS are the priority platforms. Windows is best effort.
 - Releases and packages.
 - Searching a pane's history, and a keyboard copy mode. For now, `ship pane read --lines N | grep ...` covers search.
 - Resuming agent conversations or rerunning programs after a restart. Saved tabs come back with fresh shells.
-- Closing a pane automatically when its program exits.
 - Connecting to another machine's server directly. The server only accepts local connections for now, so [use an SSH tunnel](docs/site/windows-and-the-server.md#using-ship-on-another-machine).
 - Testing on Linux. Most features have only been checked on macOS so far.
 

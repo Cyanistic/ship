@@ -146,6 +146,7 @@ pub async fn run(client: &Client, open_first: bool, config: &Path) -> Result<()>
     let request = AttachRequest {
         selection,
         area: Some(area),
+        feed: Default::default(),
     };
     // Fail on an unreachable server before taking the terminal.
     let events = attach_after(client, request.clone(), Duration::ZERO).await?;
@@ -215,16 +216,14 @@ async fn drive(
     loop {
         let mut visible = tokio::select! {
             event = next(&mut events) => match event {
-                Some(Ok(SseEvent::Ended(Ended { reason }))) => {
-                    return Ok(match reason {
-                        EndReason::ServerShutdown => Exit::ServerStopped,
-                    });
+                Some(Ok(SseEvent::Ended(Ended { reason: EndReason::ServerShutdown }))) => {
+                    return Ok(Exit::ServerStopped);
                 }
                 Some(Ok(SseEvent::Clipboard(ClipboardText { text }))) => {
                     guard.copy(&text)?;
                     false
                 }
-                Some(Ok(event)) => {
+                Some(Ok(event)) if !matches!(event, SseEvent::Ended(_)) => {
                     if let SseEvent::Attached(attached) = &event {
                         tracing::Span::current()
                             .record("attachment", field::display(attached.attachment));
@@ -256,6 +255,9 @@ async fn drive(
                 lost => {
                     match lost {
                         Some(Err(error)) => tracing::warn!(%error, "disconnected; reconnecting"),
+                        Some(Ok(SseEvent::Ended(Ended { reason: EndReason::Lost }))) => {
+                            tracing::warn!("event stream fell behind; reconnecting");
+                        }
                         _ => tracing::warn!("event stream ended without notice; reconnecting"),
                     }
                     events = None;

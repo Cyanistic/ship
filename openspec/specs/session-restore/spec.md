@@ -104,11 +104,19 @@ Before a server's first save replaces an existing saved file, the server SHALL c
 - **THEN** `<port>.json.prev` holds the file as it was before the first of those saves
 
 ### Requirement: Restore on startup
-On startup, before it accepts any connection, the server SHALL rebuild the saved tabs with the same IDs, names, structure, proportions, zoom and `right_click_passthrough` settings. Each restored pane SHALL run the configured shell, else the login shell, as configured at restore time, in its saved directory, which SHALL be its starting directory for `ship pane get`. It SHALL NOT run the pane's earlier program. A missing saved file SHALL start with no restored tabs.
+On startup, before it accepts any connection, the server SHALL rebuild the saved tabs with the same IDs, names, structure, proportions, zoom and each pane's `right_click_passthrough`, `exit_behavior` and `scrollback_bytes`. Each restored pane SHALL run `[server.defaults.pane] shell`, else the login shell, as configured at restore time, in its saved directory, which SHALL be its starting directory for `ship pane get`. It SHALL NOT run the pane's earlier program. A missing saved file SHALL start with no restored tabs.
 
 #### Scenario: Structure comes back
 - **WHEN** a server with nested tabs, named tabs and panes, custom proportions and a zoomed pane restarts
 - **THEN** `ship tab list` shows the same IDs, names, nesting, proportions and zoom
+
+#### Scenario: Pane settings come back
+- **WHEN** a pane with `exitBehavior: keep` and `scrollbackBytes: 50000000` is saved and the server restarts
+- **THEN** the restored pane, a fresh shell, shows the same two values
+
+#### Scenario: Saved before pane settings existed
+- **WHEN** a saved file from before exit behavior and per-pane history size is restored
+- **THEN** its panes get `exitBehavior: close` and `scrollbackBytes: 10000000`, the built-in defaults
 
 #### Scenario: Program not rerun
 - **WHEN** a pane running `nvim foo.rs` in `~/projects/ship` is restored

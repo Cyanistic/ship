@@ -16,7 +16,10 @@ use ship_core::{
     id::IdOf,
     model::{ExitStatus, Pane, PaneStatus, ReportedState, StatusRecord},
     prelude::*,
-    protocol::{AttachRequest, InputFrame, KeyInput, PasteInput, Replica, SseEvent},
+    protocol::{
+        AttachRequest, EndReason, Ended, FeedMode, InputFrame, KeyInput, PasteInput, Replica,
+        SseEvent,
+    },
     tree,
 };
 use tokio::time::timeout;
@@ -146,11 +149,12 @@ impl Client {
         handled.await.context("the input was sent")
     }
 
-    /// An observer: no selection and no area, so it neither moves nor sizes anything.
+    /// An every-revision observer: no selection or area, so it moves and sizes nothing.
     async fn observe(&self) -> Result<impl Stream<Item = Result<SseEvent>> + use<>> {
         self.attach(&AttachRequest {
             selection: None,
             area: None,
+            feed: FeedMode::Every,
         })
         .await
     }
@@ -166,7 +170,18 @@ async fn next(
             Some(Ok(SseEvent::Attached(attached))) => return Ok(attached.replica),
             Some(Ok(SseEvent::State(replica))) => return Ok(replica),
             Some(Ok(SseEvent::Screen(_) | SseEvent::Clipboard(_))) => {}
-            Some(Ok(SseEvent::Ended(_))) => {
+            Some(Ok(SseEvent::Ended(Ended {
+                reason: EndReason::Lost,
+            }))) => {
+                return Err(err!(
+                    Unavailable,
+                    "fell behind the server while waiting on pane {}",
+                    pane
+                ));
+            }
+            Some(Ok(SseEvent::Ended(Ended {
+                reason: EndReason::ServerShutdown,
+            }))) => {
                 return Err(err!(
                     Unavailable,
                     "the server stopped while waiting on pane {}",

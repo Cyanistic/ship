@@ -20,13 +20,27 @@ $ ship config defaults | grep -A3 '\[client.agents\]'
 ## Server settings
 
 ```toml
-[server]
-shell = "/bin/bash"           # default: your login shell
-scrollback_bytes = 10000000   # history per pane, about 10 MB by default
+[server.defaults.pane]
+shell = "/bin/sh"                 # default: your login shell
+scrollback_bytes = 10_000_000       # bytes of history per pane
+right_click_passthrough = false
+exit_behavior = "close"            # "close", "keep" or "keep_failed"
 ```
 
+These are defaults for new panes, including a new tab's starter pane. Save the file and the next pane takes them; panes already open keep their values. A relative `shell` path resolves from the config file's folder. If the file can't be read or has errors, new panes use the built-in defaults and the server logs the error.
+
+`ship pane create --exit-behavior keep --scrollback-bytes 50000000` overrides the defaults for that pane. [Panes](panes.md#when-a-program-exits) explains the exit behaviors. `--right-click-passthrough` turns passthrough on, and `--right-click-passthrough=false` turns it off even when the default is on.
+
+You can change an existing pane's history limit without restarting its program:
+
+```sh
+ship pane set --pane "$PANE" --scrollback-bytes 50000000
+```
+
+Raising the limit keeps the history already there and lets it grow. Lowering it drops the oldest history beyond the new limit right away. The limit is in bytes, not lines.
+
 > [!NOTE]
-> These apply to new panes. Panes that are already open keep what they started with.
+> If your file still has `shell` or `scrollback_bytes` under `[server]`, move them to `[server.defaults.pane]`. The old settings are no longer accepted; `ship config check` points at them with their line and column.
 
 ## Client settings
 

@@ -12,8 +12,8 @@ use uuid::Uuid;
 use crate::{
     command::Direction,
     id::{Attachment, IdOf},
-    model::{NodeId, OptionalName, Pane, Switch, Tab, tabs_schema},
-    screen::{Screen, Size, is_false},
+    model::{ExitBehavior, NodeId, OptionalName, Pane, Switch, Tab, tabs_schema},
+    screen::{Screen, Size},
     tree::Tabs,
 };
 
@@ -22,7 +22,7 @@ pub const DEFAULT_SERVER_URL: &str = "http://127.0.0.1:43179";
 pub const HEALTH_PATH: &str = "/health";
 /// What a Ship server reports as `service` from `/health`.
 pub const SERVICE: &str = "ship";
-pub const PROTOCOL_VERSION: u32 = 14;
+pub const PROTOCOL_VERSION: u32 = 15;
 /// Names the attachment a view or input request controls.
 pub const ATTACHMENT_HEADER: &str = "x-ship-attachment-id";
 /// On every response: the server's revision once the request was handled,
@@ -130,15 +130,19 @@ pub struct PaneSpec {
     pub cwd: Option<String>,
 }
 
-/// POST /panes input, flattened next to `at` and `direction`.
+/// POST /panes input, flattened next to `at` and `direction`. Absent
+/// settings take `[server.defaults.pane]`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PaneInput {
     #[serde(default)]
     pub name: OptionalName,
-    /// Start with right-click passthrough on.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub right_click_passthrough: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub right_click_passthrough: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_behavior: Option<ExitBehavior>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrollback_bytes: Option<usize>,
     #[serde(flatten)]
     pub spec: PaneSpec,
 }
@@ -169,6 +173,10 @@ pub struct SetPane {
     pub name: Option<OptionalName>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub right_click_passthrough: Option<Switch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_behavior: Option<ExitBehavior>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrollback_bytes: Option<usize>,
 }
 
 /// A present blank name must serialize as `""` to clear, not `null` to leave.
@@ -274,6 +282,19 @@ pub struct AttachRequest {
     /// an observer, which has no screen and sizes no tab.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub area: Option<Size>,
+    #[serde(default)]
+    pub feed: FeedMode,
+}
+
+/// Which replicas an attach stream sends. Screens and clipboard are unchanged.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FeedMode {
+    /// The newest replica only; intermediate revisions may be skipped.
+    #[default]
+    Latest,
+    /// Every revision after the seed, in order; ends with `lost` on overflow.
+    Every,
 }
 
 /// PUT /attach/view body: the client's area only.
@@ -371,12 +392,14 @@ pub struct Ended {
     pub reason: EndReason,
 }
 
-/// Derived by each stream from the latest replica, never published.
+/// Why an attach stream ended.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EndReason {
     /// The server is shutting down. Reattaching may succeed later.
     ServerShutdown,
+    /// An every-revision stream fell behind the server's ring.
+    Lost,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

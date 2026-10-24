@@ -5,7 +5,9 @@ Scope: What comes back after a restart and what doesn't, where the file lives, a
 Not here: the file's format (openspec/specs/session-restore).
 -->
 
-After a server restart or a reboot, Ship brings back your tabs, their nesting and names, the splits and their sizes, zoom, and each pane's last directory. Every pane starts a fresh shell. Running programs, agent conversations and scrollback don't come back.
+After a server restart or a reboot, Ship brings back your tabs, their nesting and names, the splits and their sizes, zoom, and each pane's last directory. Panes also keep their [exit behavior](panes.md#when-a-program-exits) and [history size](configuration.md#server-settings). Every pane starts a fresh shell. Running programs, agent conversations and scrollback don't come back.
+
+Tabs saved before these settings existed restore with `close` and 10,000,000 bytes of history per pane, even if your config gives new panes different defaults.
 
 Ship saves a few seconds after each change, and `ship server stop` saves right away. The file lives at `~/.local/state/ship/tabs/43179.json` (under `$XDG_STATE_HOME` if you set it; the number is the server's port).
 

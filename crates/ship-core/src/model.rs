@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use utoipa::openapi::{Object, ObjectBuilder, Ref};
 
 use crate::{
-    AppError, err,
+    AppError, config, err,
     geometry::TabGeometry,
     id::{Id, IdOf, Identified, Prefixed},
     layout::Layout,
@@ -50,10 +50,43 @@ pub struct Pane {
     /// Give right-clicks on contents to a program that tracks the mouse.
     #[serde(default)]
     pub right_click_passthrough: bool,
+    /// Set at creation from `[server.defaults.pane]` unless given. Saved files
+    /// from before it existed get the built-in default.
+    #[serde(default)]
+    pub exit_behavior: ExitBehavior,
+    /// Bytes of history the pane keeps; set like `exit_behavior`.
+    #[serde(default = "config::builtin_scrollback_bytes")]
+    pub scrollback_bytes: usize,
     pub status: PaneStatus,
     /// OSC 7501 records keyed by id, oldest update first; ROOT is the root.
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub program: IndexMap<String, StatusRecord>,
+}
+
+/// What happens to a pane when its program exits.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+#[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+#[cfg_attr(feature = "clap", value(rename_all = "snake_case"))]
+#[serde(rename_all = "snake_case")]
+pub enum ExitBehavior {
+    /// Close the pane.
+    #[default]
+    Close,
+    /// Keep the pane, showing its last screen.
+    Keep,
+    /// Close only after code 0 with no signal; keep it otherwise.
+    KeepFailed,
+}
+
+impl ExitBehavior {
+    /// Whether this exit closes the pane; a signal is never a successful exit.
+    pub fn closes(self, status: &ExitStatus) -> bool {
+        match self {
+            Self::Close => true,
+            Self::Keep => false,
+            Self::KeepFailed => status.code == 0 && status.signal.is_none(),
+        }
+    }
 }
 
 /// The root record's id, which an explicit protocol id cannot claim.
