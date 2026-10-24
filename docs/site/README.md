@@ -47,7 +47,8 @@ Leave `ship` open in one terminal and try this from another:
 
 ```sh
 $ TAB=$(ship tab create --name demo | jq -r .id)
-$ PANE=$(ship pane create --tab "$TAB" -- sh -c 'seq 100' | jq -r .id)
+$ PANE=$(ship pane create --tab "$TAB" --exit-behavior keep -- sh -c 'seq 100' | jq -r .id)
+$ ship pane wait --pane "$PANE" --status exited >/dev/null
 $ ship pane read --pane "$PANE" | tail -3
 98
 99

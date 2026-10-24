@@ -16,7 +16,7 @@ The server SHALL keep at least the last 256 revisions for `every` streams. A str
 
 #### Scenario: Stalled reader
 - **WHEN** an `every` stream's reader stops reading while more revisions than the server keeps are published, and then resumes
-- **THEN** it receives the revisions still kept and then `ended` with reason `lost`, and `ship view list` no longer shows the attachment
+- **THEN** when the server detects the lag, it ends the stream with reason `lost` without draining the retained revisions, and `ship view list` no longer shows the attachment
 
 ## MODIFIED Requirements
 

@@ -5,7 +5,7 @@ Scope: Splitting, moving between, zooming and closing panes, what happens when a
 Not here: scrolling and copying (scrolling-copying-and-the-mouse.md), scripting recipes (scripting/).
 -->
 
-Every pane runs a program in its own terminal, your shell unless you say otherwise. When a program exits, its pane stays open with its output so you can read what happened. Close it with `alt-shift-x`.
+Every pane runs a program in its own terminal, your shell unless you say otherwise. By default, the pane closes when its program exits. You can also close it with `alt-shift-x`.
 
 | Key | Does |
 | --- | --- |
@@ -33,3 +33,22 @@ ship pane resize --pane "$LEFT" --direction right --amount 5
 ship tab get --tab "$TAB" | jq .layout
 ship tab close --tab "$TAB"
 ```
+
+## When a program exits
+
+| Exit behavior | Does |
+| --- | --- |
+| `close` (default) | Closes the pane when its program exits |
+| `keep` | Keeps the pane's output and exit status until you close it |
+| `keep_failed` | Closes after success; keeps the pane after a non-zero exit code or a signal |
+
+When a pane closes, its neighbor takes the space and the selection moves there. If it was the last pane, the tab stays empty.
+
+Set the behavior when creating a pane, or change it before the program exits:
+
+```sh
+ship pane create --tab "$TAB" --exit-behavior keep -- cargo test
+ship pane set --pane "$PANE" --exit-behavior keep_failed
+```
+
+Changing the behavior of an already exited pane only stores the value; it doesn't close the pane. Kept panes can still be read, scrolled and copied, but no longer accept typing or resizing. [Reading output](scripting/reading-output.md) shows the create, wait, read and close workflow for scripts. To change the default for new panes, use [the config file](configuration.md#server-settings).

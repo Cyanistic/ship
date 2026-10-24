@@ -48,13 +48,17 @@ Slice 4 verified on macOS with an owned temporary server on port 43334 and isola
 
 ## 5. Docs and specs
 
-- [ ] 5.1 Update the guide in `docs/site/`, following `docs/agents/docs.md`. Each item goes on the page whose scope fits it:
+- [x] 5.1 Update the guide in `docs/site/`, following `docs/agents/docs.md`. Each item goes on the page whose scope fits it:
   - `configuration.md`: rewrite "Server settings" around `[server.defaults.pane]`, covering the per-pane history size and what raising or lowering it with `ship pane set --scrollback-bytes` does.
   - `panes.md`: rewrite the intro's "its pane stays open" for exit behavior, with `close`, `keep` and `keep_failed`.
   - `scripting/reading-output.md`: P2's agent workflow, which creates a pane with `--exit-behavior keep`, reads it, then closes it.
   - `saved-tabs.md`: panes keep their exit behavior and history size across a restart.
-- [ ] 5.2 Remove the "Not built yet" line about closing panes on exit from `README.md` and from the hand-written landing page `website/src/landing/body.html`. Move the landing page's config example `shell` from `[server]` to `[server.defaults.pane]`. The README no longer has a config example.
-- [ ] 5.3 Check the delta specs under `specs/` against the real output from slices 1 to 4, and the guide's examples against captured output. `openspec validate pane-defaults --type change --strict` passes.
+- [x] 5.2 Remove the "Not built yet" line about closing panes on exit from `README.md` and from the hand-written landing page `website/src/landing/body.html`. Move the landing page's config example `shell` from `[server]` to `[server.defaults.pane]`. The README no longer has a config example.
+- [x] 5.3 Check the delta specs under `specs/` against the real output from slices 1 to 4, and the guide's examples against captured output. `openspec validate pane-defaults --type change --strict` passes.
+
+Slice 5 verified on macOS. The guide covers the defaults table and migration, exit behavior, history resizing, the keep/wait/read/close workflow, and restored settings. The README and landing page no longer list automatic closing as unbuilt. The overview and landing-page CLI demos now keep their short-lived panes and wait before reading; their displayed output and the landing copy-button payload match fresh captures. Configuration-page TOML blocks and the landing config pass `ship config check`; old `[server] shell` and `scrollback_bytes` diagnostics name line 2, column 1. Fresh captures confirm defaults apply only to new panes, create overrides win, restart preserves pane settings while starting fresh shells without old output, and old saved files use built-in settings rather than current config defaults. All seven delta specs were reviewed against implementation and runtime evidence; the stalled-reader scenario was corrected to match immediate `lost` on detected lag, not draining retained revisions. Overflow itself remains unverified in task 2.4.
+
+Evidence: `target/slice5-rie7s4pj/` (guide/config/restore), `target/slice5-feeds-ufinc7r1/` (consecutive revisions, coalescing, waits, UI reconnection and shutdown), `target/slice3-upxnl52h/` and `target/slice4-ixmhfji_/` (rerun exit/history workflows). Temporary probes are `target/slice5-probe.py`, `target/slice5-feeds-probe.py` and `target/slice5-site-check.py`; `target/slice5-spec-review.md` records the spec comparison. Formatting, workspace/all-targets Clippy with warnings denied, debug/release builds and strict OpenSpec validation pass. Website formatting and Astro checks pass; static builds pass at the root and at `/ship/`, with new links and anchors verified in the generated HTML. The builds emit an empty `i18n` collection warning. All probe paths are ignored by Git. Servers used owned temporary state/config/home directories on ports 43332, 43334, 43335 and 43336; 43337 was an owned local UI proxy. Linux is unverified. Stopped before task 6.1.
 
 ## 6. Size
 

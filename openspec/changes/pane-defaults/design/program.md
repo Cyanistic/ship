@@ -450,6 +450,10 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 
 ## Deviation log
 
+- Slice 4: Cyan approved comparing the fully updated `Pane` with its original value instead of maintaining field-by-field change checks, and forwarding `PaneCommand::Scrollback` whenever the request supplies `scrollback_bytes`, even if unchanged. The state revision still changes only when the pane changes. This refines the `Set<Pane>` skeleton above without changing the shared-state no-op rule.
+- Slice 5: checking the guide against real output also required fixing `docs/site/README.md` and the landing page's CLI demo. A short-lived `seq 100` pane now uses `--exit-behavior keep` and waits for exit before reading. The landing page's `--lines 5` capture is `97` through `100`, not `96` through `100`, because the final blank terminal row counts toward the requested lines. The displayed commands and copy-button payload were checked against each other and run verbatim. Existing page scopes are unchanged.
+- Slice 5: the session-observation delta's stalled-reader scenario incorrectly promised to drain retained revisions before `lost`. It now matches the locked architecture and `Feed::next`: `Lagged` ends the stream with `lost`, without draining the ring. This is a spec correction, not a runtime change or a claim that the overflow probe passed; task 2.4 remains incomplete.
+
 - Slice 2: `Replicas.ring` is a `broadcast::WeakSender`, with the strong sender owned only by `ReplicaSink`. Cyan approved this adjustment in chat after reviewing code diffs. Keeping a strong sender in `Replicas` would keep the ring open during shutdown while the server waits for attach streams to finish. `every()` now returns `Option<Receiver>`; an attach after publication stops returns unavailable.
 
 - Slice 1: ~~`config.rs` also has `PaneDefaults::builtin()`, which reads the table out of `defaults.toml`. `builtin_scrollback_bytes` calls it, so 10,000,000 is still written only in `defaults.toml`. The skeleton showed only `builtin_scrollback_bytes`.~~ Superseded by the next entry.

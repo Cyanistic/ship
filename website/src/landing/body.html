@@ -103,7 +103,6 @@
         <li>releases and packages.</li>
         <li>searching a pane's history, and a keyboard copy mode. for now, <code>ship pane read --lines N | grep ...</code> covers search.</li>
         <li>resuming agent conversations or rerunning programs after a restart. saved tabs come back with fresh shells.</li>
-        <li>closing a pane automatically when its program exits.</li>
         <li>connecting to another machine's server directly. the server only accepts local connections for now, so <a href="/docs/windows-and-the-server/#using-ship-on-another-machine">use an ssh tunnel</a>.</li>
         <li>testing on linux. most features have only been checked on macos so far.</li>
       </ul>
@@ -251,7 +250,7 @@
       </div>
       <div class="floor-text">
         <h3 class="pixel p22">tabs and panes</h3>
-        <p>tabs can hold panes, other tabs, or both, so a big task can keep its smaller pieces underneath it, and the sidebar on the left shows the tree. a new split opens in the directory you were working in, and a program that exits leaves its pane open with its output so you can read what happened.</p>
+        <p>tabs can hold panes, other tabs, or both, so a big task can keep its smaller pieces underneath it, and the sidebar on the left shows the tree. a new split opens in the directory you were working in. by default, a pane closes when its program exits; choose <code>keep</code> to read its output afterwards, or <code>keep_failed</code> to keep only failures.</p>
         <p>agents that report their state get an entry in the lower half of the sidebar, with the ones that need you sorted to the top. tabs show the most urgent icon from anything inside them, so a blocked agent stays visible even in a folded tab.</p>
       </div>
       <figure class="floor-fig">
@@ -293,11 +292,11 @@ Apply changes?
       </div>
       <figure class="floor-fig">
         <div class="term cmd">
-          <button class="copy" type="button" data-copy="TAB=$(ship tab create --name demo | jq -r .id)&#10;PANE=$(ship pane create --tab &quot;$TAB&quot; -- sh -c 'seq 100' | jq -r .id)&#10;ship pane read --pane &quot;$PANE&quot; --lines 5&#10;ship tab close --tab &quot;$TAB&quot;">copy</button>
+          <button class="copy" type="button" data-copy="TAB=$(ship tab create --name demo | jq -r .id)&#10;PANE=$(ship pane create --tab &quot;$TAB&quot; --exit-behavior keep -- sh -c 'seq 100' | jq -r .id)&#10;ship pane wait --pane &quot;$PANE&quot; --status exited &gt;/dev/null&#10;ship pane read --pane &quot;$PANE&quot; --lines 5&#10;ship tab close --tab &quot;$TAB&quot;">copy</button>
 <pre><span class="t-prompt">$ </span>TAB=$(ship tab create --name demo | jq -r .id)
-<span class="t-prompt">$ </span>PANE=$(ship pane create --tab "$TAB" -- sh -c <span class="t-s">'seq 100'</span> | jq -r .id)
+<span class="t-prompt">$ </span>PANE=$(ship pane create --tab "$TAB" --exit-behavior keep -- sh -c <span class="t-s">'seq 100'</span> | jq -r .id)
+<span class="t-prompt">$ </span>ship pane wait --pane "$PANE" --status exited &gt;/dev/null
 <span class="t-prompt">$ </span>ship pane read --pane "$PANE" --lines 5
-96
 97
 98
 99
@@ -402,7 +401,7 @@ Apply changes?
         <h3 id="config-title" class="pixel p22">config</h3>
         <p>ship reads <code>~/.config/ship/config.toml</code>, or <code>$XDG_CONFIG_HOME/ship/config.toml</code>. without one it uses its defaults, and a running window picks up changes as soon as you save.</p>
         <div class="term cmd">
-<pre tabindex="0" role="region" aria-label="config example, scrolls sideways if it is wide"><span class="t-h">[server]</span>
+<pre tabindex="0" role="region" aria-label="config example, scrolls sideways if it is wide"><span class="t-h">[server.defaults.pane]</span>
 <span class="t-k">shell</span> = <span class="t-s">"/bin/bash"</span>   <span class="t-c"># default: your login shell</span>
 
 <span class="t-h">[client]</span>
