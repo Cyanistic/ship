@@ -28,7 +28,11 @@ Use owned temporary servers on ports 43331 to 43337, with `XDG_STATE_HOME` and `
 - [x] 2.1 Add `crates/ship-server/src/replicas.rs` with `Replicas`, `ReplicaSink` and `RING = 256`, and wire it into `AppState`, `lib.rs`, the saver and `input.rs`.
 - [x] 2.2 Add `FeedMode` and `AttachRequest.feed`, and `EndReason::Lost`, in `protocol.rs`. In `attach.rs`, build the `Feed` before the attach commit and handle `Lagged` as `Lost`.
 - [x] 2.3 Make the client's `observe()` ask for `every` and `next()` report `Lost` as "fell behind the server while waiting on pane P". Add the `Lost` arm to the UI, handled as a dropped stream.
-- [ ] 2.4 Verify slice 2's checks: consecutive revisions on `every`, coalescing on the default feed, `lost` under a temporary `RING = 2` probe (then revert), and unchanged waits and UI.
+- [x] 2.4 Verify slice 2's checks: consecutive revisions on `every`, coalescing on the default feed, `lost` under a temporary `RING = 2` probe (then revert), and unchanged waits and UI.
+
+Follow-up verification after slice 5 passed on macOS with a temporary `RING = 2` build. A paused HTTP reader received only consecutive revisions 4 through 9 after seed 3, then `ended` with `data.reason: lost`, after 80 large independent snapshots were published. It did not receive the retained tail revisions, and its attachment disappeared before the client closed. A temporary local proxy paused actual upstream reads for a real `ship pane wait --status exited` during another 80 publications, then forwarded the server's real events without synthesizing SSE data. The server emitted `lost`; the CLI exited 1 with empty stdout and a pane-specific `fell behind the server` error, not `pane closed`. Its attachment was removed. The owned server and proxy used ports 43336/43337 and isolated config/state/home; shutdown left no attachments.
+
+`RING` was restored to 256 and verified identical to committed source. Debug/release builds, formatting, workspace/all-targets Clippy with warnings denied and strict OpenSpec validation passed. The normal feed probe passed again: 20 consecutive every-feed revisions, 51 commits coalescing into 7 latest-feed states, requested/plain waits, send --wait, real PTY UI reconnection and shutdown. Evidence: `target/remaining-k2oyr7kf/{raw-summary,raw-events,cli-summary,cli-events}.json` and `target/slice5-feeds-c78jciec/`; temporary probe: `target/remaining-probe.py`. No implementation changes remain. This completes the overflow check recorded as incomplete in the earlier slice notes. Linux remains unverified.
 
 ## 3. Close on exit
 
@@ -62,4 +66,14 @@ Evidence: `target/slice5-rie7s4pj/` (guide/config/restore), `target/slice5-feeds
 
 ## 6. Size
 
-- [ ] 6.1 Report the change's implementation Rust and test line counts separately.
+- [x] 6.1 Report the change's implementation Rust and test line counts separately.
+
+Measured from planning commit `886140085559189565903c2e2f8f88d3b799aebf` to slice 5 commit `b76d16b960fe1144ad6e323b02ab3b132b6b97bb`. `cloc` 2.10 excludes comments and blank lines; Git physical-line additions/removals are separate.
+
+| Rust category | Code before | Code after | Net code change | Physical lines added / removed |
+| --- | ---: | ---: | ---: | ---: |
+| Ship-owned implementation, `crates/*/src/**/*.rs` | 11,254 | 11,468 | +214 | +382 / -123 |
+| Modified vendored implementation, `vendor/ratatui-ghostty/src/session.rs` | 1,105 | 1,120 | +15 | +19 / -0 |
+| Authored test Rust for this change | 0 | 0 | 0 | +0 / -0 |
+
+Total net implementation code added: 229 lines, including the vendored setter. Physical Rust diff: +401 / -123, net +278. Ship-owned implementation totals 13,604 physical lines including comments/blanks, versus 13,345 before, below the roughly 20,000-line ceiling by either measure. There are no inline tests in the counted implementation and no changes to Rust test files. Existing upstream vendored tests are unchanged and excluded, as are temporary Python probes, experiments, examples, docs, TOML and external/generated dependencies. Reproduce with `python3 target/remaining-size.py`; per-file counts, both cloc outputs and scope are in `target/remaining-size/`. Scripts and captures are ignored by Git. All 21 tasks are complete; archiving remains a separate action.
