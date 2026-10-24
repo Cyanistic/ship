@@ -18,11 +18,11 @@ Source ship16.tape
 Hide
 Type `cd "$DEMO_PROJECT" && PS1="\W $ " && set +m && source "$DEMO_WORLD" && clear` Enter
 
-# A crew tab under ship with claude alone in it, allowed to run ship and jq
-# without asking, and told how the ship CLI works (relay-lead.md), the way a
-# user's own agent instructions would.
+# A crew tab under ship with claude alone in it, given only Bash, allowed to
+# run ship and jq with it without asking, and told how to hand work to pi
+# (relay-lead.md), the way a user's own agent instructions would.
 Type `CREW=$(ship tab create --name crew "$SHIP_TAB" | jq -r .id)` Enter
-Type `LEAD=$(ship pane create --tab "$CREW" -- claude --permission-mode dontAsk --allowedTools "Bash(ship:*)" "Bash(jq:*)" --append-system-prompt "$(cat "$TAPES/relay-lead.md")" | jq -r .id)` Enter
+Type `LEAD=$(ship pane create --tab "$CREW" -- claude --tools Bash --permission-mode dontAsk --allowedTools "Bash(ship:*)" "Bash(jq:*)" --append-system-prompt "$(cat "$TAPES/relay-lead.md")" | jq -r .id)` Enter
 Type `ship pane wait --pane "$LEAD" --status idle >/dev/null && echo "lead""-ready"` Enter
 Wait+Screen@60s /lead-ready/
 
