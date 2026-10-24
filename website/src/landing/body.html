@@ -291,7 +291,7 @@ Apply changes?
     </article>
     <div class="beam tile" style="--tw:16;--th:6" aria-hidden="true"></div>
 
-    <article class="floor">
+    <article class="floor reel">
       <div class="room" aria-hidden="true">
         <span class="act a-handoff"></span>
         <i class="eyes" style="--x:11;--y:24;animation-delay:-3s"></i>
@@ -301,17 +301,9 @@ Apply changes?
         <p><code>ship pane send</code> types a prompt or keys into a pane, and <code>ship pane wait</code> blocks until the agent there stops working. that is enough for one agent to start another, give it a task and read the answer.</p>
         <p><code>--wait</code> returns once the agent has stopped working, and the state it prints says how the turn ended: <code>done</code> or <code>idle</code> means it finished, and <code>blocked</code> means it is asking you something. this works with any program that reports its status.</p>
       </div>
-      <figure class="floor-fig">
-        <div class="term cmd">
-          <button class="copy" type="button" data-copy="TAB=$(ship tab create --name workers | jq -r .id)&#10;WORKER=$(ship pane create --tab &quot;$TAB&quot; --name worker -- claude | jq -r .id)&#10;ship pane wait --pane &quot;$WORKER&quot;&#10;ship pane send --pane &quot;$WORKER&quot; &quot;Write a haiku about ships&quot; --key enter --wait \&#10;  | jq -r '.program[&quot;&quot;].state'&#10;ship pane read --pane &quot;$WORKER&quot; --lines 40">copy</button>
-<pre><span class="t-prompt">$ </span>TAB=$(ship tab create --name workers | jq -r .id)
-<span class="t-prompt">$ </span>WORKER=$(ship pane create --tab "$TAB" --name worker -- claude | jq -r .id)
-<span class="t-prompt">$ </span>ship pane wait --pane "$WORKER"  <span class="t-c"># until it's ready</span>
-<span class="t-prompt">$ </span>ship pane send --pane "$WORKER" <span class="t-s">"Write a haiku about ships"</span> --key enter --wait \
-    | jq -r <span class="t-s">'.program[""].state'</span>
-<span class="t-prompt">$ </span>ship pane read --pane "$WORKER" --lines 40</pre>
-        </div>
-        <figcaption>one agent starting another and reading what it said.</figcaption>
+      <figure class="recording">
+        <video src="demo/relay.webm" poster="demo/relay.png" width="1920" height="1080" muted loop playsinline controls preload="metadata" aria-label="claude code uses ship commands to open pi in the pane beside it, hands it a task, waits for it to finish and reads its answer back"></video>
+        <figcaption>claude code opens pi beside itself, hands it a task and reads back the answer, recorded in CI like the one above. <a href="/docs/scripting/handing-work-to-another-agent/">handing work to another agent</a> has the commands.</figcaption>
       </figure>
     </article>
   </div>
