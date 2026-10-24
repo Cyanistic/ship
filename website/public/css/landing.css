@@ -225,7 +225,7 @@ section[id] {
   position: absolute;
   left: 0;
   top: 260px;
-  width: 300px;
+  width: min(300px, calc(100% - 32 * var(--px))); /* stays clear of the mast when the rig is narrow */
   margin: 0;
 }
 .board .term {
@@ -235,6 +235,8 @@ section[id] {
   padding: 0 12px;
   color: var(--muted-dark);
   font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .board ul {
   list-style: none;
@@ -252,7 +254,50 @@ section[id] {
   font-size: var(--t-sm);
   color: var(--muted-light);
   margin-top: 10px;
-  max-width: 30ch;
+  max-width: min(30ch, 100%);
+}
+
+/* ---- the agents board hangs from a yardarm on the mast, two chains down to the bezel (900px and up; below
+   that the board sits in the flow under the nest). To drop it, remove this block. */
+@media (min-width: 900px) {
+  .rig::before {
+    content: "";
+    position: absolute;
+    left: calc(-4 * var(--px));
+    right: calc(28 * var(--px));
+    top: 180px;
+    height: calc(4 * var(--px));
+    background:
+      linear-gradient(var(--ink) 0 0) left / var(--px) 100% no-repeat,
+      linear-gradient(
+        var(--ink) 0 var(--px),
+        var(--c11) var(--px) calc(2 * var(--px)),
+        var(--c3) calc(2 * var(--px)) calc(3 * var(--px)),
+        var(--ink) calc(3 * var(--px)) 100%
+      );
+    clip-path: polygon(
+      0 var(--px),
+      var(--px) var(--px),
+      var(--px) 0,
+      100% 0,
+      100% 100%,
+      var(--px) 100%,
+      var(--px) calc(100% - var(--px)),
+      0 calc(100% - var(--px))
+    );
+  }
+  .board::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -64px;
+    height: 64px;
+    background:
+      url("../art/chain.svg") repeat-y left calc(2 * var(--px)) top 0 / calc(4 * var(--px)) calc(8 * var(--px)),
+      url("../art/chain.svg") repeat-y right calc(2 * var(--px)) top 0 / calc(4 * var(--px)) calc(8 * var(--px));
+    image-rendering: pixelated;
+  }
 }
 
 /* ambient face patches: a neutral crewmate blinks, and glances up when its room scrolls into view */
@@ -291,6 +336,16 @@ section[id] {
 .nest .eyes {
   z-index: 1;
 }
+/* ---- the neutral crewmates follow the pointer: site.js sets --lx and --ly (0, 1, 2) and adds .look when the
+   pointer is off to one side, and the face sheet slides to that cell. To drop it, remove this block and
+   eyesFollow() in site.js. */
+.eyes.look {
+  background-image: url("../art/face-look.svg");
+  background-size: 300% 300%;
+  background-position: calc(var(--lx, 1) * 50%) calc(var(--ly, 1) * 50%);
+  opacity: 1;
+  animation: none;
+}
 
 /* -------------------------------------------------------- deck */
 .deck {
@@ -317,6 +372,7 @@ section[id] {
 .deck > .ratlines {
   right: calc(max(var(--gut), 50% - 664px) + 22 * var(--px));
   top: 0;
+  bottom: calc(32 * var(--px));
 }
 .deck > .ratlines {
   right: calc(max(var(--gut), 50% - 664px) + 14 * var(--px));
@@ -324,10 +380,6 @@ section[id] {
 }
 .deck > .mast {
   background-position: left top;
-}
-.deck > .mast,
-.deck > .ratlines {
-  bottom: calc(32 * var(--px));
 }
 .deck > .mast::after {
   content: "";
@@ -358,7 +410,7 @@ section[id] {
 }
 .works li {
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr);
+  grid-template-columns: 344px minmax(0, 1fr); /* wide enough for the longest title and its link marker on a line */
   gap: 0 40px;
   align-items: baseline;
   margin: 0;
@@ -574,9 +626,6 @@ section[id] {
   top: calc(14px - var(--h) * var(--px) * 0.7);
   animation: bob 5s steps(2) infinite;
 }
-.f1 {
-  left: 17%;
-}
 .f2 {
   left: 41%;
   animation-delay: -1.6s !important;
@@ -718,7 +767,6 @@ section[id] {
   display: block;
   width: 100%;
   height: auto;
-  border: 3px solid var(--c8);
   background: var(--ink);
 }
 .recording figcaption {
@@ -783,8 +831,7 @@ section[id] {
   color: var(--c7);
 }
 .floor {
-  display: grid;
-  grid-template-columns: calc(76 * var(--px)) minmax(0, 1fr) minmax(0, 1.15fr);
+  display: grid; /* the columns are set below: two from 1100px, then the stacked layouts */
   gap: 48px;
   align-items: start;
   padding: 48px 0 56px;
@@ -847,6 +894,7 @@ section[id] {
 }
 .floor-fig {
   margin: 0;
+  container-type: inline-size; /* the sketch's panes stack by the width of its figure: see @container below */
 }
 .floor-fig figcaption {
   font-size: var(--t-sm);
@@ -856,13 +904,6 @@ section[id] {
 }
 .floor-fig .cmd pre {
   font-size: var(--code-sm);
-}
-/* a recording is too wide to read beside the text, so it takes the whole floor under it */
-.reel .floor-text {
-  grid-column: 2 / -1;
-}
-.reel .recording {
-  grid-column: 1 / -1;
 }
 .steam {
   position: absolute;
@@ -986,15 +1027,151 @@ section[id] {
   border-color: var(--c6);
 }
 /* beside the text on a laptop the sketch gets too narrow for two columns of panes, so they stack rather than cut their words */
-.floor-fig {
-  container-type: inline-size;
-}
 @container (max-width: 449px) {
   .ui-main {
     grid-template-columns: minmax(0, 1fr);
   }
   .ui-pane:first-child {
     grid-row: auto;
+  }
+}
+
+/* ---- recording controls: site.js adds .reel to the bezel's chin, a pause button and a groove you can scrub, and
+   takes the native controls away (they stay with reduced motion, or without the script). To drop it, remove
+   this block, reelControls() in site.js and the .reel-btn selectors in site.css. */
+.screen {
+  position: relative;
+}
+.screen.has-reel {
+  border-bottom-width: calc(10 * var(--px));
+}
+.reel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-9 * var(--px));
+  height: calc(9 * var(--px));
+  display: flex;
+  align-items: center;
+  gap: calc(3 * var(--px));
+}
+.reel-btn {
+  position: relative;
+  flex: none;
+  line-height: 18px;
+  padding: 1px 10px 2px;
+}
+.reel-btn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+} /* a 24px target around the 18px keycap */
+.reel-btn:focus-visible {
+  outline-color: var(--ink);
+  outline-offset: 2px;
+}
+.reel-track {
+  position: relative;
+  flex: 1;
+  height: calc(4 * var(--px));
+  background: var(--ink);
+  cursor: pointer;
+  touch-action: pan-y; /* a sideways drag scrubs; a vertical swipe still scrolls the page */
+}
+.reel-track::before {
+  content: "";
+  position: absolute;
+  inset: calc(-2 * var(--px)) 0;
+} /* a taller target than the groove */
+.reel-track:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .reel-btn::after {
+    inset: -12px -4px;
+  } /* 44px */
+  .reel-track::before {
+    inset: -16px 0;
+  } /* 44px or more */
+}
+.reel-track i {
+  position: absolute;
+  left: var(--px);
+  top: var(--px);
+  bottom: var(--px);
+  width: calc((100% - 2 * var(--px)) * var(--p, 0));
+  background: var(--c6);
+}
+
+/* ---- ship's keys on this page (site.js, shipKeys): alt-a calls the next crewmate who needs you, and the
+   plate turns the selection cyan while the sprite takes one jolt; alt-q detaches with a toast. To drop it,
+   remove this block and shipKeys() in site.js. */
+.member.called .plate {
+  background: var(--c6);
+  color: var(--ink);
+  box-shadow: 0 0 0 2px var(--c6);
+}
+.member.called .plate .g,
+.member.called .plate .role {
+  color: var(--ink);
+}
+.member.called > .act {
+  animation:
+    act calc(var(--n) * var(--dt)) steps(var(--n)) var(--lag, 0s) infinite,
+    jolt 0.3s steps(1) 3;
+}
+@keyframes jolt {
+  50% {
+    transform: translateY(calc(-1 * var(--px)));
+  }
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  z-index: 80;
+  width: max-content;
+  max-width: min(520px, calc(100% - 2 * var(--gut)));
+  padding: 12px 16px;
+  color: var(--c15);
+  transform: translateX(-50%);
+  animation: toast-in 0.24s steps(3);
+}
+.toast[hidden] {
+  display: none;
+}
+@keyframes toast-in {
+  from {
+    transform: translate(-50%, calc(3 * var(--px)));
+  }
+}
+
+/* ---- floor layout, 1100px and up: the room over its words on the left,
+   the screen centred on the right like a monitor on the wall. The words get a 54ch line, and a recording is
+   wider than the waterline one at every width here. Narrower screens keep the stacked layout further down. */
+@media (min-width: 1100px) {
+  .floor {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-areas:
+      "room fig"
+      "text fig";
+    column-gap: 64px;
+    row-gap: 28px;
+  }
+  .floor > .room {
+    grid-area: room;
+  }
+  .floor > .floor-text {
+    grid-area: text;
+  }
+  .floor > .floor-fig,
+  .floor > .recording {
+    grid-area: fig;
+    align-self: center;
+  }
+  .floor-text p {
+    max-width: 54ch;
   }
 }
 
@@ -1434,12 +1611,193 @@ section[id] {
   font-weight: 700;
 }
 
+/* ---- mounted screens: every figure terminal and recording gets the crewmate's own bezel.
+   One frame, all in art pixels: an ink outline (1), a cream plate (3) with a screw in each corner, then the
+   ink screen. It is a stack of backgrounds on a transparent border, so the whole frame stays inside the box
+   and the notched corners (clip-path, 1 art pixel) cut a clean outline. To drop the bezel, remove .mount. */
+.mount {
+  border: calc(4 * var(--px)) solid transparent;
+  background:
+    linear-gradient(var(--c8) 0 0) left calc(2 * var(--px)) top calc(2 * var(--px)) / var(--px) var(--px) no-repeat
+      border-box,
+    linear-gradient(var(--c8) 0 0) right calc(2 * var(--px)) top calc(2 * var(--px)) / var(--px) var(--px) no-repeat
+      border-box,
+    linear-gradient(var(--c8) 0 0) left calc(2 * var(--px)) bottom calc(2 * var(--px)) / var(--px) var(--px) no-repeat
+      border-box,
+    linear-gradient(var(--c8) 0 0) right calc(2 * var(--px)) bottom calc(2 * var(--px)) / var(--px) var(--px) no-repeat
+      border-box,
+    linear-gradient(var(--ink) 0 0) padding-box,
+    linear-gradient(var(--c7) 0 0) center / calc(100% - 2 * var(--px)) calc(100% - 2 * var(--px)) no-repeat border-box,
+    linear-gradient(var(--ink) 0 0) border-box;
+  clip-path: polygon(
+    var(--px) 0,
+    calc(100% - var(--px)) 0,
+    calc(100% - var(--px)) var(--px),
+    100% var(--px),
+    100% calc(100% - var(--px)),
+    calc(100% - var(--px)) calc(100% - var(--px)),
+    calc(100% - var(--px)) 100%,
+    var(--px) 100%,
+    var(--px) calc(100% - var(--px)),
+    0 calc(100% - var(--px)),
+    0 var(--px),
+    var(--px) var(--px)
+  );
+}
+/* the terminal rules that colour a terminal's border (night, and below deck) must not paint the bezel */
+html .term.mount {
+  border-color: transparent;
+}
+.screen {
+  margin: 0;
+}
+
+/* ---- the bottle at the waterline is an agent: a tag beside it says which state (glyph and word), and pressing it
+   looks at it (unseen becomes idle) and again sends it off. site.js, bottleTag(). To drop it, remove this block,
+   bottleTag() and the button in body.html (the old picture was a plain image in .flotsam). */
+.bottle {
+  position: absolute;
+  z-index: 4;
+  left: calc(17% - 2 * var(--px));
+  top: calc(14px - 10 * var(--px) * 0.7 - 2 * var(--px));
+  padding: calc(2 * var(--px)); /* a 44 by 56 target around the 28 by 40 bottle */
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: 0;
+  cursor: pointer;
+  animation: bob 5s steps(2) infinite;
+}
+.bottle::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+@media (pointer: coarse) and (max-width: 600px) {
+  .bottle::before {
+    inset: -8px;
+  } /* the bottle is smaller on a phone: 49 by 58 with its target */
+}
+.bottle .tag {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  margin-top: -11px;
+  background: var(--ink);
+  color: var(--c15);
+  font: var(--code-sm)/22px var(--code);
+  padding: 0 8px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.bottle .tag .g {
+  font-style: normal;
+}
+.bottle .tag b {
+  font-weight: 400;
+}
+.bottle:focus-visible .tag {
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 0 0 4px var(--c14);
+}
+@media (hover: hover) {
+  .bottle:hover .tag {
+    box-shadow:
+      0 0 0 2px var(--ink),
+      0 0 0 4px var(--c14);
+  }
+}
+
+/* ---- deck ledger: the titles are links into the docs, a row you point at or Tab to turns into the selected row
+   (ship's own cyan, ink text), and the navigator rides the ratlines up to it. site.js adds .sel to the row and
+   sets --dy and --n on the climber. To drop all of it, remove this block and ledgerClimb() in site.js. */
+.works h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.works h3 a::after {
+  content: "›";
+  margin-left: 0.4em;
+  color: var(--chev, var(--sea));
+}
+@media (hover: hover) {
+  .works h3 a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+}
+.works li.sel {
+  background: var(--dash), var(--c6);
+  box-shadow:
+    calc(-3.5 * var(--px)) 0 0 var(--c6),
+    calc(3.5 * var(--px)) 0 0 var(--c6);
+  color: var(--ink);
+}
+.works li.sel h3,
+.works li.sel h3 a::after,
+.works li.sel p,
+.works li.sel code {
+  color: var(--ink);
+} /* every word in the row, in both modes: night colours the page's text cream, which the cyan band cannot take */
+.works li.sel h3::before {
+  background: var(--ink);
+}
+/* the global focus ring is cyan at night and would vanish on the cyan band: ring the whole row in ink instead */
+.works li:has(a:focus-visible) {
+  box-shadow:
+    inset 0 0 0 3px var(--ink),
+    calc(-3.5 * var(--px)) 0 0 var(--c6),
+    calc(3.5 * var(--px)) 0 0 var(--c6);
+}
+.works h3 a:focus-visible {
+  outline: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+.climber {
+  display: none;
+}
+/* a pointer is what sends it climbing; with touch alone it would only stand at the mast beside the captain */
+@media (min-width: 900px) and (any-hover: hover) {
+  .climber {
+    display: block;
+    position: absolute;
+    right: calc(max(var(--gut), 50% - 664px) + 4 * var(--px));
+    bottom: calc(29 * var(--px));
+    z-index: 1;
+    pointer-events: none;
+    transform: translateY(var(--dy, 0px));
+    transition: transform calc(var(--n, 1) * 70ms) steps(var(--n, 1));
+  }
+  .climber .act {
+    transform: scaleX(-1);
+  }
+}
+
+/* ---- the footer: the big mark (one css pixel per art pixel, so it is crisp) and the licence on the left, the
+   links on the right. To drop it, remove this block and the mark in body.html. */
+.foot {
+  align-items: center;
+  justify-content: flex-start;
+}
+.foot .mark {
+  flex: none;
+  width: 72px;
+  height: 72px;
+}
+.foot p {
+  margin-right: auto;
+}
+
 /* ------------------------------------------------ narrower screens */
 @media (max-width: 1099px) {
   .floor {
     grid-template-columns: calc(76 * var(--px)) minmax(0, 1fr);
   }
-  .floor-fig {
+  .floor-fig,
+  .floor .recording {
     grid-column: 1 / -1;
   }
   .cargo,
@@ -1458,6 +1816,9 @@ section[id] {
   .crew > li.prop {
     display: none;
   } /* five crew and two prop groups need about 1090px */
+  .works li {
+    grid-template-columns: 330px minmax(0, 1fr);
+  } /* the ledger's words need the room more than the longest title needs its link marker on one line */
 }
 @media (max-width: 899px) {
   .hero {
@@ -1577,35 +1938,38 @@ section[id] {
   .stagewrap {
     margin-top: 28px;
   }
+  .stage {
+    width: 100%;
+  } /* the decks and the cabin run to the screen's edges */
   .rail-far {
     display: none;
   }
   .crew {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    row-gap: 24px;
-    column-gap: 0;
+    gap: 0;
     justify-items: center;
-  }
-  .crew > li.prop:first-child {
-    display: flex;
   }
   .crew > li {
     margin-bottom: 0;
-  }
-  .crew > li.member {
     padding-bottom: calc(18 * var(--px));
     width: 100%;
     display: flex;
     justify-content: center;
-  }
-  .crew > li.prop {
-    align-self: end;
-    padding-bottom: calc(18 * var(--px));
-  }
-  .crew > li {
+    align-items: flex-end;
     background: url("../art/planks.svg") 0 100% / calc(48 * var(--px)) calc(18 * var(--px)) repeat-x;
     image-rendering: pixelated;
+  }
+  .crew > li.prop:first-child {
+    display: flex;
+  }
+  /* the crew stands on two decks, so the lower row is the cabin under the upper deck's planks */
+  .crew > li:nth-child(n + 4) {
+    padding-top: calc(10 * var(--px));
+    background:
+      url("../art/planks.svg") 0 100% / calc(48 * var(--px)) calc(18 * var(--px)) repeat-x,
+      url("../art/wall.svg") 0 0 / calc(32 * var(--px)) calc(22 * var(--px)),
+      var(--wall);
   }
   .planks.tile {
     display: none;
@@ -1621,9 +1985,6 @@ section[id] {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
     padding: 36px 0 40px;
-  }
-  .reel .floor-text {
-    grid-column: auto;
   }
   .water-copy p {
     font-size: var(--t-base);

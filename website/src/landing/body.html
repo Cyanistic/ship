@@ -1,7 +1,7 @@
 <a class="skip" href="#sky">skip to the content</a>
 <header class="bar">
   <div class="bar-in">
-    <a class="home" href="#sky"><img class="px" src="marks/app.svg" width="32" height="32" alt=""><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the top</span></a>
+    <a class="home" href="#sky"><img class="px mark" src="marks/app-large.svg" width="44" height="44" alt=""><span class="wordmark pixel p22">ship</span><span class="sr-only">ship, back to the top</span></a>
     <nav aria-label="main">
       <ul>
         <li><a href="/docs/">docs</a></li>
@@ -61,7 +61,7 @@
         <i class="eyes" style="--x:13;--y:20;animation-delay:-2s"></i>
       </div>
       <figure class="board">
-        <div class="term" role="img" aria-label="ship's agents list: codex blocked, claude error, pi unseen, claude working, crush idle">
+        <div class="term mount" role="img" aria-label="ship's agents list: codex blocked, claude error, pi unseen, claude working, crush idle">
           <div class="head">─ agents ─────────────</div>
           <ul aria-hidden="true">
             <li><span class="s-blocked">▲</span> codex blocked<span class="tab">ship › api</span></li>
@@ -81,20 +81,21 @@
 <section class="deck" id="deck" aria-labelledby="deck-title">
   <div class="mast deckpiece" aria-hidden="true"></div>
   <div class="ratlines deckpiece" aria-hidden="true"></div>
+  <div class="climber" aria-hidden="true"><span class="act a-point"></span></div>
   <div class="deck-in">
     <h2 id="deck-title" class="pixel p33"><span class="place">deck</span> what works today</h2>
     <p class="intro">there are no releases yet, but a build from source does all of this today. linux and macos are the priority platforms, and windows is best effort.</p>
     <ul class="works">
-      <li><h3 class="pixel p22">work that keeps running</h3><p>a background server owns your terminals. close the window or press <code>alt-q</code> to detach, and everything keeps running until you come back.</p></li>
-      <li><h3 class="pixel p22">saved tabs</h3><p>after a server restart or reboot, your tabs, splits and directories come back with fresh shells. programs, agent conversations and scrollback do not resume.</p></li>
-      <li><h3 class="pixel p22">agent status</h3><p>agents that report their state, like claude code, codex and pi, get a sidebar entry showing whether they're working, blocked, finished unseen or idle, and their tabs show it too. a sound plays when one finishes or needs you while you're looking elsewhere, and <code>alt-a</code> jumps to it.</p></li>
-      <li><h3 class="pixel p22">tabs inside tabs</h3><p>tabs can nest, so a big task can hold its own smaller ones. a sidebar shows the tree. fold the parts you aren't looking at, or drag rows to reorder and nest tabs.</p></li>
-      <li><h3 class="pixel p22">split panes</h3><p>split, zoom, swap and resize from the keyboard, or drag shared borders to resize. new splits open in the directory you were working in.</p></li>
-      <li><h3 class="pixel p22">more than one window</h3><p>attach from several terminals at once. each one picks its own tab and pane, while the work underneath is shared.</p></li>
-      <li><h3 class="pixel p22">scrollback and copy</h3><p>scroll back through a pane's history, and drag to select and copy text.</p></li>
-      <li><h3 class="pixel p22">a scriptable cli</h3><p>server actions are also <code>ship</code> commands that print json, so scripts and agents can create panes, read output and steer a specific client's selection.</p></li>
-      <li><h3 class="pixel p22">agents driving agents</h3><p><code>ship pane send</code> types a prompt or keys into a pane, and <code>ship pane wait</code> blocks until the agent there stops working, so one agent can hand work to another and read the answer.</p></li>
-      <li><h3 class="pixel p22">your keys and menus</h3><p>rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. let mouse-aware programs have right-clicks per pane. config changes apply when you save.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/windows-and-the-server/">work that keeps running</a></h3><p>a background server owns your terminals. close the window or press <code>alt-q</code> to detach, and everything keeps running until you come back.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/saved-tabs/">saved tabs</a></h3><p>after a server restart or reboot, your tabs, splits and directories come back with fresh shells. programs, agent conversations and scrollback do not resume.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/agents/">agent status</a></h3><p>agents that report their state, like claude code, codex and pi, get a sidebar entry showing whether they're working, blocked, finished unseen or idle, and their tabs show it too. a sound plays when one finishes or needs you while you're looking elsewhere, and <code>alt-a</code> jumps to it.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/tabs/">tabs inside tabs</a></h3><p>tabs can nest, so a big task can hold its own smaller ones. a sidebar shows the tree. fold the parts you aren't looking at, or drag rows to reorder and nest tabs.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/panes/">split panes</a></h3><p>split, zoom, swap and resize from the keyboard, or drag shared borders to resize. new splits open in the directory you were working in.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/windows-and-the-server/">more than one window</a></h3><p>attach from several terminals at once. each one picks its own tab and pane, while the work underneath is shared.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/scrolling-copying-and-the-mouse/">scrollback and copy</a></h3><p>scroll back through a pane's history, and drag to select and copy text.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/scripting/">a scriptable cli</a></h3><p>server actions are also <code>ship</code> commands that print json, so scripts and agents can create panes, read output and steer a specific client's selection.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/scripting/handing-work-to-another-agent/">agents driving agents</a></h3><p><code>ship pane send</code> types a prompt or keys into a pane, and <code>ship pane wait</code> blocks until the agent there stops working, so one agent can hand work to another and read the answer.</p></li>
+      <li><h3 class="pixel p22"><a href="/docs/configuration/">your keys and menus</a></h3><p>rebind anything, build tmux-style prefix modes, and customize right-click menus for panes, tabs and the sidebar. let mouse-aware programs have right-clicks per pane. config changes apply when you save.</p></li>
     </ul>
 
     <aside class="notyet" aria-labelledby="notyet-title">
@@ -160,11 +161,11 @@
     <div>as an ai language model ~ holistic ~ leverage ~ synergy ~ in conclusion ~ empower ~ blazingly ~ streamline ~ unleash ~ delve</div>
   </div>
   <div class="flotsam" aria-hidden="true">
-    <img class="px art f1" style="--w:7;--h:10" src="art/bottle.svg" alt="">
     <img class="px art f2" style="--w:18;--h:12" src="art/float-sign.svg" alt="">
     <img class="px art f3" style="--w:16;--h:10" src="art/buoy.svg" alt="">
     <img class="px art f4" style="--w:18;--h:4" src="art/float-plank.svg" alt="">
   </div>
+  <button class="bottle" type="button"><img class="px art" style="--w:7;--h:10" src="art/bottle.svg" alt=""><span class="tag" aria-hidden="true"><i class="g s-unseen">◆</i> <b>unseen</b></span><span class="sr-only">a bottle floats by. it is marked unseen: it finished while you were looking elsewhere. press to look at it.</span></button>
   <div class="deepwater" aria-hidden="true">
     <span class="fish s1 art" style="--w:12;--h:6"></span><span class="fish s2 art" style="--w:12;--h:6"></span><span class="fish s3 art" style="--w:12;--h:6"></span>
     <img class="bubble px art b1" style="--w:3;--h:3" src="art/bubble.svg" alt=""><img class="bubble px art b2" style="--w:3;--h:3" src="art/bubble.svg" alt=""><img class="bubble px art b3" style="--w:3;--h:3" src="art/bubble.svg" alt="">
@@ -176,7 +177,7 @@
       <p>ship can't drain it, and it doesn't try. it keeps your shells, editors and agents in tabs and panes on a server that stays up after the window closes, and it tells you which agent is working, which one is stuck on a question and which one finished while you were looking somewhere else, so whatever you send out is something you actually looked at.</p>
     </div>
     <figure class="recording">
-      <video src="demo/waterline.webm" poster="demo/waterline.png" width="1920" height="1080" muted loop playsinline controls preload="metadata" aria-label="a ship session: claude code and pi work side by side in nested tabs, claude stops on a permission question and the sidebar marks it blocked, the window detaches and reattaches with both agents still working"></video>
+      <div class="screen mount"><video src="demo/waterline.webm" poster="demo/waterline.png" width="1920" height="1080" muted loop playsinline controls preload="metadata" aria-label="a ship session: claude code and pi work side by side in nested tabs, claude stops on a permission question and the sidebar marks it blocked, the window detaches and reattaches with both agents still working"></video></div>
       <figcaption>a real ship session, recorded in CI for each release. claude code and pi run on openrouter's free models, so every take comes out a little different.</figcaption>
     </figure>
   </div>
@@ -204,7 +205,7 @@
         <p>you can open ship from several terminals at once. the windows share the work, the same tabs, programs and output, but each picks its own tab and pane, folds its own sidebar and keeps its own mode. <code>ship server stop</code> ends the server and every program inside it.</p>
       </div>
       <figure class="floor-fig">
-        <div class="term dg" role="img" aria-label="three windows above one server. two windows are attached, each on its own tab. the third was closed with alt-q, shown dashed. the server below holds four panes and keeps running either way.">
+        <div class="term mount dg" role="img" aria-label="three windows above one server. two windows are attached, each on its own tab. the third was closed with alt-q, shown dashed. the server below holds four panes and keeps running either way.">
           <div class="dg-wins" aria-hidden="true">
             <div class="dg-win"><b>window</b><span>ship › api</span></div>
             <div class="dg-win"><b>window</b><span>docs › guide</span></div>
@@ -236,7 +237,7 @@
         <p>agents that report their state get an entry in the lower half of the sidebar, with the ones that need you sorted to the top. tabs show the most urgent icon from anything inside them, so a blocked agent stays visible even in a folded tab.</p>
       </div>
       <figure class="floor-fig">
-        <div class="term ui" role="img" aria-label="a sketch of ship's layout: a sidebar with a tree of tabs and a list of agents, and three panes, one running cargo test, one with claude waiting on a question and one with nvim">
+        <div class="term mount ui" role="img" aria-label="a sketch of ship's layout: a sidebar with a tree of tabs and a list of agents, and three panes, one running cargo test, one with claude waiting on a question and one with nvim">
           <div class="ui-side" aria-hidden="true"><pre> tabs          ≡
  ▾ ship        <span class="s-blocked">▲</span>
      api       <span class="s-blocked">▲</span>
@@ -273,7 +274,7 @@ Apply changes?
         <p>anything you can do with keys you can also do with <code>ship</code> commands. they print json and take explicit ids, so a script never acts on whichever pane you happen to have selected, and inside a ship pane the commands default to the pane they run in.</p>
       </div>
       <figure class="floor-fig">
-        <div class="term cmd">
+        <div class="term mount cmd">
           <button class="copy" type="button" data-copy="TAB=$(ship tab create --name demo | jq -r .id)&#10;PANE=$(ship pane create --tab &quot;$TAB&quot; --exit-behavior keep -- sh -c 'seq 100' | jq -r .id)&#10;ship pane wait --pane &quot;$PANE&quot; --status exited &gt;/dev/null&#10;ship pane read --pane &quot;$PANE&quot; --lines 5&#10;ship tab close --tab &quot;$TAB&quot;">copy</button>
 <pre><span class="t-prompt">$ </span>TAB=$(ship tab create --name demo | jq -r .id)
 <span class="t-prompt">$ </span>PANE=$(ship pane create --tab "$TAB" --exit-behavior keep -- sh -c <span class="t-s">'seq 100'</span> | jq -r .id)
@@ -290,7 +291,7 @@ Apply changes?
     </article>
     <div class="beam tile" style="--tw:16;--th:6" aria-hidden="true"></div>
 
-    <article class="floor reel">
+    <article class="floor">
       <div class="room" aria-hidden="true">
         <span class="act a-handoff"></span>
         <i class="eyes" style="--x:11;--y:24;animation-delay:-3s"></i>
@@ -301,7 +302,7 @@ Apply changes?
         <p><code>--wait</code> returns once the agent has stopped working, and the state it prints says how the turn ended: <code>done</code> or <code>idle</code> means it finished, and <code>blocked</code> means it is asking you something. this works with any program that reports its status.</p>
       </div>
       <figure class="recording">
-        <video src="demo/relay.webm" poster="demo/relay.png" width="1920" height="1080" muted loop playsinline controls preload="metadata" aria-label="claude code uses ship commands to open pi in the pane beside it, hands it a task, waits for it to finish and reads its answer back"></video>
+        <div class="screen mount"><video src="demo/relay.webm" poster="demo/relay.png" width="1920" height="1080" muted loop playsinline controls preload="metadata" aria-label="claude code uses ship commands to open pi in the pane beside it, hands it a task, waits for it to finish and reads its answer back"></video></div>
         <figcaption>claude code opens pi beside itself, hands it a task and reads back the answer, recorded in CI like the one above. <a href="/docs/scripting/handing-work-to-another-agent/">handing work to another agent</a> has the commands.</figcaption>
       </figure>
     </article>
@@ -432,6 +433,7 @@ Apply changes?
   </div>
   <div class="sand tile" style="--tw:32;--th:14" aria-hidden="true"></div>
   <footer class="foot">
+    <img class="px mark" src="marks/app-large.svg" width="72" height="72" alt="">
     <p>ship is licensed under the <a href="https://github.com/shipmux/ship/blob/main/LICENSE">gnu general public license v3.0 or later</a>. it is a work in progress.</p>
     <nav aria-label="footer"><a href="/docs/">docs</a><a href="#install">install</a><a href="#keys">keys</a><a href="#config">config</a><a href="https://github.com/shipmux/ship">github</a><a href="#sky">back to the sky</a></nav>
   </footer>

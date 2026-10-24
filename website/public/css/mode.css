@@ -33,8 +33,10 @@
   background: var(--sky);
   color: var(--c7);
 } /* a little window onto the sky */
-.mode:hover {
-  border-color: var(--c14);
+@media (hover: hover) {
+  .mode:hover {
+    border-color: var(--c14);
+  }
 }
 .mode:focus-visible {
   outline: 3px solid var(--c14);
@@ -160,6 +162,11 @@
   border-color: var(--c8);
 } /* an ink terminal on a navy ground keeps an edge, as it does below deck */
 
+/* the deck ledger's link marker (landing.css) takes the night accent, as the row bullets do */
+[data-mode="dark"] .works {
+  --chev: var(--night-accent);
+}
+
 /* clouds by moonlight, and the gulls have gone to roost */
 [data-mode="dark"] .cloud {
   mix-blend-mode: soft-light;
@@ -243,6 +250,47 @@
   72%,
   100% {
     opacity: 1;
+  }
+}
+
+/* a shooting star: now and then, in the open band above the headline, in whole steps. Night only, and still
+   (hidden) with reduced motion. To drop it, remove this block. */
+.sky::after {
+  content: "";
+  display: none;
+  position: absolute;
+  left: 60%;
+  top: calc(5 * var(--px));
+  width: calc(9 * var(--px));
+  height: calc(3 * var(--px));
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 3' shape-rendering='crispEdges'%3E%3Crect x='0' y='2' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%23fbf8f1'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23d4ccb8'/%3E%3Crect x='4' y='1' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='5' y='1' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='5' y='0' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='6' y='0' width='1' height='1' fill='%235f5a75'/%3E%3Crect x='7' y='0' width='1' height='1' fill='%235f5a75'/%3E%3C/svg%3E")
+    0 0 / 100% 100%;
+  image-rendering: pixelated;
+  opacity: 0;
+  pointer-events: none;
+  animation: shoot 53s steps(1) -30s infinite;
+}
+[data-mode="dark"] .sky::after {
+  display: block;
+}
+@keyframes shoot {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  95% {
+    opacity: 1;
+    transform: translate(0, 0);
+    animation-timing-function: steps(12);
+  }
+  98% {
+    opacity: 1;
+    transform: translate(calc(-60 * var(--px)), calc(12 * var(--px)));
+  }
+  98.1%,
+  100% {
+    opacity: 0;
+    transform: translate(calc(-60 * var(--px)), calc(12 * var(--px)));
   }
 }
 
