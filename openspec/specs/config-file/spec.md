@@ -6,6 +6,38 @@ Let users configure Ship in one TOML file that the client and the server each re
 
 ## Requirements
 
+### Requirement: Pane defaults
+`[server.defaults.pane]` SHALL hold what a new pane starts with: `shell`, `scrollback_bytes`, `right_click_passthrough` and `exit_behavior`, defaulting to the login shell, 10,000,000, `false` and `"close"`. The server SHALL read the table each time it creates a pane, so a saved change applies to panes created afterwards and not to existing ones. A value given in the create request SHALL override the table for that pane.
+
+#### Scenario: Change applies to the next pane
+- **WHEN** a user sets `exit_behavior = "keep"` in `[server.defaults.pane]`, saves, and creates a pane on a running server
+- **THEN** the new pane shows `exitBehavior: keep` and existing panes keep their values
+
+#### Scenario: Create request overrides the table
+- **WHEN** the table sets `exit_behavior = "keep"` and a script runs `ship pane create --exit-behavior close`
+- **THEN** the new pane shows `exitBehavior: close`
+
+### Requirement: Pane shell setting
+`[server.defaults.pane] shell` SHALL name the program a pane runs when created without a command, started as a login shell. A relative path SHALL resolve from the config file's folder. When it is absent, the pane SHALL run the login shell.
+
+#### Scenario: Shell for the next pane
+- **WHEN** a user sets `shell = "/bin/sh"` in `[server.defaults.pane]`, saves, and creates a pane without a command on a running server
+- **THEN** the new pane runs `/bin/sh` as a login shell, and existing panes are unchanged
+
+### Requirement: Bad file gives built-in pane defaults
+When the config file can't be read or has errors, the server SHALL create panes with the built-in pane defaults and log the error.
+
+#### Scenario: Broken file
+- **WHEN** the file has a syntax error and a user creates a pane without a command
+- **THEN** the pane runs the login shell with the built-in defaults, and the server log records the error
+
+### Requirement: Old server settings are rejected
+`[server] shell` and `[server] scrollback_bytes` SHALL no longer be accepted. `ship config check` SHALL report either one as an unknown field with its line and column.
+
+#### Scenario: Leftover shell setting
+- **WHEN** a config file still has `shell = "/bin/zsh"` under `[server]` and the user runs `ship config check`
+- **THEN** it reports the unknown field `shell` with its line and column and exits 1
+
 ### Requirement: Config file location
 Ship SHALL read its config from `--config <file>` if given, else from the file named by `SHIP_CONFIG`, else from `ship/config.toml` in the platform's config directory. No other environment variable SHALL set config values. With no config file, Ship SHALL run on the defaults. A server that `ship` starts in the background SHALL read the same file as the command that started it.
 
@@ -14,7 +46,7 @@ Ship SHALL read its config from `--config <file>` if given, else from the file n
 - **THEN** the client opens with the default keys and new panes run the login shell
 
 #### Scenario: File from the environment
-- **WHEN** no server is running and a user runs `SHIP_CONFIG=/tmp/ship.toml ship` with `shell = "/bin/sh"` under `[server]` in that file
+- **WHEN** no server is running and a user runs `SHIP_CONFIG=/tmp/ship.toml ship` with `shell = "/bin/sh"` under `[server.defaults.pane]` in that file
 - **THEN** a pane created without a command runs `/bin/sh`
 
 ### Requirement: Client and server parts
@@ -25,19 +57,8 @@ The file's top level SHALL hold only `[server]` and `[client]`. The server SHALL
 - **THEN** the client reports it as an unknown table and `ship config check` exits non-zero
 
 #### Scenario: Client error leaves the server alone
-- **WHEN** the file has a valid `[server]` shell and an unknown action under `[client]`
+- **WHEN** the file has a valid `[server.defaults.pane]` shell and an unknown action under `[client]`
 - **THEN** new panes still run the configured shell
-
-### Requirement: Server shell setting
-`[server] shell` SHALL name the program a pane runs when created without a command, started as a login shell. The server SHALL read it each time it starts such a pane, so a saved change applies to the next pane. When the file is bad, the server SHALL use the login shell and log the error.
-
-#### Scenario: Change applies to the next pane
-- **WHEN** a user sets `shell = "/bin/sh"`, saves, and creates a pane without a command on a running server
-- **THEN** the new pane runs `/bin/sh` as a login shell, and existing panes are unchanged
-
-#### Scenario: Broken file
-- **WHEN** the file has a syntax error and a user creates a pane without a command
-- **THEN** the pane runs the login shell and the server log records the error
 
 ### Requirement: Client reload
 A client SHALL reload `[client]` when the config file is saved, including when an editor replaces the file by rename and when the path is a symlink. The `client.config.reload` action SHALL also reload it.
@@ -102,13 +123,6 @@ A client that starts with a bad `[client]` SHALL run on the default keys and sho
 #### Scenario: Narrow terminal
 - **WHEN** a user drags the divider right on a 40-column terminal
 - **THEN** the sidebar stops where the pane area keeps 20 columns
-
-### Requirement: Server scrollback setting
-`[server] scrollback_bytes` SHALL limit each pane's history in bytes, with a default of 10,000,000. The server SHALL read it when it starts a pane, so a saved change applies to panes created afterwards. When the file is bad, the server SHALL use the default and log the error.
-
-#### Scenario: Smaller history for new panes
-- **WHEN** a user sets `scrollback_bytes = 20000`, saves, and creates a pane on a running server
-- **THEN** the new pane keeps about 20 KB of history and existing panes keep theirs
 
 ### Requirement: Client mouse setting
 `[client] mouse` SHALL turn the client's mouse capture on or off, defaulting to `true`, and SHALL reload like other `[client]` settings.
